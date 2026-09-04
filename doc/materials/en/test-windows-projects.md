@@ -88,9 +88,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Basic scene setup test that verifies the core rendering pipeline of the three engine.
 
-![base](../asstes/base.gif)
+![base](../../asstes/base.gif)
 
-[Jump to Project Directory](../../test/windows/base/)
+[Jump to Project Directory](../../../test/windows/base/)
 
 ---
 
@@ -98,9 +98,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Renders all geometry types orbiting around the camera, verifying geometry generation and transformation.
 
-![geometries](../asstes/geometries.gif)
+![geometries](../../asstes/geometries.gif)
 
-[Jump to Project Directory](../../test/windows/geometries/)
+[Jump to Project Directory](../../../test/windows/geometries/)
 
 ---
 
@@ -108,9 +108,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Material rendering test with layered sphere rings and raycasting debug.
 
-![materials](../asstes/materials.gif)
+![materials](../../asstes/materials.gif)
 
-[Jump to Project Directory](../../test/windows/materials/)
+[Jump to Project Directory](../../../test/windows/materials/)
 
 ---
 
@@ -118,9 +118,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Objects package feature verification covering intersectsFrustum / LOD / Mesh / Points / Line / Sprite.
 
-![objects](../asstes/objects.gif)
+![objects](../../asstes/objects.gif)
 
-[Jump to Project Directory](../../test/windows/objects/)
+[Jump to Project Directory](../../../test/windows/objects/)
 
 ---
 
@@ -128,9 +128,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Textures package feature verification testing TextureLoader (PNG) and DataTexture.
 
-![textures](../asstes/textures.gif)
+![textures](../../asstes/textures.gif)
 
-[Jump to Project Directory](../../test/windows/textures/)
+[Jump to Project Directory](../../../test/windows/textures/)
 
 ---
 
@@ -138,9 +138,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > CubeTexturePass cubemap background rendering test.
 
-![cubetexture](../asstes/cubetexture.gif)
+![cubetexture](../../asstes/cubetexture.gif)
 
-[Jump to Project Directory](../../test/windows/cubetexture/)
+[Jump to Project Directory](../../../test/windows/cubetexture/)
 
 ---
 
@@ -148,9 +148,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Helpers module verification with data validation and visual rendering.
 
-![helpers](../asstes/helpers.gif)
+![helpers](../../asstes/helpers.gif)
 
-[Jump to Project Directory](../../test/windows/helpers/)
+[Jump to Project Directory](../../../test/windows/helpers/)
 
 ---
 
@@ -158,9 +158,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Scenes package feature verification testing Scene / Fog / FogExp2 / background / overrideMaterial.
 
-![scenes](../asstes/scenes.gif)
+![scenes](../../asstes/scenes.gif)
 
-[Jump to Project Directory](../../test/windows/scenes/)
+[Jump to Project Directory](../../../test/windows/scenes/)
 
 ---
 
@@ -168,9 +168,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > renderers/common package feature verification.
 
-![rendercommon](../asstes/rendercommon.gif)
+![rendercommon](../../asstes/rendercommon.gif)
 
-[Jump to Project Directory](../../test/windows/rendercommon/)
+[Jump to Project Directory](../../../test/windows/rendercommon/)
 
 ---
 
@@ -180,9 +180,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Open-box scene with moving spheres and colored point lights.
 
-![boxshow](../asstes/boxshow.gif)
+![boxshow](../../asstes/boxshow.gif)
 
-[Jump to Project Directory](../../test/windows/boxshow/)
+[Jump to Project Directory](../../../test/windows/boxshow/)
 
 ---
 
@@ -190,9 +190,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Depth rendering visualization test based on boxshow.
 
-![depthtest](../asstes/depthtest.gif)
+![depthtest](../../asstes/depthtest.gif)
 
-[Jump to Project Directory](../../test/windows/depthtest/)
+[Jump to Project Directory](../../../test/windows/depthtest/)
 
 ---
 
@@ -200,9 +200,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > Points point cloud + Sprite rendering test.
 
-![particles](../asstes/particles.gif)
+![particles](../../asstes/particles.gif)
 
-[Jump to Project Directory](../../test/windows/particles/)
+[Jump to Project Directory](../../../test/windows/particles/)
 
 ---
 
@@ -210,9 +210,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > WindowEngine + InputEngine + BgfxRenderer window and input integration test.
 
-![window](../asstes/window.gif)
+![window](../../asstes/window.gif)
 
-[Jump to Project Directory](../../test/windows/window/)
+[Jump to Project Directory](../../../test/windows/window/)
 
 ---
 
@@ -222,9 +222,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > AmbientLight test with directional shadow casting.
 
-![sp_ambientlight](../asstes/sp_ambientlight.gif)
+![sp_ambientlight](../../asstes/sp_ambientlight.gif)
 
-[Jump to Project Directory](../../test/windows/sp_ambientlight/)
+[Jump to Project Directory](../../../test/windows/sp_ambientlight/)
 
 ---
 
@@ -232,9 +232,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > HemisphereLight sky-ground gradient lighting test with directional shadow casting.
 
-![sp_hemispherelight](../asstes/sp_hemispherelight.gif)
+![sp_hemispherelight](../../asstes/sp_hemispherelight.gif)
 
-[Jump to Project Directory](../../test/windows/sp_hemispherelight/)
+[Jump to Project Directory](../../../test/windows/sp_hemispherelight/)
 
 ---
 
@@ -242,9 +242,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > LightProbe SH3 spherical harmonics test with directional shadow casting.
 
-![sp_lightprobe](../asstes/sp_lightprobe.gif)
+![sp_lightprobe](../../asstes/sp_lightprobe.gif)
 
-[Jump to Project Directory](../../test/windows/sp_lightprobe/)
+[Jump to Project Directory](../../../test/windows/sp_lightprobe/)
 
 ---
 
@@ -252,9 +252,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > PointLight cubemap shadow map verification.
 
-![sp_pointshadow](../asstes/sp_pointshadow.gif)
+![sp_pointshadow](../../asstes/sp_pointshadow.gif)
 
-[Jump to Project Directory](../../test/windows/sp_pointshadow/)
+[Jump to Project Directory](../../../test/windows/sp_pointshadow/)
 
 ---
 
@@ -262,9 +262,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > SpotLight shadow casting verification.
 
-![sp_spotshadow](../asstes/sp_spotshadow.gif)
+![sp_spotshadow](../../asstes/sp_spotshadow.gif)
 
-[Jump to Project Directory](../../test/windows/sp_spotshadow/)
+[Jump to Project Directory](../../../test/windows/sp_spotshadow/)
 
 ---
 
@@ -272,9 +272,9 @@ This document provides a brief overview of all test projects located under `thre
 
 > VSM (Variance Shadow Mapping) blur pipeline verification.
 
-![sp_vsm](../asstes/sp_vsm.gif)
+![sp_vsm](../../asstes/sp_vsm.gif)
 
-[Jump to Project Directory](../../test/windows/sp_vsm/)
+[Jump to Project Directory](../../../test/windows/sp_vsm/)
 
 ---
 
@@ -286,9 +286,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 1 — Depth visualization.
 
-![sp_depth](../asstes/sp_depth.gif)
+![sp_depth](../../asstes/sp_depth.gif)
 
-[Jump to Project Directory](../../test/windows/sp_depth/)
+[Jump to Project Directory](../../../test/windows/sp_depth/)
 
 ---
 
@@ -296,9 +296,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 2 — World-space normal visualization.
 
-![sp_normal](../asstes/sp_normal.gif)
+![sp_normal](../../asstes/sp_normal.gif)
 
-[Jump to Project Directory](../../test/windows/sp_normal/)
+[Jump to Project Directory](../../../test/windows/sp_normal/)
 
 ---
 
@@ -306,9 +306,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 3 — Wireframe rendering.
 
-![sp_wireframe](../asstes/sp_wireframe.gif)
+![sp_wireframe](../../asstes/sp_wireframe.gif)
 
-[Jump to Project Directory](../../test/windows/sp_wireframe/)
+[Jump to Project Directory](../../../test/windows/sp_wireframe/)
 
 ---
 
@@ -316,9 +316,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 4 — N dot L lighting direction (no ambient).
 
-![sp_lightdir](../asstes/sp_lightdir.gif)
+![sp_lightdir](../../asstes/sp_lightdir.gif)
 
-[Jump to Project Directory](../../test/windows/sp_lightdir/)
+[Jump to Project Directory](../../../test/windows/sp_lightdir/)
 
 ---
 
@@ -326,9 +326,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 5 — Shadow camera frustum visualization.
 
-![sp_shadowfrustum](../asstes/sp_shadowfrustum.gif)
+![sp_shadowfrustum](../../asstes/sp_shadowfrustum.gif)
 
-[Jump to Project Directory](../../test/windows/sp_shadowfrustum/)
+[Jump to Project Directory](../../../test/windows/sp_shadowfrustum/)
 
 ---
 
@@ -336,9 +336,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 6 — Shadow map blit to screen.
 
-![sp_shadowmap](../asstes/sp_shadowmap.gif)
+![sp_shadowmap](../../asstes/sp_shadowmap.gif)
 
-[Jump to Project Directory](../../test/windows/sp_shadowmap/)
+[Jump to Project Directory](../../../test/windows/sp_shadowmap/)
 
 ---
 
@@ -346,9 +346,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 7 — ShadowMatrix projection UV visualization.
 
-![sp_shadowproj](../asstes/sp_shadowproj.gif)
+![sp_shadowproj](../../asstes/sp_shadowproj.gif)
 
-[Jump to Project Directory](../../test/windows/sp_shadowproj/)
+[Jump to Project Directory](../../../test/windows/sp_shadowproj/)
 
 ---
 
@@ -356,9 +356,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 8 — PCF shadow sampling result.
 
-![sp_pcf](../asstes/sp_pcf.gif)
+![sp_pcf](../../asstes/sp_pcf.gif)
 
-[Jump to Project Directory](../../test/windows/sp_pcf/)
+[Jump to Project Directory](../../../test/windows/sp_pcf/)
 
 ---
 
@@ -366,9 +366,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Debug Mode 9 — Baseline full Phong lighting.
 
-![sp_fullphong](../asstes/sp_fullphong.gif)
+![sp_fullphong](../../asstes/sp_fullphong.gif)
 
-[Jump to Project Directory](../../test/windows/sp_fullphong/)
+[Jump to Project Directory](../../../test/windows/sp_fullphong/)
 
 ---
 
@@ -378,9 +378,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > AfterimagePass trailing image post-processing effect.
 
-![afterimage](../asstes/afterimage.gif)
+![afterimage](../../asstes/afterimage.gif)
 
-[Jump to Project Directory](../../test/windows/afterimage/)
+[Jump to Project Directory](../../../test/windows/afterimage/)
 
 ---
 
@@ -388,9 +388,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Basic Bloom post-processing (migrated from three.js BloomPass).
 
-![bloom_basic](../asstes/bloom_basic.gif)
+![bloom_basic](../../asstes/bloom_basic.gif)
 
-[Jump to Project Directory](../../test/windows/bloom_basic/)
+[Jump to Project Directory](../../../test/windows/bloom_basic/)
 
 ---
 
@@ -398,9 +398,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > UnrealBloom glowing spheres post-processing effect.
 
-![unreal_bloom](../asstes/unreal_bloom.gif)
+![unreal_bloom](../../asstes/unreal_bloom.gif)
 
-[Jump to Project Directory](../../test/windows/unreal_bloom/)
+[Jump to Project Directory](../../../test/windows/unreal_bloom/)
 
 ---
 
@@ -408,9 +408,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > BokehPass depth-of-field bokeh post-processing.
 
-![bokeh_pass](../asstes/bokeh_pass.gif)
+![bokeh_pass](../../asstes/bokeh_pass.gif)
 
-[Jump to Project Directory](../../test/windows/bokeh_pass/)
+[Jump to Project Directory](../../../test/windows/bokeh_pass/)
 
 ---
 
@@ -418,9 +418,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > ClearPass infrastructure post-processing test.
 
-![clearpass](../asstes/clearpass.gif)
+![clearpass](../../asstes/clearpass.gif)
 
-[Jump to Project Directory](../../test/windows/clearpass/)
+[Jump to Project Directory](../../../test/windows/clearpass/)
 
 ---
 
@@ -428,9 +428,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > DotScreenPass dot-screen post-processing effect.
 
-![dotscreen](../asstes/dotscreen.gif)
+![dotscreen](../../asstes/dotscreen.gif)
 
-[Jump to Project Directory](../../test/windows/dotscreen/)
+[Jump to Project Directory](../../../test/windows/dotscreen/)
 
 ---
 
@@ -438,9 +438,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > FilmPass film grain post-processing effect.
 
-![film](../asstes/film.gif)
+![film](../../asstes/film.gif)
 
-[Jump to Project Directory](../../test/windows/film/)
+[Jump to Project Directory](../../../test/windows/film/)
 
 ---
 
@@ -448,9 +448,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > GlitchPass digital glitch post-processing effect.
 
-![glitch](../asstes/glitch.gif)
+![glitch](../../asstes/glitch.gif)
 
-[Jump to Project Directory](../../test/windows/glitch/)
+[Jump to Project Directory](../../../test/windows/glitch/)
 
 ---
 
@@ -458,9 +458,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > HalftonePass RGB halftone post-processing effect.
 
-![halftone](../asstes/halftone.gif)
+![halftone](../../asstes/halftone.gif)
 
-[Jump to Project Directory](../../test/windows/halftone/)
+[Jump to Project Directory](../../../test/windows/halftone/)
 
 ---
 
@@ -468,9 +468,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > LUTPass 3D lookup table color grading test.
 
-![lut_pass](../asstes/lut_pass.gif)
+![lut_pass](../../asstes/lut_pass.gif)
 
-[Jump to Project Directory](../../test/windows/lut_pass/)
+[Jump to Project Directory](../../../test/windows/lut_pass/)
 
 ---
 
@@ -478,9 +478,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > MaskPass + ClearMaskPass stencil mask control test.
 
-![mask](../asstes/mask.gif)
+![mask](../../asstes/mask.gif)
 
-[Jump to Project Directory](../../test/windows/mask/)
+[Jump to Project Directory](../../../test/windows/mask/)
 
 ---
 
@@ -488,9 +488,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > OutlinePass outline post-processing effect.
 
-![outline](../asstes/outline.gif)
+![outline](../../asstes/outline.gif)
 
-[Jump to Project Directory](../../test/windows/outline/)
+[Jump to Project Directory](../../../test/windows/outline/)
 
 ---
 
@@ -498,9 +498,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > OutputPass tone mapping + sRGB post-processing test.
 
-![outputpass](../asstes/outputpass.gif)
+![outputpass](../../asstes/outputpass.gif)
 
-[Jump to Project Directory](../../test/windows/outputpass/)
+[Jump to Project Directory](../../../test/windows/outputpass/)
 
 ---
 
@@ -508,9 +508,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > RenderPixelatedPass pixelated rendering effect.
 
-![pixelated](../asstes/pixelated.gif)
+![pixelated](../../asstes/pixelated.gif)
 
-[Jump to Project Directory](../../test/windows/pixelated/)
+[Jump to Project Directory](../../../test/windows/pixelated/)
 
 ---
 
@@ -518,9 +518,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > SavePass buffer snapshot post-processing test.
 
-![savepass](../asstes/savepass.gif)
+![savepass](../../asstes/savepass.gif)
 
-[Jump to Project Directory](../../test/windows/savepass/)
+[Jump to Project Directory](../../../test/windows/savepass/)
 
 ---
 
@@ -528,9 +528,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > ShaderPass generic shader post-processing test.
 
-![shaderpass](../asstes/shaderpass.gif)
+![shaderpass](../../asstes/shaderpass.gif)
 
-[Jump to Project Directory](../../test/windows/shaderpass/)
+[Jump to Project Directory](../../../test/windows/shaderpass/)
 
 ---
 
@@ -538,9 +538,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > TexturePass fullscreen texture post-processing test.
 
-![sp_texturepass](../asstes/sp_texturepass.gif)
+![sp_texturepass](../../asstes/sp_texturepass.gif)
 
-[Jump to Project Directory](../../test/windows/sp_texturepass/)
+[Jump to Project Directory](../../../test/windows/sp_texturepass/)
 
 ---
 
@@ -548,9 +548,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > RenderTransitionPass scene transition rendering test.
 
-![transition](../asstes/transition.gif)
+![transition](../../asstes/transition.gif)
 
-[Jump to Project Directory](../../test/windows/transition/)
+[Jump to Project Directory](../../../test/windows/transition/)
 
 ---
 
@@ -558,9 +558,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > VolumeCloudPass volumetric cloud post-processing effect.
 
-![volumecloud](../asstes/volumecloud.gif)
+![volumecloud](../../asstes/volumecloud.gif)
 
-[Jump to Project Directory](../../test/windows/volumecloud/)
+[Jump to Project Directory](../../../test/windows/volumecloud/)
 
 ---
 
@@ -570,9 +570,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > FXAA fast approximate anti-aliasing.
 
-![fxaa](../asstes/fxaa.gif)
+![fxaa](../../asstes/fxaa.gif)
 
-[Jump to Project Directory](../../test/windows/fxaa/)
+[Jump to Project Directory](../../../test/windows/fxaa/)
 
 ---
 
@@ -580,9 +580,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > SMAA subpixel morphological anti-aliasing.
 
-![smaa](../asstes/smaa.gif)
+![smaa](../../asstes/smaa.gif)
 
-[Jump to Project Directory](../../test/windows/smaa/)
+[Jump to Project Directory](../../../test/windows/smaa/)
 
 ---
 
@@ -590,9 +590,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > SSAA supersample anti-aliasing.
 
-![ssaa](../asstes/ssaa.gif)
+![ssaa](../../asstes/ssaa.gif)
 
-[Jump to Project Directory](../../test/windows/ssaa/)
+[Jump to Project Directory](../../../test/windows/ssaa/)
 
 ---
 
@@ -600,9 +600,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > TAA temporal anti-aliasing.
 
-![taa](../asstes/taa.gif)
+![taa](../../asstes/taa.gif)
 
-[Jump to Project Directory](../../test/windows/taa/)
+[Jump to Project Directory](../../../test/windows/taa/)
 
 ---
 
@@ -612,9 +612,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > GTAO ground truth ambient occlusion test.
 
-![gtao](../asstes/gtao.gif)
+![gtao](../../asstes/gtao.gif)
 
-[Jump to Project Directory](../../test/windows/gtao/)
+[Jump to Project Directory](../../../test/windows/gtao/)
 
 ---
 
@@ -622,9 +622,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > SAO scale-aware ambient occlusion test.
 
-![sao](../asstes/sao.gif)
+![sao](../../asstes/sao.gif)
 
-[Jump to Project Directory](../../test/windows/sao/)
+[Jump to Project Directory](../../../test/windows/sao/)
 
 ---
 
@@ -632,9 +632,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > SSAO screen-space ambient occlusion test.
 
-![ssao](../asstes/ssao.gif)
+![ssao](../../asstes/ssao.gif)
 
-[Jump to Project Directory](../../test/windows/ssao/)
+[Jump to Project Directory](../../../test/windows/ssao/)
 
 ---
 
@@ -642,9 +642,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > SSR screen-space reflection test.
 
-![ssr](../asstes/ssr.gif)
+![ssr](../../asstes/ssr.gif)
 
-[Jump to Project Directory](../../test/windows/ssr/)
+[Jump to Project Directory](../../../test/windows/ssr/)
 
 ---
 
@@ -654,9 +654,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > glTF/GLB model loader test.
 
-![glTFLoader](../asstes/glTFLoader.gif)
+![glTFLoader](../../asstes/glTFLoader.gif)
 
-[Jump to Project Directory](../../test/windows/glTFLoader/)
+[Jump to Project Directory](../../../test/windows/glTFLoader/)
 
 ---
 
@@ -664,9 +664,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Custom toon shading render pipeline test.
 
-![toon_pipeline](../asstes/toon_pipeline.gif)
+![toon_pipeline](../../asstes/toon_pipeline.gif)
 
-[Jump to Project Directory](../../test/windows/toon_pipeline/)
+[Jump to Project Directory](../../../test/windows/toon_pipeline/)
 
 ---
 
@@ -677,9 +677,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 > Audio functionality test.<br/>
 > **Note** This project demonstrates audio capabilities which cannot be perceived through rendered screenshots alone.
 
-![audio](../asstes/audio.gif)
+![audio](../../asstes/audio.gif)
 
-[Jump to Project Directory](../../test/windows/audio/)
+[Jump to Project Directory](../../../test/windows/audio/)
 
 ---
 
@@ -687,9 +687,9 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > Physics engine test.
 
-![physics](../asstes/physics.gif)
+![physics](../../asstes/physics.gif)
 
-[Jump to Project Directory](../../test/windows/physics/)
+[Jump to Project Directory](../../../test/windows/physics/)
 
 ---
 
@@ -697,8 +697,8 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 > bgfxxr XR extension package feature verification.
 
-![xrmanager](../asstes/xrmanager.gif)
+![xrmanager](../../asstes/xrmanager.gif)
 
-[Jump to Project Directory](../../test/windows/xrmanager/)
+[Jump to Project Directory](../../../test/windows/xrmanager/)
 
 ---
