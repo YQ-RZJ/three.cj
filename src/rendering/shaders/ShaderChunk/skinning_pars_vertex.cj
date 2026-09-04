@@ -1,0 +1,42 @@
+/**
+ * @file[zh-cn] skinning_pars_vertex  ShaderChunk GLSL 片段
+ * @brief[zh-cn] ShaderChunk GLSL 片段: skinning_pars_vertex
+ *
+ * @file[en] skinning_pars_vertex  ShaderChunk GLSL fragment
+ * @brief[en] ShaderChunk GLSL fragment: skinning_pars_vertex
+ * 该 GLSL 片段由 ShaderLib 在构建完整着色器程序时按需拼接。
+ * 在 bgfx4cj 渲染后端中,由 BgfxShader/BgfxShaderCache 在运行时
+ * 拼接为完整 GLSL 源码后交给 bgfx4j 封装的 shaderc API 编译。
+ */
+package three.rendering.shaders.ShaderChunk
+
+/**
+ * skinning_pars_vertex GLSL 片段字符串
+ * 
+ * 使用仓颉三引号多行字符串语法 `"""..."""`。
+ */
+public const skinning_pars_vertex: String = #"
+#ifdef USE_SKINNING
+
+	uniform mat4 bindMatrix;
+	uniform mat4 bindMatrixInverse;
+
+	uniform highp sampler2D boneTexture;
+
+	mat4 getBoneMatrix( const in float i ) {
+
+		int size = textureSize( boneTexture, 0 ).x;
+		int j = int( i ) * 4;
+		int x = j % size;
+		int y = j / size;
+		vec4 v1 = texelFetch( boneTexture, ivec2( x, y ), 0 );
+		vec4 v2 = texelFetch( boneTexture, ivec2( x + 1, y ), 0 );
+		vec4 v3 = texelFetch( boneTexture, ivec2( x + 2, y ), 0 );
+		vec4 v4 = texelFetch( boneTexture, ivec2( x + 3, y ), 0 );
+
+		return mat4( v1, v2, v3, v4 );
+
+	}
+
+#endif
+"#

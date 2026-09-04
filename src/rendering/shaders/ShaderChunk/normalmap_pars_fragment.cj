@@ -1,0 +1,25 @@
+/**
+ * @file[zh-cn] normalmap_pars_fragment  ShaderChunk GLSL 片段
+ * @brief[zh-cn] ShaderChunk GLSL 片段: normalmap_pars_fragment
+ *
+ * @file[en] normalmap_pars_fragment  ShaderChunk GLSL fragment
+ * @brief[en] ShaderChunk GLSL fragment: normalmap_pars_fragment
+ * 该 GLSL 片段由 ShaderLib 在构建完整着色器程序时按需拼接。
+ * 在 bgfx4cj 渲染后端中,由 BgfxShader/BgfxShaderCache 在运行时
+ * 拼接为完整 GLSL 源码后交给 bgfx4j 封装的 shaderc API 编译。
+ */
+package three.rendering.shaders.ShaderChunk
+
+/**
+ * normalmap_pars_fragment GLSL 片段字符串
+ * 
+ * 使用仓颉三引号多行字符串语法 `"""..."""`。
+ */
+public const normalmap_pars_fragment: String = #"
+#ifdef USE_NORMALMAP
+
+	uniform sampler2D u_normalMap;
+	uniform vec2 u_normalScale;
+
+#endif
+"#

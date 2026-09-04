@@ -1,0 +1,61 @@
+[dependencies]
+  [dependencies.bgfx4cj]
+    git = "https://gitcode.com/Cangjie-TPC/bgfx4cj.git"
+    output-type = "dynamic"
+  [dependencies.openalsoft4cj]
+    git = "https://gitcode.com/yq24w/openalsoft4cj.git"
+    output-type = "dynamic"
+  [dependencies.jolt4cj]
+    git = "https://gitcode.com/yq24w/jolt4cj.git"
+    output-type = "dynamic"
+  [dependencies.luajit4cj]
+    git = "https://gitcode.com/yq24w/luajit4cj.git"
+    output-type = "dynamic"
+  [dependencies.httpclient4cj]
+    git = "https://gitcode.com/yq24w/httpclient4cj.git"
+    branch = "httpclient4cj_cangjie-1.1.0"
+    output-type = "dynamic"
+  [dependencies.fastjson]
+    git = "https://gitcode.com/yq24w/cjfast_json.git"
+    output-type = "dynamic"
+  [dependencies.sdl4cj]
+    git = "https://gitcode.com/yq24w/sdl4cj.git"
+    output-type = "dynamic"
+
+[package]
+  cjc-version = "1.1.0"
+  compile-option = "-Woff unused"
+  description = "three"
+  link-option = "-L ${EXTEDN_LIBS_PATH}"
+  name = "three"
+  output-type = "dynamic"
+  override-compile-option = ""
+  src-dir = "src"
+  target-dir = ""
+  version = "1.0.0"
+  [package.package-configuration]
+
+[profile]
+  [profile.build]
+    incremental = true
+    lto = ""
+    #[profile.build.combined]
+    #  three = "dynamic"
+  [profile.customized-option]
+    debug = "-g -Woff all -Won apilevel-check"
+    release = "--fast-math -O2 -s -Woff all -Won apilevel-check"
+  [profile.test]
+
+[target]
+  [target.x86_64-w64-mingw32]
+  # ---- Linux ----
+  [target.x86_64-unknown-linux-gnu]
+  [target.aarch64-unknown-linux-gnu]
+  # ---- macOS ----
+  [target.x86_64-apple-darwin]
+  [target.aarch64-apple-darwin]
+  # ---- OpenHarmony (OHOS) ----
+  [target.aarch64-linux-ohos]
+    compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/aarch64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
+  [target.x86_64-linux-ohos]
+    compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/x86_64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""

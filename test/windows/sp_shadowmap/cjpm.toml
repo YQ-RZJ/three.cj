@@ -1,0 +1,21 @@
+[dependencies]
+  [dependencies.three]
+    path = "../../../"
+    output-type = "static"
+
+[package]
+  cjc-version = "1.1.0"
+  compile-option = "-Woff unused -g -O0"
+  description = "sp_shadowmap - debug mode 6 (shadow map blit to screen) - shadow pipeline step"
+  link-option = "-l user32 -l gdi32 -l winmm -l imm32 -l ole32 -l oleaut32 -l version -l uuid -l setupapi -l shell32 -l dinput8 -l hid"
+  name = "sp_shadowmap"
+  output-type = "executable"
+  override-compile-option = ""
+  src-dir = ""
+  target-dir = ""
+  version = "1.0.0"
+  [package.package-configuration]
+
+[target]
+  [target.x86_64-w64-mingw32]
+    link-option = "-L ../../../libs -l:libSDL3.a -l:libbgfx.a -l:libbimg_encode.a -l:libbimg_decode.a -l:libbimg_capi.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbimg.a -l:libbx.a -l:libstdc++.a -l:libgcc_eh.a"

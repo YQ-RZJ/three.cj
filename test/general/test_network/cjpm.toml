@@ -1,0 +1,41 @@
+[dependencies]
+  [dependencies.three]
+    path = "../../../"
+    output-type = "static"
+
+[package]
+  cjc-version = "1.1.0"
+  compile-option = "-Woff unused -g -O0"
+  description = "three network (HTTP/Socket/UDP) test"
+  link-option = "-l user32 -l gdi32 -l winmm -lole32 -luuid"
+  name = "threeNetworkTest"
+  output-type = "executable"
+  override-compile-option = ""
+  src-dir = ""
+  target-dir = ""
+  version = "1.0.0"
+  [package.package-configuration]
+
+[target]
+  [target.x86_64-unknown-linux-gnu]
+    [target.x86_64-unknown-linux-gnu.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/linux_x86_64_cjnative/dynamic/stdx"]
+  [target.aarch64-unknown-linux-gnu]
+    [target.aarch64-unknown-linux-gnu.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/linux_aarch64_cjnative/dynamic/stdx"]
+  [target.x86_64-w64-mingw32]
+    link-option = "-L ../../../libs -l:libbgfx.a -l:libbimg_encode.a -l:libbimg_decode.a -l:libbimg_capi.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbimg.a -l:libbx.a -l:libOpenAL32.a -l:libminiaudio.a -l:libstdc++.a -l:libgcc_eh.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -lavrt -ldsound"
+    [target.x86_64-w64-mingw32.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/windows_x86_64_cjnative/dynamic/stdx"]
+  [target.x86_64-apple-darwin]
+    [target.x86_64-apple-darwin.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/darwin_x86_64_cjnative/dynamic/stdx"]
+  [target.aarch64-apple-darwin]
+    [target.aarch64-apple-darwin.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/darwin_aarch64_cjnative/dynamic/stdx"]
+  [target.aarch64-linux-ohos]
+    [target.aarch64-linux-ohos.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/linux_ohos_aarch64_cjnative/dynamic/stdx"]
+  [target.x86_64-linux-ohos]
+    [target.x86_64-linux-ohos.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/linux_ohos_x86_64_cjnative/dynamic/stdx"]

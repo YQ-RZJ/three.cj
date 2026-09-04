@@ -1,0 +1,23 @@
+[dependencies]
+  [dependencies.three]
+    path = "../../../"
+    output-type = "static"
+
+[package]
+  cjc-version = "1.1.0"
+  compile-option = "-Woff unused -g -O0"
+  description = "text_encode - encode 子包（Base64/Hex/MD5/SHA/UrlEncode/Hash/UUID）全量编解码测试"
+  link-option = ""
+  name = "text_encode"
+  output-type = "executable"
+  override-compile-option = ""
+  src-dir = ""
+  target-dir = ""
+  version = "1.0.0"
+  [package.package-configuration]
+
+[target]
+  [target.x86_64-w64-mingw32]
+    link-option = "-L ../../../libs -l:libbgfx.a -l:libbimg_encode.a -l:libbimg_decode.a -l:libbimg_capi.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbimg.a -l:libbx.a -l:libstdc++.a -l:libgcc_eh.a"
+    [target.x86_64-w64-mingw32.bin-dependencies]
+      path-option = ["${CANGJIE_STDX_PATH}/windows_x86_64_cjnative/dynamic/stdx"]

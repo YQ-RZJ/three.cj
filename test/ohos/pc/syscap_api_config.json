@@ -1,0 +1,18 @@
+{
+  "Modules": {
+    "entry": {
+      "deviceSysCap": {
+        "phone": [
+          "D:\\APPs\\DevEco Studio\\sdk\\default\\hms\\ets\\api\\device-define\\phone-hmos.json",
+          "D:\\APPs\\DevEco Studio\\sdk\\default\\hms\\ets\\api\\device-define\\phone.json"
+        ],
+        "tablet": [
+          "D:\\APPs\\DevEco Studio\\sdk\\default\\hms\\ets\\api\\device-define\\tablet-hmos.json",
+          "D:\\APPs\\DevEco Studio\\sdk\\default\\hms\\ets\\api\\device-define\\tablet.json",
+          "D:\\APPs\\DevEco Studio\\sdk\\default\\openharmony\\ets\\api\\device-define\\tablet.json"
+        ]
+      }
+    }
+  },
+  "apiLevel": 23
+}
