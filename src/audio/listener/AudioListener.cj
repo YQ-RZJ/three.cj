@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] AudioListener 音频监听器，代表场景中的"耳朵"
  * @brief[zh-cn] 音频监听器：继承 Object3D，将世界变换同步到 OpenAL 监听器
  * @explain[zh-cn] 通常作为 Camera 的子节点添加（camera.add(listener)），
@@ -17,6 +39,10 @@
  * (LH → RH: z' = -z).
  */
 package three.audio.listener
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -43,12 +69,14 @@ import three.audio.device.*
  * flipping the left-handed coordinates/orientation into the OpenAL right-handed
  * system (negate Z).
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public open class AudioListener <: Object3D {
     /**
      * @brief[zh-cn] 音频上下文引用
      *
      * @brief[en] The audio context reference
      */
+    @JsonIgnore
     public var context: AudioContext
 
     /**
@@ -77,7 +105,6 @@ public open class AudioListener <: Object3D {
         this.context = context
         this.gain = 1.0
         this.timeDelta = 0.0
-        this.kind = "AudioListener"
     }
 
     /**

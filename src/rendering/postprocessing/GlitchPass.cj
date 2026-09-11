@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] GlitchPass 数字故障后处理 pass
  * @brief[zh-cn] 数字故障后处理 pass —— 行/列块扭曲 + RGB 通道偏移 + snow 噪声
  * @explain[zh-cn] 算法（DigitalGlitch 逐行对齐非简化移植）：
@@ -86,7 +108,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
@@ -119,7 +141,7 @@ public class GlitchPass <: Pass {
     public var goWild: Bool = false
 
     /**
-     * LCG 伪随机种子（确定性，避免 std.random 状态问题，对照 BgfxSSAOPass._rand 范式）。
+     * LCG 伪随机种子（确定性，避免 std.random 状态问题，对照 SSAOPass._rand 范式）。
      */
     private var _seed: Int64 = 12345
 
@@ -156,7 +178,7 @@ public class GlitchPass <: Pass {
     /**
      * 渲染器引用（onAttach/render 时缓存，dispose 经其高阶 API 序列化）。
      */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 分配给本 pass 的 bgfx view ID 段。
@@ -256,7 +278,7 @@ public class GlitchPass <: Pass {
      * @param dtSize 位移贴图尺寸（像素，正方形）
      * @return 位移贴图纹理句柄
      */
-    private func _generateHeightmap(renderer: BgfxRenderer, dtSize: Int64): TextureHandle {
+    private func _generateHeightmap(renderer: ThreeRenderer, dtSize: Int64): TextureHandle {
         let size = UInt16(dtSize)
         let totalPixels = Int64(dtSize) * Int64(dtSize)
 
@@ -315,7 +337,7 @@ public class GlitchPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -442,7 +464,7 @@ public class GlitchPass <: Pass {
      * @param value uniform 值（写入 vec4.x）
      */
     private func setUniformVec4(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         uniforms: BgfxUniforms,
         name: String,
         value: Float64
@@ -466,7 +488,7 @@ public class GlitchPass <: Pass {
 
     /**
      * LCG 伪随机数生成器，返回 [0, 1) 内的 Float64。
-     * 对照 BgfxSSAOPass._rand 范式（确定性 LCG，避免 std.random 状态问题）。
+     * 对照 SSAOPass._rand 范式（确定性 LCG，避免 std.random 状态问题）。
      * 算法：seed = (seed * 1103515245 + 12345) % 2^31；返回 seed / 2^31。
      */
     private func _rand(): Float64 {

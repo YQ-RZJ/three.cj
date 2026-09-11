@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] RigidBody 辅助对象
  * @brief[zh-cn] 物理刚体可视化辅助对象
  * @explain[zh-cn]
@@ -10,8 +32,26 @@
  *
  * @note[zh-cn] Three.cj 使用左手坐标系、CCW 点序；本 helper 在左手系内绘制，
  * 与 RigidBody 绑定对象的世界变换保持一致。
+ *
+ * @file[en] RigidBody Helper
+ * @brief[en] Physics rigid body visualization helper object
+ * @explain[en]
+ * Visualizes a RigidBody's collision shape, center of mass, linear and angular velocity
+ * for debugging physics simulations:
+ * - Collision shape wireframe (Box / Sphere / Capsule / Cylinder / Plane)
+ * - Linear velocity arrow
+ * - Angular velocity arrow (direction is the rotation axis, length represents angular speed)
+ * Call update() to sync the rigid body's latest state.
+ *
+ * @note[en] Three.cj uses a left-handed coordinate system with CCW winding; this helper
+ * draws within the left-handed system and stays consistent with the world transform of the
+ * RigidBody-bound objects.
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -21,6 +61,7 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.rendering.materials.*
 import three.physics.body.RigidBody
+import three.physics.world.PhysicsWorld
 import three.physics.interfaces.*
 import std.collection.*
 import std.math.*
@@ -29,24 +70,35 @@ import std.math.*
  * @brief[zh-cn] 物理刚体辅助对象
  * @explain[zh-cn]
  * 用线框表示碰撞形状，用箭头表示线速度与角速度。
+ *
+ * @brief[en] Physics rigid body helper object
+ * @explain[en]
+ * Represents the collision shape with a wireframe and linear/angular velocity with arrows.
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public class RigidBodyHelper <: Object3D {
     /// 被可视化的物理刚体
+    @JsonIgnore
     public var body: RigidBody
 
     /// 当前显示用的碰撞形状（构造时传入，默认 Box）
+    @JsonIgnore
     public var shape: PhysicsShape
 
     /// 形状线框
+    @JsonIgnore
     public var shapeLines: LineSegments
 
     /// 线速度箭头
+    @JsonIgnore
     public var velocityArrow: ArrowHelper
 
     /// 角速度箭头
+    @JsonIgnore
     public var angularVelocityArrow: ArrowHelper
 
     /// 辅助对象颜色
+    @JsonIgnore
     public var color: UInt32
 
     /**
@@ -54,14 +106,28 @@ public class RigidBodyHelper <: Object3D {
      * @param[zh-cn] body 要可视化的 RigidBody
      * shape 要显示的碰撞形状（默认 Box(1,1,1)）
      * color 线框颜色，默认 0x00ff00
+     *
+     * @brief[en] Constructs a RigidBody helper
+     * @param[en] body The RigidBody to visualize
+     * shape Collision shape to display (default Box(1,1,1))
+     * color Wireframe color, default 0x00ff00
      */
+    public init() {
+        super()
+        this.body = RigidBody(world: PhysicsWorld())
+        this.shape = PhysicsShape.box(1.0, 1.0, 1.0)
+        this.color = 0x00ff00
+        this.matrixAutoUpdate = false
+        this.shapeLines = LineSegments()
+        this.velocityArrow = ArrowHelper()
+        this.angularVelocityArrow = ArrowHelper()
+    }
     public init(body: RigidBody, shape!: PhysicsShape = PhysicsShape.box(1.0, 1.0, 1.0),
                 color!: UInt32 = 0x00ff00) {
         super()
         this.body = body
         this.shape = shape
         this.color = color
-        this.kind = "RigidBodyHelper"
         this.matrixAutoUpdate = false
 
         let shapeGeom = _buildShapeGeometry(shape)
@@ -87,6 +153,10 @@ public class RigidBodyHelper <: Object3D {
      * @brief[zh-cn] 更换要显示的碰撞形状
      * @param[zh-cn] shape 新的碰撞形状
      * @return[zh-cn] 自身引用
+     *
+     * @brief[en] Replaces the collision shape to display
+     * @param[en] shape The new collision shape
+     * @return[en] Self reference
      */
     public func setShape(shape: PhysicsShape): RigidBodyHelper {
         this.shape = shape
@@ -97,6 +167,8 @@ public class RigidBodyHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 同步刚体状态并更新可视化
+     *
+     * @brief[en] Syncs the rigid body state and updates the visualization
      */
     public func update(): Unit {
         let pos = this.body.getPosition()
@@ -133,6 +205,8 @@ public class RigidBodyHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 释放 GPU 资源
+     *
+     * @brief[en] Releases GPU resources
      */
     public func dispose(): Unit {
         this.shapeLines.geometry.dispose()

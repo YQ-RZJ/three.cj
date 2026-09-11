@@ -24,7 +24,7 @@ import three.rendering.cameras.*
 import three.rendering.lights.*
 import three.rendering.textures.*
 import three.resource.loader.TextureLoader
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseProvider
 import three.window.MouseButton

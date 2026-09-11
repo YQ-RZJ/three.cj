@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] SMAAPass SMAA 后处理 pass
  * @brief[zh-cn] SMAA 后处理 pass —— Subpixel Morphological Antialiasing（3 pass）
  * @explain[zh-cn] 算法（SMAA 1x Medium）：
@@ -14,7 +36,7 @@
  *           2 个内部 RT（edgesRT/weightsRT）+ 3 个 view id。
  *         - area/search LUT 程序化生成 RGBA8/R8 字节数组，同步上传 bgfx_create_texture_2d_cj。
  *         - 用 bgfx_set_view_frame_buffer 区分 swap chain（无效 FB）与 writeBuffer。
- *         调用约定（对齐 BgfxUnrealBloomPass 范式）：
+ *         调用约定（对齐 UnrealBloomPass 范式）：
  *         - setSize 直接调 bgfx API 创建/销毁 RT；caller（EffectComposer.setSize/addPass）
  *           已把 setSize 包进 renderer.execBgfx（在渲染线程执行）。
  *         - render 内所有渲染调用走 Pass 基类高阶 API（setViewport/setRenderTarget/clearRenderTarget/
@@ -39,7 +61,7 @@
  *           2 internal RTs (edgesRT/weightsRT) + 3 view ids.
  *         - area/search LUTs are generated procedurally as RGBA8/R8 byte arrays, uploaded synchronously via bgfx_create_texture_2d_cj.
  *         - Uses bgfx_set_view_frame_buffer to distinguish swap chain (invalid FB) from writeBuffer.
- *         Calling convention (following the BgfxUnrealBloomPass pattern):
+ *         Calling convention (following the UnrealBloomPass pattern):
  *         - setSize directly calls bgfx APIs to create/destroy RTs; the caller (EffectComposer.setSize/addPass)
  *           wraps setSize in renderer.execBgfx (executed on the render thread).
  *         - All render calls inside render go through the Pass base-class high-level APIs
@@ -54,7 +76,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -94,7 +116,7 @@ public class SMAAPass <: Pass {
     private var _rtsCreated: Bool = false
 
     /** 最近一次 render 注入的渲染器（setSize/dispose 创建/销毁 GPU 资源时经其高阶 API 序列化） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     // ===== 内部 RT（edges + weights）=====
     /** edges RT 的 color 纹理（RGBA8，rg = 水平/垂直边缘标志） */
@@ -235,7 +257,7 @@ public class SMAAPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -278,7 +300,7 @@ public class SMAAPass <: Pass {
      * 不再嵌套外层 execBgfx 闭包（避免死锁）。
      */
     private func _renderSMAA(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         edgesProg: ProgramHandle,
@@ -304,7 +326,7 @@ public class SMAAPass <: Pass {
      * pass 1: Edges — 从 readBuffer 采样，颜色边缘检测 → edgesRT。
      */
     private func _renderEdges(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         readBuffer: FrameBufferHandle,
         edgesProg: ProgramHandle,
         invW: Float32,
@@ -329,7 +351,7 @@ public class SMAAPass <: Pass {
      * pass 2: Weights — 从 edgesRT 采样，沿边缘搜索 + area/search LUT 查询 → weightsRT。
      */
     private func _renderWeights(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         weightsProg: ProgramHandle,
         invW: Float32,
         invH: Float32
@@ -357,7 +379,7 @@ public class SMAAPass <: Pass {
      * pass 3: Blend — 从 readBuffer（原色）与 weightsRT（权重）邻域混合 → writeBuffer 或屏幕。
      */
     private func _renderBlend(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         blendProg: ProgramHandle,

@@ -212,12 +212,6 @@ public var intensity: Float64
 ```
 Shadow intensity, default 1, valid range [0, 1]
 
-### var kind
-```cj
-public var kind: String
-```
-Type label, aligned with the type field on the JS side
-
 ### var mapPass
 ```cj
 public var mapPass: Option < RenderTarget >

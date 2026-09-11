@@ -1,10 +1,32 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxFullScreenQuad 全屏四边形共享资源
  * @brief[zh-cn] 全屏四边形共享资源（VB/IB/layout + submit）
  * @explain[zh-cn] 提供：
  *         1. 4 顶点（position xyz + texcoord0 uv）+ 6 索引（两个三角形）
  *         2. 全屏 NDC：x∈[-1,1], y∈[-1,1]，z=0，w=1
- *         3. UV 与 NDC 同向（bgfx/V 与纹理 V 同向，quad 顶点布局对齐 BgfxUnrealBloomPass 范式）
+ *         3. UV 与 NDC 同向（bgfx/V 与纹理 V 同向，quad 顶点布局对齐 UnrealBloomPass 范式）
  *         4. submitFullScreenQuad(viewId, prog)：绑 VB/IB/layout + WRITE_RGB|WRITE_A|FRONT_CCW + submit
  *         渲染差异：
  *         - 现代后端用 BufferGeometry + ShaderMaterial + renderer.render；
@@ -18,7 +40,7 @@
  *         1. 4 vertices (position xyz + texcoord0 uv) + 6 indices (two triangles)
  *         2. Full-screen NDC: x∈[-1,1], y∈[-1,1], z=0, w=1
  *         3. UV and NDC have the same orientation (bgfx/V and texture V are aligned; the quad vertex layout
- *            follows the BgfxUnrealBloomPass convention)
+ *            follows the UnrealBloomPass convention)
  *         4. submitFullScreenQuad(viewId, prog): binds VB/IB/layout + WRITE_RGB|WRITE_A|FRONT_CCW + submit
  *         Rendering differences:
  *         - Backends use BufferGeometry + ShaderMaterial + renderer.render;
@@ -33,7 +55,7 @@ package three.rendering.postprocessing
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.rendering.bgfx.BgfxConstants
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
 import std.collection.*
@@ -64,7 +86,7 @@ public class FullScreenQuad {
      * 渲染器引用（submit/dispose 经其高阶 API 序列化；Pass.submitQuad 调用本类
      * submit/submitWithState 时无 renderer 参数，故由 Pass.render 经 setRenderer 缓存）。
      */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     public init() {}
 
@@ -76,7 +98,7 @@ public class FullScreenQuad {
      * @explain[zh-cn] 由各 Pass.render 在渲染共享 quad 前调用；EffectComposer 持单例无 renderer 参数。
      * @explain[en] Called by each Pass.render before rendering the shared quad; EffectComposer holds the singleton without a renderer parameter.
      */
-    public func setRenderer(renderer: BgfxRenderer): Unit {
+    public func setRenderer(renderer: ThreeRenderer): Unit {
         this._renderer = Some(renderer)
     }
 
@@ -86,7 +108,7 @@ public class FullScreenQuad {
      * @param[zh-cn] renderer 渲染器（bgfx 资源创建经其高阶 API 序列化到渲染线程）
      * @param[en] renderer Renderer (bgfx resource creation is serialized to the render thread via its high-level API)
      */
-    public func ensureResources(renderer: BgfxRenderer): Unit {
+    public func ensureResources(renderer: ThreeRenderer): Unit {
         match (this._quadVB) {
             case Some(_) => return
             case None => ()

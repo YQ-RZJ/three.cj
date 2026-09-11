@@ -22,10 +22,8 @@ _publish_.bat
 *.dmp
 *.lock
 *.drawio.bkp
-libs/*.a
-libs/*.so
-libs/*.dll
-libs/*.lib
+libs/*
+!libs/.gitkeep
 /*.exe
 *.onnx
 *-lock.json5

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 坐标轴辅助对象
  * @brief[zh-cn] 坐标轴辅助对象，用于可视化 X/Y/Z 坐标轴
  * @explain[zh-cn] 
@@ -12,6 +34,10 @@
  * line segments, supports custom axis colors.
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -32,6 +58,7 @@ import three.rendering.materials.*
  * @explain[en] 
  * Displays X-Y-Z axes as red-green-blue line segments, supports custom axis colors.
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = LineSegments]
 public class AxesHelper <: LineSegments {
     /**
      * @brief[zh-cn] 构造坐标轴辅助对象
@@ -42,7 +69,6 @@ public class AxesHelper <: LineSegments {
      */
     public init(size!: Float64 = 1.0) {
         super(geometry: BufferGeometry(), material: LineBasicMaterial())
-        this.kind = "AxesHelper"
         
         let vertices = Array<Float64>(18, { i =>
             [0.0, 0.0, 0.0, size, 0.0, 0.0,

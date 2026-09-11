@@ -85,6 +85,23 @@ Exception:
 
 - IllegalStateException When the ID is not registered
 
+### func register\(Int64,\(\)\->Object\)
+```cj
+public func register(id: Int64, factory:() -> Object): Unit
+```
+Registers a pool for the given ID
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|id|Int64|Object-type IDfactory Object factory|
+|factory|()->Object||
+
+Exception: 
+
+- IllegalStateException When the ID is already registered
+
 ### func register\(Int64,\(\)\->Object,?\(Object\)\->Unit,?\(Object\)\->Unit\)
 ```cj
 public func register(id: Int64, factory:() -> Object, onRecycle:?(Object) -> Unit, onReuse:?(Object) -> Unit): Unit
@@ -99,23 +116,6 @@ Parameter:
 |factory|()->Object||
 |onRecycle|?(Object)->Unit||
 |onReuse|?(Object)->Unit||
-
-Exception: 
-
-- IllegalStateException When the ID is already registered
-
-### func register\(Int64,\(\)\->Object\)
-```cj
-public func register(id: Int64, factory:() -> Object): Unit
-```
-Registers a pool for the given ID
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|id|Int64|Object-type IDfactory Object factory|
-|factory|()->Object||
 
 Exception: 
 

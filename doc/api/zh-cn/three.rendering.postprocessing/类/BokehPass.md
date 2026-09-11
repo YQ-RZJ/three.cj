@@ -29,9 +29,9 @@ public init(scene: Scene, camera: Camera, focus!: Float64 = 1.0, aperture!: Floa
 |aperture|Float64|光圈（默认 0.025）|
 |maxblur|Float64|最大模糊量（默认 1.0）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 BokehPass。
 
@@ -44,7 +44,7 @@ tDepth=深度 RT → writeBuffer（或 renderToScreen 时上屏）
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（本 pass 的输出目标）|
 |readBuffer|FrameBufferHandle|读 buffer（上一 pass 结果，绑到 tColor）|
 |deltaTime|Float64|帧间隔（秒）|

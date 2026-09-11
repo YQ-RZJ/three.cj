@@ -5,11 +5,11 @@
 ### Class
 |  Name   | Describe  |
 |  ----  | ----  |
-|[Bgfx3DRenderTarget](./Class/Bgfx3DRenderTarget.md#class-bgfx3drendertarget)|3D render target based on bgfx framebuffer|
-|[BgfxArrayRenderTarget](./Class/BgfxArrayRenderTarget.md#class-bgfxarrayrendertarget)|Array render target based on bgfx framebuffer|
-|[BgfxCubeRenderTarget](./Class/BgfxCubeRenderTarget.md#class-bgfxcuberendertarget)|Cube render target based on bgfx framebuffer|
-|[BgfxRenderTarget](./Class/BgfxRenderTarget.md#class-bgfxrendertarget)|Standard 2D render target based on bgfx framebuffer|
-|[BgfxRenderer](./Class/BgfxRenderer.md#class-bgfxrenderer)|bgfx renderer — thin Renderer implementation|
+|[ThreeArrayRenderTarget](./Class/ThreeArrayRenderTarget.md#class-threearrayrendertarget)|Array render target based on bgfx framebuffer|
+|[ThreeCubeRenderTarget](./Class/ThreeCubeRenderTarget.md#class-threecuberendertarget)|Cube render target based on bgfx framebuffer|
+|[ThreeRenderTarget3D](./Class/ThreeRenderTarget3D.md#class-threerendertarget3d)|3D render target based on bgfx framebuffer|
+|[ThreeRenderTarget](./Class/ThreeRenderTarget.md#class-threerendertarget)|Standard 2D render target based on bgfx framebuffer|
+|[ThreeRenderer](./Class/ThreeRenderer.md#class-threerenderer)|bgfx renderer — thin Renderer implementation|
 
 ### Variables & constants
 |  Name   | Describe  |

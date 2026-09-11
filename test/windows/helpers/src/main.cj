@@ -15,7 +15,7 @@ import std.io.*
 import std.time.*
 import std.math.*
 import three.core.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
@@ -34,7 +34,7 @@ import std.collection.*
  */
 public class TestWindow <: WindowEngine {
     // ===== 渲染状态（onInit 创建 / onFrame 使用 / onClose 清理） =====
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 60.0, aspect: 1.0, near: 0.1, far: 200.0)
     var objects: ArrayList<Object3D> = ArrayList<Object3D>()
@@ -47,9 +47,11 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[3/4] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
@@ -91,7 +93,7 @@ public class TestWindow <: WindowEngine {
         println("")
         println("=== test_helpers 视觉测试完成 ===")
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         this.world.shutdown()
         println("  PhysicsWorld 已关闭")
         AudioContext.context.shutdown()

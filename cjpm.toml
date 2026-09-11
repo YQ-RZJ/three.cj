@@ -1,38 +1,41 @@
 [dependencies]
   [dependencies.bgfx4cj]
     git = "https://gitcode.com/Cangjie-TPC/bgfx4cj.git"
-    output-type = "dynamic"
+    output-type = "static"
   [dependencies.openalsoft4cj]
     git = "https://gitcode.com/yq24w/openalsoft4cj.git"
-    output-type = "dynamic"
+    output-type = "static"
   [dependencies.jolt4cj]
     git = "https://gitcode.com/yq24w/jolt4cj.git"
-    output-type = "dynamic"
+    output-type = "static"
   [dependencies.luajit4cj]
     git = "https://gitcode.com/yq24w/luajit4cj.git"
-    output-type = "dynamic"
+    output-type = "static"
   [dependencies.httpclient4cj]
     git = "https://gitcode.com/yq24w/httpclient4cj.git"
     branch = "httpclient4cj_cangjie-1.1.0"
-    output-type = "dynamic"
+    output-type = "static"
   [dependencies.fastjson]
     git = "https://gitcode.com/yq24w/cjfast_json.git"
-    output-type = "dynamic"
+    output-type = "static"
   [dependencies.sdl4cj]
     git = "https://gitcode.com/yq24w/sdl4cj.git"
-    output-type = "dynamic"
+    output-type = "static"
+  [dependencies.imgui4cj]
+    git = "https://gitcode.com/yq24w/imgui4cj.git"
+    output-type = "static"
 
 [package]
   cjc-version = "1.1.0"
   compile-option = "-Woff unused"
   description = "three"
-  link-option = "-L ${EXTEDN_LIBS_PATH}"
+  link-option = "-L ${EXTEDN_LIBS_PATH} ${EXTEDN_LINK_OPTION}"
   name = "three"
   output-type = "dynamic"
   override-compile-option = ""
   src-dir = "src"
   target-dir = ""
-  version = "1.0.0"
+  version = "0.0.372"
   [package.package-configuration]
 
 [profile]
@@ -47,15 +50,25 @@
   [profile.test]
 
 [target]
+  # ---- Windows (MinGW) ----
   [target.x86_64-w64-mingw32]
+    link-option = "@${EXTEDN_LIBS_PATH}/exclude.rsp -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libOpenAL32.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libstdc++.a -l:libgcc_eh.a -lhid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -lsetupapi -lshell32 -ldinput8 -ld3d11 -ldxgi -ld3dcompiler -lavrt -ldsound -lws2_32 -lcrypt32 -ladvapi32 -lz"
+  [target.aarch64-w64-mingw32]
+    link-option = "@${EXTEDN_LIBS_PATH}/exclude.rsp -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libOpenAL32.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libstdc++.a -l:libgcc_eh.a -lhid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -lsetupapi -lshell32 -ldinput8 -ld3d11 -ldxgi -ld3dcompiler -lavrt -ldsound -lws2_32 -lcrypt32 -ladvapi32 -lz"
   # ---- Linux ----
   [target.x86_64-unknown-linux-gnu]
+    link-option = "--version-script=${EXTEDN_LIBS_PATH}/symbols_elf.map -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libstdc++.a -l:libgcc_eh.a -lX11 -lXext -lXcursor -lXi -lXfixes -lXrandr -lXrender -lGL -lasound -lstdc++ -lpthread -ldl -lrt -lm"
   [target.aarch64-unknown-linux-gnu]
+    link-option = "--version-script=${EXTEDN_LIBS_PATH}/symbols_elf.map -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libstdc++.a -l:libgcc_eh.a -lX11 -lXext -lXcursor -lXi -lXfixes -lXrandr -lXrender -lGL -lasound -lstdc++ -lpthread -ldl -lrt -lm"
   # ---- macOS ----
   [target.x86_64-apple-darwin]
+    link-option = "-l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit"
   [target.aarch64-apple-darwin]
+    link-option = "-l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit"
   # ---- OpenHarmony (OHOS) ----
   [target.aarch64-linux-ohos]
     compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/aarch64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
+    link-option = "--version-script=${EXTEDN_LIBS_PATH}/symbols_elf.map -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -l:libnative_window.so"
   [target.x86_64-linux-ohos]
     compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/x86_64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
+    link-option = "--version-script=${EXTEDN_LIBS_PATH}/symbols_elf.map -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl"

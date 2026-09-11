@@ -32,7 +32,7 @@ beginRender：重载接受 RenderContext 具体类
 
 顺序：
 1. bgfx_set_view_rect_cj —— 视口（用 renderContext.viewport）
-2. bgfx_set_view_clear_cj —— 清除色 + 深度（用 BgfxRenderer.clearColor）
+2. bgfx_set_view_clear_cj —— 清除色 + 深度（用 ThreeRenderer.clearColor）
 3. _setViewTransform —— view + proj 矩阵（从 renderContext 读取，_render 中已填充）
 
 不调用 bgfx_touch_cj：touch 会重置 view 状态，导致后续 submit 失效（全黑）。

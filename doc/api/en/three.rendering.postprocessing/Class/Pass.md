@@ -29,9 +29,9 @@ Parameter:
 |---|---|---|
 |composer|EffectComposer|The EffectComposer being attached to|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public open func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public open func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Executes the pass render logic
 
@@ -39,7 +39,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (FrameBufferHandle)|
 |readBuffer|FrameBufferHandle|Read buffer (previous pass result)|
 |deltaTime|Float64|Frame delta time (seconds)|

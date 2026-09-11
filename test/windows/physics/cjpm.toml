@@ -18,4 +18,4 @@
 
 [target]
   [target.x86_64-w64-mingw32]
-    link-option = "-L ../../../libs -l:libSDL3.a -l:libbgfx.a -l:libbimg_encode.a -l:libbimg_decode.a -l:libbimg_capi.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbimg.a -l:libbx.a -l:libOpenAL32.a -l:libminiaudio.a -l:libstdc++.a -l:libgcc_eh.a -l:libjoltc.a -l:libJolt.a -lavrt -ldsound"
+    link-option = "-L ../../../libs -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libOpenAL32.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libstdc++.a -l:libgcc_eh.a -lhid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -lsetupapi -lshell32 -ldinput8 -ld3d11 -ldxgi -ld3dcompiler -lavrt -ldsound -lws2_32 -lcrypt32 -ladvapi32 -lz"

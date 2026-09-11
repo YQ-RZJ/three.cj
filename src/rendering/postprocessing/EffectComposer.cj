@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxEffectComposer 后处理 pass 链调度器
  * @brief[zh-cn] 后处理 pass 链调度器 —— 双 RT ping-pong
  * @explain[zh-cn] 设计：
@@ -10,7 +32,7 @@
  *         用法：
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxUnrealBloomPass(strength: 1.0))
+ *         composer.addPass(UnrealBloomPass(strength: 1.0))
  *         composer.setSize(width, height)
  *         composer.render()  // 每帧
  *
@@ -25,7 +47,7 @@
  *         Usage:
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxUnrealBloomPass(strength: 1.0))
+ *         composer.addPass(UnrealBloomPass(strength: 1.0))
  *         composer.setSize(width, height)
  *         composer.render()  // each frame
  *
@@ -33,7 +55,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.types.*
 import three.utils.memory.AutoFreePtr
@@ -50,7 +72,7 @@ public class EffectComposer {
      * @brief[zh-cn] 渲染器引用
      * @brief[en] Renderer reference
      */
-    public let renderer: BgfxRenderer
+    public let renderer: ThreeRenderer
 
     /**
      * @brief[zh-cn] 是否把最终 pass 结果渲染到屏幕，默认 true
@@ -65,9 +87,9 @@ public class EffectComposer {
     public var passes: ArrayList<Pass> = ArrayList<Pass>()
 
     /**
-     * 像素比（当前固定 1）。
+     * 像素比（来自 renderer，用于把逻辑尺寸放大为物理 RT 尺寸）。
      */
-    private let _pixelRatio: Float64 = 1.0
+    private var _pixelRatio: Float64 = 1.0
 
     /**
      * 共享全屏 quad 单例（所有 pass 共用，addPass 时注入）。
@@ -143,11 +165,13 @@ public class EffectComposer {
      *         to submit the draw, silently skipping if None (blank screen). After this unified injection,
      *         all passes (including BloomPass/SSRPass that do not explicitly call quad.setRenderer) submit correctly.
      */
-    public init(renderer: BgfxRenderer) {
+    public init(renderer: ThreeRenderer) {
         this.renderer = renderer
-        // 尺寸初始为渲染器尺寸；setSize 后真正创建 RT
-        this._width = Int64(renderer.width)
-        this._height = Int64(renderer.height)
+        // 尺寸初始为渲染器逻辑尺寸；setSize / _createRTs 会乘以 pixelRatio 得到物理 RT 尺寸
+        let (lw, lh) = renderer.getSize()
+        this._width = lw
+        this._height = lh
+        this._pixelRatio = renderer.getPixelRatio()
         // 统一注入 renderer 到共享 quad 单例：FullScreenQuad.submit 依赖 _renderer 提交 draw，
         // 若为 None 则 submitQuad 静默跳过（画面全白）。此处统一注入后，
         // 所有 pass（含未显式调用 quad.setRenderer 的 BloomPass/SSRPass 等）均能正常提交。
@@ -294,15 +318,19 @@ public class EffectComposer {
      *         in renderer.execBgfx.
      */
     public func setSize(width: Int64, height: Int64): Unit {
+        // width/height 为逻辑尺寸；内部 RT 与转发给 pass 的尺寸都使用物理尺寸
         this._width = width
         this._height = height
+        this._pixelRatio = this.renderer.getPixelRatio()
         this._createRTs()
+        let physicalW = Int64(Float64(width) * this._pixelRatio)
+        let physicalH = Int64(Float64(height) * this._pixelRatio)
         // 通知所有 pass 尺寸变化。
-        // 关键：pass.setSize 内部会调 bgfx 创建/销毁 RT（如 BgfxUnrealBloomPass._createRTs），
+        // 关键：pass.setSize 内部会调 bgfx 创建/销毁 RT（如 UnrealBloomPass._createRTs），
         // 必须在渲染线程执行（bgfx API 线程约束），故包进 renderer.execBgfx。
         this.renderer.execBgfx({ =>
             for (pass in this.passes) {
-                pass.setSize(width, height)
+                pass.setSize(physicalW, physicalH)
             }
         })
     }
@@ -321,12 +349,14 @@ public class EffectComposer {
             this.renderer.destroyFrameBuffer(this._rt1.value)
             this.renderer.destroyFrameBuffer(this._rt2.value)
         }
-        let w = UInt16(this._width)
-        let h = UInt16(this._height)
+        let physicalW = Int64(Float64(this._width) * this._pixelRatio)
+        let physicalH = Int64(Float64(this._height) * this._pixelRatio)
+        let w = UInt16(physicalW)
+        let h = UInt16(physicalH)
         // 颜色纹理（RGBA16F 半浮点，支持 >1 亮度）
         let colorFlags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
         // 所有 bgfx 调用经 renderer 高阶 API 序列化到渲染线程（各自 execBgfx），
-        // 避免与 BgfxRenderer 内部 _execBgfx 的 bgfx 调用产生数据竞争。
+        // 避免与 ThreeRenderer 内部 _execBgfx 的 bgfx 调用产生数据竞争。
         let rt1Color = this.renderer.createTexture2D(w, h, false, 1u16, EffectComposer.RT_FORMAT, colorFlags, None)
         let rt1Depth = this.renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), colorFlags, None)
         this._rt1.value = this._createFBWithDepth(rt1Color, rt1Depth)

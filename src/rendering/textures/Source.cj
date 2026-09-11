@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 贴图数据源
  * @brief[zh-cn] 贴图数据源，持有像素数组及其版本号
  * @explain[zh-cn] Source 与 Texture 分离：多个 Texture 可共享同一 Source（如 CubeTexture 6 面共享纹理缓冲）。渲染器内部按 version 增量更新 GPU 缓冲；needsUpdate=true 时下次 render 会重传。
@@ -69,6 +91,8 @@ public open class Source <: ILoadResult {
     }
     /**
      * @brief[zh-cn] 私有 backing field（不参与序列化）
+     *
+     * @brief[en] Private backing field (excluded from serialization)
      */
     private var _needsUpdate: Bool
 

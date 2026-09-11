@@ -26,7 +26,7 @@ import three.rendering.geometry.LineCurve3
 import three.rendering.geometry.Shape
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.utils.constants.DoubleSide
 
 /// 几何体围圈半径与数量

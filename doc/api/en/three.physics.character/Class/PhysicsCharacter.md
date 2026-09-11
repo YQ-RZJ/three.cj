@@ -7,7 +7,7 @@ Rigid-body based character (corresponds to JPH_Character)
 
 ### func addToPhysicsSystem\(PhysicsActivation\)
 ```cj
-public func addToPhysicsSystem(activation: PhysicsActivation): Unit
+public func addToPhysicsSystem(activation!: PhysicsActivation = PhysicsActivation.Activate): Unit
 ```
 Adds the character to the physics system
 
@@ -15,23 +15,19 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|activation|PhysicsActivation|Whether to activate the character (Activate/DontActivate)|
+|activation|PhysicsActivation|Whether to activate immediately (default Activate)|
 
 ### func dispose\(\)
 ```cj
 public func dispose(): Unit
 ```
-Disposes the character and frees the underlying handle
+Disposes the character (auto-removes it from the physics system and frees the handle)
 
 ### func getGroundState\(\)
 ```cj
 public func getGroundState(): UInt32
 ```
-Gets the ground state (GroundState enum value)
-
-Return: 
-
-- The GroundState enum value (0 = OnGround)
+Gets the ground state (0 = OnGround, 1 = OnSteepGround, 2 = NotSupported, 3 = InAir)
 
 ### func getLinearVelocity\(\)
 ```cj
@@ -41,7 +37,7 @@ Gets the character's linear velocity
 
 Return: 
 
-- The current linear velocity (world coordinates)
+- The current linear velocity (world space, three left-handed)
 
 ### func getPosition\(\)
 ```cj
@@ -51,63 +47,33 @@ Gets the character's position
 
 Return: 
 
-- The current position (world coordinates)
-
-### func init\(CPointer<Unit>,Vector3,CPointer<Unit>,Quaternion,UInt32,Float32,Float32\)
-```cj
-public init(shape: CPointer < Unit >, position: Vector3, system: CPointer < Unit >, rotation!: Quaternion = Quaternion(), layer!: UInt32 = 1, mass!: Float32 = 80.0f32, maxSlopeAngle!: Float32 = 0.7853982f32)
-```
-Creates a character
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|shape|CPointer<Unit>|The character collision shape handle (a JPH_Shape handle created and kept by the caller)position The initial position (world coordinates)system The physics system handle (the internal PhysicsWorld system, passed via _getSystem)rotation The initial rotation (quaternion)layer The object layer (0 = NonMoving, 1 = Moving)mass The mass (kilograms)maxSlopeAngle The maximum standable slope angle (radians)|
-|position|Vector3||
-|system|CPointer<Unit>||
-|rotation|Quaternion||
-|layer|UInt32||
-|mass|Float32||
-|maxSlopeAngle|Float32||
+- The current position (world space, three left-handed)
 
 ### func isOnGround\(\)
 ```cj
 public func isOnGround(): Bool
 ```
-Whether the character is on the ground (OnGround)
+Whether the character is on the ground (GroundState == OnGround)
 
-Return: 
-
-- true if on the ground
-
-### func isValid\(\)
-```cj
-public func isValid(): Bool
-```
-Whether the character was created successfully (handle valid and not disposed)
-
-Return: 
-
-- true if valid
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Call postSimulation first to refresh the ground state</p>
 
 ### func postSimulation\(Float32\)
 ```cj
-public func postSimulation(maxSeparationDistance: Float32): Unit
+public func postSimulation(maxSeparationDistance!: Float32 = 0.05f32): Unit
 ```
-Post-simulation processing (detects ground contact; call after PhysicsWorld.update)
+Post-simulation processing (ground-contact detection)
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|maxSeparationDistance|Float32|Maximum separation distance (meters) used to decide whether the character is on the ground|
+|maxSeparationDistance|Float32|Maximum separation distance (meters; default 0.05)|
 
 ### func removeFromPhysicsSystem\(\)
 ```cj
 public func removeFromPhysicsSystem(): Unit
 ```
-Removes the character from the physics system
+Removes the character from the physics system (can be re-added)
 
 ### func setLinearVelocity\(Vector3\)
 ```cj
@@ -119,7 +85,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|velocity|Vector3|The target linear velocity (world-space direction)|
+|velocity|Vector3|The target linear velocity (world space, three left-handed)|
 
 ### func setPosition\(Vector3,PhysicsActivation\)
 ```cj
@@ -131,6 +97,12 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|position|Vector3|The target position (world coordinates)activation Whether to activate the character (Activate/DontActivate)|
+|position|Vector3|The target position (world space, three left-handed)activation Whether to activate immediately (default Activate)|
 |activation|PhysicsActivation||
+
+### prop isValid: Bool
+```cj
+public prop isValid: Bool
+```
+Whether the character is valid (created successfully and not disposed)
 

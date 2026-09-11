@@ -44,6 +44,16 @@ public open func _render(scene: Scene, camera: Camera): Unit
 |scene|Scene|场景camera 相机|
 |camera|Camera||
 
+### func getPixelRatio\(\)
+```cj
+public func getPixelRatio(): Float64
+```
+获取当前像素比
+
+返回: 
+
+- 像素比
+
 ### func getRenderViewId\(\)
 ```cj
 public open func getRenderViewId(): UInt16
@@ -53,6 +63,16 @@ public open func getRenderViewId(): UInt16
 返回: 
 
 - bgfx view id
+
+### func getSize\(\)
+```cj
+public func getSize():(Int64, Int64)
+```
+获取逻辑渲染尺寸
+
+返回: 
+
+- (逻辑宽度, 逻辑高度)
 
 ### func init\(Backend,Bool,Bool,Bool,Bool,Int64,Bool,Bool\)
 ```cj
@@ -92,6 +112,18 @@ public open func render(scene: Scene, camera: Camera): Unit
 |scene|Scene|场景camera 相机|
 |camera|Camera||
 
+### func setPixelRatio\(Float64\)
+```cj
+public func setPixelRatio(value: Float64): Unit
+```
+设置像素比
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|value|Float64|新的像素比（必须 > 0）|
+
 ### func setSize\(Int64,Int64\)
 ```cj
 public func setSize(w: Int64, h: Int64): Unit
@@ -102,7 +134,7 @@ public func setSize(w: Int64, h: Int64): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|w|Int64|渲染宽度h 渲染高度|
+|w|Int64|渲染逻辑宽度h 渲染逻辑高度|
 |h|Int64||
 
 ### var alpha
@@ -157,7 +189,7 @@ public var depth: Bool = true
 ```cj
 public var height: Int64 = 600
 ```
-渲染高度
+渲染高度（物理像素 / 后备缓冲高度）
 
 ### var info
 ```cj
@@ -253,5 +285,5 @@ public var toneMapping: Int64 = 0
 ```cj
 public var width: Int64 = 800
 ```
-渲染宽度
+渲染宽度（物理像素 / 后备缓冲宽度）
 

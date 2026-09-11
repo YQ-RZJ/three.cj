@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 Dispose GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Construct a directional light helper
+
 ### func init\(Light,Float64,Option<Color>\)
 ```cj
 public init(light: Light, size!: Float64 = 1.0, color!: Option < Color >= None < Color >)
 ```
-Construct a directional light helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|light|Light|The directional light to visualizesize Plane size, default 1color Color, uses light color when not set|
+|light|Light||
 |size|Float64||
 |color|Option<Color>||
 

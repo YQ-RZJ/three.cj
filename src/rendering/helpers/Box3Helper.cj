@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Box3 辅助对象
  * @brief[zh-cn] Box3 轴对齐包围盒辅助对象，用于可视化 Box3 边界
  * @explain[zh-cn] 
@@ -12,6 +34,10 @@
  * automatically updates position and scale based on Box3 center and size.
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -33,6 +59,7 @@ import three.rendering.materials.*
  * Draws a Box3 bounding box as wireframe, automatically updates position and scale
  * based on Box3 center and size.
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = LineSegments]
 public class Box3Helper <: LineSegments {
     /**
      * @brief[zh-cn] 被可视化的包围盒
@@ -50,9 +77,11 @@ public class Box3Helper <: LineSegments {
      * @param[en] box The Box3 bounding box to visualize
      * color Wireframe color, default yellow 0xffff00
      */
+    public init() {
+        this(Box3())
+    }
     public init(box: Box3, color!: UInt32 = 0xffff00) {
         super(geometry: BufferGeometry(), material: LineBasicMaterial())
-        this.kind = "Box3Helper"
         this.box = box
         let indices = Array<Float64>(24, { i => Float64([0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7][i]) })
         let positions = Array<Float64>(24, { i =>

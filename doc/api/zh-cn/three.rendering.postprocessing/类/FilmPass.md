@@ -24,9 +24,9 @@ public init(intensity!: Float64 = 0.5, grayscale!: Bool = false)
 |intensity|Float64|颗粒强度（默认 0.5）|
 |grayscale|Bool|是否灰度（默认 false）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 film pass
 
@@ -34,7 +34,7 @@ public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHand
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（本 pass 的输出目标）|
 |readBuffer|FrameBufferHandle|读 buffer（上一 pass 结果，绑到 tDiffuse）|
 |deltaTime|Float64|帧间隔|

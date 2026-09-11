@@ -25,7 +25,7 @@ import std.runtime.*
 import std.collection.*
 import std.math.*
 import ohos.app.ability.ui_ability.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.WindowConfig
 import three.core.math.*
@@ -805,13 +805,13 @@ public func createPhysicsScene(width: Int32, height: Int32): (Scene, Perspective
 
 // =============================================================================
 // ThreeWindow：对齐 base 的生命周期骨架（WindowEngine 泵线程驱动）
-//   onInit  — 建窗成功后初始化 BgfxRenderer + 物理场景
+//   onInit  — 建窗成功后初始化 ThreeRenderer + 物理场景
 //   onFrame — 步进物理世界 + 力/运动学演示 + 渲染
 //   onClose — 先销毁约束再销毁刚体，关闭物理世界与渲染器
 // =============================================================================
 
 public class ThreeWindow <: WindowEngine {
-    var renderer: BgfxRenderer
+    var renderer: ThreeRenderer
     var scene: Scene
     var camera: PerspectiveCamera
     var bodies: ArrayList<RigidBody>
@@ -827,7 +827,7 @@ public class ThreeWindow <: WindowEngine {
     var kinematicDir: Float64 = 1.0
 
     public init() {
-        this.renderer = BgfxRenderer()
+        this.renderer = ThreeRenderer()
         this.scene = Scene()
         this.scene.name = "PhysicsTestScene"
         this.camera = PerspectiveCamera(fov: 60.0, aspect: 1.0, near: 0.1, far: 100.0)
@@ -849,6 +849,8 @@ public class ThreeWindow <: WindowEngine {
         this.appliedW = w
         this.appliedH = h
 
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
             // Bgfx 初始化失败（如原生窗口未就绪），关闭窗口
@@ -890,6 +892,10 @@ public class ThreeWindow <: WindowEngine {
         if (rw > 0i32 && rh > 0i32 && (rw != this.appliedW || rh != this.appliedH)) {
             this.appliedW = rw
             this.appliedH = rh
+            // 真实逻辑尺寸变化后重取窗口像素比（getPixelRatio 内部会用新的
+            // _width/_height 重算缓存；updateSize 不在主线程重算以免阻塞），
+            // 再应用到渲染器，避免沿用 onInit 占位尺寸算出的异常 pixelRatio。
+            this.renderer.setPixelRatio(Float64(this.getPixelRatio()))
             this.renderer.setSize(rw, rh)
         }
 

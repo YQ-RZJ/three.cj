@@ -115,11 +115,17 @@ Parameter:
 |---|---|---|
 |geometryId|Int64||
 
+### func init\(\)
+```cj
+public init()
+```
+material - 材质。
+
 ### func init\(Int64,Int64,Int64,Material\)
 ```cj
 public init(maxGeometryCount: Int64, maxVertexCount: Int64, maxIndexCount: Int64, material!: Material = Material())
 ```
-material - 材质。
+
 
 Parameter: 
 

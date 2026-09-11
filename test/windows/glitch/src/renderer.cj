@@ -34,7 +34,7 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 
 // ===== 键盘交互状态（原 win32.cj，迁移至 WindowEngine 输入） =====
 public let MODE_FULL: Int64 = 1

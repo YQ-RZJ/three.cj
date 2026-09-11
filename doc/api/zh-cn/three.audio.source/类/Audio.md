@@ -111,17 +111,23 @@ public func getVolume(): Float64
 
 - 当前音量增益
 
+### func init\(\)
+```cj
+public init()
+```
+创建非位置音频源
+
 ### func init\(AudioListener\)
 ```cj
 public init(listener!: AudioListener)
 ```
-创建非位置音频源
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|listener|AudioListener|关联的音频监听器|
+|listener|AudioListener||
 
 ### func pause\(\)
 ```cj

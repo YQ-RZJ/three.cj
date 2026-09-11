@@ -104,11 +104,11 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|jsonStr|String||
+|jsonStr|String|The JSON string|
 
 Return: 
 
-- 
+- The parsed HashMap<String, Any>
 
 ### func parse\(HashMap<String,Any>\)
 ```cj
@@ -146,11 +146,11 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|userData|HashMap<String,Any>||
+|userData|HashMap<String,Any>|The user data HashMap|
 
 Return: 
 
-- 
+- The JSON string
 
 ### func trim\(\)
 ```cj
@@ -207,4 +207,10 @@ An object that can be used to store custom data for the clip; function reference
 public mut prop uuid: String
 ```
 The UUID of the clip
+
+### var skeletalData
+```cj
+public var skeletalData: Option < SkeletalAnimationData >= None
+```
+Compressed skeletal animation data (optional)
 

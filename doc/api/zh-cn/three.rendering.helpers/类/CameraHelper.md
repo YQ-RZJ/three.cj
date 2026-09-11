@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造相机辅助对象
+
 ### func init\(Camera\)
 ```cj
 public init(camera: Camera)
 ```
-构造相机辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|camera|Camera|要可视化的相机|
+|camera|Camera||
 
 ### func setColors\(Color,Color,Color,Color,Color\)
 ```cj

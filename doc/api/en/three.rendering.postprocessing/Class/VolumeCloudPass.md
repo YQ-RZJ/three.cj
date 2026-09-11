@@ -5,9 +5,9 @@ public class VolumeCloudPass <: ShaderPass
 ```
 Volume cloud post-processing pass (full-screen ray marching)
 
-### func bindExtraUniforms\(BgfxRenderer,BgfxUniforms\)
+### func bindExtraUniforms\(ThreeRenderer,BgfxUniforms\)
 ```cj
-public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit
+public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit
 ```
 子类扩展钩子：submit 前绑定体积云相关 uniform。
 材质 uniforms 直接改值（cameraPos/threshold/opacity/range/steps/frame）；
@@ -26,7 +26,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |uniforms|BgfxUniforms|已创建 tDiffuse sampler 的 uniform 注册表（继续创建体积云 uniforms）|
 
 ### func dispose\(\)
@@ -69,9 +69,9 @@ Parameter:
 |---|---|---|
 |composer|EffectComposer|挂载的 EffectComposer（composer.renderer 即渲染器）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行体积云 pass：帧号自增后委托基类（绑定 tDiffuse + submit quad）。
 
@@ -79,7 +79,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer||
+|renderer|ThreeRenderer||
 |writeBuffer|FrameBufferHandle||
 |readBuffer|FrameBufferHandle||
 |deltaTime|Float64||

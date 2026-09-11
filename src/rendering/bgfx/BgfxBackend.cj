@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxBackend 渲染后端
  * @brief[zh-cn] bgfx 渲染后端实现 — 完整即时命令模型
  * @explain[zh-cn] BgfxBackend 继承 Backend，实现全部即时命令接口，把 bgfx 延迟命令缓冲映射到 Backend 的即时命令模型。
@@ -229,7 +251,7 @@ public class BgfxBackend <: Backend {
     private var animation: BgfxAnimation
 
     // ===== 当前帧光照计数（供 _getOrCreateProgram 构建 NUM_*_LIGHTS defines）=====
-    // 对照原始有效实现 BgfxRenderer.getOrCreateProg（行 1332-1339）
+    // 对照原始有效实现 ThreeRenderer.getOrCreateProg（行 1332-1339）
     // 不传这些 defines 会导致 #if NUM_DIR_LIGHTS > 0 整段被预处理器剔除 → 物体渲染为黑
     private var _numDirLights: Int64 = 0
     private var _numPointLights: Int64 = 0
@@ -237,7 +259,7 @@ public class BgfxBackend <: Backend {
     private var _numHemiLights: Int64 = 0
     // LightProbe 数量（供 _buildLightDefines 构建 USE_LIGHT_PROBES define）
     private var _numLightProbes: Int64 = 0
-    // 阴影光源计数（对照参考项目 BgfxRenderer 行 178-180、456-461）
+    // 阴影光源计数（对照参考项目 ThreeRenderer 行 178-180、456-461）
     // 不传 NUM_*_LIGHT_SHADOWS defines 会导致 Phong shader 的 shadowmap_pars_fragment / lights_pars_begin
     // 阴影分支被预处理器剔除 → 物体只有材质光照、无阴影投射效果（sp_fullphong 阴影缺失根因）
     private var _numDirShadowLights: Int64 = 0
@@ -460,7 +482,7 @@ public class BgfxBackend <: Backend {
      *
      * 顺序：
      * 1. bgfx_set_view_rect_cj —— 视口（用 renderContext.viewport）
-     * 2. bgfx_set_view_clear_cj —— 清除色 + 深度（用 BgfxRenderer.clearColor）
+     * 2. bgfx_set_view_clear_cj —— 清除色 + 深度（用 ThreeRenderer.clearColor）
      * 3. _setViewTransform —— view + proj 矩阵（从 renderContext 读取，_render 中已填充）
      *
      * 不调用 bgfx_touch_cj：touch 会重置 view 状态，导致后续 submit 失效（全黑）。
@@ -471,7 +493,7 @@ public class BgfxBackend <: Backend {
         let (x, y, w, h) = renderContext.viewport
         bgfx_set_view_rect_cj(viewId, UInt16(x), UInt16(y), UInt16(UInt32(w)), UInt16(UInt32(h)))
 
-        // 设置清除色（从 BgfxRenderer.clearColor 经 backend.parameters 传入，避免循环依赖）
+        // 设置清除色（从 ThreeRenderer.clearColor 经 backend.parameters 传入，避免循环依赖）
         let clearColor = this._getClearColorFromParams()
         Logger.trace(["clear", "beginRender viewId=${viewId} clearColor=${clearColor} rect=(${x},${y},${w},${h})"])
         bgfx_set_view_clear_cj(viewId, CLEAR_COLOR | CLEAR_DEPTH, clearColor, 1.0f32, 0)
@@ -501,7 +523,7 @@ public class BgfxBackend <: Backend {
                 this._numHemiLights = if (hemiLights.size < this.maxHemiLights) { Int64(hemiLights.size) } else { this.maxHemiLights }
                 // LightProbe：SH3 球谐系数（shCoefficients[9]）只取第一个探针，计数恒 0/1
                 this._numLightProbes = if (lightProbes.size > 0) { 1 } else { 0 }
-                // 记录阴影光源计数（对照参考项目 BgfxRenderer 行 456-461）：
+                // 记录阴影光源计数（对照参考项目 ThreeRenderer 行 456-461）：
                 // 遍历各光源列表统计 castShadow=true 的数量，供 _buildLightDefines 构建
                 // NUM_*_LIGHT_SHADOWS defines，否则 Phong shader 阴影分支被预处理器剔除
                 // 同样 clamp 到 maxXxxShadows 配置上限
@@ -602,6 +624,8 @@ public class BgfxBackend <: Backend {
     // ===== 顶点缓冲/布局创建辅助方法（对照参考代码 getOrCreateVB/getOrCreateIB/getOrCreateLayoutPtr）=====
 
     private var _vbCache: HashMap<Int64, VertexBufferHandle> = HashMap<Int64, VertexBufferHandle>()
+    // 顶点缓冲对应的 position 属性版本号：版本变化时销毁旧缓冲并重建（CPU 蒙皮/形态目标等动态几何）
+    private var _vbVersions: HashMap<Int64, Int64> = HashMap<Int64, Int64>()
     private var _ibCache: HashMap<Int64, IndexBufferHandle> = HashMap<Int64, IndexBufferHandle>()
     private var _layoutCache: Option<VertexLayoutHandle> = None
     private var _currentLayout: VertexLayoutHandle = VertexLayoutHandle(65535u16)
@@ -706,7 +730,7 @@ public class BgfxBackend <: Backend {
         bgfx_set_state_cj(baseState | primState | cullMode | blendState, 0x00000000u32)
 
         // 7.5 绑定材质 uniform（u_color / u_opacity + 各材质特有 uniform）
-        // 对照原始有效实现 BgfxRenderer.setMatUniforms（行 1474-1563）
+        // 对照原始有效实现 ThreeRenderer.setMatUniforms（行 1474-1563）
         // Three.js chunk 系统的 meshbasic/meshphong/meshstandard FS 均声明：
         //   uniform vec4 u_color;    // diffuse.rgb + opacity.a
         //   uniform vec4 u_opacity;  // chunk 系统读 u_opacity.x 作为 diffuseColor.a
@@ -956,18 +980,18 @@ public class BgfxBackend <: Backend {
             case "MeshStandardMaterial" | "MeshPhysicalMaterial" =>
                 match (mat) {
                     case sm: MeshStandardMaterial =>
-                        match (sm.map) { case Some(t) => bindings.add(("map", t, BgfxSamplerStages.STAGE_MAP)); case None => () }
-                        match (sm.roughnessMap) { case Some(t) => bindings.add(("roughnessMap", t, BgfxSamplerStages.STAGE_ROUGHNESS_MAP)); case None => () }
-                        match (sm.metalnessMap) { case Some(t) => bindings.add(("metalnessMap", t, BgfxSamplerStages.STAGE_METALNESS_MAP)); case None => () }
-                        match (sm.normalMap) { case Some(t) => bindings.add(("normalMap", t, BgfxSamplerStages.STAGE_NORMAL_MAP)); case None => () }
-                        match (sm.aoMap) { case Some(t) => bindings.add(("aoMap", t, BgfxSamplerStages.STAGE_AO_MAP)); case None => () }
-                        match (sm.emissiveMap) { case Some(t) => bindings.add(("emissiveMap", t, BgfxSamplerStages.STAGE_EMISSIVE_MAP)); case None => () }
+                        match (sm.map) { case Some(t) => bindings.add(("map", t, SamplerStages.STAGE_MAP)); case None => () }
+                        match (sm.roughnessMap) { case Some(t) => bindings.add(("roughnessMap", t, SamplerStages.STAGE_ROUGHNESS_MAP)); case None => () }
+                        match (sm.metalnessMap) { case Some(t) => bindings.add(("metalnessMap", t, SamplerStages.STAGE_METALNESS_MAP)); case None => () }
+                        match (sm.normalMap) { case Some(t) => bindings.add(("normalMap", t, SamplerStages.STAGE_NORMAL_MAP)); case None => () }
+                        match (sm.aoMap) { case Some(t) => bindings.add(("aoMap", t, SamplerStages.STAGE_AO_MAP)); case None => () }
+                        match (sm.emissiveMap) { case Some(t) => bindings.add(("emissiveMap", t, SamplerStages.STAGE_EMISSIVE_MAP)); case None => () }
                     case _ => ()
                 }
             case "MeshBasicMaterial" =>
                 match (mat) {
                     case bm: MeshBasicMaterial =>
-                        match (bm.map) { case Some(t) => bindings.add(("map", t, BgfxSamplerStages.STAGE_MAP)); case None => () }
+                        match (bm.map) { case Some(t) => bindings.add(("map", t, SamplerStages.STAGE_MAP)); case None => () }
                     case _ => ()
                 }
             case _ => ()
@@ -1079,7 +1103,7 @@ public class BgfxBackend <: Backend {
 
     // ===== Shader 程序获取（Three.js 模式：从材质编译自定义 shader）=====
     // 对照 Three.js WebGLBackend: 从 material 获取已编译的 program
-    // 对照参考代码 BgfxRenderer.getOrCreateProgram
+    // 对照参考代码 ThreeRenderer.getOrCreateProgram
 
     private var _customProgCache: HashMap<String, ProgramHandle> = HashMap<String, ProgramHandle>()
     private var _variantProgCache: HashMap<String, ProgramHandle> = HashMap<String, ProgramHandle>()
@@ -1162,7 +1186,7 @@ public class BgfxBackend <: Backend {
             case "ReflectorMaterial" => "reflector"
             case _ => "basic"
         }
-        // variant 缓存键含光照/阴影计数+阴影类型+纹理组合（对照参考项目 BgfxRenderer 行 1291 的 lightKey）
+        // variant 缓存键含光照/阴影计数+阴影类型+纹理组合（对照参考项目 ThreeRenderer 行 1291 的 lightKey）
         // 否则阴影光源数量或阴影类型变化时不会重编译 shader，导致阴影缺失或多余阴影分支
         // 纹理组合变化时也必须重编译，否则 PBR 路径（USE_MAP/USE_METALNESSMAP/USE_ROUGHNESSMAP）被剔除
         let stKey = this.shadowMap.getShadowType().toString()
@@ -1190,7 +1214,7 @@ public class BgfxBackend <: Backend {
             case Some(baseProg) =>
                 let variantProg = ShaderProgram.createVariant(variantKey, baseProg)
                 // 构建光照计数 defines（NUM_DIR_LIGHTS 等）
-                // 对照原始有效实现 BgfxRenderer.getOrCreateProg（行 1332-1339）
+                // 对照原始有效实现 ThreeRenderer.getOrCreateProg（行 1332-1339）
                 // 不传这些 defines 会导致 #if NUM_DIR_LIGHTS > 0 整段被预处理器剔除 → 物体渲染为黑
                 let lightDefs = this._buildLightDefines()
                 // 合并材质纹理 #define（USE_MAP=1 / USE_METALNESSMAP=1 / USE_ROUGHNESSMAP=1 / ...）
@@ -1285,7 +1309,7 @@ public class BgfxBackend <: Backend {
         defStrings.add("NUM_DIR_LIGHT_SHADOWS_MAX=" + this.maxDirShadows.toString())
         defStrings.add("NUM_POINT_LIGHT_SHADOWS_MAX=" + this.maxPointShadows.toString())
         defStrings.add("NUM_SPOT_LIGHT_SHADOWS_MAX=" + this.maxSpotShadows.toString())
-        // 阴影光源计数 defines（对照参考项目 BgfxRenderer 行 1339-1357）
+        // 阴影光源计数 defines（对照参考项目 ThreeRenderer 行 1339-1357）
         // 不传会导致 Phong shader 的 shadowmap_pars_fragment / lights_pars_begin 阴影分支
         // 被预处理器剔除 → 物体只有材质光照、无阴影投射效果（sp_fullphong 阴影缺失根因）
         // 仅在存在任意阴影光源时传（避免无阴景场景多余 define）
@@ -1398,8 +1422,23 @@ public class BgfxBackend <: Backend {
      */
     internal func _createVB(geom: BufferGeometry): VertexBufferHandle {
         let geomId = geom.uuid.hashCode()
+        // position 属性版本号：CPU 蒙皮等每帧修改数据时会自增
+        let posVersion = match (geom.getAttribute("position")) {
+            case Some(p) => p.version
+            case None => 0
+        }
         match (this._vbCache.get(geomId)) {
-            case Some(vb) => return vb
+            case Some(vb) =>
+                // 版本未变 → 复用缓存
+                match (this._vbVersions.get(geomId)) {
+                    case Some(v) => if (v == posVersion) { return vb }
+                    case _ => ()
+                }
+                // 版本变化 → 销毁旧缓冲并重建
+                if (vb.idx != 65535u16) {
+                    bgfx_destroy_vertex_buffer_cj(vb)
+                }
+                this._vbCache.remove(geomId)
             case None => ()
         }
         let posAttrOpt = geom.getAttribute("position")
@@ -1449,6 +1488,7 @@ public class BgfxBackend <: Backend {
                 let layout = this._getOrCreateLayoutPtr()
                 let handle = bgfx_create_vertex_buffer_cj(mem.get(), layout, 0u16)
                 this._vbCache.add(geomId, handle)
+                this._vbVersions.add(geomId, posVersion)
                 return handle
             case None => return VertexBufferHandle(65535u16)
         }
@@ -1566,10 +1606,10 @@ public class BgfxBackend <: Backend {
      * 阴影深度预 pass：收集场景中 castShadow 的方向光，渲染深度到阴影 framebuffer。
      */
     public override func prepareShadowMap(scene: Scene): Unit {
-        // 注意：去掉 initialized 守卫——BgfxRenderer 多线程委托机制下，
+        // 注意：去掉 initialized 守卫——ThreeRenderer 多线程委托机制下，
         // prepareShadowMap 在专用渲染线程上下文调时 initialized 字段跨线程可见性没保证，
         // 早 return 命中导致 _shadowFB 没创建 → blit SKIP。
-        // bgfx_init 在 BgfxRenderer.init 时已完成，专用线程启动前 initialized 已 true；
+        // bgfx_init 在 ThreeRenderer.init 时已完成，专用线程启动前 initialized 已 true；
         // 且 prepareShadowMap 内部 bgfx API 调用本身是安全的，无需此守卫。
 
         // 多光源阴影支持：每帧重置当前帧 shadow slot 注册表与 view ID 游标。
@@ -1653,7 +1693,7 @@ public class BgfxBackend <: Backend {
                                                 let shadowTex = bgfx_get_texture_cj(slot.frameBuffer, 0u8)
                                                 Logger.debug(["blit", "shadowTex idx=${shadowTex.idx} shadowFB idx=${slot.frameBuffer.idx}"])
                                                 let blitSampler = this.uniforms.createUniform("shadowBlitSampler", UniformType.Sampler.value())
-                                                bgfx_set_texture_cj(BgfxSamplerStages.STAGE_SHADOW_BLIT, blitSampler.value, shadowTex, 0u32)
+                                                bgfx_set_texture_cj(SamplerStages.STAGE_SHADOW_BLIT, blitSampler.value, shadowTex, 0u32)
 
                                                 bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, 0xFFFFFFFFu32, layout)
                                                 bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
@@ -1855,8 +1895,8 @@ public class BgfxBackend <: Backend {
             return
         }
         let sampler = this.uniforms.createUniform("dfgLUT", UniformType.Sampler.value())
-        bgfx_set_texture_cj(BgfxSamplerStages.STAGE_DFGLUT, sampler.value, handle, UInt32(lutFlags))
-        Logger.debug(["bindScene", "dfgLUT bound stage=${BgfxSamplerStages.STAGE_DFGLUT.toString()} w=${dfgLutTex.width.toString()} h=${dfgLutTex.height.toString()}"])
+        bgfx_set_texture_cj(SamplerStages.STAGE_DFGLUT, sampler.value, handle, UInt32(lutFlags))
+        Logger.debug(["bindScene", "dfgLUT bound stage=${SamplerStages.STAGE_DFGLUT.toString()} w=${dfgLutTex.width.toString()} h=${dfgLutTex.height.toString()}"])
     }
 
     // ===== 阴影状态字段 + 全屏 blit 资源已迁出至 BgfxShadowPass / BgfxBlitQuad =====

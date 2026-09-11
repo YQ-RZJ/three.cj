@@ -15,14 +15,20 @@ Dispose GPU resources
 ```cj
 public init(light: Light, color!: Option < Color >= None < Color >)
 ```
-Construct a spot light helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|light|Light|The spot light to visualizecolor Color, uses light color when not set|
+|light|Light||
 |color|Option<Color>||
+
+### func init\(\)
+```cj
+public init()
+```
+Construct a spot light helper
 
 ### func update\(\)
 ```cj

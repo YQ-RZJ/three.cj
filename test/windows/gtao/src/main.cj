@@ -11,7 +11,7 @@ package sp_gtao
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -24,7 +24,7 @@ import three.scene.objects.*
 import three.rendering.lights.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxGTAOPass
+import three.rendering.postprocessing.GTAOPass
 import three.utils.log.Logger
 import three.utils.log.LogLevel
 
@@ -38,12 +38,12 @@ public class TestWindow <: WindowEngine {
     // 输入提供者（可插拔架构）
     var _mouse: Option<MouseProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 40.0, aspect: 1.0, near: 1.0, far: 100.0)
     var modelGroup: Group = Group()
     var composer: Option<EffectComposer> = None
-    var gtaoPass: Option<BgfxGTAOPass> = None
+    var gtaoPass: Option<GTAOPass> = None
     var frame: Int64 = 0
     var totalFrames: Int64 = 0
     var startTime: MonoTime = MonoTime.now()
@@ -63,15 +63,17 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0xbf, 0xe3, 0xdd))  // 对齐官方 scene.background = 0xbfe3dd
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
 
@@ -94,7 +96,7 @@ public class TestWindow <: WindowEngine {
         //   composer.render()
         let composer = EffectComposer(this.renderer)
         composer.addPass(RenderPass(this.scene, this.camera))
-        let gtaoPass = BgfxGTAOPass(this.scene, this.camera)
+        let gtaoPass = GTAOPass(this.scene, this.camera)
         // 参数完全对齐官方 webgl_postprocessing_gtao.html 的 aoParameters/pdParameters：
         //   aoParameters: radius=0.25, distanceExponent=1, thickness=1, scale=1,
         //                 samples=16, distanceFallOff=1, screenSpaceRadius=false
@@ -112,7 +114,7 @@ public class TestWindow <: WindowEngine {
         gtaoPass.pdRadius = 4.0      // 官方 pdParameters.radius=4（注意：非 GTAOPass 默认 8）
         gtaoPass.blendIntensity = 1.0
         // 输出模式：Default=0（AO 混合到场景）；调试可用 Denoise=5/AO=4/Depth=2/Normal=3
-        gtaoPass.output = BgfxGTAOPass.OUTPUT_DEFAULT
+        gtaoPass.output = GTAOPass.OUTPUT_DEFAULT
         composer.addPass(gtaoPass)
         composer.setSize(Int64(this.getWidth()), Int64(this.getHeight()))
         this.composer = Some(composer)
@@ -194,7 +196,7 @@ public class TestWindow <: WindowEngine {
         }
         println("")
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }
 }

@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 Dispose GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Construct a Box3 helper
+
 ### func init\(Box3,UInt32\)
 ```cj
 public init(box: Box3, color!: UInt32 = 0xffff00)
 ```
-Construct a Box3 helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|box|Box3|The Box3 bounding box to visualizecolor Wireframe color, default yellow 0xffff00|
+|box|Box3||
 |color|UInt32||
 
 ### func updateMatrixWorld\(Bool\)

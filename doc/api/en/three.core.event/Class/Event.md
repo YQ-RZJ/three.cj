@@ -21,11 +21,11 @@ Parameter:
 ```cj
 public var `type`: String
 ```
-
+Event type
 
 ### var target
 ```cj
 public var target:?EventDispatcher
 ```
-
+Event target (the object dispatching the event), set automatically by dispatchEvent
 

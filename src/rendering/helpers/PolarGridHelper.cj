@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 极坐标网格辅助对象
  * @brief[zh-cn] 极坐标网格辅助对象，用于在场景中显示极坐标网格
  * @explain[zh-cn] 
@@ -12,6 +34,10 @@
  * concentric rings for polar coordinate visualization. Grid is on the XZ plane.
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -35,6 +61,7 @@ import std.math.*
  * @explain[en] 
  * Composed of radial rays and concentric rings for polar coordinate visualization.
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = LineSegments]
 public class PolarGridHelper <: LineSegments {
     /**
      * @brief[zh-cn] 构造极坐标网格辅助对象
@@ -55,7 +82,6 @@ public class PolarGridHelper <: LineSegments {
      */
     public init(radius!: Float64 = 10.0, sectors!: Int64 = 16, rings!: Int64 = 8, divisions!: Int64 = 64, color1!: Color = Color(0x444444), color2!: Color = Color(0x888888)) {
         super(geometry: BufferGeometry(), material: LineBasicMaterial())
-        this.kind = "PolarGridHelper"
         let vertices = ArrayList<Float64>()
         let colors = ArrayList<Float64>()
 

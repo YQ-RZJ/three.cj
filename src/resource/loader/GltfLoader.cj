@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] GltfLoader glTF 加载器
  * @brief[zh-cn] 对应 Three.js loaders/GLTFLoader.js，加载 glTF 格式的 3D 模型
  * @explain[zh-cn] 完整解析 glTF 的核心功能：顶点属性、索引缓冲、材质（PBR Metallic-Roughness）、纹理贴图、场景层级、多网格多图元。
@@ -25,13 +47,21 @@ import three.rendering.materials.*
 import three.rendering.textures.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
-import bgfx4cj.geometryc.*
 import bgfx4cj.bimg.*
 import fastjson.*
 import fastjson.stream.*
 import three.utils.log.Logger
 import three.utils.memory.AutoFreePtr
 
+/**
+ * @brief[zh-cn] glTF 加载器，加载 .gltf / .glb 格式的 3D 模型
+ * @explain[zh-cn] 解析 glTF JSON 为 Group，包含网格和材质。
+ *
+ * @brief[en] glTF loader, loads .gltf / .glb format 3D models
+ * @explain[en] Parses glTF JSON into a Group containing meshes and materials.
+ *
+ * @extends Loader
+ */
 /**
  * @brief[zh-cn] glTF 加载器，加载 .gltf / .glb 格式的 3D 模型
  * @explain[zh-cn] 解析 glTF JSON 为 Group，包含网格和材质。
@@ -91,43 +121,8 @@ public class GltfLoader <: Loader {
                 basePath = getBasePath(nameStr)
             }
 
-            // 使用 geometryc 编译 glTF 为 bgfx 二进制数据
-            let extBytes = ext.toArray()
-            let extCsHolder = AutoFreePtr<UInt8>(unsafe { LibC.malloc<UInt8>(count: Int64(extBytes.size + 1)) })
-            let extCs = extCsHolder.get()
-            unsafe {
-                for (i in 0..extBytes.size) { (extCs + i).write(extBytes[i]) }
-                (extCs + Int64(extBytes.size)).write(0u8)
-            }
-            let basePathBytes = basePath.toArray()
-            let basePathCsHolder = AutoFreePtr<UInt8>(unsafe { LibC.malloc<UInt8>(count: Int64(basePathBytes.size + 1)) })
-            let basePathCs = basePathCsHolder.get()
-            unsafe {
-                for (i in 0..basePathBytes.size) { (basePathCs + i).write(basePathBytes[i]) }
-                (basePathCs + Int64(basePathBytes.size)).write(0u8)
-            }
-            var config = GcConfig()
-            config.scale = 1.0f32
-            config.coordSystem = CoordSystem.RhUpY.value()
-            let configPtrHolder = AutoFreePtr<GcConfig>(unsafe { LibC.malloc<GcConfig>() })
-            let configPtr = configPtrHolder.get()
-            unsafe { configPtr.write(config) }
-            var result = GcResult()
-            let resultPtrHolder = AutoFreePtr<GcResult>(unsafe { LibC.malloc<GcResult>() })
-            let resultPtr = resultPtrHolder.get()
-            unsafe { resultPtr.write(result) }
-            let ret = unsafe {
-                let pDataHolder = AutoFreePtr<UInt8>(LibC.malloc<UInt8>(count: Int64(bytes.size)))
-                let pData = pDataHolder.get()
-                for (i in 0..bytes.size) { (pData + i).write(bytes[i]) }
-                gc_convert_cj(CPointer<Unit>(pData), UInt32(bytes.size), extCs, basePathCs, CPointer<GcConfig>(configPtr), resultPtr)
-                pDataHolder.dispose()
-            }
-            extCsHolder.dispose(); basePathCsHolder.dispose(); configPtrHolder.dispose()
-
             // 完整解析 glTF JSON 为 Group
             let modelGroup = this.parse(jsonData, binData, basePath)
-            unsafe { gc_result_free_cj(resultPtr); resultPtrHolder.dispose() }
 
             this.manager.itemEnd(url)
             onLoad(modelGroup)
@@ -192,6 +187,15 @@ public class GltfLoader <: Loader {
         let loadedBuffers = loadBuffers(buffers, binData, basePath)
         let parsedMaterials = parseMaterials(materials, textures, images, bufferViews, samplers, binData, basePath)
 
+        // 解析 skins（骨骼蒙皮数据）
+        let skinsOpt = json.get("skins")
+        let nodesOpt = json.get("nodes")
+        let parsedSkins = parseSkins(skinsOpt, nodesOpt, accessors, bufferViews, loadedBuffers)
+
+        // 解析 animations（骨骼动画数据）
+        let animationsOpt = json.get("animations")
+        let parsedAnimations = parseAnimations(animationsOpt, accessors, bufferViews, loadedBuffers)
+
         let result = Group()
         result.name = "GLTFModel"
 
@@ -241,8 +245,7 @@ public class GltfLoader <: Loader {
         }
 
         // 层级应用：优先走 scenes -> nodes 路径（应用节点变换矩阵/TRS 与层级），
-        //   无 scenes/nodes 时回退平铺（兼容简单模型）
-        let nodesOpt = json.get("nodes")
+        //   无 scenes/nodes 时回退平铺（兼容简单模型）；nodesOpt 复用上方 L206 的绑定
         let scenesOpt = json.get("scenes")
         var appliedHierarchy = false
         match (scenesOpt) {
@@ -280,6 +283,29 @@ public class GltfLoader <: Loader {
                 }
             }
         }
+
+        // 暴露骨骼/动画解析数据到 userData，供上层（如 GltfImportAdapter）构建运行时骨骼动画：
+        //   gltfSkins/gltfAnimations 为结构化解析结果；
+        //   gltfNodes/gltfAccessors/gltfBufferViews 为 JSON 原始 Any 数组；
+        //   gltfBuffers 为已加载的二进制缓冲列表。
+        let nodesArr = match (nodesOpt) {
+            case Some(n) => toArrayAny(n)
+            case None => Array<Any>()
+        }
+        let accessorsArr = match (accessors) {
+            case Some(a) => toArrayAny(a)
+            case None => Array<Any>()
+        }
+        let bufferViewsArr = match (bufferViews) {
+            case Some(bv) => toArrayAny(bv)
+            case None => Array<Any>()
+        }
+        result.userData.add("gltfSkins", parsedSkins)
+        result.userData.add("gltfAnimations", parsedAnimations)
+        result.userData.add("gltfNodes", nodesArr)
+        result.userData.add("gltfAccessors", accessorsArr)
+        result.userData.add("gltfBufferViews", bufferViewsArr)
+        result.userData.add("gltfBuffers", loadedBuffers)
 
         return result
     }
@@ -953,6 +979,188 @@ public class GltfLoader <: Loader {
                     result.add(binData)
             }
         }
+        return result
+    }
+
+    // =========================================================================
+    // glTF Skins 解析
+    // =========================================================================
+
+    /**
+     * @brief[zh-cn] 解析 glTF skins 数组
+     * @explain[zh-cn] 从 glTF JSON 中提取每个 skin 的 inverseBindMatrices、skeleton root 和 joints 列表。
+     *
+     * @brief[en] Parse glTF skins array
+     * @explain[en] Extracts inverseBindMatrices, skeleton root, and joints list for each skin from glTF JSON.
+     */
+    private func parseSkins(skinsOpt: Option<Any>, nodesOpt: Option<Any>, accessorsOpt: Option<Any>, bufferViewsOpt: Option<Any>, loadedBuffers: ArrayList<Array<UInt8>>): ArrayList<GltfSkinData> {
+        let result = ArrayList<GltfSkinData>()
+        let skins = match (skinsOpt) {
+            case Some(s) => toArrayAny(s)
+            case None => return result
+        }
+
+        let accessors = match (accessorsOpt) {
+            case Some(a) => toArrayAny(a)
+            case None => return result
+        }
+        let bufferViews = match (bufferViewsOpt) {
+            case Some(bv) => toArrayAny(bv)
+            case None => return result
+        }
+
+        for (si in 0..skins.size) {
+            let skinObj = match (skins[si]) {
+                case hm: HashMap<String, Any> => hm
+                case _ => continue
+            }
+
+            // 解析 inverseBindMatrices accessor（MAT4，Float32，每矩阵 64 字节）
+            var inverseBindMatrices = ArrayList<Array<Float64>>()
+            match (skinObj.get("inverseBindMatrices")) {
+                case Some(ibmIdxVal) =>
+                    let flatData = readAccessorData(getInt(Some(ibmIdxVal)), accessorsOpt, bufferViewsOpt, loadedBuffers)
+                    match (flatData) {
+                        case Some(data) =>
+                            let count = data.size / 16
+                            for (m in 0..count) {
+                                let base = m * 16
+                                let mat = Array<Float64>(16, { i => data[base + i] })
+                                inverseBindMatrices.add(mat)
+                            }
+                        case None => ()
+                    }
+                case None => ()
+            }
+
+            // 解析 skeleton root node index
+            var skeletonRoot = -1
+            match (skinObj.get("skeleton")) {
+                case Some(skelIdx) => skeletonRoot = getInt(Some(skelIdx))
+                case None => ()
+            }
+
+            // 解析 joints 数组
+            let joints = ArrayList<Int>()
+            match (skinObj.get("joints")) {
+                case Some(jointsVal) =>
+                    let jointsArr = toArrayAny(jointsVal)
+                    for (ji in 0..jointsArr.size) {
+                        joints.add(getInt(Some(jointsArr[ji])))
+                    }
+                case None => ()
+            }
+
+            // 解析 name
+            var skinName = "skin_${si}"
+            match (skinObj.get("name")) {
+                case Some(n) => skinName = match (n) { case s: String => s; case _ => skinName }
+                case None => ()
+            }
+
+            let ibmFinal = inverseBindMatrices
+            result.add(GltfSkinData(
+                skinName,
+                Array<Array<Float64>>(ibmFinal.size, { i => ibmFinal[i] }),
+                skeletonRoot,
+                Array<Int>(joints.size, { i => joints[i] })
+            ))
+        }
+
+        return result
+    }
+
+    // =========================================================================
+    // glTF Animations 解析
+    // =========================================================================
+
+    /**
+     * @brief[zh-cn] 解析 glTF animations 数组
+     * @explain[zh-cn] 从 glTF JSON 中提取每个动画的 channels 和 samplers。
+     *                  channels 定义目标节点和属性路径（translation/rotation/scale），
+     *                  samplers 定义输入（时间）和输出（值）的 accessor 索引及插值方式。
+     *
+     * @brief[en] Parses the glTF animations array
+     * @explain[en] Extracts the channels and samplers of each animation from the glTF JSON.
+     *                  channels define the target node and property path (translation/rotation/scale);
+     *                  samplers define the accessor indices and interpolation mode for input (time) and output (values).
+     */
+    private func parseAnimations(animationsOpt: Option<Any>, accessorsOpt: Option<Any>, bufferViewsOpt: Option<Any>, loadedBuffers: ArrayList<Array<UInt8>>): ArrayList<GltfAnimationData> {
+        let result = ArrayList<GltfAnimationData>()
+        let animations = match (animationsOpt) {
+            case Some(a) => toArrayAny(a)
+            case None => return result
+        }
+
+        for (ai in 0..animations.size) {
+            let animObj = match (animations[ai]) {
+                case hm: HashMap<String, Any> => hm
+                case _ => continue
+            }
+
+            // 解析 name
+            var animName = "animation_${ai}"
+            match (animObj.get("name")) {
+                case Some(n) => animName = match (n) { case s: String => s; case _ => animName }
+                case None => ()
+            }
+
+            // 解析 channels
+            let channels = ArrayList<GltfAnimationChannel>()
+            match (animObj.get("channels")) {
+                case Some(channelsVal) =>
+                    let channelsArr = toArrayAny(channelsVal)
+                    for (ci in 0..channelsArr.size) {
+                        let chObj = match (channelsArr[ci]) {
+                            case hm: HashMap<String, Any> => hm
+                            case _ => continue
+                        }
+                        let samplerIdx = getInt(chObj.get("sampler"))
+                        var targetNode = -1
+                        var targetPath = ""
+                        match (chObj.get("target")) {
+                            case Some(targetVal) =>
+                                let targetObj = match (targetVal) {
+                                    case hm: HashMap<String, Any> => hm
+                                    case _ => continue
+                                }
+                                targetNode = getInt(targetObj.get("node"))
+                                match (targetObj.get("path")) {
+                                    case Some(p) => targetPath = match (p) { case s: String => s; case _ => "" }
+                                    case None => ()
+                                }
+                            case None => ()
+                        }
+                        channels.add(GltfAnimationChannel(samplerIdx, targetNode, targetPath))
+                    }
+                case None => ()
+            }
+
+            // 解析 samplers
+            let samplers = ArrayList<GltfAnimationSampler>()
+            match (animObj.get("samplers")) {
+                case Some(samplersVal) =>
+                    let samplersArr = toArrayAny(samplersVal)
+                    for (si in 0..samplersArr.size) {
+                        let spObj = match (samplersArr[si]) {
+                            case hm: HashMap<String, Any> => hm
+                            case _ => continue
+                        }
+                        let inputIdx = getInt(spObj.get("input"))
+                        let outputIdx = getInt(spObj.get("output"))
+                        var interpolation = "LINEAR"
+                        match (spObj.get("interpolation")) {
+                            case Some(interp) => interpolation = match (interp) { case s: String => s; case _ => "LINEAR" }
+                            case None => ()
+                        }
+                        samplers.add(GltfAnimationSampler(inputIdx, outputIdx, interpolation))
+                    }
+                case None => ()
+            }
+
+            result.add(GltfAnimationData(animName, Array<GltfAnimationChannel>(channels.size, { i => channels[i] }), Array<GltfAnimationSampler>(samplers.size, { i => samplers[i] })))
+        }
+
         return result
     }
 

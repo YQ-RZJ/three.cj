@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] JsonMacros JSON 注解宏重公开
  * @brief[zh-cn] 重公开 cjfast_json 注解宏的宏包（three.resource.serializer.macros）
  * @explain[zh-cn] 仓颉规则：非宏包不能重导出宏包符号（public import fastjson.macros.* 在普通包内报错），而宏包中可以重导出宏包与非宏包的符号。故本宏包子包负责：重导出 fastjson.macros 的注解宏（@JsonAdapter / @JsonName / @JsonIgnore / @JsonIgnoreNull），同时重导出 fastjson / fastjson.stream 的运行时类型。@JsonAdapter 宏展开生成的 fromJson/toJson 代码会引用这些符号，用户只需 import 本宏包即可正确编译。

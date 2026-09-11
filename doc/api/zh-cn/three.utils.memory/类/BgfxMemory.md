@@ -162,18 +162,6 @@ public func get(): CPointer < Memory >
 
 - CPointer<Memory>
 
-### func init\(UInt32\)
-```cj
-public init(size: UInt32)
-```
-通过 bgfx_alloc 分配内存
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|size|UInt32|分配大小（字节）|
-
 ### func init\(CPointer<Unit>,UInt32\)
 ```cj
 public init(data: CPointer < Unit >, size: UInt32)
@@ -186,6 +174,18 @@ public init(data: CPointer < Unit >, size: UInt32)
 |---|---|---|
 |data|CPointer<Unit>|源数据指针size 数据大小（字节）|
 |size|UInt32||
+
+### func init\(UInt32\)
+```cj
+public init(size: UInt32)
+```
+通过 bgfx_alloc 分配内存
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|size|UInt32|分配大小（字节）|
 
 ### func readFloat\(Int64\)
 ```cj

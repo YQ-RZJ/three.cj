@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 平行光阴影配置
  * @brief[zh-cn] 平行光阴影配置，专用于 DirectionalLight
  * @explain[zh-cn] 
@@ -37,7 +59,7 @@ import fastjson.stream.*
  * Internal camera is OrthographicCamera, default frustum range [-5,5]×[-5,5]×[0.5,500].
  * Supports CSM (Cascaded Shadow Maps).
  */
-@JsonAdapter[withSuperClass = LightShadow]
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = LightShadow]
 public class DirectionalLightShadow <: LightShadow {
     /**
      * @brief[zh-cn] CSM 各级阴影矩阵数组（长度 = cascadeCount）
@@ -60,7 +82,6 @@ public class DirectionalLightShadow <: LightShadow {
      */
     public init() {
         super(OrthographicCamera(left: -5.0, right: 5.0, top: 5.0, bottom: -5.0, near: 0.5, far: 500.0))
-        this.kind = "DirectionalLightShadow"
         this.cascadeMatrices = ArrayList<Matrix4>()
         this.cascadeFrustums = ArrayList<Frustum>()
     }

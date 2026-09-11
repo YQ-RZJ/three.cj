@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] InstancedMesh 实例化网格
  * @brief[zh-cn] 将同一几何/材质渲染 count 次的渲染对象，每次带独立变换矩阵/颜色
  * @explain[zh-cn] 用于森林（树）、草地（草）、粒子群等大量重复几何；远比逐个 Mesh 高效。
@@ -14,6 +36,10 @@
  * Inherits Mesh; raycast handles per-instance independent transform geometry intersection.
  */
 package three.scene.entity
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -33,6 +59,7 @@ import std.collection.*
  *
  * @brief[en] Instanced mesh that renders the same geometry/material multiple times with independent transform/color
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
 public class InstancedMesh <: Mesh {
 
     /**
@@ -43,16 +70,20 @@ public class InstancedMesh <: Mesh {
     public var instanceMatrix: InstancedBufferAttribute
 
     // 实例颜色缓冲（可选，None 表示无独立颜色，用材质颜色）。
+    @JsonIgnore
     public var instanceColor: Option<InstancedBufferAttribute>
 
     // morph target 贴图（可选，用于实例化 morph target 的纹理存储）。
     
+    @JsonIgnore
     public var morphTexture: Option<DataTexture>
 
     // 包围盒（可选，computeBoundingBox 后填充）。
+    @JsonIgnore
     public var boundingBox: Option<Box3>
 
     // 包围球（可选，computeBoundingSphere 后填充）。
+    @JsonIgnore
     public var boundingSphere: Option<Sphere>
 
     // 构造一个新的实例化网格。
@@ -62,7 +93,6 @@ public class InstancedMesh <: Mesh {
     public init(geometry!: BufferGeometry = BufferGeometry(), material!: Material = Material(), count!: Int64 = 0) {
         super(geometry: geometry, material: material)
         this.count = count
-        this.kind = "InstancedMesh"
         this.instanceMatrix = InstancedBufferAttribute(Array<Float64>(count * 16, { _ => 0.0 }), 16)
         this.instanceColor = None
         this.morphTexture = None

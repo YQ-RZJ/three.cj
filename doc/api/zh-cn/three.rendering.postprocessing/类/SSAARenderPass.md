@@ -26,9 +26,9 @@ public init(scene: Scene, camera: Camera, clearColor!: UInt32 = 0x00000000u32, c
 |clearColor|UInt32|clear 颜色（默认透明黑）|
 |clearAlpha|Float64|clear alpha（默认 0）差异：全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public open override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public open override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 SSAA 渲染 pass（单帧多 jitter 样本累加）。
 
@@ -36,7 +36,7 @@ public open override func render(renderer: BgfxRenderer, writeBuffer: FrameBuffe
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（累加结果输出；renderToScreen=true 时写屏幕）|
 |readBuffer|FrameBufferHandle|读 buffer（SSAA 不用 readBuffer，而是渲染场景到 sampleRT）|
 |deltaTime|Float64|帧间隔|

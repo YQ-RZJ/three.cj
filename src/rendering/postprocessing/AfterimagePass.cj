@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxAfterimagePass 残影后处理 pass
  * @brief[zh-cn] 残影后处理 pass —— 当前帧与上一帧残影融合产生拖尾效果
  * @explain[zh-cn] 算法：
@@ -44,7 +66,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
@@ -104,7 +126,7 @@ public class AfterimagePass <: Pass {
     /**
      * 渲染器引用（render() 时缓存，setSize/dispose 经其高阶 API 序列化）。
      */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * afterimage shader 是否已编译。
@@ -208,7 +230,7 @@ public class AfterimagePass <: Pass {
     /**
      * 创建单纹理 frame buffer（无 depth）。
      */
-    private func _createFB(renderer: BgfxRenderer, tex: TextureHandle): FrameBufferHandle {
+    private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(1, { _ => tex })
         let fb = renderer.createFrameBuffer(1u8, handles, true)
         return fb
@@ -245,7 +267,7 @@ public class AfterimagePass <: Pass {
      * 首帧渲染前主动 clear old RT（避免 tOld 初始为垃圾数据）。
      * 用一个空 view touch + clear 实现。
      */
-    private func _clearOldRT(renderer: BgfxRenderer): Unit {
+    private func _clearOldRT(renderer: ThreeRenderer): Unit {
         if (this._oldCleared) {
             return
         }
@@ -303,7 +325,7 @@ public class AfterimagePass <: Pass {
      * tOld=_oldTex, tNew=readBuffer → mix → _compFB
      */
     private func _renderComp(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         readBuffer: FrameBufferHandle
     ): Unit {
         let viewId = UInt16(AfterimagePass.AFTERIMAGE_VIEW_ID_BASE + 0u16)
@@ -348,7 +370,7 @@ public class AfterimagePass <: Pass {
      * copy pass：把 comp RT 复制到 writeBuffer（或 renderToScreen 时写屏幕）。
      */
     private func _renderCopy(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle
     ): Unit {
         let viewId = UInt16(AfterimagePass.AFTERIMAGE_VIEW_ID_BASE + 1u16)
@@ -409,7 +431,7 @@ public class AfterimagePass <: Pass {
      *         3. swap: _oldFB ↔ _compFB, _oldTex ↔ _compTex (the new afterimage is used next frame).
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

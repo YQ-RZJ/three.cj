@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造 Box3 辅助对象
+
 ### func init\(Box3,UInt32\)
 ```cj
 public init(box: Box3, color!: UInt32 = 0xffff00)
 ```
-构造 Box3 辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|box|Box3|要可视化的 Box3 包围盒color 线框颜色，默认黄色 0xffff00|
+|box|Box3||
 |color|UInt32||
 
 ### func updateMatrixWorld\(Bool\)

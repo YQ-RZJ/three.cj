@@ -33,9 +33,9 @@ public func dispose(): Unit
 ```
 Releases all GPU resources held by EffectComposer (internal dual RTs + all passes)
 
-### func init\(BgfxRenderer\)
+### func init\(ThreeRenderer\)
 ```cj
-public init(renderer: BgfxRenderer)
+public init(renderer: ThreeRenderer)
 ```
 Constructs EffectComposer
 
@@ -43,7 +43,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 
 ### func insertPass\(Pass,Int64\)
 ```cj
@@ -125,7 +125,7 @@ Whether to render the final pass result to the screen, default true
 
 ### let renderer
 ```cj
-public let renderer: BgfxRenderer
+public let renderer: ThreeRenderer
 ```
 Renderer reference
 

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 原始着色器材质
  * @brief[zh-cn] 原始着色器材质，继承ShaderMaterial但不注入内置uniform
  * @explain[zh-cn] 
@@ -29,12 +51,12 @@ import fastjson.stream.*
  * Corresponds to Three.js materials/RawShaderMaterial.js. Does not inject any built-in uniforms;
  * users must declare all uniforms and attributes themselves.
  */
-@JsonAdapter[withSuperClass = ShaderMaterial]
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = ShaderMaterial]
 public class RawShaderMaterial <: ShaderMaterial {
     /**
      * @brief[zh-cn] 构造一个新的原始着色器材质
      *
      * @brief[en] Construct a new raw shader material
      */
-    public init() { super(); this.kind = "RawShaderMaterial" }
+    public init() { super(); }
 }

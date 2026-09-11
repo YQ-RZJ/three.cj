@@ -5,9 +5,9 @@ public class LUTPass <: ShaderPass
 ```
 Color grading (LUT) post-processing pass
 
-### func bindExtraUniforms\(BgfxRenderer,BgfxUniforms\)
+### func bindExtraUniforms\(ThreeRenderer,BgfxUniforms\)
 ```cj
-public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit
+public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit
 ```
 Subclass extension hook: binds the LUT-related uniforms before submit
 
@@ -15,7 +15,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |uniforms|BgfxUniforms|The uniform registry where the tDiffuse sampler has been created (LUT uniforms are added here)|
 
 ### func dispose\(\)
@@ -38,9 +38,9 @@ Parameter:
 |lutSize|Int64|LUT edge length (default 0, paired with an invalid texture; must be > 0 for a valid texture)|
 |intensity|Float64|Mix intensity (default 1.0)|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Executes the LUT pass
 
@@ -48,7 +48,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (output target of this pass)|
 |readBuffer|FrameBufferHandle|Read buffer (previous pass result, bound to tDiffuse)|
 |deltaTime|Float64|Frame delta time|

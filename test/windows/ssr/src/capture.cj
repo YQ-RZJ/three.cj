@@ -36,8 +36,8 @@ import std.math.*
 import std.env.*
 import std.sync.*
 import std.collection.*
-import three.rendering.BgfxRenderer
-import three.rendering.postprocessing.BgfxSSRPass
+import three.rendering.ThreeRenderer
+import three.rendering.postprocessing.SSRPass
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.types.*
 import three.rendering.bgfx.BgfxConstants
@@ -76,8 +76,8 @@ public func requestCapture(): Unit {
  * @param near/far 相机近远平面（depth_vz 可视化用）
  */
 public func tickCapture(
-    renderer: BgfxRenderer,
-    ssrPass: BgfxSSRPass,
+    renderer: ThreeRenderer,
+    ssrPass: SSRPass,
     composer: EffectComposer,
     frame: Int64,
     near: Float64,
@@ -114,7 +114,7 @@ public func tickCapture(
 }
 
 /** 发起回读：创建 readback 纹理 + blit + read_texture（经 renderer 高阶 API 序列化到渲染线程） */
-func _issueCapture(renderer: BgfxRenderer, ssrPass: BgfxSSRPass, composer: EffectComposer): Unit {
+func _issueCapture(renderer: ThreeRenderer, ssrPass: SSRPass, composer: EffectComposer): Unit {
     let w = ssrPass.rtWidth()
     let h = ssrPass.rtHeight()
     if (w <= 0 || h <= 0) {
@@ -185,7 +185,7 @@ func _addEntry(name: String, tex: TextureHandle, fmt: UInt32, isDepth: Bool): Un
 }
 
 /** 数据就绪后：转 RGBA8 落盘 + 控制台统计 + 释放资源 */
-func _dumpAndCleanup(renderer: BgfxRenderer): Unit {
+func _dumpAndCleanup(renderer: ThreeRenderer): Unit {
     let w = g_capW
     let h = g_capH
     // 防御：目录已存在时 Directory.create 会抛异常致进程以 exit 1 崩溃，先判存在

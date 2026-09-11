@@ -19,7 +19,7 @@ import std.fs.{File, Path as FsPath}
 import std.collection.*
 import std.time.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
@@ -41,7 +41,7 @@ import three.resource.loader.AudioLoader
  */
 public class TestWindow <: WindowEngine {
     // ===== 渲染状态（onInit 创建 / onFrame 使用 / onClose 清理） =====
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 60.0, aspect: 1.0, near: 0.1, far: 100.0)
     var mesh: Mesh = Mesh()
@@ -57,15 +57,17 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/6] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x1a, 0x1a, 0x2e))  // 深蓝色背景
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("")
 
         println("[3/6] 创建场景和音频...")
@@ -163,7 +165,7 @@ public class TestWindow <: WindowEngine {
 
         // ---- 步骤 6: 关闭渲染器与窗口 ----
         this.renderer.shutdown()
-        println("[6/6] BgfxRenderer + WindowEngine 已关闭")
+        println("[6/6] ThreeRenderer + WindowEngine 已关闭")
     }
 }
 

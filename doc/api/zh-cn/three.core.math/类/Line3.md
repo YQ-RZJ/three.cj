@@ -229,16 +229,6 @@ public func fromArray(array: Array < Float64 >, offset!: Int64 = 0): Line3
 
 - 当前实例
 
-### func getCenter\(\)
-```cj
-public func getCenter(): Vector3
-```
-获取线段中心点（创建新向量）
-
-返回: 
-
-- 中心点
-
 ### func getCenter\(Vector3\)
 ```cj
 public func getCenter(target: Vector3): Vector3
@@ -250,6 +240,16 @@ public func getCenter(target: Vector3): Vector3
 |名称|类型|描述|
 |---|---|---|
 |target|Vector3|目标向量|
+
+返回: 
+
+- 中心点
+
+### func getCenter\(\)
+```cj
+public func getCenter(): Vector3
+```
+获取线段中心点（创建新向量）
 
 返回: 
 

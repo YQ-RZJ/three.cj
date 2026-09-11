@@ -43,6 +43,12 @@ Return:
 
 - Node
 
+### func init\(\)
+```cj
+public init()
+```
+Default constructor with capacity 4
+
 ### func init\(Int64\)
 ```cj
 public init(capacity: Int64)
@@ -55,17 +61,11 @@ Parameter:
 |---|---|---|
 |capacity|Int64|Initial capacity (defaults to 4 when <=0)|
 
-### func init\(\)
-```cj
-public init()
-```
-
-
 ### func isEmpty\(\)
 ```cj
 public func isEmpty(): Bool
 ```
-
+Whether the heap is empty
 
 ### func pop\(\)
 ```cj
@@ -131,5 +131,5 @@ Return:
 ```cj
 public prop size: Int64
 ```
-
+Current number of elements
 

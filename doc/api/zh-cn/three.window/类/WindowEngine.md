@@ -25,6 +25,18 @@ public func addInputProvider(provider: InputProvider): Unit
 |---|---|---|
 |provider|InputProvider|输入提供者实例|
 
+### func bindRenderer\(\(\(\)\->Unit\)\->Unit\)
+```cj
+public func bindRenderer(execBgfx:(() -> Unit) -> Unit): Unit
+```
+绑定渲染器的 execBgfx 提交方法（供 Gui 路由 bgfx 后端调用）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|execBgfx|(()->Unit)->Unit|渲染器的 execBgfx 方法引用|
+
 ### func getAspectRatio\(\)
 ```cj
 public func getAspectRatio():(Float32, Float32)
@@ -86,6 +98,26 @@ public func getDisplays(): ArrayList < UInt32 >
 返回: 
 
 - 显示器 ID 列表
+
+### func getDpiScale\(\)
+```cj
+public func getDpiScale(): Float64
+```
+获取当前 DPI 缩放值
+
+返回: 
+
+- 当前像素比
+
+### func getDrawableSize\(\)
+```cj
+public func getDrawableSize():(Int32, Int32)
+```
+获取窗口像素尺寸（物理后备缓冲尺寸）
+
+返回: 
+
+- (物理宽度, 物理高度)
 
 ### func getHeight\(\)
 ```cj
@@ -173,6 +205,16 @@ public func getPixelFormat(): UInt32
 
 - 像素格式（SDL_PixelFormat 枚举值）
 
+### func getPixelRatio\(\)
+```cj
+public func getPixelRatio(): Float32
+```
+获取窗口像素比（物理像素 / 逻辑像素）
+
+返回: 
+
+- 像素比；查询失败或无窗口时返回 1.0
+
 ### func getPosition\(\)
 ```cj
 public func getPosition():(Int32, Int32)
@@ -222,6 +264,16 @@ public func getRelativeMouseMode(): Bool
 返回: 
 
 - 是否处于相对鼠标模式
+
+### func getSDLWindow\(\)
+```cj
+public func getSDLWindow(): SDL_Window
+```
+获取 SDL 窗口指针（供 ImGui SDL3 后端初始化使用）
+
+返回: 
+
+- SDL 窗口指针
 
 ### func getSafeArea\(\)
 ```cj
@@ -351,6 +403,19 @@ public open func onInit(): Unit
 ```
 窗口创建后调用（初始化渲染器/场景；可读 getNativeWindowHandle/getWidth/getHeight）
 
+### func onResize\(Int32,Int32\)
+```cj
+public open func onResize(width: Int32, height: Int32): Unit
+```
+窗口尺寸变化后调用（泵线程；getWidth/getHeight 已更新为新值）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|width|Int32||
+|height|Int32||
+
 ### func raise\(\)
 ```cj
 public func raise(): Bool
@@ -441,6 +506,30 @@ public func setBordered(bordered: Bool): Bool
 返回: 
 
 - 是否成功
+
+### func setDpiAutoDetect\(Bool\)
+```cj
+public func setDpiAutoDetect(autoDetect: Bool): Unit
+```
+设置是否自动检测 DPI
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|autoDetect|Bool|true 时通过 SDL 自动检测；false 时强制使用 setDpiScale 指定的值|
+
+### func setDpiScale\(Float64\)
+```cj
+public func setDpiScale(scale: Float64): Unit
+```
+设置手动 DPI 缩放值
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|scale|Float64|像素比（必须 > 0）；设置后会自动关闭自动检测|
 
 ### func setFocusable\(Bool\)
 ```cj
@@ -718,6 +807,12 @@ public func updateSize(width: Int32, height: Int32): Unit
 |width|Int32|新宽度（像素）height 新高度（像素）|
 |height|Int32||
 
+### func useGui\(\)
+```cj
+public func useGui(): Unit
+```
+启用 Gui（ImGui）。须在 start() 之前调用。
+
 ### func wait\(\)
 ```cj
 public func wait(): Unit
@@ -764,11 +859,23 @@ public mut prop bindOnInit: Option <() -> Unit >
 ```
 绑定式事件 - 窗口创建后
 
+### prop bindOnResize: Option <\(Int32, Int32\) \-> Unit >
+```cj
+public mut prop bindOnResize: Option <(Int32, Int32) -> Unit >
+```
+绑定式事件 - 窗口尺寸变化后（优先于覆写 onResize）
+
 ### prop closeRequested: Bool
 ```cj
 public prop closeRequested: Bool
 ```
 用户是否请求关闭窗口（读快照——固定）
+
+### prop gui: Option < UiContext >
+```cj
+public prop gui: Option < UiContext >
+```
+获取 Gui 上下文（启用后由 _windowLoop 创建）
 
 ### prop initialized: Bool
 ```cj

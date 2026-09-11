@@ -22,12 +22,6 @@ Return:
 
 - This instance
 
-### func init\(\)
-```cj
-public init()
-```
-Construct a new custom shader material
-
 ### func init\(String,String,HashMap<String,Any>\)
 ```cj
 public init(vertexShader: String, fragmentShader: String, uniforms!: HashMap < String, Any >= HashMap < String, Any >())
@@ -41,6 +35,12 @@ Parameter:
 |vertexShader|String|Vertex shader source codefragmentShader Fragment shader source codeuniforms Custom uniform table|
 |fragmentShader|String||
 |uniforms|HashMap<String,Any>||
+
+### func init\(\)
+```cj
+public init()
+```
+Construct a new custom shader material
 
 ### var fragmentShader
 ```cj

@@ -1,13 +1,13 @@
 [dependencies]
   [dependencies.three]
     path = "../../../../"
-    output-type = "static"
+    output-type = "dynamic"
 
 [package]
   cjc-version = "1.1.0"
   compile-option = "--dy-std --cfg=\"${COMPILE_CONDITION_ENTRY}\""
   description = "CangjieUI Application"
-  link-option = "" # -L ./libs -l:libSDL3.a -l:libbimg_capi.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libjoltc.a -l:libJolt.a -l:libbimg_encode.a -l:libbimg_decode.a -l:libbimg.a -l:libbgfx.a -l:libbx.a -l:libluajit.a -l:libopenal.a -l:libminiaudio.a -l:libc++_static.a -l:libc++abi.a -l:libunwind.a
+  link-option = "-L ${EXTEDN_LIBS_PATH} ${EXTEDN_LINK_OPTION} -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -l:libnative_window.so"
   name = "ohos_app_cangjie_entry"
   output-type = "dynamic"
   src-dir = "./src/main/cangjie"

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] OBJLoader Wavefront OBJ 格式加载器
  * @brief[zh-cn] 对应 Three.js examples/jsm/loaders/OBJLoader.js 的仓颉侧实现
  * @explain[zh-cn] Wavefront OBJ 格式加载器：解析 v/vt/vn/f/o/g/usemtl/mtllib/s 指令，生成 Group 包含的 Mesh 列表（position/normal/uv/color 属性）。仓颉侧使用 std 字符串解析，无浏览器依赖。
@@ -37,6 +59,8 @@ import std.io.*
 public class OBJLoader <: Loader {
     /**
      * @brief[zh-cn] 材质创建器（由 MTLLoader 提供），None 时使用默认材质
+     *
+     * @brief[en] Material creator (provided by MTLLoader); default materials are used when None
      */
     public var materials: Option<MaterialCreator>
 

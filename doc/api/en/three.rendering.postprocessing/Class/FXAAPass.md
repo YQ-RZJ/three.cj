@@ -5,9 +5,9 @@ public class FXAAPass <: ShaderPass
 ```
 FXAA post-processing pass
 
-### func bindExtraUniforms\(BgfxRenderer,BgfxUniforms\)
+### func bindExtraUniforms\(ThreeRenderer,BgfxUniforms\)
 ```cj
-public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit
+public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit
 ```
 Binds the extra uniform before the parent render's submit: u_resolution.xy = 1/width, 1/height
 
@@ -15,7 +15,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|The renderer|
+|renderer|ThreeRenderer|The renderer|
 |uniforms|BgfxUniforms|The uniform registry where the parent has created the tDiffuse sampler (reused instance)|
 
 ### func init\(\)

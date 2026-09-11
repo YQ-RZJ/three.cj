@@ -21,22 +21,6 @@ public func applyMatrix4(m: Matrix4): Ray
 
 - 当前实例
 
-### func at\(Float64\)
-```cj
-public func at(t: Float64): Vector3
-```
-获取射线上参数 t 处的点（创建新向量）
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|t|Float64|参数值|
-
-返回: 
-
-- 射线上的点
-
 ### func at\(Float64,Vector3\)
 ```cj
 public func at(t: Float64, target: Vector3): Vector3
@@ -49,6 +33,22 @@ public func at(t: Float64, target: Vector3): Vector3
 |---|---|---|
 |t|Float64|参数值target 目标向量|
 |target|Vector3||
+
+返回: 
+
+- 射线上的点
+
+### func at\(Float64\)
+```cj
+public func at(t: Float64): Vector3
+```
+获取射线上参数 t 处的点（创建新向量）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|t|Float64|参数值|
 
 返回: 
 

@@ -24,7 +24,7 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.MouseButton
 import three.rendering.common.*
 
@@ -108,7 +108,7 @@ public func createScene(width: Int32, height: Int32): SceneObjects {
     println("  [common] Background: scene.background = Color(0x335577)")
 
     println("  场景创建成功: ${scene.name}")
-    println("  验证: RenderList/RenderObjects/Info/Background/QuadMesh + BgfxRenderer 调度")
+    println("  验证: RenderList/RenderObjects/Info/Background/QuadMesh + ThreeRenderer 调度")
     println("")
 
     return SceneObjects(scene: scene, camera: camera, sphere: sphere, info: info)

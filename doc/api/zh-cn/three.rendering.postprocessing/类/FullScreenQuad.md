@@ -11,9 +11,9 @@ public func dispose(): Unit
 ```
 释放全屏四边形占用的 GPU 资源
 
-### func ensureResources\(BgfxRenderer\)
+### func ensureResources\(ThreeRenderer\)
 ```cj
-public func ensureResources(renderer: BgfxRenderer): Unit
+public func ensureResources(renderer: ThreeRenderer): Unit
 ```
 确保全屏四边形缓存资源已创建（懒创建）
 
@@ -21,7 +21,7 @@ public func ensureResources(renderer: BgfxRenderer): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器（bgfx 资源创建经其高阶 API 序列化到渲染线程）|
+|renderer|ThreeRenderer|渲染器（bgfx 资源创建经其高阶 API 序列化到渲染线程）|
 
 ### func init\(\)
 ```cj
@@ -29,9 +29,9 @@ public init()
 ```
 
 
-### func setRenderer\(BgfxRenderer\)
+### func setRenderer\(ThreeRenderer\)
 ```cj
-public func setRenderer(renderer: BgfxRenderer): Unit
+public func setRenderer(renderer: ThreeRenderer): Unit
 ```
 注入渲染器
 
@@ -39,7 +39,7 @@ public func setRenderer(renderer: BgfxRenderer): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 
 ### func submitWithState\(UInt16,ProgramHandle,UInt64\)
 ```cj

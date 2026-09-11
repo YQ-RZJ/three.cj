@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造平面辅助对象
+
 ### func init\(Plane,Float64,UInt32\)
 ```cj
 public init(plane: Plane, size!: Float64 = 1.0, hex!: UInt32 = 0xffff00)
 ```
-构造平面辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|plane|Plane|要可视化的平面size 边长，默认 1hex 颜色，默认黄色 0xffff00|
+|plane|Plane||
 |size|Float64||
 |hex|UInt32||
 

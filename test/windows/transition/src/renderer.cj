@@ -88,7 +88,7 @@ public let MIX_TEX_SIZE: Int64 = 256
  * @param renderer 渲染器（经其高阶 API 序列化上传）
  * @return 过渡纹理句柄（RGBA8，Clamp 采样）
  */
-public func createMixTexture(renderer: BgfxRenderer): TextureHandle {
+public func createMixTexture(renderer: ThreeRenderer): TextureHandle {
     let w: UInt16 = UInt16(MIX_TEX_SIZE)
     let h: UInt16 = UInt16(MIX_TEX_SIZE)
     let pixBuf = ArrayList<UInt8>()

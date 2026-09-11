@@ -28,17 +28,23 @@ public func dispose(): Unit
 ```
 Dispose GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Construct a box helper
+
 ### func init\(Object3D,UInt32\)
 ```cj
 public init(object: Object3D, color!: UInt32 = 0xffff00)
 ```
-Construct a box helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|object|Object3D|The object to monitorcolor Wireframe color, default yellow 0xffff00|
+|object|Object3D||
 |color|UInt32||
 
 ### func setFromObject\(Object3D\)

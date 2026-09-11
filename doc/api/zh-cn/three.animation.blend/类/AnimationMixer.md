@@ -5,6 +5,18 @@ public class AnimationMixer <: EventDispatcher
 ```
 动画混合器，管理一组动画动作的混合播放
 
+### func bindSceneSkeleton\(Skeleton\)
+```cj
+public func bindSceneSkeleton(skeleton: Skeleton): Unit
+```
+绑定场景骨骼
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|skeleton|Skeleton|场景层骨骼对象|
+
 ### func clipAction\(IAnimationClip,Option<Object3D>,Int64\)
 ```cj
 public func clipAction(clip: IAnimationClip, optionalRoot!: Option < Object3D >= None, blendMode!: Int64 = - 1): AnimationAction
@@ -64,6 +76,19 @@ public init(root: Object3D)
 |名称|类型|描述|
 |---|---|---|
 |root|Object3D|此混合器播放动画的根对象|
+
+### func registerSkeletalData\(String,SkeletalAnimationData\)
+```cj
+public func registerSkeletalData(clipUUID: String, data: SkeletalAnimationData): Unit
+```
+注册骨骼动画数据
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|clipUUID|String|动画片段的 UUID|
+|data|SkeletalAnimationData|骨骼动画压缩数据|
 
 ### func setTime\(Float64\)
 ```cj
@@ -135,6 +160,19 @@ public func uncacheRoot(root: Object3D): Unit
 |名称|类型|描述|
 |---|---|---|
 |root|Object3D|要取消缓存的根对象|
+
+### func updateSkeletal\(SkeletonData,Float32\)
+```cj
+public func updateSkeletal(skeletonData: SkeletonData, deltaTime: Float32): Unit
+```
+使用骨骼采样/混合 Job 管线更新骨骼动画
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|skeletonData|SkeletonData|运行时骨骼数据|
+|deltaTime|Float32|帧间隔时间（秒），与 update 的入参保持一致|
 
 ### func update\(Float64\)
 ```cj

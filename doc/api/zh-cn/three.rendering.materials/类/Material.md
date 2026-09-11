@@ -217,12 +217,6 @@ public var forceSinglePass: Bool
 ```
 是否强制单pass渲染，默认false
 
-### var kind
-```cj
-public var kind: String
-```
-类型标签
-
 ### var name
 ```cj
 public var name: String

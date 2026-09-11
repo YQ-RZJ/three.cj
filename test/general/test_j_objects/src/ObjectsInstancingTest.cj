@@ -57,7 +57,7 @@ public class ObjectsInstancingTest <: TestClass {
         let instanced = InstancedMesh(geometry: BufferGeometry(), material: Material(), count: 1)
         assertEqual("InstancedMesh isInstancedMesh", "true", (instanced is InstancedMesh).toString(), "true")
 
-        let skinned = SkinnedMesh(BufferGeometry(), Material())
+        let skinned = SkinnedMesh(geometry: BufferGeometry(), material: Material())
         assertEqual("SkinnedMesh isSkinnedMesh", "true", (skinned is SkinnedMesh).toString(), "true")
 
         let lod = LOD()

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxShadowPass
  * @brief[zh-cn] 阴影深度预 pass — 三类光源（方向/聚光/点）的阴影贴图渲染 + 主 pass 阴影 uniform 绑定
  * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLShadowMap.js。组合注入 BgfxBackend，覆盖三类阴影光源：方向光（2D 阴影）、聚光灯（2D 阴影）、点光源（cube 阴影 6 face）。
@@ -12,7 +34,7 @@ package three.rendering.bgfx
 import three.rendering.common.*
 import three.rendering.shaders.ShaderLibs
 import three.rendering.shaders.ShaderProgram
-import three.rendering.shaders.BgfxSamplerStages
+import three.rendering.shaders.SamplerStages
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -123,12 +145,12 @@ public class BgfxShadowPass {
 
     /**
      * @brief[zh-cn] 渲染方向光阴影贴图（预 pass）
-     * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.renderShadowMap：用 lightView/lightProj 设 view transform，把所有 caster 几何体用 depth shader submit 到 shadowViewId 对应的 shadow framebuffer，内部计算 _shadowMatrix = lightProj × lightView
+     * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.renderShadowMap：用 lightView/lightProj 设 view transform，把所有 caster 几何体用 depth shader submit 到 shadowViewId 对应的 shadow framebuffer，内部计算 _shadowMatrix = lightProj × lightView
      * @param[zh-cn] light 方向光（含 shadow.camera 正交相机 + shadow.mapSize）
      * scene 场景（收集 caster 几何体）
      *
      * @brief[en] Render directional light shadow map (pre-pass)
-     * @explain[en] Corresponds to bgfx4cj-last BgfxRenderer.renderShadowMap: sets view transform with lightView/lightProj, submits all caster geometry using depth shader to shadow framebuffer at shadowViewId, internally computes _shadowMatrix = lightProj × lightView
+     * @explain[en] Corresponds to bgfx4cj-last ThreeRenderer.renderShadowMap: sets view transform with lightView/lightProj, submits all caster geometry using depth shader to shadow framebuffer at shadowViewId, internally computes _shadowMatrix = lightProj × lightView
      * @param[en] light Directional light (with shadow.camera orthographic camera + shadow.mapSize)
      * scene Scene (collects caster geometry)
      */
@@ -137,7 +159,7 @@ public class BgfxShadowPass {
         Logger.trace(["shadow", "renderShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
         let lightId = Int64(light.id)
         // VSM 类型：需要 RG16F mean/variance 纹理链（D32 深度 → blur → RG16F final），
-        // 与 PCF/BASIC 的 D24 深度纹理不同（对照参考版 BgfxRenderer.renderShadowMap + BgfxShadowMap.createShadowMap VSM 分支）
+        // 与 PCF/BASIC 的 D24 深度纹理不同（对照参考版 ThreeRenderer.renderShadowMap + BgfxShadowMap.createShadowMap VSM 分支）
         let isVsm = backend.shadowMap.getShadowType() == VSM_SHADOW_MAP
 
         // 持久资源：尺寸不变则跨帧复用；变更则销毁重建
@@ -231,13 +253,13 @@ public class BgfxShadowPass {
 
     /**
      * @brief[zh-cn] 渲染方向光阴影深度到指定 framebuffer
-     * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.renderShadowDepth：从光源视角设置 view/proj，遍历场景几何体用 depth shader submit 到 shadowViewId
+     * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.renderShadowDepth：从光源视角设置 view/proj，遍历场景几何体用 depth shader submit 到 shadowViewId
      * @param[zh-cn] light 方向光
      * scene 场景
      * slot 阴影槽
      *
      * @brief[en] Render directional light shadow depth to specified framebuffer
-     * @explain[en] Corresponds to bgfx4cj-last BgfxRenderer.renderShadowDepth: sets view/proj from light perspective, iterates scene geometry using depth shader to submit to shadowViewId
+     * @explain[en] Corresponds to bgfx4cj-last ThreeRenderer.renderShadowDepth: sets view/proj from light perspective, iterates scene geometry using depth shader to submit to shadowViewId
      * @param[en] light Directional light
      * scene Scene
      * slot Shadow slot
@@ -330,11 +352,11 @@ public class BgfxShadowPass {
 
     /**
      * @brief[zh-cn] VSM blur pass：对阴影深度图执行垂直+水平两个方向的 Gaussian-like blur
-     * @explain[zh-cn] 对照参考版 BgfxRenderer.vsmBlurPass（2081-2128）：① 垂直 blur：输入 slot.vsmDepthTexture (D32) → 输出 slot.vsmPassFrameBuffer (RG16F pass)；② 水平 blur：输入 slot.vsmPassTexture (RG16F) → 输出 slot.vsmFinalFrameBuffer (RG16F final = slot.texture)。blur view ID = slot.baseViewId + 1
+     * @explain[zh-cn] 对照参考版 ThreeRenderer.vsmBlurPass（2081-2128）：① 垂直 blur：输入 slot.vsmDepthTexture (D32) → 输出 slot.vsmPassFrameBuffer (RG16F pass)；② 水平 blur：输入 slot.vsmPassTexture (RG16F) → 输出 slot.vsmFinalFrameBuffer (RG16F final = slot.texture)。blur view ID = slot.baseViewId + 1
      * @param[zh-cn] slot 阴影槽
      *
      * @brief[en] VSM blur pass: execute vertical + horizontal Gaussian-like blur on shadow depth map
-     * @explain[en] Corresponds to BgfxRenderer.vsmBlurPass (2081-2128): ① vertical blur: input slot.vsmDepthTexture (D32) → output slot.vsmPassFrameBuffer (RG16F pass); ② horizontal blur: input slot.vsmPassTexture (RG16F) → output slot.vsmFinalFrameBuffer (RG16F final = slot.texture). blur view ID = slot.baseViewId + 1
+     * @explain[en] Corresponds to ThreeRenderer.vsmBlurPass (2081-2128): ① vertical blur: input slot.vsmDepthTexture (D32) → output slot.vsmPassFrameBuffer (RG16F pass); ② horizontal blur: input slot.vsmPassTexture (RG16F) → output slot.vsmFinalFrameBuffer (RG16F final = slot.texture). blur view ID = slot.baseViewId + 1
      * @param[en] slot Shadow slot
      */
     private func _vsmBlurPass(slot: ShadowSlot): Unit {
@@ -413,12 +435,12 @@ public class BgfxShadowPass {
 
     /**
      * @brief[zh-cn] 渲染聚光灯阴影贴图（预 pass）
-     * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.renderSpotShadowMap：用 SpotLightShadow.camera（PerspectiveCamera）从光源视角渲染深度到阴影 framebuffer，按 SpotLight.id 分配独立 FB。与方向光阴影的区别：shadowCamera 是 PerspectiveCamera，需调 SpotLightShadow.updateMatrices(light)
+     * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.renderSpotShadowMap：用 SpotLightShadow.camera（PerspectiveCamera）从光源视角渲染深度到阴影 framebuffer，按 SpotLight.id 分配独立 FB。与方向光阴影的区别：shadowCamera 是 PerspectiveCamera，需调 SpotLightShadow.updateMatrices(light)
      * @param[zh-cn] light 聚光灯（含 shadow.camera 透视相机 + shadow.mapSize）
      * scene 场景（收集 caster 几何体）
      *
      * @brief[en] Render spot light shadow map (pre-pass)
-     * @explain[en] Corresponds to bgfx4cj-last BgfxRenderer.renderSpotShadowMap: renders depth from light perspective using SpotLightShadow.camera (PerspectiveCamera) to shadow framebuffer, allocates independent FB per SpotLight.id. Difference from directional light: shadowCamera is PerspectiveCamera, needs SpotLightShadow.updateMatrices(light)
+     * @explain[en] Corresponds to bgfx4cj-last ThreeRenderer.renderSpotShadowMap: renders depth from light perspective using SpotLightShadow.camera (PerspectiveCamera) to shadow framebuffer, allocates independent FB per SpotLight.id. Difference from directional light: shadowCamera is PerspectiveCamera, needs SpotLightShadow.updateMatrices(light)
      * @param[en] light Spot light (with shadow.camera perspective camera + shadow.mapSize)
      * scene Scene (collects caster geometry)
      */
@@ -568,12 +590,12 @@ public class BgfxShadowPass {
 
     /**
      * @brief[zh-cn] 渲染点光源阴影贴图（预 pass）
-     * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.renderPointShadowMap：点光源阴影是立方体贴图（6 个面），每面独立 view ID，主 pass 采样 cube shadow map（pointShadowMap sampler，cube 采样方向 = normalize(worldPos - lightPos)）
+     * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.renderPointShadowMap：点光源阴影是立方体贴图（6 个面），每面独立 view ID，主 pass 采样 cube shadow map（pointShadowMap sampler，cube 采样方向 = normalize(worldPos - lightPos)）
      * @param[zh-cn] light 点光源（含 shadow.camera PerspectiveCamera fov=90 + shadow.mapSize）
      * scene 场景（收集 caster 几何体）
      *
      * @brief[en] Render point light shadow map (pre-pass)
-     * @explain[en] Corresponds to bgfx4cj-last BgfxRenderer.renderPointShadowMap: point light shadow is a cube map (6 faces), each face has independent view ID, main pass samples cube shadow map (pointShadowMap sampler, cube sample direction = normalize(worldPos - lightPos))
+     * @explain[en] Corresponds to bgfx4cj-last ThreeRenderer.renderPointShadowMap: point light shadow is a cube map (6 faces), each face has independent view ID, main pass samples cube shadow map (pointShadowMap sampler, cube sample direction = normalize(worldPos - lightPos))
      * @param[en] light Point light (with shadow.camera PerspectiveCamera fov=90 + shadow.mapSize)
      * scene Scene (collects caster geometry)
      */
@@ -651,13 +673,13 @@ public class BgfxShadowPass {
 
     /**
      * @brief[zh-cn] 渲染点光源阴影深度到 cube 纹理的 6 个 face
-     * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.renderPointShadowMap。关键：cube 阴影采样方向 = normalize(worldPos - lightPos)，故每个 face 用 PerspectiveCamera(fov=90) 从光源位置朝 6 个轴向渲染
+     * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.renderPointShadowMap。关键：cube 阴影采样方向 = normalize(worldPos - lightPos)，故每个 face 用 PerspectiveCamera(fov=90) 从光源位置朝 6 个轴向渲染
      * @param[zh-cn] light 点光源
      * scene 场景
      * slot 阴影槽
      *
      * @brief[en] Render point light shadow depth to 6 faces of cube texture
-     * @explain[en] Corresponds to bgfx4cj-last BgfxRenderer.renderPointShadowMap. Key: cube shadow sample direction = normalize(worldPos - lightPos), so each face uses PerspectiveCamera(fov=90) to render from light position towards 6 axis directions
+     * @explain[en] Corresponds to bgfx4cj-last ThreeRenderer.renderPointShadowMap. Key: cube shadow sample direction = normalize(worldPos - lightPos), so each face uses PerspectiveCamera(fov=90) to render from light position towards 6 axis directions
      * @param[en] light Point light
      * scene Scene
      * slot Shadow slot
@@ -880,10 +902,10 @@ public class BgfxShadowPass {
 
     /**
      * @brief[zh-cn] 绑定阴影 uniform 到主 pass draw（在 _drawRenderObject 中调用）
-     * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.draw 行 788-819 + bindMultiSpotShadows/bindMultiPointShadows：directionalShadowMap 纹理绑定到 sampler stage 0..numDir-1，spotShadowMap 纹理绑定到 sampler stage numDir..，pointShadowMap 纹理绑定到 sampler stage numDir+numSpot..，各 ShadowMatrix = bias × lightViewProj。关键修复：原实现仅绑定方向光阴影，聚光灯/点光源阴影贴图从未被采样 → 无阴影
+     * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.draw 行 788-819 + bindMultiSpotShadows/bindMultiPointShadows：directionalShadowMap 纹理绑定到 sampler stage 0..numDir-1，spotShadowMap 纹理绑定到 sampler stage numDir..，pointShadowMap 纹理绑定到 sampler stage numDir+numSpot..，各 ShadowMatrix = bias × lightViewProj。关键修复：原实现仅绑定方向光阴影，聚光灯/点光源阴影贴图从未被采样 → 无阴影
      *
      * @brief[en] Bind shadow uniforms to main pass draw (called in _drawRenderObject)
-     * @explain[en] Corresponds to bgfx4cj-last BgfxRenderer.draw lines 788-819 + bindMultiSpotShadows/bindMultiPointShadows: directionalShadowMap texture bound to sampler stage 0..numDir-1, spotShadowMap to stage numDir.., pointShadowMap to stage numDir+numSpot.., each ShadowMatrix = bias × lightViewProj. Key fix: original implementation only bound directional light shadows, spot/point light shadow maps were never sampled → no shadows
+     * @explain[en] Corresponds to bgfx4cj-last ThreeRenderer.draw lines 788-819 + bindMultiSpotShadows/bindMultiPointShadows: directionalShadowMap texture bound to sampler stage 0..numDir-1, spotShadowMap to stage numDir.., pointShadowMap to stage numDir+numSpot.., each ShadowMatrix = bias × lightViewProj. Key fix: original implementation only bound directional light shadows, spot/point light shadow maps were never sampled → no shadows
      */
     public func bindShadowUniforms(): Unit {
         // 多光源阴影支持：按当前帧 _shadowSlots 逐光源绑定数组化 uniform。

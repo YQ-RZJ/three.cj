@@ -24,9 +24,9 @@ Parameter:
 |scene|Scene|场景|
 |camera|Camera|相机|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行遮罩 pass：把场景几何体写入 stencil buffer。
 
@@ -34,7 +34,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（与 readBuffer 两侧都打 stencil 标记）|
 |readBuffer|FrameBufferHandle|读 buffer|
 |deltaTime|Float64|帧间隔|

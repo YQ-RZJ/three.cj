@@ -9,67 +9,67 @@ User folder type enumeration (corresponding to folders queryable by SDL_GetUserF
 ```cj
 Desktop
 ```
-
+Desktop
 
 ### Documents
 ```cj
 Documents
 ```
-
+Documents
 
 ### Downloads
 ```cj
 Downloads
 ```
-
+Downloads
 
 ### Home
 ```cj
 Home
 ```
-
+Home directory
 
 ### Music
 ```cj
 Music
 ```
-
+Music
 
 ### Pictures
 ```cj
 Pictures
 ```
-
+Pictures
 
 ### PublicShare
 ```cj
 PublicShare
 ```
-
+Public share directory
 
 ### SavedGames
 ```cj
 SavedGames
 ```
-
+Saved games directory
 
 ### Screenshots
 ```cj
 Screenshots
 ```
-
+Screenshots directory
 
 ### Templates
 ```cj
 Templates
 ```
-
+Templates directory
 
 ### Videos
 ```cj
 Videos
 ```
-
+Videos directory
 
 ### func fromValue\(UInt32\)
 ```cj

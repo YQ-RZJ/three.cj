@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] WindowConfig 窗口创建配置
  * @brief[zh-cn] 本文件定义窗口创建配置结构
  * @explain[zh-cn] 描述 WindowEngine.start 创建窗口时指定的窗口属性。
@@ -77,6 +99,13 @@ public class WindowConfig {
      * @brief[en] Maximum height (0=unlimited; applied after creation via SDL_SetWindowMaximumSize)
      */
     public var maxHeight: Int32 = 0
+    /**
+     * @brief[zh-cn] 是否启用 Gui（默认 false；启用后引擎自动管理 Gui 上下文生命周期）
+     *
+     * @brief[en] Whether to enable Gui (defaults to false; when enabled, the engine
+     * automatically manages the Gui context lifecycle)
+     */
+    public var enableGui: Bool = false
 
     /**
      * @brief[zh-cn] 构造默认窗口配置

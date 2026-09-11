@@ -136,5 +136,5 @@ Parameter:
 ```cj
 public prop listenerCount: Int64
 ```
-
+Number of currently registered listeners
 

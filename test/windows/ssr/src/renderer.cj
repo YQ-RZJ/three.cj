@@ -10,7 +10,7 @@ package sp_ssr
  *     distanceAttenuation=true, fresnel=true, infiniteThick=false
  *
  * 渲染循环（v2 生命周期模式）：
- * - EffectComposer：RenderPass → BgfxSSRPass
+ * - EffectComposer：RenderPass → SSRPass
  * - 鼠标拖动 + 滚轮：相机围绕 target 公转（OrbitControls 等价）
  * - 按键交互：实时调整 SSR 各参数与 OUTPUT 调试模式
  * （渲染循环已移入 main.cj 的 TestWindow.onFrame，窗口泵线程驱动）

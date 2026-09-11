@@ -11,9 +11,9 @@ public func dispose(): Unit
 ```
 Releases the GPU resources held by the full-screen quad
 
-### func ensureResources\(BgfxRenderer\)
+### func ensureResources\(ThreeRenderer\)
 ```cj
-public func ensureResources(renderer: BgfxRenderer): Unit
+public func ensureResources(renderer: ThreeRenderer): Unit
 ```
 Ensures the full-screen quad cached resources are created (lazily)
 
@@ -21,7 +21,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer (bgfx resource creation is serialized to the render thread via its high-level API)|
+|renderer|ThreeRenderer|Renderer (bgfx resource creation is serialized to the render thread via its high-level API)|
 
 ### func init\(\)
 ```cj
@@ -29,9 +29,9 @@ public init()
 ```
 
 
-### func setRenderer\(BgfxRenderer\)
+### func setRenderer\(ThreeRenderer\)
 ```cj
-public func setRenderer(renderer: BgfxRenderer): Unit
+public func setRenderer(renderer: ThreeRenderer): Unit
 ```
 Injects the renderer
 
@@ -39,7 +39,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 
 ### func submitWithState\(UInt16,ProgramHandle,UInt64\)
 ```cj

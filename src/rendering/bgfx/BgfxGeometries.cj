@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] bgfx 几何体管理
  * @brief[zh-cn] 替代 WebGLGeometries，管理几何体到 bgfx 缓冲句柄的映射
  * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLGeometries.js。在 WebGL 中跟踪几何体的缓冲更新状态，在 bgfx 中同样需要跟踪几何体的缓冲版本，在数据变更时更新缓冲。
@@ -22,10 +44,14 @@ import bgfx4cj.bgfx.*
 public class BgfxGeometries {
     /**
      * @brief[zh-cn] 已注册的几何体 ID 集合
+     *
+     * @brief[en] Set of registered geometry IDs
      */
     private var geometries: HashMap<Int64, Bool>
     /**
      * @brief[zh-cn] 线框属性映射
+     *
+     * @brief[en] Wireframe attribute map
      */
     private var wireframeAttributes: HashMap<Int64, Int64>
     /**
@@ -48,6 +74,8 @@ public class BgfxGeometries {
     private var bindingStates: BgfxBindingStates
     /**
      * @brief[zh-cn] 顶点布局句柄缓存（attributeId -> VertexLayoutHandle）
+     *
+     * @brief[en] Vertex layout handle cache (attributeId -> VertexLayoutHandle)
      */
     private var _layoutHandles: HashMap<Int64, VertexLayoutHandle>
 

@@ -41,7 +41,15 @@ process.env.X86_64_KIT_LIBS = path.join(cjSdkRoot, 'api/lib/linux_ohos_x86_64_cj
 // undefined symbol: _CGPatiiHv（std.core 宏 ABI init 符号）。
 // hvigor 以项目根（本文件所在目录）为 cwd，libs 位于 entry/libs 下。
 let libsPath = path.resolve(process.cwd(), 'entry/libs')
-process.env.EXTEDN_LIBS_PATH = `${libsPath} -L ${libsPath}/arm64-v8a`
+// three 引擎扩展静态库目录（Windows 宿主版 libSDL3.a / libOpenAL32.a /
+// libstdc++.a / libgcc_eh.a 等）：交叉编译时宏包按宿主（Windows x86_64）
+// 链接为 DLL，而 entry/libs 仅部署 OHOS aarch64 产物，缺少这 4 个宿主库会报
+// "lld: error: unable to find library"。项目根(pc) 向上 3 级回到 three/，
+// 故为 ../../../libs；置于搜索路径末尾，OHOS 目标链接仍优先命中
+// entry/libs 与 arm64-v8a 下的库。
+let threeLibsPath = path.resolve(process.cwd(), '../../../libs')
+process.env.EXTEDN_LIBS_PATH = `${libsPath}`
+process.env.EXTEDN_LINK_OPTION = `-L ${libsPath}/arm64-v8a -L ${threeLibsPath}`
 
 // cjpm.toml 的 compile-option 引用 ${COMPILE_CONDITION_ENTRY}
 // （--cfg="${COMPILE_CONDITION_ENTRY}"）。DevEco 插件在 getCjpmProcessEnv 中注入，

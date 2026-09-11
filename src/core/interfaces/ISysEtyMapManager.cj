@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] ISysEtyMapManager
  * @brief[zh-cn] 系统-实体映射管理接口
  * @explain[zh-cn] ECS 世界（World）需要可替换的"系统 <-> 实体"掩码匹配策略：ArrSysEtyMapManager（哈希模式）实现简单，系统少时开销低（默认）；TreeSysEtyMapManager（前缀树模式）基于 BinaryPatriciaTrie 按位子集查询，系统数量大、实体组件变更频繁时更优。将策略抽象为接口放在独立接口包内，便于 World(sysMapMgr) 注入更换模式。泛型化说明：接口包处于依赖底层，不允许回引 three.ecs（否则成环），故系统/实体类型以泛型参数 S/E 抽象；three.ecs 中以 ISysEtyMapManager<System, Entity> 落地。

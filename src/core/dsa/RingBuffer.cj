@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] RingBuffer
  * @brief[zh-cn] 环形队列（固定容量，先进先出）
  * @explain[zh-cn] 底层使用固定容量 Array<?T> + 环形指针实现，无需扩容，入队/出队均为 O(1)。适合流式数据、音频缓冲、帧缓冲等场景。使用 Array<?T> 而非 Array<T> 以避免泛型 T 需要无参构造函数的限制。
@@ -21,22 +43,32 @@ import std.collection.*
 public class RingBuffer<T> {
     /**
      * @brief[zh-cn] 内部存储数组（Option 包装）
+     *
+     * @brief[en] Internal storage array (Option-wrapped)
      */
     private let _data: Array<?T>
     /**
      * @brief[zh-cn] 容量
+     *
+     * @brief[en] Capacity
      */
     private let _capacity: Int64
     /**
      * @brief[zh-cn] 队首索引
+     *
+     * @brief[en] Front index
      */
     private var _head: Int64
     /**
      * @brief[zh-cn] 元素数量
+     *
+     * @brief[en] Number of elements
      */
     private var _size: Int64
     /**
      * @brief[zh-cn] 是否覆盖模式（队列满时覆盖最旧元素）
+     *
+     * @brief[en] Whether in overwrite mode (overwrites the oldest element when the queue is full)
      */
     private let _overwrite: Bool
 

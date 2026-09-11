@@ -148,6 +148,21 @@ Return:
 
 - Value of the z component
 
+### func init\(InterleavedBuffer,Int64,Int64,Bool\)
+```cj
+public init(interleavedBuffer: InterleavedBuffer, itemSize: Int64, offset: Int64, normalized!: Bool = false)
+```
+Construct a new interleaved buffer attribute
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|interleavedBuffer|InterleavedBuffer|Buffer holding interleaved dataitemSize Data item sizeoffset Attribute offset in the buffernormalized Whether to normalize, default false|
+|itemSize|Int64||
+|offset|Int64||
+|normalized|Bool||
+
 ### func init\(InterleavedBuffer,Int64,Int64\)
 ```cj
 public init(interleavedBuffer: InterleavedBuffer, itemSize: Int64, offset: Int64)
@@ -167,21 +182,6 @@ Parameter:
 public init()
 ```
 No-arg constructor (for fastjson deserialization)
-
-### func init\(InterleavedBuffer,Int64,Int64,Bool\)
-```cj
-public init(interleavedBuffer: InterleavedBuffer, itemSize: Int64, offset: Int64, normalized!: Bool = false)
-```
-Construct a new interleaved buffer attribute
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|interleavedBuffer|InterleavedBuffer|Buffer holding interleaved dataitemSize Data item sizeoffset Attribute offset in the buffernormalized Whether to normalize, default false|
-|itemSize|Int64||
-|offset|Int64||
-|normalized|Bool||
 
 ### func setComponent\(Int64,Int64,Float64\)
 ```cj

@@ -12,7 +12,7 @@ package sp_ssao
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -25,7 +25,7 @@ import three.scene.objects.*
 import three.rendering.lights.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxSSAOPass
+import three.rendering.postprocessing.SSAOPass
 import three.utils.log.Logger
 import three.utils.log.LogLevel
 import std.collection.*
@@ -40,7 +40,7 @@ public class TestWindow <: WindowEngine {
     // 输入提供者（可插拔架构）
     var _mouse: Option<MouseProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 50.0, aspect: 1.0, near: 0.1, far: 100.0)
     var spheres: ArrayList<Mesh> = ArrayList<Mesh>()
@@ -64,15 +64,17 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x30, 0x30, 0x60))  // 灰蓝色背景
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
 
@@ -83,7 +85,7 @@ public class TestWindow <: WindowEngine {
         this.spheres = spheres
         this.pointLights = pointLights
 
-        // ---- 步骤 4: 进入渲染循环（RenderPass → BgfxSSAOPass → 上屏） ----
+        // ---- 步骤 4: 进入渲染循环（RenderPass → SSAOPass → 上屏） ----
         println("[4/5] 进入渲染循环（相机公转，onFrame 由窗口泵线程驱动）...")
         println("  鼠标左键拖动：手动调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
         // 对齐 Three.js EffectComposer 用法（对照 bloom 测试）：
@@ -93,7 +95,7 @@ public class TestWindow <: WindowEngine {
         //   composer.render()
         let composer = EffectComposer(this.renderer)
         composer.addPass(RenderPass(this.scene, this.camera))
-        let ssaoPass = BgfxSSAOPass(this.scene, this.camera)
+        let ssaoPass = SSAOPass(this.scene, this.camera)
         // SSAO 参数：等比例复用大尺寸验证成功的组合（kernelRadius=3.0/minDistance=0.01/maxDistance=0.03）。
         // 大尺寸盒子 80 单位、相机距 120、far=1000，该组合下 SSAO 效果已验证正常；
         // 小场景（盒子 8 单位、far=100）按比例换算：
@@ -210,7 +212,7 @@ public class TestWindow <: WindowEngine {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")
     }

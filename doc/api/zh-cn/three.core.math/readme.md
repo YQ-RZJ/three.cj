@@ -32,8 +32,10 @@
 |[MathUtils](./类/MathUtils.md#class-mathutils)|数学工具类，提供常用的数学函数集合|
 |[Matrix2](./类/Matrix2.md#class-matrix2)|2x2 矩阵类，列主序存储|
 |[Matrix3](./类/Matrix3.md#class-matrix3)|3x3 矩阵类，列主序存储|
+|[Matrix4F](./类/Matrix4F.md#class-matrix4f)|Float32 4x4 矩阵类（列主序存储）|
 |[Matrix4](./类/Matrix4.md#class-matrix4)|4x4 矩阵类，列主序存储（elements 数组）|
 |[Plane](./类/Plane.md#class-plane)|平面类，使用单位法向量和常数表示|
+|[QuaternionF](./类/QuaternionF.md#class-quaternionf)|Float32 四元数类，用于表示三维旋转|
 |[Quaternion](./类/Quaternion.md#class-quaternion)|四元数类，用于表示三维旋转|
 |[Ray](./类/Ray.md#class-ray)|射线类，由起点和方向向量定义|
 |[ReversedDepthFuncs](./类/ReversedDepthFuncs.md#class-reverseddepthfuncs)|反转深度函数映射表|
@@ -42,7 +44,9 @@
 |[Spherical](./类/Spherical.md#class-spherical)|球坐标类，用于表示三维空间中的点|
 |[Triangle](./类/Triangle.md#class-triangle)|三角形类，由三个顶点定义|
 |[Vector2](./类/Vector2.md#class-vector2)|2D 向量类，表示有序对 (x, y)|
+|[Vector3F](./类/Vector3F.md#class-vector3f)|Float32 3D 向量类|
 |[Vector3](./类/Vector3.md#class-vector3)|3D 向量类，表示有序三元组 (x, y, z)|
+|[Vector4F](./类/Vector4F.md#class-vector4f)|Float32 4D 向量类|
 |[Vector4](./类/Vector4.md#class-vector4)|4D 向量类，表示有序四元组 (x, y, z, w)|
 
 ### 枚举

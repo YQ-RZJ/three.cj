@@ -9,25 +9,25 @@ Thread priority (corresponds to SDL_ThreadPriority)
 ```cj
 High
 ```
-
+High priority
 
 ### Low
 ```cj
 Low
 ```
-
+Low priority
 
 ### Normal
 ```cj
 Normal
 ```
-
+Normal priority
 
 ### TimeCritical
 ```cj
 TimeCritical
 ```
-
+Time-critical (highest) priority
 
 ### func toSDLPriority\(\)
 ```cj

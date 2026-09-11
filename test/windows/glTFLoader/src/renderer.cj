@@ -19,7 +19,7 @@ import three.scene.objects.*
 import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.resource.loader.GltfLoader
 import three.rendering.lights.*
 

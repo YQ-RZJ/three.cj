@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] EventDispatcher
  * @brief[zh-cn] 提供自定义对象的事件监听和分发机制
  * @explain[zh-cn] 参考 Three.js EventDispatcher 实现，支持 addEventListener/removeEventListener/hasEventListener/dispatchEvent 标准事件 API，同时保留 on/off/emit 兼容方法。由于仓颉语言中函数类型无法直接进行引用相等比较，使用 ListenerHandle 包装类来实现监听器的添加、移除和查重。调用方需保存 addEventListener 返回的 ListenerHandle，以便后续调用 removeEventListener/hasEventListener 时使用。
@@ -21,6 +43,8 @@ import std.collection.*
 public class ListenerHandle {
     /**
      * @brief[zh-cn] 回调函数
+     *
+     * @brief[en] Callback function
      */
     public let callback: (Event) -> Unit
 
@@ -46,10 +70,14 @@ public class ListenerHandle {
 public class Event {
     /**
      * @brief[zh-cn] 事件类型
+     *
+     * @brief[en] Event type
      */
     public var `type`: String
     /**
      * @brief[zh-cn] 事件目标（分发事件的对象），由 dispatchEvent 自动设置
+     *
+     * @brief[en] Event target (the object dispatching the event), set automatically by dispatchEvent
      */
     public var target: ?EventDispatcher
 
@@ -77,7 +105,7 @@ public class Event {
  * }
  * let car = Car()
  * let handle = car.addEventListener("start", { event =>
- * println("Car started!")
+ * Logger.info(["Car", "started!"])
  * })
  * car.start()
  * car.removeEventListener("start", handle)
@@ -93,7 +121,7 @@ public class Event {
  * }
  * let car = Car()
  * let handle = car.addEventListener("start", { event =>
- * println("Car started!")
+ * Logger.info(["Car", "started!"])
  * })
  * car.start()
  * car.removeEventListener("start", handle)
@@ -102,6 +130,8 @@ public class Event {
 public open class EventDispatcher {
     /**
      * @brief[zh-cn] 事件监听器存储，键为事件类型，值为监听器句柄列表
+     *
+     * @brief[en] Event listener storage, keyed by event type with listener handle lists as values
      */
     private var _listeners: HashMap<String, ArrayList<ListenerHandle>>
 

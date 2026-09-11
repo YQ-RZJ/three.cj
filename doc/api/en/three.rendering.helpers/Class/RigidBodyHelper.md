@@ -3,13 +3,19 @@
 ```cj
 public class RigidBodyHelper <: Object3D
 ```
-
+Physics rigid body helper object
 
 ### func dispose\(\)
 ```cj
 public func dispose(): Unit
 ```
+Releases GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Constructs a RigidBody helper
 
 ### func init\(RigidBody,PhysicsShape,UInt32\)
 ```cj
@@ -29,23 +35,23 @@ Parameter:
 ```cj
 public func setShape(shape: PhysicsShape): RigidBodyHelper
 ```
-
+Replaces the collision shape to display
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|shape|PhysicsShape||
+|shape|PhysicsShape|The new collision shape|
 
 Return: 
 
-- 
+- Self reference
 
 ### func update\(\)
 ```cj
 public func update(): Unit
 ```
-
+Syncs the rigid body state and updates the visualization
 
 ### var angularVelocityArrow
 ```cj

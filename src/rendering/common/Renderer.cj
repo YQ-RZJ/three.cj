@@ -1,11 +1,33 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 渲染器
  * @brief[zh-cn] 渲染器调度层，编排 _render(scene, camera) 完整流程
- * @explain[zh-cn] Renderer 是渲染器抽象基类，编排渲染调度流程：renderContexts.get → renderLists.get → renderList.init() → _collectRenderObjects → renderList.finish() → backend.beginRender → backend.draw → backend.finishRender。BgfxRenderer 继承 Renderer 提供 bgfx 具体实现。对照源码: three.js/src/renderers/common/Renderer.js
+ * @explain[zh-cn] Renderer 是渲染器抽象基类，编排渲染调度流程：renderContexts.get → renderLists.get → renderList.init() → _collectRenderObjects → renderList.finish() → backend.beginRender → backend.draw → backend.finishRender。ThreeRenderer 继承 Renderer 提供 bgfx 具体实现。对照源码: three.js/src/renderers/common/Renderer.js
  *
  * @file[en] Renderer
  * @brief[en] Renderer scheduling layer, orchestrating the _render(scene, camera) complete flow
- * @explain[en] Renderer is the abstract base class for the renderer, orchestrating the rendering dispatch flow: renderContexts.get → renderLists.get → renderList.init() → _collectRenderObjects → renderList.finish() → backend.beginRender → backend.draw → backend.finishRender. BgfxRenderer extends Renderer to provide the bgfx concrete implementation. Reference: three.js/src/renderers/common/Renderer.js
+ * @explain[en] Renderer is the abstract base class for the renderer, orchestrating the rendering dispatch flow: renderContexts.get → renderLists.get → renderList.init() → _collectRenderObjects → renderList.finish() → backend.beginRender → backend.draw → backend.finishRender. ThreeRenderer extends Renderer to provide the bgfx concrete implementation. Reference: three.js/src/renderers/common/Renderer.js
  */
 package three.rendering.common
 
@@ -192,25 +214,45 @@ public open class Renderer {
     // ===== 尺寸 =====
 
     /**
-     * @brief[zh-cn] 渲染宽度
+     * @brief[zh-cn] 渲染宽度（物理像素 / 后备缓冲宽度）
+     * @explain[zh-cn] 内部渲染目标宽度，已乘以 pixelRatio。如需逻辑尺寸请使用 getSize()。
      *
-     * @brief[en] Render width
+     * @brief[en] Render width (physical pixels / backbuffer width)
+     * @explain[en] Internal render target width, already multiplied by pixelRatio. Use getSize() for logical dimensions.
      */
     public var width: Int64 = 800
 
     /**
-     * @brief[zh-cn] 渲染高度
+     * @brief[zh-cn] 渲染高度（物理像素 / 后备缓冲高度）
+     * @explain[zh-cn] 内部渲染目标高度，已乘以 pixelRatio。如需逻辑尺寸请使用 getSize()。
      *
-     * @brief[en] Render height
+     * @brief[en] Render height (physical pixels / backbuffer height)
+     * @explain[en] Internal render target height, already multiplied by pixelRatio. Use getSize() for logical dimensions.
      */
     public var height: Int64 = 600
 
     /**
      * @brief[zh-cn] 像素比
+     * @explain[zh-cn] 物理像素与逻辑像素的比值，默认 1.0。设置为窗口 DPI 缩放因子可在 HiDPI 屏幕上获得清晰渲染。
      *
      * @brief[en] Pixel ratio
+     * @explain[en] Ratio of physical pixels to logical pixels, defaults to 1.0. Set to the window DPI scale factor for crisp rendering on HiDPI displays.
      */
     public var pixelRatio: Float64 = 1.0
+
+    /**
+     * @brief[zh-cn] 逻辑宽度（setSize 传入值）
+     *
+     * @brief[en] Logical width (value passed to setSize)
+     */
+    private var _logicalWidth: Int64 = 800
+
+    /**
+     * @brief[zh-cn] 逻辑高度（setSize 传入值）
+     *
+     * @brief[en] Logical height (value passed to setSize)
+     */
+    private var _logicalHeight: Int64 = 600
 
     // ===== 已有子系统（兼容既有代码） =====
 
@@ -306,16 +348,57 @@ public open class Renderer {
 
     /**
      * @brief[zh-cn] 设置渲染尺寸
-     * @param[zh-cn] w 渲染宽度
-     * h 渲染高度
+     * @param[zh-cn] w 渲染逻辑宽度
+     * h 渲染逻辑高度
+     * @explain[zh-cn] 内部会乘以 pixelRatio 得到物理后备缓冲尺寸。如需直接设置物理尺寸，请同时调整 pixelRatio=1.0 后调用本方法。
      *
      * @brief[en] Set rendering dimensions
-     * @param[en] w Render width
-     * h Render height
+     * @param[en] w Render logical width
+     * h Render logical height
+     * @explain[en] Internally multiplies by pixelRatio to obtain the physical backbuffer dimensions. To set physical dimensions directly, set pixelRatio=1.0 before calling this method.
      */
     public func setSize(w: Int64, h: Int64): Unit {
-        this.width = w
-        this.height = h
+        this._logicalWidth = w
+        this._logicalHeight = h
+        this.width = Int64(Float64(w) * this.pixelRatio)
+        this.height = Int64(Float64(h) * this.pixelRatio)
+    }
+
+    /**
+     * @brief[zh-cn] 获取逻辑渲染尺寸
+     * @return[zh-cn] (逻辑宽度, 逻辑高度)
+     *
+     * @brief[en] Get logical rendering dimensions
+     * @return[en] (logical width, logical height)
+     */
+    public func getSize(): (Int64, Int64) {
+        return (this._logicalWidth, this._logicalHeight)
+    }
+
+    /**
+     * @brief[zh-cn] 设置像素比
+     * @param[zh-cn] value 新的像素比（必须 > 0）
+     * @explain[zh-cn] 修改 pixelRatio 后会用当前逻辑尺寸重新计算物理尺寸。通常在 initBgfx 之前根据窗口 DPI 设置。
+     *
+     * @brief[en] Set pixel ratio
+     * @param[en] value New pixel ratio (must be > 0)
+     * @explain[en] After changing pixelRatio, physical dimensions are recalculated from the current logical dimensions. Usually set according to the window DPI before initBgfx.
+     */
+    public func setPixelRatio(value: Float64): Unit {
+        if (value <= 0.0) { return }
+        this.pixelRatio = value
+        this.setSize(this._logicalWidth, this._logicalHeight)
+    }
+
+    /**
+     * @brief[zh-cn] 获取当前像素比
+     * @return[zh-cn] 像素比
+     *
+     * @brief[en] Get current pixel ratio
+     * @return[en] Pixel ratio
+     */
+    public func getPixelRatio(): Float64 {
+        return this.pixelRatio
     }
 
     // ===== _render 核心调度（子类可重写） =====
@@ -440,7 +523,7 @@ public open class Renderer {
                 }
         }
 
-        // 全屏 blit 阴影贴图到屏幕（debug mode 6 用；对照 bgfx4cj-last BgfxRenderer.blitShadowMap）
+        // 全屏 blit 阴影贴图到屏幕（debug mode 6 用；对照 bgfx4cj-last ThreeRenderer.blitShadowMap）
         // 由测试侧 scene.flag 指示是否启用（默认不启用，仅 sp_shadowmap 测试设标志位）。
         match (scene.userData.get("shadowBlit")) {
             case Some(_) => this.backend.blitShadowMap(UInt16(0))
@@ -459,7 +542,7 @@ public open class Renderer {
      * @param[zh-cn] renderContext 待填充的渲染上下文
      *
      * @brief[en] Subclass hook for filling subclass-specific RenderContext fields
-     * @explain[en] Base class default is no-op. Subclasses (e.g., BgfxRenderer) can override this method to fill subclass-specific fields like clearColor.
+     * @explain[en] Base class default is no-op. Subclasses (e.g., ThreeRenderer) can override this method to fill subclass-specific fields like clearColor.
      * @param[en] renderContext Render context to be filled
      */
     public open func _fillRenderContext(renderContext: RenderContext): Unit {
@@ -472,7 +555,7 @@ public open class Renderer {
      * @return[zh-cn] bgfx view id
      *
      * @brief[en] Get the bgfx view id used for current rendering
-     * @explain[en] Base class default returns 0 (main render view). Subclasses (BgfxRenderer) can override to return this.viewId, allowing scene rendering to switch to other views.
+     * @explain[en] Base class default returns 0 (main render view). Subclasses (ThreeRenderer) can override to return this.viewId, allowing scene rendering to switch to other views.
      * @return[en] bgfx view id
      */
     public open func getRenderViewId(): UInt16 {

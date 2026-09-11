@@ -5,16 +5,6 @@ public class SocketUdp
 ```
 UDP 套接字
 
-### func bind\(\)
-```cj
-public func bind(): Bool
-```
-绑定（使用构造时指定的端口）
-
-返回: 
-
-- 绑定成功返回 true；失败返回 false
-
 ### func bind\(UInt16\)
 ```cj
 public func bind(port: UInt16): Bool
@@ -26,6 +16,16 @@ public func bind(port: UInt16): Bool
 |名称|类型|描述|
 |---|---|---|
 |port|UInt16|要绑定的端口|
+
+返回: 
+
+- 绑定成功返回 true；失败返回 false
+
+### func bind\(\)
+```cj
+public func bind(): Bool
+```
+绑定（使用构造时指定的端口）
 
 返回: 
 

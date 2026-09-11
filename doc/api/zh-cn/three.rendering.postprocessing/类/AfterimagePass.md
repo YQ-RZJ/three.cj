@@ -23,9 +23,9 @@ public init(damp!: Float64 = 0.96)
 |---|---|---|
 |damp|Float64|阻尼系数（默认 0.96）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 afterimage pass
 
@@ -33,7 +33,7 @@ public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHand
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（copy pass 的输出目标）|
 |readBuffer|FrameBufferHandle|读 buffer（当前帧输入，绑到 tNew）|
 |deltaTime|Float64|帧间隔|

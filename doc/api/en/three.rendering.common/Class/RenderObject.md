@@ -207,7 +207,7 @@ Material
 ```cj
 public var mesh: Object3D
 ```
-mesh alias (for compatible ro.mesh access in BgfxRenderer)
+mesh alias (for compatible ro.mesh access in ThreeRenderer)
 
 ### var modelViewMatrix
 ```cj

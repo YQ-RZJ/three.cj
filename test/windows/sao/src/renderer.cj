@@ -7,11 +7,11 @@ package sp_sao
  * - 相机：PerspectiveCamera(65, aspect, near=3, far=10)，position.z = 7
  * - 灯光：3 个彩色点光源 + 环境光 0.2（官方案例 PointLight 500 为 WebGL 物理单位，
  *   Three.cj 采用与 ssao 测试一致的强度语义）
- * - SAO 参数：全部使用 BgfxSAOPass 默认值（saoBias=0.5, saoIntensity=0.18, saoScale=1,
+ * - SAO 参数：全部使用 SAOPass 默认值（saoBias=0.5, saoIntensity=0.18, saoScale=1,
  *   saoKernelRadius=100, saoMinResolution=0, saoBlur=true, saoBlurRadius=8,
  *   saoBlurStdDev=4, saoBlurDepthCutoff=0.01 —— 与官方案例 SAOPass 默认 params 完全一致）
  *
- * Three.cj 差异：官方案例用 InstancedMesh（120 实例共享几何体），但 BgfxSAOPass
+ * Three.cj 差异：官方案例用 InstancedMesh（120 实例共享几何体），但 SAOPass
  * 自建 VB/IB 按 geometry 缓存、逐 mesh 提交，不支持 instancing，故改为 120 个独立 Mesh。
  */
 
@@ -29,11 +29,11 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.MouseButton
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxSAOPass
+import three.rendering.postprocessing.SAOPass
 
 /// 球体数量（对齐官方 InstancedMesh count = 120）
 public let SPHERE_COUNT: Int64 = 120

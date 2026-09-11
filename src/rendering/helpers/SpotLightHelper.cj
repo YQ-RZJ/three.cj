@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 聚光灯辅助对象
  * @brief[zh-cn] 聚光灯辅助对象，用于可视化聚光灯的锥体范围
  * @explain[zh-cn] 
@@ -12,6 +34,10 @@
  * with a cone wireframe. Call update() when the light or its properties change.
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -36,6 +62,7 @@ import std.math.*
  * @explain[en] 
  * Call update() when the light or its properties change.
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public class SpotLightHelper <: Object3D {
     /**
      * @brief[zh-cn] 被可视化的光源
@@ -67,11 +94,13 @@ public class SpotLightHelper <: Object3D {
      * @param[en] light The spot light to visualize
      * color Color, uses light color when not set
      */
+    public init() {
+        this(Light())
+    }
     public init(light: Light, color!: Option<Color> = None<Color>) {
         super()
         this.light = light
         this.color = color
-        this.kind = "SpotLightHelper"
         this.matrixAutoUpdate = false
 
         let geometry = BufferGeometry()

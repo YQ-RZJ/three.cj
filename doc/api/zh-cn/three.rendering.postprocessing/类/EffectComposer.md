@@ -33,9 +33,9 @@ public func dispose(): Unit
 ```
 释放 EffectComposer 占用的所有 GPU 资源（内部双 RT + 所有 pass）
 
-### func init\(BgfxRenderer\)
+### func init\(ThreeRenderer\)
 ```cj
-public init(renderer: BgfxRenderer)
+public init(renderer: ThreeRenderer)
 ```
 构造 EffectComposer
 
@@ -43,7 +43,7 @@ public init(renderer: BgfxRenderer)
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 
 ### func insertPass\(Pass,Int64\)
 ```cj
@@ -125,7 +125,7 @@ public var renderToScreen: Bool = true
 
 ### let renderer
 ```cj
-public let renderer: BgfxRenderer
+public let renderer: ThreeRenderer
 ```
 渲染器引用
 

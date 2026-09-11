@@ -112,17 +112,23 @@ Return:
 
 - The current volume gain
 
+### func init\(\)
+```cj
+public init()
+```
+Creates a non-positional audio source
+
 ### func init\(AudioListener\)
 ```cj
 public init(listener!: AudioListener)
 ```
-Creates a non-positional audio source
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|listener|AudioListener|The associated audio listener|
+|listener|AudioListener||
 
 ### func pause\(\)
 ```cj

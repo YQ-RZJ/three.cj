@@ -26,9 +26,9 @@ Parameter:
 |camera|Camera|待渲染相机|
 |selectedObjects|ArrayList<Object3D>|选中的 3D 物体（描边目标）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 Outline pass。
 
@@ -36,7 +36,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（本 pass 不用，结果写 readBuffer）|
 |readBuffer|FrameBufferHandle|读 buffer（renderToScreen=false 时写这里）|
 |deltaTime|Float64|帧间隔|

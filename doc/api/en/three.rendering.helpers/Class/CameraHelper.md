@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 Dispose GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Construct a camera helper
+
 ### func init\(Camera\)
 ```cj
 public init(camera: Camera)
 ```
-Construct a camera helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|camera|Camera|The camera to visualize|
+|camera|Camera||
 
 ### func setColors\(Color,Color,Color,Color,Color\)
 ```cj

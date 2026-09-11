@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 纹理基类
  * @brief[zh-cn] 纹理资源基类，所有具体贴图类型的父类
  * @explain[zh-cn] 纹理资源基类，包装一个 Source（贴图数据源）+ 采样状态（wrapS/wrapT/magFilter/minFilter/anisotropy）+ UV 变换（offset/repeat/center/rotation/matrix）。flipY/colorSpace/premultiplyAlpha 控制上传时的像素处理。继承 EventDispatcher 以支持 dispose 事件；渲染器内部按 needsUpdate/version 增量更新 GPU 纹理。实现 IRenderTargetTexture 接口以解除 core→textures 循环依赖。
@@ -107,6 +129,8 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     }
     /**
      * @brief[zh-cn] 私有 backing field（不参与序列化）
+     *
+     * @brief[en] Private backing field (excluded from serialization)
      */
     @JsonIgnore
     internal var _needsUpdateFlag: Bool

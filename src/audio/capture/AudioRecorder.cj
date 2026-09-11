@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] AudioRecorder 麦克风音频捕获（ALC capture 扩展），录音能力
  * @brief[zh-cn] 录音器：封装 OpenAL ALC 1.1 capture 扩展实现麦克风捕获
  * @explain[zh-cn] 封装 OpenAL ALC 1.1 capture 扩展（alcCaptureOpenDevice / Start / Stop / Samples）：
@@ -41,6 +63,7 @@ import openalsoft4cj.alc.*
 import openalsoft4cj.al.*
 
 import three.audio.device.*
+import three.utils.log.Logger
 
 /**
  * @brief[zh-cn] 麦克风音频捕获器，封装 ALC capture 扩展
@@ -55,31 +78,43 @@ import three.audio.device.*
 public class AudioRecorder {
     /**
      * @brief[zh-cn] 捕获设备句柄
+     *
+     * @brief[en] The capture device handle
      */
     private var _captureDevice: CPointer<Unit>
 
     /**
      * @brief[zh-cn] 是否已打开
+     *
+     * @brief[en] Whether the device is opened
      */
     private var _opened: Bool
 
     /**
      * @brief[zh-cn] 是否捕获中
+     *
+     * @brief[en] Whether capture is in progress
      */
     private var _recording: Bool
 
     /**
      * @brief[zh-cn] 采样率
+     *
+     * @brief[en] The sampling rate
      */
     private var _frequency: UInt32
 
     /**
      * @brief[zh-cn] 声道数
+     *
+     * @brief[en] The number of channels
      */
     private var _channels: UInt32
 
     /**
      * @brief[zh-cn] 采样格式（AL_FORMAT_MONO16 / AL_FORMAT_STEREO16）
+     *
+     * @brief[en] The sample format (AL_FORMAT_MONO16 / AL_FORMAT_STEREO16)
      */
     private var _format: UInt32
 
@@ -179,7 +214,7 @@ public class AudioRecorder {
             unsafe { LibC.free(devName) }
 
             if (dev.isNull()) {
-                println("[AudioRecorder] 无法打开捕获设备")
+                Logger.error(["AudioRecorder", "无法打开捕获设备"])
                 okBox[0] = false
                 return
             }

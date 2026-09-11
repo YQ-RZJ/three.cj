@@ -28,19 +28,6 @@ public open func dispose(): Unit
 ```
 Dispose GPU resources
 
-### func init\(Color,Float64\)
-```cj
-public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0)
-```
-Construct a new light
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|color|Color|Light color, default 0xffffffintensity Light intensity, default 1|
-|intensity|Float64||
-
 ### func init\(UInt32,Float64\)
 ```cj
 public init(hex: UInt32, intensity!: Float64 = 1.0)
@@ -52,6 +39,19 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |hex|UInt32|Color hexadecimal valueintensity Light intensity, default 1|
+|intensity|Float64||
+
+### func init\(Color,Float64\)
+```cj
+public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0)
+```
+Construct a new light
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|color|Color|Light color, default 0xffffffintensity Light intensity, default 1|
 |intensity|Float64||
 
 ### var color

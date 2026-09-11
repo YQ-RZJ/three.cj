@@ -12,7 +12,7 @@ package unreal_bloom
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -25,7 +25,7 @@ import three.scene.objects.*
 import three.rendering.lights.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxUnrealBloomPass
+import three.rendering.postprocessing.UnrealBloomPass
 import three.utils.log.Logger
 import three.utils.log.LogLevel
 import std.collection.*
@@ -40,7 +40,7 @@ public class TestWindow <: WindowEngine {
     // 输入提供者（可插拔架构）
     var _mouse: Option<MouseProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 50.0, aspect: 1.0, near: 0.1, far: 100.0)
     var spheres: ArrayList<Mesh> = ArrayList<Mesh>()
@@ -63,9 +63,11 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
@@ -73,7 +75,7 @@ public class TestWindow <: WindowEngine {
         // 背景色修复：原 Color(0x05,0x05,0x10) 亮度仅 ~0.02（(5,5,16)/255），sRGB 显示几乎纯黑，
         // 被误认为"背景没渲染"。调亮到与 fxaa/smaa 一致的可见深蓝黑，同时保留深色衬托光晕的意图。
         this.renderer.setClearColor(Color(0x10, 0x12, 0x18))  // 深蓝黑背景，突出 bloom 光晕
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
 
@@ -83,7 +85,7 @@ public class TestWindow <: WindowEngine {
         this.camera = camera
         this.spheres = spheres
 
-        // ---- 步骤 4: 进入渲染循环（RenderPass + BgfxUnrealBloomPass via EffectComposer） ----
+        // ---- 步骤 4: 进入渲染循环（RenderPass + UnrealBloomPass via EffectComposer） ----
         println("[4/5] 进入渲染循环（启用 Bloom via EffectComposer）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
         // 对齐 Three.js EffectComposer 用法：
@@ -95,7 +97,7 @@ public class TestWindow <: WindowEngine {
         composer.addPass(RenderPass(this.scene, this.camera))
         // threshold=0.5：球颜色 ×2 后亮度约 0.78~1.38（红 0.861/绿 1.329/蓝 0.782/橙 1.38/紫红 0.826），
         // 原 threshold=1.0 只有绿/橙被提取，多数球无 bloom。0.5 让全部球参与光晕。
-        composer.addPass(BgfxUnrealBloomPass(strength: 1.0, threshold: 0.5))
+        composer.addPass(UnrealBloomPass(strength: 1.0, threshold: 0.5))
         composer.setSize(Int64(this.getWidth()), Int64(this.getHeight()))
         this.composer = Some(composer)
     }
@@ -182,7 +184,7 @@ public class TestWindow <: WindowEngine {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")
     }

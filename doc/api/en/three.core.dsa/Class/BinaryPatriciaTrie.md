@@ -43,7 +43,7 @@ Return:
 ```cj
 public func clear(): Unit
 ```
-
+Clear the tree
 
 ### func delete\(Array<UInt8>\)
 ```cj
@@ -196,5 +196,5 @@ Return:
 ```cj
 public prop size: Int64
 ```
-
+Number of members
 

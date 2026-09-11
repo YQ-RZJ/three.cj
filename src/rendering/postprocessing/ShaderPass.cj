@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxShaderPass 通用 shader pass
  * @brief[zh-cn] 通用 shader pass —— 喂任意已注册全屏 shader 做后处理
  * @explain[zh-cn] 持 shader 名（从 PostProcessingShaders.get 取已注册全屏 shader）+ textureID（绑 readBuffer 的 sampler 名）。
@@ -26,7 +48,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -132,7 +154,7 @@ public open class ShaderPass <: Pass {
      * @param[en] deltaTime Frame delta time
      */
     public open override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -215,7 +237,7 @@ public open class ShaderPass <: Pass {
      * @explain[en] Base class defaults to no-op; FXAAPass overrides this method to set u_resolution.
      *         In bgfx, uniforms must be bound via the uniform registry createUniform + bgfx_set_uniform_cj before submit.
      */
-    public open func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit {}
+    public open func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit {}
 
     /**
      * @brief[zh-cn] 释放 ShaderPass 占用的 GPU 资源

@@ -16,5 +16,7 @@ main(): Int64 {
     testPackage.registerSuite({ => KeyframeTrackTest().asTestSuite() })
     testPackage.registerSuite({ => AnimationMixerTest().asTestSuite() })
     testPackage.registerSuite({ => AnimationUtilsTest().asTestSuite() })
+    testPackage.registerSuite({ => SkeletalAnimationTest().asTestSuite() })
+    testPackage.registerSuite({ => SkeletalBenchmarkTest().asTestSuite() })
     return entryMain(testPackage)
 }

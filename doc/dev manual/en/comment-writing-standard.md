@@ -92,15 +92,17 @@ Placed at the very top of the file, before the `package` declaration. Recommende
 ```cj
 /**
  * @file[zh-cn] bgfx 类型定义 bgfx C99 API 的枚举、句柄与结构体
- * @file[en] bgfx types  bgfx C99 API enums, handles and structs
  * @brief[zh-cn] 本文件包含 bgfx C API 的枚举、不透明句柄和 C 兼容结构体
- * @brief[en] This file contains bgfx C API enums, opaque handles and C-compatible structs
  * @explain[zh-cn] 详细说明文件职责、设计约定、注意事项（支持多行）。
  *         每行开头的 `*` 会被忽略。
+ * @author[zh-cn] 作者名
+ * 
+ * @file[en] bgfx types  bgfx C99 API enums, handles and structs
+ * @brief[en] This file contains bgfx C API enums, opaque handles and C-compatible structs
  * @explain[en] Detailed description of the file's responsibility, design conventions
  *         and caveats (multi-line supported).
- * @author[zh-cn] 作者名
  * @author[en] Author Name
+ *
  * @version 1.0.0
  * @date 2026-08-28
  * @see https://github.com/bkaradzic/bgfx
@@ -121,6 +123,7 @@ Used for an overall introduction of the current package; cjdoc aggregates it int
 ```cj
 /**
  * @intro[zh-cn] bgfx4cj 提供对 bgfx 渲染引擎、bx 基础库与 bimg 图像库的仓颉封装。
+ *
  * @intro[en] bgfx4cj provides Cangjie bindings for the bgfx renderer, bx base library
  *            and bimg image library.
  */
@@ -131,13 +134,14 @@ Used for an overall introduction of the current package; cjdoc aggregates it int
 ```cj
 /**
  * @brief[zh-cn] 32 位 Adler 校验和哈希
- * @brief[en] 32-bit Adler checksum hash
  * @explain[zh-cn] 使用 Adler-32 算法计算数据校验和，比 CRC32 更快但碰撞率略高。
  *         适用于非加密场景的快速完整性检查。
+ * @note[zh-cn] 提供流式（begin/add/end）与一次性计算两种用法。
+ *
+ * @brief[en] 32-bit Adler checksum hash
  * @explain[en] Computes a data checksum with the Adler-32 algorithm. Faster than
  *         CRC32 but with a slightly higher collision rate. Suitable for fast
  *         non-cryptographic integrity checks.
- * @note[zh-cn] 提供流式（begin/add/end）与一次性计算两种用法。
  * @note[en] Supports both streaming (begin/add/end) and one-shot usage.
  */
 public class HashAdler32 {
@@ -152,15 +156,24 @@ public class HashAdler32 {
 Struct comment and its **member variables**:
 
 ```cj
-/** @brief[zh-cn] bimg::TextureInfo 的镜像结构 */
-/** @brief[en] Mirror struct of bimg::TextureInfo */
+/** 
+ * @brief[zh-cn] bimg::TextureInfo 的镜像结构
+ *
+ * @brief[en] Mirror struct of bimg::TextureInfo 
+ */
 @C
 public struct TextureInfo {
-    /** @brief[zh-cn] 纹理格式 */
-    /** @brief[en] Texture format */
+    /** 
+     * @brief[zh-cn] 纹理格式
+     *
+     * @brief[en] Texture format
+     */
     public var format: UInt32 = 0
-    /** @brief[zh-cn] 宽度（像素） */
-    /** @brief[en] Width in pixels */
+    /** 
+     * @brief[zh-cn] 宽度（像素）
+     *
+     * @brief[en] Width in pixels
+     */
     public var width: UInt16 = 0
     ...
 }
@@ -173,29 +186,45 @@ public struct TextureInfo {
 ```cj
 /**
  * @brief[zh-cn] bgfx 渲染后端类型
- * @brief[en] bgfx renderer backend type
  * @explain[zh-cn] 指定使用哪个图形 API 进行渲染。
- * @explain[en] Specifies which graphics API is used for rendering.
  * @note[zh-cn] 并非所有平台都支持所有渲染器类型。
+ *
+ * @brief[en] bgfx renderer backend type
+ * @explain[en] Specifies which graphics API is used for rendering.
  * @note[en] Not all renderer types are supported on every platform.
  */
 public enum RendererType {
-    /** @brief[zh-cn] 空操作渲染器（不产生任何绘制调用） */
-    /** @brief[en] No-op renderer (issues no draw calls) */
+    /**
+     * @brief[zh-cn] 空操作渲染器（不产生任何绘制调用）
+     *
+     * @brief[en] No-op renderer (issues no draw calls) 
+     */
     | Noop
-    /** @brief[zh-cn] Direct3D 12 */
-    /** @brief[en] Direct3D 12 */
+    /** 
+     * @brief[zh-cn] Direct3D 12
+     *
+     * @brief[en] Direct3D 12
+     */
     | Direct3D12
-    /** @brief[zh-cn] 枚举成员总数 */
-    /** @brief[en] Total number of enum members */
+    /**
+     * @brief[zh-cn] 枚举成员总数 
+     *
+     * @brief[en] Total number of enum members 
+     */
     | Count
 
-    /** @brief[zh-cn] 将枚举值转换为 UInt32 */
-    /** @brief[en] Converts the enum value to UInt32 */
+    /**
+     * @brief[zh-cn] 将枚举值转换为 UInt32 
+     *
+     * @brief[en] Converts the enum value to UInt32 
+     */
     public func value(): UInt32 { ... }
 
-    /** @brief[zh-cn] 从 UInt32 转换回枚举值 */
-    /** @brief[en] Converts a UInt32 back to the enum value */
+    /**
+     * @brief[zh-cn] 从 UInt32 转换回枚举值 
+     *
+     * @brief[en] Converts a UInt32 back to the enum value 
+     */
     public static func fromValue(v: UInt32): RendererType { ... }
 }
 ```
@@ -207,13 +236,17 @@ public enum RendererType {
 ```cj
 /**
  * @brief[zh-cn] 顶点数据源接口
- * @brief[en] Vertex data source interface
  * @explain[zh-cn] 抽象顶点缓冲的读取方式，便于统一渲染管线输入。
+ *
+ * @brief[en] Vertex data source interface
  * @explain[en] Abstracts vertex buffer access to unify render pipeline input.
  */
 public interface VertexSource {
-    /** @brief[zh-cn] 获取顶点数量 */
-    /** @brief[en] Returns the number of vertices */
+    /**
+     * @brief[zh-cn] 获取顶点数量 
+     *
+     * @brief[en] Returns the number of vertices 
+     */
     public func count(): UInt32
     ...
 }
@@ -226,18 +259,19 @@ Core template for function comments (with parameters, return value, exceptions, 
 ```cj
 /**
  * @brief[zh-cn] 向顶点布局添加一个属性
- * @brief[en] Adds an attribute to a vertex layout
  * @param[zh-cn] `this` 对象实例指针
  * @param[zh-cn] attrib 属性类型
  * @param[zh-cn] normalized 是否归一化
+ * @return[zh-cn] 返回修改后的顶点布局指针
+ * @throws[zh-cn] IllegalStateException 当布局未处于声明状态时
+ * @note[zh-cn] 与 C API 行为一致
+ *
+ * @brief[en] Adds an attribute to a vertex layout
  * @param[en] `this` Object instance pointer
  * @param[en] attrib Attribute type
  * @param[en] normalized Whether the value is normalized
- * @return[zh-cn] 返回修改后的顶点布局指针
  * @return[en] Returns the modified vertex layout pointer
- * @throws[zh-cn] IllegalStateException 当布局未处于声明状态时
  * @throws[en] IllegalStateException When the layout is not in declaration state
- * @note[zh-cn] 与 C API 行为一致
  * @note[en] Behaves identically to the C API
  */
 public func bgfx_vertex_layout_add_cj(...): CPointer<VertexLayout> { ... }
@@ -252,8 +286,11 @@ public func bgfx_vertex_layout_add_cj(...): CPointer<VertexLayout> { ... }
 ### 4.8 Constructor (`init`)
 
 ```cj
-/** @brief[zh-cn] 创建新的 CRC32 哈希实例，默认使用 IEEE 多项式 */
-/** @brief[en] Creates a new CRC32 hash instance, defaulting to the IEEE polynomial */
+/**
+ * @brief[zh-cn] 创建新的 CRC32 哈希实例，默认使用 IEEE 多项式 
+ *
+ * @brief[en] Creates a new CRC32 hash instance, defaulting to the IEEE polynomial 
+ */
 public init() { ... }
 ```
 
@@ -262,8 +299,9 @@ Constructor with parameters:
 ```cj
 /**
  * @brief[zh-cn] 以指定多项式创建实例
- * @brief[en] Creates an instance with the specified polynomial
  * @param[zh-cn] poly 多项式值
+ *
+ * @brief[en] Creates an instance with the specified polynomial
  * @param[en] poly The polynomial value
  */
 public init(poly: UInt32) { ... }
@@ -274,6 +312,7 @@ public init(poly: UInt32) { ... }
 ```cj
 /**
  * @brief[zh-cn] 用于访问文件名称
+ *
  * @brief[en] Used to access the file name
  */
 public open mut prop fileName: String {
@@ -287,36 +326,51 @@ public open mut prop fileName: String {
 ### 4.10 Member variable / top-level variable (`var` / `let`)
 
 ```cj
-/** @brief[zh-cn] 深度缓冲写入启用 */
-/** @brief[en] Depth buffer write enable */
+/**
+ * @brief[zh-cn] 深度缓冲写入启用 
+ *
+ * @brief[en] Depth buffer write enable 
+ */
 public let STATE_WRITE_Z: UInt64 = 0x0000004000000000
 
-/** @brief[zh-cn] 写锁 */
-/** @brief[en] Write lock */
+/**
+ * @brief[zh-cn] 写锁 
+ *
+ * @brief[en] Write lock 
+ */
 public var writeMtx: Mutex
 ```
 
 ### 4.11 Constant (`const`)
 
 ```cj
-/** @brief[zh-cn] bgfx API 版本号 */
-/** @brief[en] bgfx API version number */
+/**
+ * @brief[zh-cn] bgfx API 版本号 
+ *
+ * @brief[en] bgfx API version number 
+ */
 public const BGFX_API_VERSION: UInt32 = 129
 ```
 
 ### 4.12 Type alias (`typealias`)
 
 ```cj
-/** @brief[zh-cn] 顶点属性数组类型 */
-/** @brief[en] Vertex attribute array type */
+/**
+ * @brief[zh-cn] 顶点属性数组类型 
+ *
+ * @brief[en] Vertex attribute array type 
+ */
 public typealias VertexAttribs = Array<UInt32>
 ```
 
 ### 4.13 Macro (`macro`)
 
 ```cj
-/** @brief[zh-cn] 计算字节对齐 */
-/** @brief[en] Computes byte alignment */
+/**
+ * @brief[zh-cn] 计算字节对齐 
+ *
+ * @brief[en] Computes byte alignment 
+ */
 public macro align_up(v: Int64, align: Int64): Int64 {
     ...
 }
@@ -327,6 +381,7 @@ public macro align_up(v: Int64, align: Int64): Int64 {
 ```cj
 /**
  * @brief[zh-cn] 为 Vec3 提供便捷运算扩展
+ *
  * @brief[en] Provides convenience arithmetic extensions for Vec3
  */
 public extend Vec3 {

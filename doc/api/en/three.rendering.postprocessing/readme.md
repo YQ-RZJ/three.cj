@@ -6,13 +6,8 @@
 |  Name   | Describe  |
 |  ----  | ----  |
 |[AfterimagePass](./Class/AfterimagePass.md#class-afterimagepass)|Afterimage post-processing pass|
-|[BgfxBloomPass](./Class/BgfxBloomPass.md#class-bgfxbloompass)|Bloom post-processing pass (simple version)|
-|[BgfxGTAOPass](./Class/BgfxGTAOPass.md#class-bgfxgtaopass)||
-|[BgfxSAOPass](./Class/BgfxSAOPass.md#class-bgfxsaopass)||
-|[BgfxSSAOPass](./Class/BgfxSSAOPass.md#class-bgfxssaopass)||
-|[BgfxSSRPass](./Class/BgfxSSRPass.md#class-bgfxssrpass)||
-|[BgfxUnrealBloomPass](./Class/BgfxUnrealBloomPass.md#class-bgfxunrealbloompass)|Bloom post-processing pass (full 5-level pyramid UnrealBloom implementation)|
 |[BloomMipLevel](./Class/BloomMipLevel.md#class-bloommiplevel)|单级金字塔 RT 资源（水平 + 垂直各一个 RT）。|
+|[BloomPass](./Class/BloomPass.md#class-bloompass)|Bloom post-processing pass (simple version)|
 |[BokehPass](./Class/BokehPass.md#class-bokehpass)|Depth of Field (DOF) post-processing pass|
 |[ClearMaskPass](./Class/ClearMaskPass.md#class-clearmaskpass)|Clear-mask pass|
 |[ClearPass](./Class/ClearPass.md#class-clearpass)|Clear pass|
@@ -22,6 +17,7 @@
 |[FXAAPass](./Class/FXAAPass.md#class-fxaapass)|FXAA post-processing pass|
 |[FilmPass](./Class/FilmPass.md#class-filmpass)|Film grain post-processing pass|
 |[FullScreenQuad](./Class/FullScreenQuad.md#class-fullscreenquad)|Full-screen quad shared resources|
+|[GTAOPass](./Class/GTAOPass.md#class-gtaopass)||
 |[GlitchPass](./Class/GlitchPass.md#class-glitchpass)|Digital glitch post-processing pass|
 |[HalftonePass](./Class/HalftonePass.md#class-halftonepass)|RGB halftone post-processing pass|
 |[LUTPass](./Class/LUTPass.md#class-lutpass)|Color grading (LUT) post-processing pass|
@@ -33,12 +29,16 @@
 |[RenderPass](./Class/RenderPass.md#class-renderpass)|Scene rendering pass|
 |[RenderPixelatedPass](./Class/RenderPixelatedPass.md#class-renderpixelatedpass)|Pixelated render pass|
 |[RenderTransitionPass](./Class/RenderTransitionPass.md#class-rendertransitionpass)|Scene transition render pass|
+|[SAOPass](./Class/SAOPass.md#class-saopass)||
 |[SMAAPass](./Class/SMAAPass.md#class-smaapass)|SMAA post-processing pass|
 |[SSAARenderPass](./Class/SSAARenderPass.md#class-ssaarenderpass)|Supersampling antialiasing render pass|
+|[SSAOPass](./Class/SSAOPass.md#class-ssaopass)||
+|[SSRPass](./Class/SSRPass.md#class-ssrpass)||
 |[SavePass](./Class/SavePass.md#class-savepass)|Save pass|
 |[ShaderPass](./Class/ShaderPass.md#class-shaderpass)|Generic shader pass|
 |[TAARenderPass](./Class/TAARenderPass.md#class-taarenderpass)|Temporal antialiasing render pass|
 |[TexturePass](./Class/TexturePass.md#class-texturepass)|Texture overlay pass|
+|[UnrealBloomPass](./Class/UnrealBloomPass.md#class-unrealbloompass)|Bloom post-processing pass (full 5-level pyramid UnrealBloom implementation)|
 |[VolumeCloudPass](./Class/VolumeCloudPass.md#class-volumecloudpass)|Volume cloud post-processing pass (full-screen ray marching)|
 
 ### Variables & constants

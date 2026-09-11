@@ -18,9 +18,9 @@ Parameter:
 |scene|Scene|Scene|
 |camera|Camera|Camera|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Renders the scene into the readBuffer
 
@@ -28,7 +28,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (unused by this pass)|
 |readBuffer|FrameBufferHandle|Read buffer (render target of this pass)|
 |deltaTime|Float64|Frame delta time|

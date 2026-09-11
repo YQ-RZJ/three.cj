@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] OrthographicCamera 正交投影相机
  * @brief[zh-cn] 正交投影相机：无近大远小效果，物体大小不随距离变化
  * @explain[zh-cn] 常用于 2D 场景、UI 渲染、CAD 工程视图、阴影相机（DirectionalLight 内部相机）。
@@ -36,7 +58,7 @@ import fastjson.stream.*
  * @explain[en] No perspective distortion, object size does not change with distance.
  * left/right/top/bottom define the viewing frustum box; view field supports multi-viewport clipping.
  */
-@JsonAdapter[withSuperClass = Camera]
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Camera]
 public open class OrthographicCamera <: Camera {
     /**
      * @brief[zh-cn] 视锥左边界
@@ -94,7 +116,6 @@ public open class OrthographicCamera <: Camera {
      */
     public init(left!: Float64 = -1.0, right!: Float64 = 1.0, top!: Float64 = 1.0, bottom!: Float64 = -1.0, near!: Float64 = 0.1, far!: Float64 = 2000.0) {
         super(near: near, far: far)
-        this.kind = "OrthographicCamera"
         this.left = left
         this.right = right
         this.top = top

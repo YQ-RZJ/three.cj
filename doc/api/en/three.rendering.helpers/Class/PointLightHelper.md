@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 Dispose GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Construct a point light helper
+
 ### func init\(Light,Float64,Option<Color>\)
 ```cj
 public init(light: Light, sphereSize!: Float64 = 1.0, color!: Option < Color >= None < Color >)
 ```
-Construct a point light helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|light|Light|The point light to visualizesphereSize Sphere size, default 1color Color, uses light color when not set|
+|light|Light||
 |sphereSize|Float64||
 |color|Option<Color>||
 

@@ -22,6 +22,12 @@ public func applyBoneTransform(index: Int64, target: Vector3): Vector3
 
 - 变换后的顶点位置
 
+### func applySkinningJob\(\)
+```cj
+public func applySkinningJob(): Unit
+```
+使用 SkinningJob 批量蒙皮所有顶点
+
 ### func bind\(Skeleton,Option<Matrix4>\)
 ```cj
 public func bind(skeleton: Skeleton, bindMatrix!: Option < Matrix4 >= None): Unit
@@ -93,7 +99,7 @@ public override func getVertexPosition(index: Int64, target: Vector3): Vector3
 
 ### func init\(BufferGeometry,Material\)
 ```cj
-public init(geometry: BufferGeometry, material: Material)
+public init(geometry!: BufferGeometry = BufferGeometry(), material!: Material = Material())
 ```
 构造一个新的蒙皮网格
 
@@ -145,7 +151,7 @@ public override func updateMatrixWorld(force: Bool): Unit
 ```cj
 public var bindMatrixInverse: Matrix4
 ```
-绑定姿势矩阵的逆
+绑定姿势矩阵的逆（派生量：updateMatrixWorld 每帧由 bindMatrix/matrixWorld 重算，不参与 JSON）
 
 ### var bindMatrix
 ```cj

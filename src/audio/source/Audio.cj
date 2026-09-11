@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Audio 非位置音频源
  * @brief[zh-cn] 非位置音频基类：封装 OpenAL Source + Buffer，继承 Object3D
  * @explain[zh-cn] Audio 播放的声音没有 3D 空间效果，始终以相同音量播放。
@@ -18,6 +40,10 @@
  * - Web Audio AudioBuffer → three.audio.source.AudioBuffer (wraps an OpenAL Buffer)
  */
 package three.audio.source
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -45,12 +71,14 @@ import three.audio.interfaces.*
  * @explain[en] Audio plays sound without 3D spatial effects, always at the same volume;
  * use PositionalAudio for 3D spatial audio.
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public open class Audio <: Object3D {
     /**
      * @brief[zh-cn] 关联的监听器
      *
      * @brief[en] The associated audio listener
      */
+    @JsonIgnore
     public var listener: AudioListener
 
     /**
@@ -58,6 +86,7 @@ public open class Audio <: Object3D {
      *
      * @brief[en] The audio context
      */
+    @JsonIgnore
     public var context: AudioContext
 
     /**
@@ -65,6 +94,7 @@ public open class Audio <: Object3D {
      *
      * @brief[en] The OpenAL source ID
      */
+    @JsonIgnore
     public var sourceId: UInt32
 
     /**
@@ -72,6 +102,7 @@ public open class Audio <: Object3D {
      *
      * @brief[en] The audio buffer
      */
+    @JsonIgnore
     public var buffer: Option<AudioBuffer>
 
     /**
@@ -151,6 +182,9 @@ public open class Audio <: Object3D {
      * @brief[en] Creates a non-positional audio source
      * @param[en] listener The associated audio listener
      */
+    public init() {
+        this(listener: AudioListener())
+    }
     public init(listener!: AudioListener) {
         // 仓颉：super 必须为构造器首条语句
         super()
@@ -168,7 +202,6 @@ public open class Audio <: Object3D {
         this.detune = 0.0
         this.sourceType = "empty"
         this.isAudio = true
-        this.kind = "Audio"
     }
     /**
      * @brief[zh-cn] 获取输出节点（OpenAL 中为源本身）

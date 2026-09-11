@@ -15,14 +15,20 @@ public func dispose(): Unit
 ```cj
 public init(light: Light, color!: Option < Color >= None < Color >)
 ```
-构造聚光灯辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|light|Light|要可视化的聚光灯color 颜色，未设置时使用光源颜色|
+|light|Light||
 |color|Option<Color>||
+
+### func init\(\)
+```cj
+public init()
+```
+构造聚光灯辅助对象
 
 ### func update\(\)
 ```cj

@@ -28,14 +28,14 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.resource.loader.GltfLoader
 
 /// 轨道控制目标（对齐官方 OrbitControls.target）
 public let ORBIT_TARGET: Vector3 = Vector3(0.0, 0.5, 0.0)
 
 // ===== 输出模式诊断状态（原 win32.cj 按键切换，迁移至 WindowEngine 输入） =====
-public var g_outputMode: Int64 = 0   // BgfxGTAOPass.OUTPUT_DEFAULT
+public var g_outputMode: Int64 = 0   // GTAOPass.OUTPUT_DEFAULT
 public var g_outputDirty = AtomicBool(false)
 
 /// 创建场景、相机、灯光与"小街区"几何体

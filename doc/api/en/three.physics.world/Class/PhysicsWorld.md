@@ -228,6 +228,22 @@ Return:
 
 - The body handle, or INVALID if not bound
 
+### func getConstraintCurrentAngle\(PhysicsConstraintHandle\)
+```cj
+public func getConstraintCurrentAngle(handle: PhysicsConstraintHandle): Float64
+```
+Reads the hinge constraint current angle (radians)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handle|
+
+Return: 
+
+- The current angle
+
 ### func getFriction\(PhysicsBodyHandle\)
 ```cj
 public func getFriction(handle: PhysicsBodyHandle): Float64
@@ -371,6 +387,22 @@ Parameter:
 Return: 
 
 - The body's current rotation
+
+### func getSliderCurrentPosition\(PhysicsConstraintHandle\)
+```cj
+public func getSliderCurrentPosition(handle: PhysicsConstraintHandle): Float64
+```
+Reads the slider constraint current position (meters)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handle|
+
+Return: 
+
+- The current position
 
 ### func init\(IPhysicsBackend\)
 ```cj
@@ -526,6 +558,45 @@ Parameter:
 |handle|PhysicsConstraintHandle|The constraint handleenabled Whether the constraint is enabled|
 |enabled|Bool||
 
+### func setConstraintMotorState\(PhysicsConstraintHandle,PhysicsMotorState\)
+```cj
+public func setConstraintMotorState(handle: PhysicsConstraintHandle, state: PhysicsMotorState): Unit
+```
+Sets the constraint motor state (Hinge/Slider: Off/Velocity/Position)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handlestate The motor state|
+|state|PhysicsMotorState||
+
+### func setConstraintTargetAngle\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setConstraintTargetAngle(handle: PhysicsConstraintHandle, angle: Float64): Unit
+```
+Sets the hinge motor target angle (position mode, radians)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handleangle The target angle|
+|angle|Float64||
+
+### func setConstraintTargetAngularVelocity\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setConstraintTargetAngularVelocity(handle: PhysicsConstraintHandle, angularVelocity: Float64): Unit
+```
+Sets the hinge motor target angular velocity (velocity mode, rad/s)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handleangularVelocity The target angular velocity|
+|angularVelocity|Float64||
+
 ### func setContactListener\(Option<IPhysicsSensorListener>\)
 ```cj
 public func setContactListener(listener: Option < IPhysicsSensorListener >): Unit
@@ -669,6 +740,32 @@ Parameter:
 |handle|PhysicsBodyHandle|The body handlerotation The new rotationactivation The activation strategy (default Activate)|
 |rotation|Quaternion||
 |activation|PhysicsActivation||
+
+### func setSliderTargetPosition\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setSliderTargetPosition(handle: PhysicsConstraintHandle, position: Float64): Unit
+```
+Sets the slider motor target position (position mode, meters)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handleposition The target position|
+|position|Float64||
+
+### func setSliderTargetVelocity\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: Float64): Unit
+```
+Sets the slider motor target velocity (velocity mode, m/s)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handlevelocity The target velocity|
+|velocity|Float64||
 
 ### func shutdown\(\)
 ```cj

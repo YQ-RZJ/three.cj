@@ -1,12 +1,32 @@
-package three.rendering.postprocessing
-
 /**
- * @file[zh-cn] BgfxSAOPass 尺度敏感环境光遮蔽（SAO）后处理 pass
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] SAOPass 尺度敏感环境光遮蔽（SAO）后处理 pass
  * @brief[zh-cn] 尺度敏感环境光遮蔽（SAO）后处理 pass
  * @explain[zh-cn] 以 EffectComposer Pass 链方式注入（对齐 bloom/ssao/gtao 的 Bgfx*Pass）：
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxSAOPass(scene, camera))
+ *         composer.addPass(SAOPass(scene, camera))
  *         composer.render()
  *         render() 内部（每帧经 renderer.execBgfx 序列化到渲染线程）：
  *         1. 法线 pass（view SAO_VIEW_ID_BASE+0）：normal shader 渲场景法线到法线 RT（RGBA16F+D24）
@@ -18,7 +38,7 @@ package three.rendering.postprocessing
  *            Default：sceneColor × ao（saoapply）；SAO/Normal：copy 透传对应纹理
  *         自包含：uniforms（BgfxUniforms 实例）、全屏四边形（composer 共享 quad）、
  *         场景几何体 VB/IB/layout 均在 pass 内懒创建并缓存，不依赖 BgfxBackend 内部资源
- *         （避免 bgfx_backend ↔ postprocessing 包循环依赖，对齐 BgfxSSAOPass/BgfxGTAOPass 自包含模式）。
+ *         （避免 bgfx_backend ↔ postprocessing 包循环依赖，对齐 SSAOPass/GTAOPass 自包含模式）。
  *         移植要点：
  *         - 噪声：原 SAO 用 rand() 内联，bgfx 无 rand → SAO_FS 内联实现
  *         - blur：DepthLimitedBlurShader 的 sampleUvOffsets/sampleWeights 数组 → uniform vec4 数组
@@ -26,12 +46,12 @@ package three.rendering.postprocessing
  *           （gaussian 权重 + 方向偏移），KERNEL_RADIUS 固定 8（默认 saoBlurRadius=8）
  *         - 输出：materialCopy + CustomBlending(乘法) 两步 → saoapply shader 一步 sceneColor × ao
  *
- * @file[en] BgfxSAOPass scale-aware ambient occlusion (SAO) post-processing pass
+ * @file[en] SAOPass scale-aware ambient occlusion (SAO) post-processing pass
  * @brief[en] Scale-aware ambient occlusion (SAO) post-processing pass
  * @explain[en] Injected via the EffectComposer Pass chain (aligned with the Bgfx*Pass bloom/ssao/gtao style):
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxSAOPass(scene, camera))
+ *         composer.addPass(SAOPass(scene, camera))
  *         composer.render()
  *         Inside render() (each frame serialized to the render thread via renderer.execBgfx):
  *         1. Normal pass (view SAO_VIEW_ID_BASE+0): normal shader renders scene normals to a normal RT (RGBA16F+D24)
@@ -43,16 +63,15 @@ package three.rendering.postprocessing
  *            Default: sceneColor × ao (saoapply); SAO/Normal: copy pass-through of the corresponding texture
  *         Self-contained: uniforms (BgfxUniforms instance), full-screen quad (composer shared quad),
  *         and scene geometry VB/IB/layout are lazily created and cached inside the pass, not depending on BgfxBackend internals
- *         (avoiding a bgfx_backend ↔ postprocessing package cycle, aligned with the BgfxSSAOPass/BgfxGTAOPass self-contained pattern).
+ *         (avoiding a bgfx_backend ↔ postprocessing package cycle, aligned with the SSAOPass/GTAOPass self-contained pattern).
  *         Porting notes:
  *         - Noise: the original SAO inlines rand(), bgfx has no rand → inlined in SAO_FS
  *         - blur: DepthLimitedBlurShader sampleUvOffsets/sampleWeights arrays → uniform vec4 arrays
  *           u_sampleOffsets[9]/u_sampleWeights[9], generated on CPU per configure
  *           (gaussian weights + direction offsets), KERNEL_RADIUS fixed at 8 (default saoBlurRadius=8)
  *         - Output: materialCopy + CustomBlending(multiply) two steps → saoapply shader one step sceneColor × ao
- *
- * @package three.rendering.postprocessing
  */
+package three.rendering.postprocessing
 
 import three.rendering.common.*
 import three.rendering.bgfx.*
@@ -70,13 +89,13 @@ import three.scene.entity.Mesh
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.utils.log.Logger
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
 import std.collection.*
 import std.math.*
 
-public class BgfxSAOPass <: Pass {
+public class SAOPass <: Pass {
     /** SAO pass 用的 view ID 段约定：SSAO 160~164，GTAO 165~169，SAO 170~175，composer 分配 230+ */
     public static let SAO_VIEW_ID_BASE: UInt16 = 170u16
 
@@ -133,7 +152,7 @@ public class BgfxSAOPass <: Pass {
     /** 模糊深度截止（视图空间深度差阈值，默认 0.01） */
     public var saoBlurDepthCutoff: Float64 = 0.01
 
-    /** 本 pass 自有的 uniform 注册表（对齐 BgfxSSAOPass/BgfxGTAOPass 自包含模式） */
+    /** 本 pass 自有的 uniform 注册表（对齐 SSAOPass/GTAOPass 自包含模式） */
     private var _uniforms: BgfxUniforms = BgfxUniforms()
 
     // ===== 场景几何体缓存（对齐 BgfxBackend._createVB/_createIB 模式） =====
@@ -142,7 +161,7 @@ public class BgfxSAOPass <: Pass {
     private var _layoutHandleCache: Option<VertexLayoutHandle> = None
 
     /** 渲染器引用（render() 时缓存，dispose/_destroyRTs 经其高阶 API 销毁资源） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 构造：`new SAOPass(scene, camera, resolution)`。
@@ -167,7 +186,7 @@ public class BgfxSAOPass <: Pass {
 
     // ===== RT 创建/销毁 =====
 
-    private func _ensureRTs(renderer: BgfxRenderer): Unit {
+    private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
         if (isValidHandle(this._normalTex)) { return }
 
@@ -222,14 +241,14 @@ public class BgfxSAOPass <: Pass {
         Logger.trace(["sao", "_ensureRTs done ${this._width}x${this._height}"])
     }
 
-    private func _createFB(renderer: BgfxRenderer, tex: TextureHandle): FrameBufferHandle {
+    private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(1, { _ => tex })
         let fb = renderer.createFrameBuffer(1u8, handles, true)
         return fb
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(renderer: BgfxRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(renderer: ThreeRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = renderer.createFrameBuffer(2u8, handles, true)
         return fb
@@ -269,7 +288,7 @@ public class BgfxSAOPass <: Pass {
 
     // ===== 自建场景几何体 VB/IB/layout（对齐 BgfxBackend._createVB/_createIB 模式） =====
 
-    private func _getOrCreateLayout(renderer: BgfxRenderer): VertexLayoutHandle {
+    private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
         match (this._layoutHandleCache) {
             case Some(lh) => return lh
             case None => ()
@@ -316,7 +335,7 @@ public class BgfxSAOPass <: Pass {
         return list.toArray()
     }
 
-    private func _createVB(renderer: BgfxRenderer, geom: BufferGeometry): VertexBufferHandle {
+    private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._vbCache.get(geomId)) {
             case Some(vb) => return vb
@@ -372,7 +391,7 @@ public class BgfxSAOPass <: Pass {
         }
     }
 
-    private func _createIB(renderer: BgfxRenderer, geom: BufferGeometry): IndexBufferHandle {
+    private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._ibCache.get(geomId)) {
             case Some(ib) => return ib
@@ -437,10 +456,10 @@ public class BgfxSAOPass <: Pass {
      *   4. vBlur（view+3）→ 5. hBlur（view+4）→ 6. 输出（view+5）
      *
      * 子渲染方法各自走 Pass 基类高阶 API（内部经 renderer.execBgfx 序列化到渲染线程），
-     * 不再外层包 execBgfx 闭包（避免嵌套死锁）。对齐 BgfxSSAOPass.render。
+     * 不再外层包 execBgfx 闭包（避免嵌套死锁）。对齐 SSAOPass.render。
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -461,7 +480,7 @@ public class BgfxSAOPass <: Pass {
                     this._ensureRTs(renderer)
                     if (!isValidHandle(this._normalFB)) { Logger.trace(["sao", "render: _ensureRTs failed, normalFB invalid"]); return }
 
-                    let baseView = BgfxSAOPass.SAO_VIEW_ID_BASE
+                    let baseView = SAOPass.SAO_VIEW_ID_BASE
                     let uniforms = this._uniforms
 
                     // ===== 1. 法线 pass（view+0）：normal shader 渲场景到法线 RT =====
@@ -486,7 +505,7 @@ public class BgfxSAOPass <: Pass {
     /**
      * 法线 pass：normal shader 渲场景到法线 RT。
      */
-    private func _renderNormals(renderer: BgfxRenderer, scene: Scene, camera: Camera, baseView: UInt16): Unit {
+    private func _renderNormals(renderer: ThreeRenderer, scene: Scene, camera: Camera, baseView: UInt16): Unit {
         let viewId = baseView
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._normalFB)
@@ -561,7 +580,7 @@ public class BgfxSAOPass <: Pass {
     /**
      * 深度 pass：aodepth shader 渲场景到深度 RT（写 gl_FragCoord.z = NDC 深度）。
      */
-    private func _renderDepth(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderDepth(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._depthFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -608,7 +627,7 @@ public class BgfxSAOPass <: Pass {
      * SAO 计算 pass：全屏四边形采样法线/深度纹理，输出 1-occlusion。
      * sao shader（NUM_SAMPLES=7, NUM_RINGS=4）。
      */
-    private func _renderSAOCalc(renderer: BgfxRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms): Unit {
+    private func _renderSAOCalc(renderer: ThreeRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._saoFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
@@ -677,7 +696,7 @@ public class BgfxSAOPass <: Pass {
      * @param srcTex 输入纹理（vBlur=saoTex，hBlur=blurTex）
      * @param dstFB 输出 frame buffer（vBlur=blurFB，hBlur=saoFB）
      */
-    private func _renderBlur(renderer: BgfxRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms, dirX: Float64, dirY: Float64, srcTex: TextureHandle, dstFB: FrameBufferHandle): Unit {
+    private func _renderBlur(renderer: ThreeRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms, dirX: Float64, dirY: Float64, srcTex: TextureHandle, dstFB: FrameBufferHandle): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, dstFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
@@ -746,7 +765,7 @@ public class BgfxSAOPass <: Pass {
      *   - Default：saoapply（sceneColor × ao，合并 materialCopy + CustomBlending 乘法）
      *   - SAO：copy saoRT；Normal：copy normalRT
      */
-    private func _renderOutput(renderer: BgfxRenderer, readBuffer: FrameBufferHandle, writeBuffer: FrameBufferHandle, viewId: UInt16): Unit {
+    private func _renderOutput(renderer: ThreeRenderer, readBuffer: FrameBufferHandle, writeBuffer: FrameBufferHandle, viewId: UInt16): Unit {
         if (this.renderToScreen) {
             this.setRenderTarget(renderer, viewId, INVALID_FRAME_BUFFER_HANDLE)
         } else {
@@ -758,7 +777,7 @@ public class BgfxSAOPass <: Pass {
         let uniforms = this._uniforms
 
         // Default 模式：saoapply（sceneColor × ao）
-        if (this.output == BgfxSAOPass.OUTPUT_DEFAULT) {
+        if (this.output == SAOPass.OUTPUT_DEFAULT) {
             let applyProgOpt = PostProcessingShaders.get("saoapply")
             match (applyProgOpt) {
                 case Some(applySp) =>
@@ -781,7 +800,7 @@ public class BgfxSAOPass <: Pass {
 
         // SAO/Normal：copy shader 透传对应纹理
         var srcTex: TextureHandle = this._saoTex
-        if (this.output == BgfxSAOPass.OUTPUT_NORMAL) {
+        if (this.output == SAOPass.OUTPUT_NORMAL) {
             srcTex = this._normalTex
         }
         let copyProgOpt = PostProcessingShaders.get("copy")
@@ -807,7 +826,7 @@ public class BgfxSAOPass <: Pass {
     /**
      * 为指定 view 设置相机 view/proj 变换（用 renderer.setViewTransform 高阶 API）。
      */
-    private func _setViewTransformFor(renderer: BgfxRenderer, viewId: UInt16, camera: Camera): Unit {
+    private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
         let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
         let viewMem = BgfxMemory(64u32)

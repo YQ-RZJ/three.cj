@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxPass 后处理 pass 抽象基类
  * @brief[zh-cn] 后处理 pass 抽象基类
  * @explain[zh-cn] 所有后处理 pass（RenderPass/BloomPass/...）的基类。
@@ -22,7 +44,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.types.*
 import three.utils.memory.BgfxMemory
@@ -179,7 +201,7 @@ public open class Pass {
      * @param[en] viewId The bgfx view id (held by the pass, allocated via EffectComposer.allocViewId)
      * @param[en] fb Target frame buffer; pass an invalid handle (idx=65535) to write to the swap chain (screen)
      */
-    protected func setRenderTarget(renderer: BgfxRenderer, viewId: UInt16, fb: FrameBufferHandle): Unit {
+    protected func setRenderTarget(renderer: ThreeRenderer, viewId: UInt16, fb: FrameBufferHandle): Unit {
         renderer.setViewFrameBuffer(viewId, fb)
     }
 
@@ -200,7 +222,7 @@ public open class Pass {
      * @param[en] h Viewport height (pixels)
      */
     protected func setViewport(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         viewId: UInt16,
         x: UInt16,
         y: UInt16,
@@ -229,7 +251,7 @@ public open class Pass {
      * @explain[en] Named clearRenderTarget instead of clear to avoid conflicting with the Pass.clear field (bool).
      */
     protected func clearRenderTarget(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         viewId: UInt16,
         flags: UInt16,
         color: UInt32,
@@ -254,7 +276,7 @@ public open class Pass {
      * @param[en] flags Sampler flags (e.g. SAMPLER_U_CLAMP|SAMPLER_V_CLAMP; 0 uses the texture default)
      */
     protected func bindTexture(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         stage: UInt8,
         sampler: UniformHandle,
         tex: TextureHandle,
@@ -276,7 +298,7 @@ public open class Pass {
      * @return[en] The TextureHandle for the attachment
      */
     protected func getTexture(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         fb: FrameBufferHandle,
         attachment: UInt8
     ): TextureHandle {
@@ -298,7 +320,7 @@ public open class Pass {
      * @explain[en] bgfx uniforms have a minimum unit of vec4; array uniforms use num for the array length.
      */
     protected func setUniform(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         handle: UniformHandle,
         data: BgfxMemory,
         num!: UInt16 = 1u16
@@ -323,7 +345,7 @@ public open class Pass {
      *         callers only pass the numeric array, no `unsafe { CPointer<Unit>(...) }` needed.
      */
     protected func setUniformFloats(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         handle: UniformHandle,
         values: Array<Float64>,
         num!: UInt16 = 1u16
@@ -345,7 +367,7 @@ public open class Pass {
      * @explain[zh-cn] bgfx 的 stencil 是 per-draw 瞬态状态，每次 submit 前需重设。
      * @explain[en] bgfx stencil is per-draw transient state and must be reset before each submit.
      */
-    protected func setStencil(renderer: BgfxRenderer, fstencil: UInt32, bstencil: UInt32): Unit {
+    protected func setStencil(renderer: ThreeRenderer, fstencil: UInt32, bstencil: UInt32): Unit {
         renderer.setStencil(fstencil, bstencil)
     }
 
@@ -357,7 +379,7 @@ public open class Pass {
      * @param[en] renderer Renderer
      * @param[en] viewId The bgfx view id
      */
-    protected func touchView(renderer: BgfxRenderer, viewId: UInt16): Unit {
+    protected func touchView(renderer: ThreeRenderer, viewId: UInt16): Unit {
         renderer.touchView(viewId)
     }
 
@@ -384,7 +406,7 @@ public open class Pass {
      * @explain[en] Base class defaults to no-op; subclasses must override.
      */
     public open func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

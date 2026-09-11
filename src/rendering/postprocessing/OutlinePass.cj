@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] OutlinePass 物体轮廓描边后处理 pass
  * @brief[zh-cn] 物体轮廓描边后处理 pass —— 基于 depth buffer 的边缘检测 + 可分离高斯模糊
  * @explain[zh-cn] 算法流程：
@@ -66,7 +88,7 @@ import three.rendering.cameras.*
 import three.rendering.materials.*
 import three.core.math.*
 import three.rendering.textures.Texture
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.common.*
 import three.rendering.bgfx.*
 import three.rendering.bgfx.BgfxAttributeDesc
@@ -199,7 +221,7 @@ public class OutlinePass <: Pass {
     private var _rtsCreated: Bool = false
 
     /** 渲染器引用（render() 时注入；RT 创建/销毁与几何体缓存释放走 renderer 高阶 API） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     // ===== 缓存（Object3D 不 Hashable，用 ArrayList<(Object3D, Bool)> 存原可见性） =====
     private var _visibilityCache: ArrayList<(Object3D, Bool)> = ArrayList<(Object3D, Bool)>()
@@ -353,7 +375,7 @@ public class OutlinePass <: Pass {
     /**
      * 创建单 color attachment 的 frame buffer。
      */
-    private func _createFB(renderer: BgfxRenderer, colorTex: TextureHandle): FrameBufferHandle {
+    private func _createFB(renderer: ThreeRenderer, colorTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(1, { _ => colorTex })
         let fb = renderer.createFrameBuffer(1u8, handles, true)
         return fb
@@ -362,7 +384,7 @@ public class OutlinePass <: Pass {
     /**
      * 创建 color + depth attachment 的 frame buffer。
      */
-    private func _createFBWithDepth(renderer: BgfxRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(renderer: ThreeRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = renderer.createFrameBuffer(2u8, handles, true)
         return fb
@@ -482,7 +504,7 @@ public class OutlinePass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -586,7 +608,7 @@ public class OutlinePass <: Pass {
     /**
      * 取共享顶点 layout handle（缓存复用）。
      */
-    private func _getOrCreateLayout(renderer: BgfxRenderer): VertexLayoutHandle {
+    private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
         match (this._layoutHandleCache) {
             case Some(lh) => return lh
             case None => ()
@@ -636,7 +658,7 @@ public class OutlinePass <: Pass {
     /**
      * 创建/复用 geometry 的顶点缓冲（按 geomId 缓存）。
      */
-    private func _createVB(renderer: BgfxRenderer, geom: BufferGeometry): VertexBufferHandle {
+    private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._vbCache.get(geomId)) {
             case Some(vb) => return vb
@@ -694,7 +716,7 @@ public class OutlinePass <: Pass {
     /**
      * 创建/复用 geometry 的索引缓冲（按 geomId 缓存）。
      */
-    private func _createIB(renderer: BgfxRenderer, geom: BufferGeometry): IndexBufferHandle {
+    private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._ibCache.get(geomId)) {
             case Some(ib) => return ib
@@ -719,7 +741,7 @@ public class OutlinePass <: Pass {
      *
      * 用 renderer.setViewTransform 高阶 API（自身走 execBgfx 序列化到渲染线程）。
      */
-    private func _setViewTransformFor(renderer: BgfxRenderer, viewId: UInt16, camera: Camera): Unit {
+    private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.elements
         let projArr = camera.projectionMatrix.elements
         let viewMem = BgfxMemory(64u32)
@@ -766,7 +788,7 @@ public class OutlinePass <: Pass {
      * 改为遍历场景直接 submit（参照 SSAO._renderDepth 模式）。
      * 用独立 view id（OUTLINE_VIEW_ID_BASE+1），不碰 view 0。
      */
-    private func _renderSceneToDepth(renderer: BgfxRenderer): Unit {
+    private func _renderSceneToDepth(renderer: ThreeRenderer): Unit {
         let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 1u16)
         let w = UInt16(renderer.width)
         let h = UInt16(renderer.height)
@@ -834,7 +856,7 @@ public class OutlinePass <: Pass {
      *     被非选中物体遮挡的选中部分深度测试失败 → mask 不写 → 描边被遮挡处不显示。
      * 背景 clear 黑（r=g=0）。
      */
-    private func _renderSceneToMask(renderer: BgfxRenderer): Unit {
+    private func _renderSceneToMask(renderer: ThreeRenderer): Unit {
         let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 2u16)
         let w = UInt16(renderer.width)
         let h = UInt16(renderer.height)
@@ -857,7 +879,7 @@ public class OutlinePass <: Pass {
                 this.setRenderTarget(renderer, viewId, this._maskFB)
                 this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00000000u32)
                 this._setViewTransformFor(renderer, viewId, this.renderCamera)
-                // 几何提交 API 走 renderer 高阶 API（对齐 BgfxSSAOPass._renderNormals）
+                // 几何提交 API 走 renderer 高阶 API（对齐 SSAOPass._renderNormals）
                 let renderObjects = ArrayList<RenderObject>()
                 this._collectMeshes(this.renderScene, renderObjects)
                 let layout = this._getOrCreateLayout(renderer)
@@ -919,7 +941,7 @@ public class OutlinePass <: Pass {
      *
      * 用 outline_copy shader（copy + 不透明）做全屏四边形降采样。
      */
-    private func _renderDownsample(renderer: BgfxRenderer): Unit {
+    private func _renderDownsample(renderer: ThreeRenderer): Unit {
         match (PostProcessingShaders.get("outline_copy")) {
             case Some(sp) =>
                 if (!isValidHandle(Box(sp.programHandle))) {
@@ -951,7 +973,7 @@ public class OutlinePass <: Pass {
     /**
      * 边缘检测：edgeDetectionMaterial 对 maskDownBuffer 做边缘检测 → edge1Buffer。
      */
-    private func _renderEdgeDetection(renderer: BgfxRenderer, pulseColor1: Color, pulseColor2: Color): Unit {
+    private func _renderEdgeDetection(renderer: ThreeRenderer, pulseColor1: Color, pulseColor2: Color): Unit {
         match (this._edgeDetectionProg) {
             case Some(_) => ()
             case None => this._ensureShaders()
@@ -997,7 +1019,7 @@ public class OutlinePass <: Pass {
      *   H：edge1 → blur1（direction=X）
      *   V：blur1 → edge1（direction=Y）
      */
-    private func _renderBlur1(renderer: BgfxRenderer): Unit {
+    private func _renderBlur1(renderer: ThreeRenderer): Unit {
         match (this._separableBlurProg) {
             case Some(_) => ()
             case None => this._ensureShaders()
@@ -1055,7 +1077,7 @@ public class OutlinePass <: Pass {
     /**
      * 模糊2：separableBlurMaterial2 (1/4 分辨率) H/V 模糊 → edge2Buffer。
      */
-    private func _renderBlur2(renderer: BgfxRenderer): Unit {
+    private func _renderBlur2(renderer: ThreeRenderer): Unit {
         match (this._separableBlurProg) {
             case Some(_) => ()
             case None => this._ensureShaders()
@@ -1110,7 +1132,7 @@ public class OutlinePass <: Pass {
      * 故 overlay shader 显式采样 readBuffer 场景（tDiffuse）+ 描边色合成，
      * 输出到 writeBuffer（renderToScreen=true 时输出屏幕），对齐 SSAO apply 成熟模式。
      */
-    private func _renderOverlay(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle): Unit {
+    private func _renderOverlay(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle): Unit {
         match (this._overlayProg) {
             case Some(_) => ()
             case None => this._ensureShaders()

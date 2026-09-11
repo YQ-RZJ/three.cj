@@ -2,8 +2,8 @@ package xrmanager
 
 /**
  * xrmanager 渲染场景：
- * - 构造 BgfxXRManager（关联 renderer）、BgfxXRController（inputState 跟踪）、
- *   BgfxXRDepthSensing（深度纹理），验证全部公开接口（对照 JS WebXR* 类）
+ * - 构造 XRManager（关联 renderer）、XRController（inputState 跟踪）、
+ *   XRDepthSensing（深度纹理），验证全部公开接口（对照 JS WebXR* 类）
  * - updateCamera / setProjectionFromUnion / updateUserCamera 调用验证（非 Presenting 时无副作用）
  * - 简单球体场景回退渲染 + 画面内 dbgText 显示 XR 状态
  */
@@ -21,8 +21,8 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
-import three.rendering.bgfxxr.*
+import three.rendering.ThreeRenderer
+import three.rendering.xr.*
 import three.rendering.textures.*
 import bgfx4cj.bgfx.*
 import three.utils.log.Logger
@@ -42,15 +42,15 @@ public func refSpaceStr(rs: XRReferenceSpaceType): String {
 public class SceneObjects {
     public var scene: Scene
     public var camera: PerspectiveCamera
-    public var xrManager: BgfxXRManager
-    public var controller: BgfxXRController
-    public var controllerGrip: BgfxXRController
-    public var depthSensing: BgfxXRDepthSensing
+    public var xrManager: XRManager
+    public var controller: XRController
+    public var controllerGrip: XRController
+    public var depthSensing: XRDepthSensing
     public var sphere: Mesh
 
-    public init(scene!: Scene, camera!: PerspectiveCamera, xrManager!: BgfxXRManager,
-                controller!: BgfxXRController, controllerGrip!: BgfxXRController,
-                depthSensing!: BgfxXRDepthSensing, sphere!: Mesh) {
+    public init(scene!: Scene, camera!: PerspectiveCamera, xrManager!: XRManager,
+                controller!: XRController, controllerGrip!: XRController,
+                depthSensing!: XRDepthSensing, sphere!: Mesh) {
         this.scene = scene
         this.camera = camera
         this.xrManager = xrManager
@@ -62,7 +62,7 @@ public class SceneObjects {
 }
 
 /// 创建场景：XR 管理器/控制器/深度感知构造 + 接口验证 + 球体
-public func createScene(width: Int32, height: Int32, renderer: BgfxRenderer): SceneObjects {
+public func createScene(width: Int32, height: Int32, renderer: ThreeRenderer): SceneObjects {
     Logger.setLevel(LogLevel.Debug)
 
     let scene = Scene()
@@ -91,11 +91,11 @@ public func createScene(width: Int32, height: Int32, renderer: BgfxRenderer): Sc
     sphere.name = "Sphere"
     scene.add(sphere)
 
-    // ================= bgfxxr 接口验证 =================
+    // ================= xr 接口验证 =================
 
-    // ---- 1. BgfxXRManager（对照 JS WebXRManager）----
-    let xrManager = BgfxXRManager(renderer)
-    println("  [xr] BgfxXRManager: isXRPresenting=${xrManager.isXRPresenting()}")
+    // ---- 1. XRManager（对照 JS WebXRManager）----
+    let xrManager = XRManager(renderer)
+    println("  [xr] XRManager: isXRPresenting=${xrManager.isXRPresenting()}")
     xrManager.setReferenceSpaceType(XRReferenceSpaceType.LocalFloor)
     println("  [xr] setReferenceSpaceType(LocalFloor) → get=${refSpaceStr(xrManager.getReferenceSpaceType())}")
     xrManager.setFramebufferScaleFactor(0.8)
@@ -120,8 +120,8 @@ public func createScene(width: Int32, height: Int32, renderer: BgfxRenderer): Sc
     // 注意：此处保留 presenting=true（不 endSession），
     // 渲染循环将用 ArrayCamera（左右眼）渲染双眼画面；endSession 放循环结束后验证。
 
-    // ---- 2. BgfxXRController（对照 JS WebXRController）----
-    let controller = BgfxXRController()
+    // ---- 2. XRController（对照 JS WebXRController）----
+    let controller = XRController()
     // connect/disconnect/update 需 inputSource 等参数（对照 JS: controller.connect(inputSource)）
     let fakeInput = "fake-input-source"
     controller.connect(fakeInput)
@@ -138,8 +138,8 @@ public func createScene(width: Int32, height: Int32, renderer: BgfxRenderer): Sc
     let handSpace = controller.getHandSpace()
     println("  [xr] Controller spaces: targetRay=${raySpace.spaceType} grip=${gripSpace.spaceType} hand=${handSpace.spaceType}")
 
-    // ---- 3. BgfxXRDepthSensing（对照 JS WebXRDepthSensing）----
-    let depthSensing = BgfxXRDepthSensing()
+    // ---- 3. XRDepthSensing（对照 JS WebXRDepthSensing）----
+    let depthSensing = XRDepthSensing()
     println("  [xr] DepthSensing: isAvailable=${depthSensing.isAvailable()}")
     // setTexture 需 bgfx TextureHandle（对照 JS: WebXRDepthSensing.setDepthTexture）
     let depthTexHandle = TextureHandle(2u16)
@@ -153,7 +153,7 @@ public func createScene(width: Int32, height: Int32, renderer: BgfxRenderer): Sc
     println("  [xr] DepthSensing: update/reset/dispose OK")
 
     println("  场景创建成功: ${scene.name}")
-    println("  验证: BgfxXRManager/Controller/DepthSensing 全部公开接口")
+    println("  验证: XRManager/Controller/DepthSensing 全部公开接口")
     println("")
 
     return SceneObjects(scene: scene, camera: camera, xrManager: xrManager,

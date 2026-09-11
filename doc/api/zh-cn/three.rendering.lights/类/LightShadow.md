@@ -212,12 +212,6 @@ public var intensity: Float64
 ```
 阴影强度，默认1，有效范围[0, 1]
 
-### var kind
-```cj
-public var kind: String
-```
-类型标签，与JS侧的type字段对齐
-
 ### var mapPass
 ```cj
 public var mapPass: Option < RenderTarget >

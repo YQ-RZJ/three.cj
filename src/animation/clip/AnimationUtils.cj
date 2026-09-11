@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 动画工具函数
  * @brief[zh-cn] 提供动画关键帧处理工具
  * @explain[zh-cn] 
@@ -23,6 +45,13 @@ import std.collection.*
  * @param[zh-cn] array 要转换的数组
  * @param[zh-cn] `type` 目标类型名称
  * @return[zh-cn] 转换后的数组
+ *
+ * @brief[en] Converts an array to the specified type
+ * @explain[en] If the array is empty or already of the same type, it is returned as is;
+ * otherwise a new array is created
+ * @param[en] array The array to convert
+ * @param[en] `type` The target type name
+ * @return[en] The converted array
  */
 internal func convertArray(array: Array<Float64>, `type`: String): Array<Float64> {
     if (array.size == 0) { return array }
@@ -35,6 +64,10 @@ internal func convertArray(array: Array<Float64>, `type`: String): Array<Float64
  * @brief[zh-cn] 返回关键帧时间的排序顺序数组
  * @param[zh-cn] times 关键帧时间数组
  * @return[zh-cn] 排序后的索引数组，按时间升序排列
+ *
+ * @brief[en] Returns the sorted order array of keyframe times
+ * @param[en] times The keyframe time array
+ * @return[en] The sorted index array, in ascending time order
  */
 internal func getKeyframeOrder(times: Array<Float64>): Array<Int64> {
     let n = times.size
@@ -58,6 +91,12 @@ internal func getKeyframeOrder(times: Array<Float64>): Array<Int64> {
  * @param[zh-cn] stride 步长（每个关键帧的值数量）
  * @param[zh-cn] order 排序顺序（由 getKeyframeOrder 返回）
  * @return[zh-cn] 排序后的数组
+ *
+ * @brief[en] Reorders an array according to the given order
+ * @param[en] values The original value array
+ * @param[en] stride The stride (number of values per keyframe)
+ * @param[en] order The sort order (returned by getKeyframeOrder)
+ * @return[en] The sorted array
  */
 internal func sortedArray(values: Array<Float64>, stride: Int64, order: Array<Int64>): Array<Float64> {
     let nValues = values.size
@@ -81,6 +120,15 @@ internal func sortedArray(values: Array<Float64>, stride: Int64, order: Array<In
  * @param[zh-cn] times 填充关键帧时间的数组
  * @param[zh-cn] values 填充关键帧值的数组
  * @param[zh-cn] valuePropertyName 要使用的属性名
+ *
+ * @brief[en] Parses keyframe data in JSON format (AOS layout)
+ * @explain[en]
+ * Extracts keyframe times and values from the JSON key array and fills them into
+ * the times and values arrays
+ * @param[en] jsonKeys The JSON keyframe array
+ * @param[en] times The array to fill with keyframe times
+ * @param[en] values The array to fill with keyframe values
+ * @param[en] valuePropertyName The property name to use
  */
 internal func flattenJSON(jsonKeys: Array<HashMap<String, Any>>, times: ArrayList<Float64>, values: ArrayList<Float64>, valuePropertyName: String): Unit {
     var i = 1
@@ -133,6 +181,14 @@ internal func flattenJSON(jsonKeys: Array<HashMap<String, Any>>, times: ArrayLis
  * @param[zh-cn] values 填充关键帧值的数组
  * @param[zh-cn] valuePropertyName 要使用的属性名
  * @param[zh-cn] isArray 值是否为数组类型
+ *
+ * @brief[en] Internal loop of flattenJSON that processes the remaining JSON keys
+ * @param[en] jsonKeys The JSON keyframe array
+ * @param[en] startIndex The start index
+ * @param[en] times The array to fill with keyframe times
+ * @param[en] values The array to fill with keyframe values
+ * @param[en] valuePropertyName The property name to use
+ * @param[en] isArray Whether the value is an array type
  */
 internal func _flattenJSONLoop(jsonKeys: Array<HashMap<String, Any>>, startIndex: Int64, times: ArrayList<Float64>, values: ArrayList<Float64>, valuePropertyName: String, isArray: Bool): Unit {
     // 先处理 startIndex 之前的那个 key（即找到的第一个有效 key）
@@ -185,6 +241,14 @@ internal func _flattenJSONLoop(jsonKeys: Array<HashMap<String, Any>>, startIndex
  * @param[zh-cn] endFrame 结束帧
  * @param[zh-cn] fps 帧率，默认 30
  * @return[zh-cn] 新的子剪辑
+ *
+ * @brief[en] Creates a subclip — a new clip extracted from the source clip over the given frame range
+ * @param[en] sourceClip The source clip
+ * @param[en] name The new clip name
+ * @param[en] startFrame The start frame
+ * @param[en] endFrame The end frame
+ * @param[en] fps The frame rate, defaults to 30
+ * @return[en] The new subclip
  */
 internal func subclip(sourceClip: AnimationClip, name: String, startFrame: Int64, endFrame: Int64, fps!: Float64 = 30.0): AnimationClip {
     let clip = sourceClip.clone()
@@ -240,6 +304,11 @@ internal func subclip(sourceClip: AnimationClip, name: String, startFrame: Int64
  * @return[zh-cn] 修改后的目标剪辑（现在是加法格式）
  *
  * @brief[en] Converts an animation clip to additive blending format
+ * @param[en] targetClip The target clip (will be modified to additive format)
+ * @param[en] referenceFrame The reference frame, defaults to 0
+ * @param[en] referenceClip The reference clip, defaults to targetClip itself
+ * @param[en] fps The frame rate, defaults to 30
+ * @return[en] The modified target clip (now in additive format)
  */
 internal func makeClipAdditive(targetClip: AnimationClip, referenceFrame!: Int64 = 0, referenceClip!: AnimationClip = targetClip, fps!: Float64 = 30.0): AnimationClip {
     var fpsVal = if (fps <= 0.0) { 30.0 } else { fps }
@@ -485,6 +554,11 @@ public class AnimationUtils {
  * @explain[zh-cn] 仓颉中没有 JS 的 TypedArray 概念，此处检查是否为数值数组类型
  * @param[zh-cn] array 待检查的对象
  * @return[zh-cn] 是否为数值数组类型
+ *
+ * @brief[en] Checks whether the object is a TypedArray
+ * @explain[en] Cangjie has no JS TypedArray concept; this checks whether the value is a numeric array type
+ * @param[en] array The object to check
+ * @return[en] Whether the value is a numeric array type
  */
 internal func isTypedArray(array: Any): Bool {
     match (array) {

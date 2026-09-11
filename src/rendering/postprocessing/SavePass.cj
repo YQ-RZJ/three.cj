@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxSavePass 保存 pass
  * @brief[zh-cn] 保存 pass —— 把当前 read buffer 内容拷贝到内部 RT（供后续 pass 取用）
  * @explain[zh-cn] 持内部 renderTarget（color RT，RGBA16F，无 depth）。
@@ -20,7 +42,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -69,7 +91,7 @@ public class SavePass <: Pass {
     /**
      * 渲染器引用（render() 时缓存，setSize/dispose 经其高阶 API 序列化）。
      */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * @brief[zh-cn] 构造 SavePass
@@ -87,7 +109,7 @@ public class SavePass <: Pass {
      * 创建内部 RT（RGBA16F color，无 depth）。
      * 参照 EffectComposer._createRTs 范式（但无 depth attachment，SavePass 仅存颜色）。
      */
-    private func _createRT(renderer: BgfxRenderer, width: UInt16, height: UInt16): Unit {
+    private func _createRT(renderer: ThreeRenderer, width: UInt16, height: UInt16): Unit {
         // 先销毁旧 RT
         if (this._rtCreated) {
             renderer.destroyFrameBuffer(this.renderTarget)
@@ -127,7 +149,7 @@ public class SavePass <: Pass {
      * @param[en] deltaTime Frame delta time
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 渲染目标纹理访问接口
  * @brief[zh-cn] 解除 core→textures 循环依赖的接口，RenderTarget 通过本接口访问 Texture 的集成字段
  * @explain[zh-cn] RenderTarget 通过本接口访问 Texture 的 Level 8 集成字段，无需直接导入 three.rendering.textures.Texture。Texture 在 textures 包中 implement 本接口。对照规范第 9 节「循环依赖解决策略」：本接口位于 core 包（无 textures 依赖），textures 单向依赖 core 实现接口，core 侧经接口访问，依赖关系变为单向无环。

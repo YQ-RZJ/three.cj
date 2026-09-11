@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] PositionalAudio 3D 位置音频源
  * @brief[zh-cn] 在 Audio 基础上增加 3D 空间定位效果的位置音频
  * @explain[zh-cn] PositionalAudio 播放的声音具有 3D 空间定位效果，会根据音频源和
@@ -29,6 +51,10 @@
  */
 package three.audio.source
 
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
+
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -57,6 +83,7 @@ import three.audio.listener.*
  * @note[en] Three.cj uses a left-handed coordinate system while OpenAL is right-handed;
  * flip the Z axis when syncing positions (LH → RH: z' = -z).
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = Audio]
 public open class PositionalAudio <: Audio {
     /**
      * @brief[zh-cn] 参考距离（音量开始衰减的距离），默认 1.0
@@ -121,7 +148,7 @@ public open class PositionalAudio <: Audio {
      * @brief[en] Creates a 3D positional audio source
      * @param[en] listener The associated audio listener
      */
-    public init(listener!: AudioListener) {
+    public init(listener!: AudioListener = AudioListener()) {
         // 仓颉：super 必须为构造器首条语句
         super(listener: listener)
         this.refDistance = 1.0
@@ -132,7 +159,6 @@ public open class PositionalAudio <: Audio {
         this.coneOuterAngle = 360.0
         this.coneOuterGain = 0.0
         this.velocity = Vector3()
-        this.kind = "PositionalAudio"
     }
 
     /**

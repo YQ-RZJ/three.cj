@@ -34,5 +34,6 @@
 |[PhysicsContactEvent](./枚举/PhysicsContactEvent.md#enum-physicscontactevent)|碰撞回调事件类型（ContactListener）|
 |[PhysicsLayer](./枚举/PhysicsLayer.md#enum-physicslayer)|物理层（碰撞分组）|
 |[PhysicsMotionType](./枚举/PhysicsMotionType.md#enum-physicsmotiontype)|刚体运动类型（后端无关抽象，对应 JPH_MotionType）|
+|[PhysicsMotorState](./枚举/PhysicsMotorState.md#enum-physicsmotorstate)|约束电机状态（对应 JPH_MotorState）|
 |[PhysicsShapeType](./枚举/PhysicsShapeType.md#enum-physicsshapetype)|形状类型枚举（不带参数，参数由 PhysicsShape 结构体持有）|
 

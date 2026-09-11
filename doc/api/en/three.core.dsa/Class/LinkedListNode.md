@@ -9,17 +9,17 @@ Linked list node
 ```cj
 public prop next:?LinkedListNode < T >
 ```
-
+Next node
 
 ### prop prev:?LinkedListNode < T >
 ```cj
 public prop prev:?LinkedListNode < T >
 ```
-
+Previous node
 
 ### var value
 ```cj
 public var value: T
 ```
-
+Node value
 

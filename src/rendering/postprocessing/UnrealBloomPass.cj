@@ -1,5 +1,27 @@
 /**
- * @file[zh-cn] BgfxUnrealBloomPass Bloom 后处理 pass
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] UnrealBloomPass Bloom 后处理 pass
  * @brief[zh-cn] Bloom 后处理 pass —— UnrealBloomPass 完整实现
  * @explain[zh-cn] 算法（UnrealBloom 完整 5 级金字塔）：
  *         1. 亮度提取 pass：从 readBuffer 采样，threshold 之上的像素写入 bright RT
@@ -13,7 +35,7 @@
  *         可分离高斯：kernelSizeArray = [6, 10, 14, 18, 22]，每级 kernel 半径递增。
  *         bloomFactors = [1.0, 0.8, 0.6, 0.4, 0.2]，大 mip 贡献小。
  *
- * @file[en] BgfxUnrealBloomPass Bloom post-processing pass
+ * @file[en] UnrealBloomPass Bloom post-processing pass
  * @brief[en] Bloom post-processing pass - full UnrealBloomPass implementation
  * @explain[en] Algorithm (full UnrealBloom 5-level pyramid):
  *         1. Brightness extraction pass: samples readBuffer, pixels above threshold go to the bright RT
@@ -31,7 +53,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -70,7 +92,7 @@ public class BloomMipLevel {
  * @explain[en] Brightness extraction → 5-level Gaussian pyramid blur → weighted composite → additive
  *         blend back into the scene.
  */
-public class BgfxUnrealBloomPass <: Pass {
+public class UnrealBloomPass <: Pass {
     /**
      * @brief[zh-cn] Bloom 强度
      * @brief[en] Bloom strength
@@ -137,7 +159,7 @@ public class BgfxUnrealBloomPass <: Pass {
     private var _rtsCreated: Bool = false
 
     /** 渲染器引用（render() 时缓存，setSize/dispose 经其高阶 API 创建/销毁资源） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 分配给本 pass 的 bgfx view ID 段。
@@ -242,7 +264,7 @@ public class BgfxUnrealBloomPass <: Pass {
      * 创建单纹理 frame buffer（无 depth）。
      * 对照 SSAOPass._createFB。
      */
-    private func _createFB(renderer: BgfxRenderer, tex: TextureHandle): FrameBufferHandle {
+    private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(1, { _ => tex })
         let fb = renderer.createFrameBuffer(1u8, handles, true)
         return fb
@@ -301,7 +323,7 @@ public class BgfxUnrealBloomPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -336,8 +358,8 @@ public class BgfxUnrealBloomPass <: Pass {
     /**
      * 亮度提取 pass：从 readBuffer 采样，threshold 之上的像素写入 bright RT。
      */
-    private func _renderLuminosity(renderer: BgfxRenderer, readBuffer: FrameBufferHandle): Unit {
-        let viewId = UInt16(BgfxUnrealBloomPass.BLOOM_VIEW_ID_BASE + 0u16)
+    private func _renderLuminosity(renderer: ThreeRenderer, readBuffer: FrameBufferHandle): Unit {
+        let viewId = UInt16(UnrealBloomPass.BLOOM_VIEW_ID_BASE + 0u16)
         let level0 = this._mipLevels[0]
         // 视口设为 level0 尺寸（半分辨率）
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(level0.width), UInt16(level0.height))
@@ -380,11 +402,11 @@ public class BgfxUnrealBloomPass <: Pass {
      *     垂直：colorTexture=horizontal[i].texture, direction=Y → vertical[i]
      *     inputRT = vertical[i]
      */
-    private func _renderGaussianPyramid(renderer: BgfxRenderer): Unit {
+    private func _renderGaussianPyramid(renderer: ThreeRenderer): Unit {
         var inputTex = this._brightTex
         for (i in 0..this.nMips) {
             let level = this._mipLevels[i]
-            let baseView = UInt16(BgfxUnrealBloomPass.BLOOM_VIEW_ID_BASE + 1u16 + UInt16(i) * 2u16)
+            let baseView = UInt16(UnrealBloomPass.BLOOM_VIEW_ID_BASE + 1u16 + UInt16(i) * 2u16)
             Logger.trace(["UnrealBloom", "pyramid level=${i} baseView=${baseView} size=${level.width}x${level.height} kernelRadius=${level.kernelRadius} inputTex=${handleIdx(inputTex)}"])
 
             // 水平模糊 pass（direction=X）
@@ -424,7 +446,7 @@ public class BgfxUnrealBloomPass <: Pass {
      * @param horizontal true=水平模糊, false=垂直模糊
      */
     private func _renderBlurPass(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         viewId: UInt16,
         fb: FrameBufferHandle,
         fbTex: TextureHandle,
@@ -499,8 +521,8 @@ public class BgfxUnrealBloomPass <: Pass {
      *
      * 输出写入 renderTargetsHorizontal[0]（复用为临时 RT）。
      */
-    private func _renderComposite(renderer: BgfxRenderer): Unit {
-        let viewId = UInt16(BgfxUnrealBloomPass.BLOOM_VIEW_ID_BASE + 11u16)
+    private func _renderComposite(renderer: ThreeRenderer): Unit {
+        let viewId = UInt16(UnrealBloomPass.BLOOM_VIEW_ID_BASE + 11u16)
         let level0 = this._mipLevels[0]
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(level0.width), UInt16(level0.height))
         // composite 输出到 mipLevels[0].horizontalFB（复用为临时 RT）
@@ -567,8 +589,8 @@ public class BgfxUnrealBloomPass <: Pass {
      * blend view 的 frame buffer 设为无效 handle（swap chain）而非 writeBuffer，
      * 并在 submit 后调 bgfx_frame_cj 触发双缓冲交换上屏。
      */
-    private func _renderBlend(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle): Unit {
-        let viewId = UInt16(BgfxUnrealBloomPass.BLOOM_VIEW_ID_BASE + 12u16)
+    private func _renderBlend(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle): Unit {
+        let viewId = UInt16(UnrealBloomPass.BLOOM_VIEW_ID_BASE + 12u16)
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         // renderToScreen=true 时写 swap chain（无效 FB handle），否则写 writeBuffer（离屏 RT）
         if (this.renderToScreen) {

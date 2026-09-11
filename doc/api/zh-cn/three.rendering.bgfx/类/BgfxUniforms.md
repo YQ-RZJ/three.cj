@@ -5,6 +5,23 @@ public class BgfxUniforms
 ```
 bgfx Uniform 变量管理
 
+### func createUniform\(String,UInt32\)
+```cj
+public func createUniform(name: String, uniformType: UInt32): UniformHandle
+```
+创建 uniform 句柄
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|name|String|uniform 名称uniformType uniform 类型（BGFX_UNIFORM_VEC4/BGFX_UNIFORM_MAT3/BGFX_UNIFORM_MAT4/BGFX_UNIFORM_SAMPLER 等）|
+|uniformType|UInt32||
+
+返回: 
+
+- uniform 句柄（Box 包装）
+
 ### func createUniform\(String,UInt32,UInt16\)
 ```cj
 public func createUniform(name: String, uniformType: UInt32, num: UInt16): UniformHandle
@@ -22,23 +39,6 @@ public func createUniform(name: String, uniformType: UInt32, num: UInt16): Unifo
 返回: 
 
 - uniform 句柄
-
-### func createUniform\(String,UInt32\)
-```cj
-public func createUniform(name: String, uniformType: UInt32): UniformHandle
-```
-创建 uniform 句柄
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|name|String|uniform 名称uniformType uniform 类型（BGFX_UNIFORM_VEC4/BGFX_UNIFORM_MAT3/BGFX_UNIFORM_MAT4/BGFX_UNIFORM_SAMPLER 等）|
-|uniformType|UInt32||
-
-返回: 
-
-- uniform 句柄（Box 包装）
 
 ### func dispose\(\)
 ```cj

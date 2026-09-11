@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Entity 实体基类
  * @brief[zh-cn] 实例 ID 在 init 中自动分配、在 destruct 中自动回收，使用者无感
  * @explain[zh-cn] 设计要点：
@@ -58,26 +80,36 @@ public type EntityId = Int64
 public open class Entity <: EcsObject {
     /**
      * @brief[zh-cn] 实例 ID 分配器（全层级共享）
+     *
+     * @brief[en] Instance ID allocator (shared across the whole hierarchy)
      */
     private static let _idAlloc: IdAllocator = IdAllocator()
 
     /**
      * @brief[zh-cn] 实体 ID（NUM_NONE 表示已回收）
+     *
+     * @brief[en] Entity ID (NUM_NONE means recycled)
      */
     private var _etyId: EntityId = NUM_NONE
 
     /**
      * @brief[zh-cn] 实体拥有的所有组件掩码
+     *
+     * @brief[en] Component mask of all components owned by the entity
      */
     protected let _cptMask: BitArray = BitArray(0, value: false)
 
     /**
      * @brief[zh-cn] 组件表：cptId -> 组件实例
+     *
+     * @brief[en] Component table: cptId -> component instance
      */
     private let _components: HashMap<ComponentId, Component> = HashMap<ComponentId, Component>()
 
     /**
      * @brief[zh-cn] 组件变更监听（oldMask, entity），由 World.addEntity 挂接
+     *
+     * @brief[en] Component change listener (oldMask, entity), hooked by World.addEntity
      */
     public var monitorComponentChanges: ?(Array<UInt8>, Entity) -> Unit = None
 
@@ -266,6 +298,8 @@ public open class Entity <: EcsObject {
 
     /**
      * @brief[zh-cn] 触发组件变更监听
+     *
+     * @brief[en] Triggers the component change listener
      */
     private func _notifyChanged(oldMask: Array<UInt8>): Unit {
         match (monitorComponentChanges) {

@@ -22,6 +22,12 @@ Return:
 
 - Transformed vertex position
 
+### func applySkinningJob\(\)
+```cj
+public func applySkinningJob(): Unit
+```
+Skins all vertices in batch using SkinningJob
+
 ### func bind\(Skeleton,Option<Matrix4>\)
 ```cj
 public func bind(skeleton: Skeleton, bindMatrix!: Option < Matrix4 >= None): Unit
@@ -93,7 +99,7 @@ Return:
 
 ### func init\(BufferGeometry,Material\)
 ```cj
-public init(geometry: BufferGeometry, material: Material)
+public init(geometry!: BufferGeometry = BufferGeometry(), material!: Material = Material())
 ```
 Construct a new skinned mesh
 
@@ -145,7 +151,7 @@ Parameter:
 ```cj
 public var bindMatrixInverse: Matrix4
 ```
-Inverse of the bind pose matrix
+Inverse of the bind pose matrix (derived: recomputed each frame by updateMatrixWorld, not serialized)
 
 ### var bindMatrix
 ```cj

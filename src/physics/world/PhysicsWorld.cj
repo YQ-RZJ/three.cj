@@ -1,7 +1,29 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] PhysicsWorld 物理世界门面 + 独立物理线程
  * @brief[zh-cn] 提供后端无关的物理世界门面，持有独立物理线程序列化所有后端调用
- * @explain[zh-cn] 线程模型（对齐 AudioContext._audioLoop / BgfxRenderer._renderLoop）：
+ * @explain[zh-cn] 线程模型（对齐 AudioContext._audioLoop / ThreeRenderer._renderLoop）：
  * - 持有独立 three.core.thread.SThread，所有后端调用经 _execPhysics 序列化到物理线程执行。
  * - 同步原语使用 three.core.thread 的系统级 Mutex/Condition（基于 sdl4cj，跨用户态与系统线程同步）。
  * - 死锁约束：_execPhysics 不可重入——闭包内只能包含对 backend 的原始调用，
@@ -17,7 +39,7 @@
  *
  * @file[en] PhysicsWorld Physics-world facade + dedicated physics thread
  * @brief[en] Provides a backend-agnostic physics-world facade with a dedicated physics thread serializing all backend calls
- * @explain[en] Threading model (aligned with AudioContext._audioLoop / BgfxRenderer._renderLoop):
+ * @explain[en] Threading model (aligned with AudioContext._audioLoop / ThreeRenderer._renderLoop):
  * - owns a dedicated three.core.thread.SThread; every backend call is serialized
  * to the physics thread via _execPhysics.
  * - sync primitives use three.core.thread's system-level Mutex/Condition
@@ -99,8 +121,7 @@ internal class PhysicsBinding {
      * syncToObj Sync direction
      * offset Local offset (zero vector by default)
      */
-    public init(object3d!: Object3D, handle!: PhysicsBodyHandle,
-                syncToObj!: Bool, offset!: Vector3 = Vector3()) {
+    public init(object3d!: Object3D, handle!: PhysicsBodyHandle, syncToObj!: Bool, offset!: Vector3 = Vector3()) {
         this.object3d = object3d
         this.handle = handle
         this.syncToObj = syncToObj
@@ -142,7 +163,7 @@ public class PhysicsWorld {
     /// 绑定映射：Object3D.id -> PhysicsBinding
     private var _bindings: HashMap<Int64, PhysicsBinding> = HashMap<Int64, PhysicsBinding>()
 
-    /// ===== 物理同步原语（对齐 BgfxRenderer._renderMtx/_renderCmdCnd） =====
+    /// ===== 物理同步原语（对齐 ThreeRenderer._renderMtx/_renderCmdCnd） =====
     private var _physicsMtx = Mutex()
     private var _physicsCmdCnd = Condition()
     private var _physicsDoneCnd = Condition()
@@ -170,7 +191,9 @@ public class PhysicsWorld {
      * @explain[en] For direct access by advanced users.
      */
     public prop backend: IPhysicsBackend {
-        get() { this._backend }
+        get() {
+            this._backend
+        }
     }
 
     /**
@@ -192,9 +215,14 @@ public class PhysicsWorld {
     // =========================================================================
 
     private func _initPhysicsThread(): Unit {
-        if (this._physicsSThread.isSome()) { return }
+        if (this._physicsSThread.isSome()) {
+            return
+        }
         // Mutex/Condition 已在字段声明处初始化
-        this._physicsSThread = SThread{ this._physicsLoop(); () }
+        this._physicsSThread = SThread {
+            this._physicsLoop();
+        ()
+        }
     }
 
     private func _physicsLoop(): Unit {
@@ -233,6 +261,38 @@ public class PhysicsWorld {
         this._physicsMtx.unlock()
     }
 
+    /**
+     * @brief[zh-cn] 在物理线程上同步执行任意后端操作（模块内部设施，供 Jolt 特有高级封装使用）
+     * @explain[zh-cn] protected：three.physics 模块内的布娃娃/车辆/软体等高级封装可用，
+     * 不对模块外公开。闭包提交到物理线程同步执行，内部可安全调用 jolt4cj FFI。
+     * 死锁约束：闭包内禁止再调用 PhysicsWorld 上走 _execPhysics 的方法
+     * （包括本方法自身），否则自我等待死锁。闭包内只做底层 FFI 调用。
+     *
+     * @brief[en] Runs a backend action synchronously on the physics thread (module-internal, for Jolt-specific advanced wrappers)
+     * @explain[en] protected: available to advanced wrappers inside the three.physics module,
+     * not exported outside it. The closure runs synchronously on the physics thread; jolt4cj
+     * FFI calls are safe inside it. It must not call any PhysicsWorld method that goes through
+     * _execPhysics (including this one), or it will deadlock.
+     */
+    protected func execPhysics(cmd: () -> Unit): Unit {
+        this._execPhysics(cmd)
+    }
+
+    /**
+     * @brief[zh-cn] 在物理线程上执行并取回结果值（模块内部设施）
+     *
+     * @brief[en] Runs on the physics thread and returns a value (module-internal facility)
+     */
+    protected func execPhysicsResult<T>(cmd: () -> T): T {
+        // 逃逸闭包不能捕获可变局部变量，故用 Box 持有结果（box 为 let，仅改其 value 字段）
+        let box: Box<Option<T>> = Box<Option<T>>(None)
+        this._execPhysics({=> box.value = Some(cmd())})
+        match (box.value) {
+            case Some(v) => v
+            case None => throw IllegalStateException("execPhysicsResult: empty result")
+        }
+    }
+
     // =========================================================================
     // 生命周期
     // =========================================================================
@@ -248,13 +308,12 @@ public class PhysicsWorld {
      * gravity The global gravity (default (0, -9.81, 0))
      * @return[en] true on success
      */
-    public func start(maxBodies!: UInt32 = 1024u32,
-                      gravity!: Vector3 = Vector3(0.0, -9.81, 0.0)): Bool {
+    public func start(maxBodies!: UInt32 = 1024u32, gravity!: Vector3 = Vector3(0.0, -9.81, 0.0)): Bool {
         this._initPhysicsThread()
         let okBox: Box<Bool> = Box(false)
         let be = this._backend
-        _execPhysics({ =>
-            okBox.value = be.initialize(maxBodies, gravity)
+        _execPhysics({
+            => okBox.value = be.initialize(maxBodies, gravity)
         })
         return okBox.value
     }
@@ -269,7 +328,7 @@ public class PhysicsWorld {
         this._bindings.clear()
 
         let be = this._backend
-        _execPhysics({ => be.shutdown() })
+        _execPhysics({=> be.shutdown()})
 
         // 通知物理线程退出
         this._physicsMtx.lock()
@@ -285,7 +344,9 @@ public class PhysicsWorld {
      * @brief[en] Whether the backend is initialized
      * @return[en] true if initialized
      */
-    public func isInitialized(): Bool { return this._backend.isInitialized() }
+    public func isInitialized(): Bool {
+        return this._backend.isInitialized()
+    }
 
     // =========================================================================
     // 世界设置
@@ -300,7 +361,7 @@ public class PhysicsWorld {
      */
     public func setGravity(gravity: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.setGravity(gravity) })
+        _execPhysics({=> be.setGravity(gravity)})
     }
 
     /**
@@ -313,7 +374,7 @@ public class PhysicsWorld {
      */
     public func optimizeBroadPhase(): Unit {
         let be = this._backend
-        _execPhysics({ => be.optimizeBroadPhase() })
+        _execPhysics({=> be.optimizeBroadPhase()})
     }
 
     // =========================================================================
@@ -332,7 +393,7 @@ public class PhysicsWorld {
     public func createBody(desc: PhysicsBodyDesc): PhysicsBodyHandle {
         let handleBox: Box<PhysicsBodyHandle> = Box(PhysicsBodyHandle.INVALID)
         let be = this._backend
-        _execPhysics({ => handleBox.value = be.createBody(desc) })
+        _execPhysics({=> handleBox.value = be.createBody(desc)})
         return handleBox.value
     }
 
@@ -357,7 +418,7 @@ public class PhysicsWorld {
             case None => ()
         }
         let be = this._backend
-        _execPhysics({ => be.destroyBody(handle) })
+        _execPhysics({=> be.destroyBody(handle)})
     }
 
     // =========================================================================
@@ -377,11 +438,11 @@ public class PhysicsWorld {
      * syncToObj true = physics→render (Dynamic/Kinematic bodies);
      * false = render→physics (optional when a Kinematic body is user-driven)
      */
-    public func bindObject(object3d: Object3D, handle: PhysicsBodyHandle,
-                           syncToObj!: Bool = true): Unit {
-        if (!handle.isValid()) { return }
-        this._bindings[object3d.id] = PhysicsBinding(
-            object3d: object3d, handle: handle, syncToObj: syncToObj)
+    public func bindObject(object3d: Object3D, handle: PhysicsBodyHandle, syncToObj!: Bool = true): Unit {
+        if (!handle.isValid()) {
+            return
+        }
+        this._bindings[object3d.id] = PhysicsBinding(object3d: object3d, handle: handle, syncToObj: syncToObj)
     }
 
     /**
@@ -442,20 +503,27 @@ public class PhysicsWorld {
         let errBox: Box<UInt32> = Box(0u32)
         let be = this._backend
         let bindings = this._bindings
-        _execPhysics({ =>
-            errBox.value = be.update(deltaTime, collisionSteps)
-            // 同步 transform 到绑定的 Object3D
-            for ((_, b) in bindings) {
-                if (!b.syncToObj) { continue }
-                if (!b.handle.isValid()) { continue }
-                let pos = be.getPosition(b.handle)
-                let rot = be.getRotation(b.handle)
-                b.object3d.position.set(pos.x, pos.y, pos.z)
-                b.object3d.quaternion.set(rot.x, rot.y, rot.z, rot.w)
-                // 触发矩阵更新（matrixAutoUpdate=true 时 renderer.render 会重算）
-                b.object3d.matrixWorldNeedsUpdate = true
+        _execPhysics(
+            {
+                =>
+                    errBox.value = be.update(deltaTime, collisionSteps)
+                    // 同步 transform 到绑定的 Object3D
+                    for ((_, b) in bindings) {
+                        if (!b.syncToObj) {
+                            continue
+                        }
+                        if (!b.handle.isValid()) {
+                            continue
+                        }
+                        let pos = be.getPosition(b.handle)
+                        let rot = be.getRotation(b.handle)
+                        b.object3d.position.set(pos.x, pos.y, pos.z)
+                        b.object3d.quaternion.set(rot.x, rot.y, rot.z, rot.w)
+                        // 触发矩阵更新（matrixAutoUpdate=true 时 renderer.render 会重算）
+                        b.object3d.matrixWorldNeedsUpdate = true
+                    }
             }
-        })
+        )
         return errBox.value
     }
 
@@ -475,9 +543,9 @@ public class PhysicsWorld {
      * activation The activation strategy (default Activate)
      */
     public func setPosition(handle: PhysicsBodyHandle, position: Vector3,
-                            activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
+        activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
         let be = this._backend
-        _execPhysics({ => be.setPosition(handle, position, activation) })
+        _execPhysics({=> be.setPosition(handle, position, activation)})
     }
 
     /**
@@ -492,7 +560,7 @@ public class PhysicsWorld {
     public func getPosition(handle: PhysicsBodyHandle): Vector3 {
         let posBox: Box<Vector3> = Box(Vector3())
         let be = this._backend
-        _execPhysics({ => posBox.value = be.getPosition(handle) })
+        _execPhysics({=> posBox.value = be.getPosition(handle)})
         return posBox.value
     }
 
@@ -508,9 +576,9 @@ public class PhysicsWorld {
      * activation The activation strategy (default Activate)
      */
     public func setRotation(handle: PhysicsBodyHandle, rotation: Quaternion,
-                            activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
+        activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
         let be = this._backend
-        _execPhysics({ => be.setRotation(handle, rotation, activation) })
+        _execPhysics({=> be.setRotation(handle, rotation, activation)})
     }
 
     /**
@@ -525,7 +593,7 @@ public class PhysicsWorld {
     public func getRotation(handle: PhysicsBodyHandle): Quaternion {
         let rotBox: Box<Quaternion> = Box(Quaternion())
         let be = this._backend
-        _execPhysics({ => rotBox.value = be.getRotation(handle) })
+        _execPhysics({=> rotBox.value = be.getRotation(handle)})
         return rotBox.value
     }
 
@@ -540,7 +608,7 @@ public class PhysicsWorld {
      */
     public func setLinearVelocity(handle: PhysicsBodyHandle, velocity: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.setLinearVelocity(handle, velocity) })
+        _execPhysics({=> be.setLinearVelocity(handle, velocity)})
     }
 
     /**
@@ -555,7 +623,7 @@ public class PhysicsWorld {
     public func getLinearVelocity(handle: PhysicsBodyHandle): Vector3 {
         let vBox: Box<Vector3> = Box(Vector3())
         let be = this._backend
-        _execPhysics({ => vBox.value = be.getLinearVelocity(handle) })
+        _execPhysics({=> vBox.value = be.getLinearVelocity(handle)})
         return vBox.value
     }
 
@@ -570,7 +638,7 @@ public class PhysicsWorld {
      */
     public func setAngularVelocity(handle: PhysicsBodyHandle, angularVelocity: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.setAngularVelocity(handle, angularVelocity) })
+        _execPhysics({=> be.setAngularVelocity(handle, angularVelocity)})
     }
 
     /**
@@ -585,7 +653,7 @@ public class PhysicsWorld {
     public func getAngularVelocity(handle: PhysicsBodyHandle): Vector3 {
         let vBox: Box<Vector3> = Box(Vector3())
         let be = this._backend
-        _execPhysics({ => vBox.value = be.getAngularVelocity(handle) })
+        _execPhysics({=> vBox.value = be.getAngularVelocity(handle)})
         return vBox.value
     }
 
@@ -600,7 +668,7 @@ public class PhysicsWorld {
      */
     public func setFriction(handle: PhysicsBodyHandle, friction: Float64): Unit {
         let be = this._backend
-        _execPhysics({ => be.setFriction(handle, friction) })
+        _execPhysics({=> be.setFriction(handle, friction)})
     }
 
     /**
@@ -615,7 +683,7 @@ public class PhysicsWorld {
     public func getFriction(handle: PhysicsBodyHandle): Float64 {
         let fBox: Box<Float64> = Box(0.0)
         let be = this._backend
-        _execPhysics({ => fBox.value = be.getFriction(handle) })
+        _execPhysics({=> fBox.value = be.getFriction(handle)})
         return fBox.value
     }
 
@@ -630,7 +698,7 @@ public class PhysicsWorld {
      */
     public func setRestitution(handle: PhysicsBodyHandle, restitution: Float64): Unit {
         let be = this._backend
-        _execPhysics({ => be.setRestitution(handle, restitution) })
+        _execPhysics({=> be.setRestitution(handle, restitution)})
     }
 
     /**
@@ -645,7 +713,7 @@ public class PhysicsWorld {
     public func getRestitution(handle: PhysicsBodyHandle): Float64 {
         let rBox: Box<Float64> = Box(0.0)
         let be = this._backend
-        _execPhysics({ => rBox.value = be.getRestitution(handle) })
+        _execPhysics({=> rBox.value = be.getRestitution(handle)})
         return rBox.value
     }
 
@@ -661,9 +729,9 @@ public class PhysicsWorld {
      * activation The activation strategy (default Activate)
      */
     public func setMotionType(handle: PhysicsBodyHandle, motionType: PhysicsMotionType,
-                              activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
+        activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
         let be = this._backend
-        _execPhysics({ => be.setMotionType(handle, motionType, activation) })
+        _execPhysics({=> be.setMotionType(handle, motionType, activation)})
     }
 
     /**
@@ -678,7 +746,7 @@ public class PhysicsWorld {
     public func getMotionType(handle: PhysicsBodyHandle): PhysicsMotionType {
         let mtBox: Box<PhysicsMotionType> = Box(PhysicsMotionType.Static)
         let be = this._backend
-        _execPhysics({ => mtBox.value = be.getMotionType(handle) })
+        _execPhysics({=> mtBox.value = be.getMotionType(handle)})
         return mtBox.value
     }
 
@@ -694,7 +762,7 @@ public class PhysicsWorld {
     public func isBodyActive(handle: PhysicsBodyHandle): Bool {
         let aBox: Box<Bool> = Box(false)
         let be = this._backend
-        _execPhysics({ => aBox.value = be.isBodyActive(handle) })
+        _execPhysics({=> aBox.value = be.isBodyActive(handle)})
         return aBox.value
     }
 
@@ -709,7 +777,7 @@ public class PhysicsWorld {
      */
     public func setIsSensor(handle: PhysicsBodyHandle, isSensor: Bool): Unit {
         let be = this._backend
-        _execPhysics({ => be.setIsSensor(handle, isSensor) })
+        _execPhysics({=> be.setIsSensor(handle, isSensor)})
     }
 
     // =========================================================================
@@ -732,7 +800,7 @@ public class PhysicsWorld {
     public func raycast(origin: Vector3, direction: Vector3, hit: PhysicsRayHit): Bool {
         let okBox: Box<Bool> = Box(false)
         let be = this._backend
-        _execPhysics({ => okBox.value = be.raycast(origin, direction, hit) })
+        _execPhysics({=> okBox.value = be.raycast(origin, direction, hit)})
         return okBox.value
     }
 
@@ -754,7 +822,7 @@ public class PhysicsWorld {
     public func raycastAll(origin: Vector3, direction: Vector3): ArrayList<PhysicsRayHit> {
         let hits = ArrayList<PhysicsRayHit>()
         let be = this._backend
-        _execPhysics({ => be.raycastAll(origin, direction, hits) })
+        _execPhysics({=> be.raycastAll(origin, direction, hits)})
         return hits
     }
 
@@ -770,7 +838,7 @@ public class PhysicsWorld {
     public func collidePoint(point: Vector3): ArrayList<PhysicsPointHit> {
         let hits = ArrayList<PhysicsPointHit>()
         let be = this._backend
-        _execPhysics({ => be.collidePoint(point, hits) })
+        _execPhysics({=> be.collidePoint(point, hits)})
         return hits
     }
 
@@ -787,11 +855,10 @@ public class PhysicsWorld {
      * rotation The query shape rotation
      * @return[en] The hit list
      */
-    public func collideShape(shape: PhysicsShape,
-                             position: Vector3, rotation: Quaternion): ArrayList<PhysicsShapeHit> {
+    public func collideShape(shape: PhysicsShape, position: Vector3, rotation: Quaternion): ArrayList<PhysicsShapeHit> {
         let hits = ArrayList<PhysicsShapeHit>()
         let be = this._backend
-        _execPhysics({ => be.collideShape(shape, position, rotation, hits) })
+        _execPhysics({=> be.collideShape(shape, position, rotation, hits)})
         return hits
     }
 
@@ -810,12 +877,10 @@ public class PhysicsWorld {
      * direction The cast direction (its length is the max sweep distance)
      * @return[en] The hit list (sorted by fraction ascending; empty = no blocker)
      */
-    public func castShape(shape: PhysicsShape,
-                          position: Vector3, rotation: Quaternion,
-                          direction: Vector3): ArrayList<PhysicsShapeHit> {
+    public func castShape(shape: PhysicsShape, position: Vector3, rotation: Quaternion, direction: Vector3): ArrayList<PhysicsShapeHit> {
         let hits = ArrayList<PhysicsShapeHit>()
         let be = this._backend
-        _execPhysics({ => be.castShape(shape, position, rotation, direction, hits) })
+        _execPhysics({=> be.castShape(shape, position, rotation, direction, hits)})
         return hits
     }
 
@@ -828,7 +893,7 @@ public class PhysicsWorld {
      */
     public func setContactListener(listener: Option<IPhysicsSensorListener>): Unit {
         let be = this._backend
-        _execPhysics({ => be.setContactListener(listener) })
+        _execPhysics({=> be.setContactListener(listener)})
     }
 
     // =========================================================================
@@ -846,7 +911,7 @@ public class PhysicsWorld {
      */
     public func addForce(handle: PhysicsBodyHandle, force: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.addForce(handle, force) })
+        _execPhysics({=> be.addForce(handle, force)})
     }
 
     /**
@@ -862,7 +927,7 @@ public class PhysicsWorld {
      */
     public func addForceAtPosition(handle: PhysicsBodyHandle, force: Vector3, point: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.addForceAtPosition(handle, force, point) })
+        _execPhysics({=> be.addForceAtPosition(handle, force, point)})
     }
 
     /**
@@ -876,7 +941,7 @@ public class PhysicsWorld {
      */
     public func addTorque(handle: PhysicsBodyHandle, torque: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.addTorque(handle, torque) })
+        _execPhysics({=> be.addTorque(handle, torque)})
     }
 
     /**
@@ -890,7 +955,7 @@ public class PhysicsWorld {
      */
     public func addImpulse(handle: PhysicsBodyHandle, impulse: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.addImpulse(handle, impulse) })
+        _execPhysics({=> be.addImpulse(handle, impulse)})
     }
 
     /**
@@ -904,7 +969,7 @@ public class PhysicsWorld {
      */
     public func addAngularImpulse(handle: PhysicsBodyHandle, angularImpulse: Vector3): Unit {
         let be = this._backend
-        _execPhysics({ => be.addAngularImpulse(handle, angularImpulse) })
+        _execPhysics({=> be.addAngularImpulse(handle, angularImpulse)})
     }
 
     // =========================================================================
@@ -923,7 +988,7 @@ public class PhysicsWorld {
     public func getMass(handle: PhysicsBodyHandle): Float64 {
         let mBox: Box<Float64> = Box(0.0)
         let be = this._backend
-        _execPhysics({ => mBox.value = be.getMass(handle) })
+        _execPhysics({=> mBox.value = be.getMass(handle)})
         return mBox.value
     }
 
@@ -938,7 +1003,7 @@ public class PhysicsWorld {
      */
     public func setMass(handle: PhysicsBodyHandle, mass: Float64): Unit {
         let be = this._backend
-        _execPhysics({ => be.setMass(handle, mass) })
+        _execPhysics({=> be.setMass(handle, mass)})
     }
 
     /**
@@ -953,7 +1018,7 @@ public class PhysicsWorld {
     public func getInverseInertia(handle: PhysicsBodyHandle): Matrix4 {
         let mBox: Box<Matrix4> = Box(Matrix4())
         let be = this._backend
-        _execPhysics({ => mBox.value = be.getInverseInertia(handle) })
+        _execPhysics({=> mBox.value = be.getInverseInertia(handle)})
         return mBox.value
     }
 
@@ -968,7 +1033,7 @@ public class PhysicsWorld {
      */
     public func setGravityFactor(handle: PhysicsBodyHandle, gravityFactor: Float64): Unit {
         let be = this._backend
-        _execPhysics({ => be.setGravityFactor(handle, gravityFactor) })
+        _execPhysics({=> be.setGravityFactor(handle, gravityFactor)})
     }
 
     /**
@@ -983,7 +1048,7 @@ public class PhysicsWorld {
     public func getGravityFactor(handle: PhysicsBodyHandle): Float64 {
         let gBox: Box<Float64> = Box(1.0)
         let be = this._backend
-        _execPhysics({ => gBox.value = be.getGravityFactor(handle) })
+        _execPhysics({=> gBox.value = be.getGravityFactor(handle)})
         return gBox.value
     }
 
@@ -1007,10 +1072,9 @@ public class PhysicsWorld {
      * @note[zh-cn] 每帧调用，由 deltaTime 步长驱动。
      * @note[en] Call every frame; driven by the deltaTime step.
      */
-    public func moveKinematic(handle: PhysicsBodyHandle, position: Vector3,
-                              rotation: Quaternion, deltaTime: Float32): Unit {
+    public func moveKinematic(handle: PhysicsBodyHandle, position: Vector3, rotation: Quaternion, deltaTime: Float32): Unit {
         let be = this._backend
-        _execPhysics({ => be.moveKinematic(handle, position, rotation, deltaTime) })
+        _execPhysics({=> be.moveKinematic(handle, position, rotation, deltaTime)})
     }
 
     // =========================================================================
@@ -1030,12 +1094,10 @@ public class PhysicsWorld {
      * bodyB The second constrained body
      * @return[en] The constraint handle, or INVALID on failure
      */
-    public func createConstraint(desc: PhysicsConstraintDesc,
-                                 bodyA: PhysicsBodyHandle,
-                                 bodyB: PhysicsBodyHandle): PhysicsConstraintHandle {
+    public func createConstraint(desc: PhysicsConstraintDesc, bodyA: PhysicsBodyHandle, bodyB: PhysicsBodyHandle): PhysicsConstraintHandle {
         let cBox: Box<PhysicsConstraintHandle> = Box(PhysicsConstraintHandle.INVALID)
         let be = this._backend
-        _execPhysics({ => cBox.value = be.createConstraint(desc, bodyA, bodyB) })
+        _execPhysics({=> cBox.value = be.createConstraint(desc, bodyA, bodyB)})
         return cBox.value
     }
 
@@ -1048,7 +1110,7 @@ public class PhysicsWorld {
      */
     public func destroyConstraint(handle: PhysicsConstraintHandle): Unit {
         let be = this._backend
-        _execPhysics({ => be.destroyConstraint(handle) })
+        _execPhysics({=> be.destroyConstraint(handle)})
     }
 
     /**
@@ -1063,7 +1125,7 @@ public class PhysicsWorld {
     public func isConstraintEnabled(handle: PhysicsConstraintHandle): Bool {
         let eBox: Box<Bool> = Box(false)
         let be = this._backend
-        _execPhysics({ => eBox.value = be.isConstraintEnabled(handle) })
+        _execPhysics({=> eBox.value = be.isConstraintEnabled(handle)})
         return eBox.value
     }
 
@@ -1078,6 +1140,112 @@ public class PhysicsWorld {
      */
     public func setConstraintEnabled(handle: PhysicsConstraintHandle, enabled: Bool): Unit {
         let be = this._backend
-        _execPhysics({ => be.setConstraintEnabled(handle, enabled) })
+        _execPhysics({=> be.setConstraintEnabled(handle, enabled)})
+    }
+
+    // =========================================================================
+    // 约束电机运行时控制（经物理线程转发）
+    // =========================================================================
+
+    /**
+     * @brief[zh-cn] 设置约束电机状态（Hinge/Slider：Off/Velocity/Position）
+     * @param[zh-cn] handle 约束句柄
+     * state 电机状态
+     *
+     * @brief[en] Sets the constraint motor state (Hinge/Slider: Off/Velocity/Position)
+     * @param[en] handle The constraint handle
+     * state The motor state
+     */
+    public func setConstraintMotorState(handle: PhysicsConstraintHandle, state: PhysicsMotorState): Unit {
+        let be = this._backend
+        _execPhysics({=> be.setConstraintMotorState(handle, state)})
+    }
+
+    /**
+     * @brief[zh-cn] 设置铰链约束电机目标角速度（速度模式，弧度/秒）
+     * @param[zh-cn] handle 约束句柄
+     * angularVelocity 目标角速度
+     *
+     * @brief[en] Sets the hinge motor target angular velocity (velocity mode, rad/s)
+     * @param[en] handle The constraint handle
+     * angularVelocity The target angular velocity
+     */
+    public func setConstraintTargetAngularVelocity(handle: PhysicsConstraintHandle, angularVelocity: Float64): Unit {
+        let be = this._backend
+        _execPhysics({=> be.setConstraintTargetAngularVelocity(handle, angularVelocity)})
+    }
+
+    /**
+     * @brief[zh-cn] 设置铰链约束电机目标角度（位置模式，弧度）
+     * @param[zh-cn] handle 约束句柄
+     * angle 目标角度
+     *
+     * @brief[en] Sets the hinge motor target angle (position mode, radians)
+     * @param[en] handle The constraint handle
+     * angle The target angle
+     */
+    public func setConstraintTargetAngle(handle: PhysicsConstraintHandle, angle: Float64): Unit {
+        let be = this._backend
+        _execPhysics({=> be.setConstraintTargetAngle(handle, angle)})
+    }
+
+    /**
+     * @brief[zh-cn] 读取铰链约束当前角度（弧度）
+     * @param[zh-cn] handle 约束句柄
+     * @return[zh-cn] 当前角度
+     *
+     * @brief[en] Reads the hinge constraint current angle (radians)
+     * @param[en] handle The constraint handle
+     * @return[en] The current angle
+     */
+    public func getConstraintCurrentAngle(handle: PhysicsConstraintHandle): Float64 {
+        let aBox: Box<Float64> = Box(0.0)
+        let be = this._backend
+        _execPhysics({=> aBox.value = be.getConstraintCurrentAngle(handle)})
+        return aBox.value
+    }
+
+    /**
+     * @brief[zh-cn] 设置滑块约束电机目标速度（速度模式，米/秒）
+     * @param[zh-cn] handle 约束句柄
+     * velocity 目标速度
+     *
+     * @brief[en] Sets the slider motor target velocity (velocity mode, m/s)
+     * @param[en] handle The constraint handle
+     * velocity The target velocity
+     */
+    public func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: Float64): Unit {
+        let be = this._backend
+        _execPhysics({=> be.setSliderTargetVelocity(handle, velocity)})
+    }
+
+    /**
+     * @brief[zh-cn] 设置滑块约束电机目标位置（位置模式，米）
+     * @param[zh-cn] handle 约束句柄
+     * position 目标位置
+     *
+     * @brief[en] Sets the slider motor target position (position mode, meters)
+     * @param[en] handle The constraint handle
+     * position The target position
+     */
+    public func setSliderTargetPosition(handle: PhysicsConstraintHandle, position: Float64): Unit {
+        let be = this._backend
+        _execPhysics({=> be.setSliderTargetPosition(handle, position)})
+    }
+
+    /**
+     * @brief[zh-cn] 读取滑块约束当前位置（米）
+     * @param[zh-cn] handle 约束句柄
+     * @return[zh-cn] 当前位置
+     *
+     * @brief[en] Reads the slider constraint current position (meters)
+     * @param[en] handle The constraint handle
+     * @return[en] The current position
+     */
+    public func getSliderCurrentPosition(handle: PhysicsConstraintHandle): Float64 {
+        let pBox: Box<Float64> = Box(0.0)
+        let be = this._backend
+        _execPhysics({=> pBox.value = be.getSliderCurrentPosition(handle)})
+        return pBox.value
     }
 }

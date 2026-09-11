@@ -17,14 +17,14 @@ package toon_pipeline
  *     └── ToonOutlinePass（边缘检测描边→writeBuffer→上屏）
  *
  * bgfx 特性适配：
- *   - 使用 BgfxRenderer 高阶 API（setViewFrameBuffer/setViewRect/setViewClear）
+ *   - 使用 ThreeRenderer 高阶 API（setViewFrameBuffer/setViewRect/setViewClear）
  *   - 自定义全屏 quad（position+texcoord0）+ ToonEdge shader
  *   - 深度纹理通过 readBuffer 的 depth attachment 获取
  *   - view id 独立分配（避免与 EffectComposer 内部 view 冲突）
  *
  * 对照 three.js OutlinePass.js：
  *   - JS 用 WebGLRenderTarget + FullScreenQuad；
- *     本 pass 用 BgfxRenderer 高阶 API + 自定义全屏 quad submit
+ *     本 pass 用 ThreeRenderer 高阶 API + 自定义全屏 quad submit
  *   - JS 7-pass chain（depth/mask/downsample/edge/blur1/blur2/overlay）；
  *     本 pass 简化为单 pass Sobel 边缘检测 + 颜色合成
  *   - JS 用 depthTexture 比较；本 pass 直接采样 depth attachment
@@ -40,7 +40,7 @@ import three.scene.scenegraph.*
 import three.scene.objects.*
 import three.rendering.materials.*
 import three.core.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
@@ -104,7 +104,7 @@ public class ToonOutlinePass {
     /**
      * 渲染器引用（render() 时注入）。
      */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     // ===== 全屏 quad 资源（懒创建） =====
 
@@ -173,7 +173,7 @@ public class ToonOutlinePass {
      * 确保 ToonEdge shader 已编译。
      * 对照 JS: `this._ensureShaders()`。
      */
-    private func _ensureShader(renderer: BgfxRenderer): Unit {
+    private func _ensureShader(renderer: ThreeRenderer): Unit {
         if (this._shaderCompiled) { return }
 
         // 编译 ToonEdge shader（VS + FS）
@@ -222,7 +222,7 @@ public class ToonOutlinePass {
      *
      * @param renderer 渲染器
      */
-    private func _ensureQuadResources(renderer: BgfxRenderer): Unit {
+    private func _ensureQuadResources(renderer: ThreeRenderer): Unit {
         match (this._quadVB) {
             case Some(_) => return
             case None => ()
@@ -303,7 +303,7 @@ public class ToonOutlinePass {
      * @param deltaTime 帧间隔
      */
     public func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

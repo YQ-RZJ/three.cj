@@ -13,7 +13,7 @@ package sp_objects
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -37,7 +37,7 @@ public class TestWindow <: WindowEngine {
     // 输入提供者（可插拔架构）
     var _mouse: Option<MouseProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var objs: SceneObjects = SceneObjects(
         scene: Scene(),
         camera: PerspectiveCamera(fov: 60.0, aspect: 1.0, near: 0.1, far: 100.0),
@@ -69,9 +69,11 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
@@ -79,7 +81,7 @@ public class TestWindow <: WindowEngine {
         this.renderer.setClearColor(Color(0x20, 0x20, 0x30))  // 深蓝灰背景
         // 开启 bgfx 调试文本（DEBUG_TEXT = 0x08）——画面内文本（同 geometries/sp_materials）
         this.renderer.setDebug(0x00000008)
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
 
@@ -191,7 +193,7 @@ public class TestWindow <: WindowEngine {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")
     }

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] PostProcessingShaders 后处理内部 shader 注册模块
  * @brief[zh-cn] 后处理 pass 专用 shader 的注册表
  * @explain[zh-cn] 设计动机（架构修正）：
@@ -9,10 +31,10 @@
  *         迁移清单（14 个，从 ShaderLibs 移出）：
  *         - copy        → SavePass/TexturePass/ShaderPass 共用（CopyShader）
  *         - output      → OutputPass 专用（OutputShader，7 种 ToneMapping + sRGB）
- *         - bloom_*     → BgfxUnrealBloomPass 专用（luminosity/blur/composite/blend）
+ *         - bloom_*     → UnrealBloomPass 专用（luminosity/blur/composite/blend）
  *         - fxaa        → FXAAPass 专用（NVIDIA FXAA 3.11）
  *         - smaa*       → SMAAPass 专用（Edges/Weights/Blend 三遍）
- *         - ssao/ssaoblur/ssaodepth/ssaoapply → BgfxSSAOPass 专用
+ *         - ssao/ssaoblur/ssaodepth/ssaoapply → SSAOPass 专用
  *         保留在 ShaderLibs 的：
  *         - normal：SSAO 法线 pass 借用，但本质是渲染管线通用 shader（meshnormal 材质用）
  *         - shadowblit：阴影 debug blit（渲染管线）
@@ -30,10 +52,10 @@
  *         Migration list (14, moved out of ShaderLibs):
  *         - copy        → shared by SavePass/TexturePass/ShaderPass (CopyShader)
  *         - output      → OutputPass only (OutputShader, 7 ToneMapping + sRGB)
- *         - bloom_*     → BgfxUnrealBloomPass only (luminosity/blur/composite/blend)
+ *         - bloom_*     → UnrealBloomPass only (luminosity/blur/composite/blend)
  *         - fxaa        → FXAAPass only (NVIDIA FXAA 3.11)
  *         - smaa*       → SMAAPass only (Edges/Weights/Blend three passes)
- *         - ssao/ssaoblur/ssaodepth/ssaoapply → BgfxSSAOPass only
+ *         - ssao/ssaoblur/ssaodepth/ssaoapply → SSAOPass only
  *         Remaining in ShaderLibs:
  *         - normal: borrowed by the SSAO normal pass, but essentially a general render-pipeline shader (used by meshnormal materials)
  *         - shadowblit: shadow debug blit (render pipeline)
@@ -175,7 +197,7 @@ void main()
 """
 
 /**
- * Bloom 亮度提取 FS（BgfxUnrealBloomPass 专用，LuminosityHighPassShader）。
+ * Bloom 亮度提取 FS（UnrealBloomPass 专用，LuminosityHighPassShader）。
  * uniforms: bloomDiffuse(sampler0), bloomParams(vec4: x=threshold, y=smoothWidth, z=strength)
  */
 let BLOOM_LUM_FS = """
@@ -201,7 +223,7 @@ void main()
 """
 
 /**
- * Bloom 可分离高斯模糊 FS（BgfxUnrealBloomPass 专用，_getSeparableBlurMaterial）。
+ * Bloom 可分离高斯模糊 FS（UnrealBloomPass 专用，_getSeparableBlurMaterial）。
  * 编译时经 compileBgfxWithDefines 传 KERNEL_RADIUS={6,10,14,18,22}，shader 内宏展开数组大小与循环。
  * uniforms: bloomColorTexture(sampler0), bloomInvSize(vec4: 1/w,1/h),
  *           bloomDirection(vec4: (1,0)水平 / (0,1)垂直), bloomGaussCoefs(vec4 数组 KERNEL_RADIUS)
@@ -232,7 +254,7 @@ void main()
 """
 
 /**
- * Bloom 5 级金字塔加权混合 FS（BgfxUnrealBloomPass 专用，_getCompositeMaterial）。
+ * Bloom 5 级金字塔加权混合 FS（UnrealBloomPass 专用，_getCompositeMaterial）。
  * uniforms: bloomBlur1..5(sampler0-4), bloomStrength, bloomRadius, bloomFactors(vec4 数组 5：各级权重 x)
  */
 let BLOOM_COMPOSITE_FS = """
@@ -269,7 +291,7 @@ void main()
 """
 
 /**
- * Bloom 加性叠加 FS（BgfxUnrealBloomPass 专用，CopyShader + AdditiveBlending）。
+ * Bloom 加性叠加 FS（UnrealBloomPass 专用，CopyShader + AdditiveBlending）。
  * uniforms: bloomTexture(sampler0 = composite 结果), bloomScene(sampler1 = readBuffer 场景)
  */
 let BLOOM_BLEND_FS = """
@@ -289,7 +311,7 @@ void main()
 """
 
 /**
- * BloomPass（简单版）卷积 VS（BgfxBloomPass 专用，ConvolutionShader）。
+ * BloomPass（简单版）卷积 VS（BloomPass 专用，ConvolutionShader）。
  *
  * bgfx 差异：
  *   - VS 在 vUv 基础上整体偏移 (KERNEL_SIZE_FLOAT-1)/2 × uImageIncrement，
@@ -314,7 +336,7 @@ void main()
 """
 
 /**
- * BloomPass（简单版）卷积 FS（BgfxBloomPass 专用，ConvolutionShader）。
+ * BloomPass（简单版）卷积 FS（BloomPass 专用，ConvolutionShader）。
  *
  * bgfx 差异：
  *   - cKernel 是 float 数组；bgfx uniform 数组按 vec4 对齐，cKernel[i] 用 vec4（x=系数，yzw=padding）。
@@ -342,7 +364,7 @@ void main()
 """
 
 /**
- * BloomPass（简单版）合成 FS（BgfxBloomPass 专用，CombineShader + AdditiveBlending）。
+ * BloomPass（简单版）合成 FS（BloomPass 专用，CombineShader + AdditiveBlending）。
  *
  * bgfx 差异：
  *   - CombineShader 只采样 tDiffuse（模糊结果），靠 AdditiveBlending 叠加到 readBuffer 既有内容；
@@ -377,7 +399,7 @@ void main()
  * bgfx 差异：
  *   - shader 用 texture2D（GLSL ES），bgfx .sc 同样用 texture2D（shaderc 跨平台兼容）
  *   - uniform damp 是 float；bgfx uniform 最小单位 vec4，故用 u_damp(vec4: x=damp)
- *   - tOld/tNew 是 sampler2D；bgfx 用 SAMPLER2D 宏声明（stage 由 BgfxSamplerStages 注入）
+ *   - tOld/tNew 是 sampler2D；bgfx 用 SAMPLER2D 宏声明（stage 由 SamplerStages 注入）
  *     本 shader 按固定 stage 0=tOld、1=tNew 绑定（AfterimagePass.render 内 bindTexture）
  */
 let AFTERIMAGE_FS = """
@@ -1380,7 +1402,7 @@ void main() {
 """
 
 /**
- * SSAO 全屏四边形 varying def（BgfxSSAOPass 专用，等价 shadowblit 的 a_position + a_texcoord0 → v_blitUV）。
+ * SSAO 全屏四边形 varying def（SSAOPass 专用，等价 shadowblit 的 a_position + a_texcoord0 → v_blitUV）。
  */
 let SSAO_VARYING_DEF = """
 vec3 a_position  : POSITION;
@@ -1389,7 +1411,7 @@ vec2 v_blitUV    : TEXCOORD1 = vec2(0.0, 0.0);
 """
 
 /**
- * SSAO 全屏四边形 VS（BgfxSSAOPass 专用，等价 shadowblitVS）。
+ * SSAO 全屏四边形 VS（SSAOPass 专用，等价 shadowblitVS）。
  */
 let SSAO_VS = """
 $input a_position
@@ -1406,7 +1428,7 @@ void main()
 """
 
 /**
- * SSAO 计算 FS（BgfxSSAOPass 专用，SSAOShader，KERNEL_SIZE=32, PERSPECTIVE_CAMERA=1）。
+ * SSAO 计算 FS（SSAOPass 专用，SSAOShader，KERNEL_SIZE=32, PERSPECTIVE_CAMERA=1）。
  * uniforms: tNormal(sampler0), tDepth(sampler1), tNoise(sampler2),
  *           u_kernel(vec4 数组 32), u_resolution, u_cameraNearFar,
  *           u_projMatrix, u_invProjMatrix, u_ssaoParams(x=kernelRadius, y=minDistance, z=maxDistance)
@@ -1492,7 +1514,7 @@ void main()
 """
 
 /**
- * SSAO 5x5 平均模糊 FS（BgfxSSAOPass 专用，SSAOBlurShader）。
+ * SSAO 5x5 平均模糊 FS（SSAOPass 专用，SSAOBlurShader）。
  * uniforms: tDiffuse(sampler0), u_resolution(vec4: xy = 1/w, 1/h)
  */
 let SSAO_BLUR_FS = """
@@ -1518,7 +1540,7 @@ void main()
 """
 
 /**
- * SSAO 深度 pass varying def（BgfxSSAOPass 专用，a_position + dummy v_ndcDummy）。
+ * SSAO 深度 pass varying def（SSAOPass 专用，a_position + dummy v_ndcDummy）。
  * 同 AO_DEPTH_VARYING_DEF：修复"零输入 varying 像素着色器"触发 D3DCompiler 硬崩的边缘 bug。
  */
 let SSAO_DEPTH_VARYING_DEF = """
@@ -1527,7 +1549,7 @@ vec2 v_ndcDummy : TEXCOORD0 = vec2(0.0, 0.0);
 """
 
 /**
- * SSAO 深度 pass VS（BgfxSSAOPass 专用，场景 → 深度 RT）。
+ * SSAO 深度 pass VS（SSAOPass 专用，场景 → 深度 RT）。
  * uniforms: u_model[0]（模型矩阵）, u_viewProj（视图投影矩阵）
  */
 let SSAO_DEPTH_VS = """
@@ -1546,7 +1568,7 @@ void main()
 """
 
 /**
- * SSAO 深度 pass FS（BgfxSSAOPass 专用，渲 viewZToOrthographicDepth 线性深度 [0,1]）。
+ * SSAO 深度 pass FS（SSAOPass 专用，渲 viewZToOrthographicDepth 线性深度 [0,1]）。
  * uniforms: u_cameraNearFar(vec4: x=near, y=far)
  */
 let SSAO_DEPTH_FS = """
@@ -1571,7 +1593,7 @@ void main()
 """
 
 /**
- * SSAO 遮蔽应用 FS（BgfxSSAOPass 专用，对应 SSAOPass 输出阶段）。
+ * SSAO 遮蔽应用 FS（SSAOPass 专用，对应 SSAOPass 输出阶段）。
  * uniforms: tDiffuse(sceneColor, sampler0), tAO(blur 遮蔽图, sampler1)
  * 输出 sceneColor × ao（遮蔽变暗）。
  */
@@ -1648,7 +1670,7 @@ void main()
 """
 
 /**
- * GTAO 主计算 FS（BgfxGTAOPass 专用，GTAOShader）。
+ * GTAO 主计算 FS（GTAOPass 专用，GTAOShader）。
  *
  * 移植要点（bgfx 差异）：
  *   - SAMPLES=16 → DIRECTIONS=3 / STEPS=6 编译期常量（#define 硬编码）
@@ -1791,7 +1813,7 @@ void main()
 """
 
 /**
- * GTAO 深度可视化 FS（BgfxGTAOPass 专用，GTAODepthShader）。
+ * GTAO 深度可视化 FS（GTAOPass 专用，GTAODepthShader）。
  * 输出 1.0 - 线性深度（far→黑, near→白），用于 OUTPUT.Depth 调试视图。
  * uniforms: tDepth(0), u_cameraNearFar(vec4: x=near, y=far)
  */
@@ -1819,7 +1841,7 @@ void main()
 """
 
 /**
- * GTAO 混合 FS（BgfxGTAOPass 专用，GTAOBlendShader）。
+ * GTAO 混合 FS（GTAOPass 专用，GTAOBlendShader）。
  * 输出 mix(1.0, tDiffuse.rgb, intensity)，配合 Default 输出模式将 AO 应用到场景。
  * uniforms: tDiffuse(0, pd RT), u_intensity(vec4: x=blendIntensity)
  */
@@ -1840,7 +1862,7 @@ void main()
 """
 
 /**
- * PoissonDenoise FS（BgfxGTAOPass 专用，PoissonDenoiseShader）。
+ * PoissonDenoise FS（GTAOPass 专用，PoissonDenoiseShader）。
  *
  * 移植要点（bgfx 差异）：
  *   - SAMPLE_VECTORS（编译期常量数组）→ uniform vec4 数组 u_poissonDisk[16]（CPU 端生成采样点）
@@ -1946,7 +1968,7 @@ void main()
 """
 
 /**
- * GTAO 遮蔽应用 FS（BgfxGTAOPass 专用，对应 GTAOPass 输出阶段的
+ * GTAO 遮蔽应用 FS（GTAOPass 专用，对应 GTAOPass 输出阶段的
  * CopyShader + GTAOBlendShader（CustomBlending）两步 → 合并为一步：
  * 输出 sceneColor × mix(1.0, ao, intensity)。
  * uniforms: tDiffuse(sceneColor, sampler0=readBuffer), tAO(ao 图, sampler1=pd RT),
@@ -3581,7 +3603,7 @@ public class PostProcessingShaders {
 
     /**
      * 注册全部后处理 shader（copy/output/bloom/fxaa/smaa/ssao 系列）。
-     * 由 BgfxRenderer 初始化或各 pass 首次使用时调用（幂等）。
+     * 由 ThreeRenderer 初始化或各 pass 首次使用时调用（幂等）。
      */
     public static func initialize(): Unit {
         if (programs.size > 0) {
@@ -3594,7 +3616,7 @@ public class PostProcessingShaders {
         // cube_tex：CubeTexturePass 专用（真正采样 textureCube 的天空盒 shader，
         // 替代 ShaderLibs 中 basic 占位的 "cube"）
         programs.add("cube_tex", ShaderProgram("cube_tex", CUBE_TEX_VS, CUBE_TEX_FS, varyingDef: CUBE_TEX_VARYING_DEF))
-        // bloom：BgfxUnrealBloomPass 专用（LuminosityHighPassShader + UnrealBloomPass）
+        // bloom：UnrealBloomPass 专用（LuminosityHighPassShader + UnrealBloomPass）
         programs.add("bloom_luminosity", ShaderProgram("bloom_luminosity", POST_BLIT_VS, BLOOM_LUM_FS, varyingDef: POST_BLIT_VARYING_DEF))
         // bloom_blur 按 KERNEL_RADIUS 注册 5 个独立变体（6/10/14/18/22），
         // 每级 mip 用自己编译的 program —— 避免共享单例只编译首个 radius 导致各级模糊半径失效。
@@ -3605,7 +3627,7 @@ public class PostProcessingShaders {
         programs.add("bloom_blur_k22", ShaderProgram("bloom_blur_k22", POST_BLIT_VS, BLOOM_BLUR_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("bloom_composite", ShaderProgram("bloom_composite", POST_BLIT_VS, BLOOM_COMPOSITE_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("bloom_blend", ShaderProgram("bloom_blend", POST_BLIT_VS, BLOOM_BLEND_FS, varyingDef: POST_BLIT_VARYING_DEF))
-        // bloom 简单版（BgfxBloomPass 专用，BloomPass：ConvolutionShader + CombineShader）：
+        // bloom 简单版（BloomPass 专用，BloomPass：ConvolutionShader + CombineShader）：
         //   - bloom_conv：卷积模糊，编译时经 compileBgfxWithDefines 传 KERNEL_SIZE_FLOAT/KERNEL_SIZE_INT
         //   - bloom_combine：scene + strength × blur 合成（bgfx 无全局混合状态，shader 内相加替代 AdditiveBlending）
         programs.add("bloom_conv", ShaderProgram("bloom_conv", BLOOM_CONV_VS, BLOOM_CONV_FS, varyingDef: POST_BLIT_VARYING_DEF))
@@ -3616,18 +3638,18 @@ public class PostProcessingShaders {
         programs.add("smaaEdges", ShaderProgram("smaaEdges", POST_BLIT_VS, SMAA_EDGES_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("smaaWeights", ShaderProgram("smaaWeights", POST_BLIT_VS, SMAA_WEIGHTS_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("smaaBlend", ShaderProgram("smaaBlend", POST_BLIT_VS, SMAA_BLEND_FS, varyingDef: POST_BLIT_VARYING_DEF))
-        // ssao：BgfxSSAOPass 专用（SSAOShader/SSAOBlurShader/SSAODepthShader）
+        // ssao：SSAOPass 专用（SSAOShader/SSAOBlurShader/SSAODepthShader）
         programs.add("ssao", ShaderProgram("ssao", SSAO_VS, SSAO_FS, varyingDef: SSAO_VARYING_DEF))
         programs.add("ssaoblur", ShaderProgram("ssaoblur", SSAO_VS, SSAO_BLUR_FS, varyingDef: SSAO_VARYING_DEF))
         programs.add("ssaodepth", ShaderProgram("ssaodepth", SSAO_DEPTH_VS, SSAO_DEPTH_FS, varyingDef: SSAO_DEPTH_VARYING_DEF))
         programs.add("ssaoapply", ShaderProgram("ssaoapply", SSAO_VS, SSAO_APPLY_FS, varyingDef: SSAO_VARYING_DEF))
-        // sao：BgfxSAOPass 专用（SAOShader + DepthLimitedBlurShader + 应用）
+        // sao：SAOPass 专用（SAOShader + DepthLimitedBlurShader + 应用）
         programs.add("sao", ShaderProgram("sao", SAO_VS, SAO_FS, varyingDef: SAO_VARYING_DEF))
         programs.add("saoblur", ShaderProgram("saoblur", SAO_VS, SAO_BLUR_FS, varyingDef: SAO_VARYING_DEF))
         programs.add("saoapply", ShaderProgram("saoapply", SAO_VS, SAO_APPLY_FS, varyingDef: SAO_VARYING_DEF))
-        // aodepth：BgfxGTAOPass/BgfxSAOPass 共用（写 NDC 深度到 RGBA32F）
+        // aodepth：GTAOPass/SAOPass 共用（写 NDC 深度到 RGBA32F）
         programs.add("aodepth", ShaderProgram("aodepth", AO_DEPTH_VS, AO_DEPTH_FS, varyingDef: AO_DEPTH_VARYING_DEF))
-        // gtao：BgfxGTAOPass 专用（GTAOShader/GTAODepthShader/GTAOBlendShader/PoissonDenoiseShader）
+        // gtao：GTAOPass 专用（GTAOShader/GTAODepthShader/GTAOBlendShader/PoissonDenoiseShader）
         programs.add("gtao", ShaderProgram("gtao", POST_BLIT_VS, GTAO_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("gtaodepth", ShaderProgram("gtaodepth", POST_BLIT_VS, GTAO_DEPTH_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("gtaoblend", ShaderProgram("gtaoblend", POST_BLIT_VS, GTAO_BLEND_FS, varyingDef: POST_BLIT_VARYING_DEF))
@@ -3642,7 +3664,7 @@ public class PostProcessingShaders {
         programs.add("outline_prepare_mask", ShaderProgram("outline_prepare_mask", POST_BLIT_VS, OUTLINE_PREPARE_MASK_FS, varyingDef: POST_BLIT_VARYING_DEF))
         // outline_white：渲选中物体为纯白 mask 的几何 shader（OutlinePass depth/mask pass 直接 submit 用）
         programs.add("outline_white", ShaderProgram("outline_white", OUTLINE_WHITE_VS, OUTLINE_WHITE_FS, varyingDef: OUTLINE_WHITE_VARYING_DEF))
-        // ssr：BgfxSSRPass 专用（SSRShader/SSRBlurShader/SSRDepthShader/SSRApplyShader）
+        // ssr：SSRPass 专用（SSRShader/SSRBlurShader/SSRDepthShader/SSRApplyShader）
         programs.add("ssr", ShaderProgram("ssr", POST_BLIT_VS, SSR_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("ssrblur", ShaderProgram("ssrblur", POST_BLIT_VS, SSR_BLUR_FS, varyingDef: POST_BLIT_VARYING_DEF))
         programs.add("ssrdepth", ShaderProgram("ssrdepth", POST_BLIT_VS, SSR_DEPTH_FS, varyingDef: POST_BLIT_VARYING_DEF))

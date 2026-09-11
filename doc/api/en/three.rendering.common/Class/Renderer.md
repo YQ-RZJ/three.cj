@@ -44,6 +44,16 @@ Parameter:
 |scene|Scene|Scenecamera Camera|
 |camera|Camera||
 
+### func getPixelRatio\(\)
+```cj
+public func getPixelRatio(): Float64
+```
+Get current pixel ratio
+
+Return: 
+
+- Pixel ratio
+
 ### func getRenderViewId\(\)
 ```cj
 public open func getRenderViewId(): UInt16
@@ -53,6 +63,16 @@ Get the bgfx view id used for current rendering
 Return: 
 
 - bgfx view id
+
+### func getSize\(\)
+```cj
+public func getSize():(Int64, Int64)
+```
+Get logical rendering dimensions
+
+Return: 
+
+- (logical width, logical height)
 
 ### func init\(Backend,Bool,Bool,Bool,Bool,Int64,Bool,Bool\)
 ```cj
@@ -92,6 +112,18 @@ Parameter:
 |scene|Scene|Scenecamera Camera|
 |camera|Camera||
 
+### func setPixelRatio\(Float64\)
+```cj
+public func setPixelRatio(value: Float64): Unit
+```
+Set pixel ratio
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|value|Float64|New pixel ratio (must be > 0)|
+
 ### func setSize\(Int64,Int64\)
 ```cj
 public func setSize(w: Int64, h: Int64): Unit
@@ -102,7 +134,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|w|Int64|Render widthh Render height|
+|w|Int64|Render logical widthh Render logical height|
 |h|Int64||
 
 ### var alpha
@@ -157,7 +189,7 @@ Whether depth buffer is enabled
 ```cj
 public var height: Int64 = 600
 ```
-Render height
+Render height (physical pixels / backbuffer height)
 
 ### var info
 ```cj
@@ -253,5 +285,5 @@ Tone mapping mode
 ```cj
 public var width: Int64 = 800
 ```
-Render width
+Render width (physical pixels / backbuffer width)
 

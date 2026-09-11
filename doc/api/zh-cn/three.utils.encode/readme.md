@@ -6,6 +6,7 @@
 |  名称   | 描述  |
 |  ----  | ----  |
 |[Base64](./类/Base64.md#class-base64)|Base64 编解码工具|
+|[GroupVarint](./类/GroupVarint.md#class-groupvarint)||
 |[Hash](./类/Hash.md#class-hash)|非加密哈希算法工具类|
 |[Hex](./类/Hex.md#class-hex)|Hex 十六进制编解码工具|
 |[MD5](./类/MD5.md#class-md5)|MD5 摘要算法工具类|

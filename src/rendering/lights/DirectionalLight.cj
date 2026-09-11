@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 方向光
  * @brief[zh-cn] 方向光，从特定方向平行照射场景的光源
  * @explain[zh-cn] 
@@ -36,7 +58,7 @@ import fastjson.stream.*
  * Directional light illuminates from infinity in parallel rays,
  * has a target object for controlling direction, and supports shadow mapping.
  */
-@JsonAdapter[withSuperClass = Light]
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Light]
 public class DirectionalLight <: Light {
     /**
      * @brief[zh-cn] 光源指向的目标对象
@@ -50,6 +72,7 @@ public class DirectionalLight <: Light {
      *
      * @brief[en] Shadow configuration object
      */
+    @JsonIgnore
     public var shadow: DirectionalLightShadow
 
     /**
@@ -63,7 +86,6 @@ public class DirectionalLight <: Light {
      */
     public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0) {
         super(color: color, intensity: intensity)
-        this.kind = "DirectionalLight"
         this.position.copy(Vector3(0.0, 1.0, 0.0))
         this.target = Object3D()
         this.shadow = DirectionalLightShadow()

@@ -10,7 +10,7 @@
 ### Class
 |  Name   | Describe  |
 |  ----  | ----  |
-|[BgfxSamplerStages](./Class/BgfxSamplerStages.md#class-bgfxsamplerstages)|Global sampler stage allocator|
+|[SamplerStages](./Class/SamplerStages.md#class-samplerstages)|Global sampler stage allocator|
 |[ShaderChunks](./Class/ShaderChunks.md#class-shaderchunks)|Manage registration and composition of all shader chunks|
 |[ShaderCompileJob](./Class/ShaderCompileJob.md#class-shadercompilejob)|Shader compilation job|
 |[ShaderCompiler](./Class/ShaderCompiler.md#class-shadercompiler)|Shader compiler|

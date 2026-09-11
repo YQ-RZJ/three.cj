@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 压缩纹理
  * @brief[zh-cn] 由 GPU 原生压缩格式数据构造的纹理
  * @explain[zh-cn] 压缩纹理：由 GPU 原生压缩格式（BC1/BC3/ASTC/ETC/PVRTC 等）数据构造。与 DataTexture 不同：data 已是 GPU 压缩格式，直接上传无需 CPU 解码；mipmaps 数组填充各 mipmap 层压缩数据。默认 generateMipmaps=false、flipY=false、unpackAlignment=1。

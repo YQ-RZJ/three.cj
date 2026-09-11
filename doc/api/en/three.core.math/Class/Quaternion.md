@@ -133,12 +133,6 @@ Return:
 
 - This instance
 
-### func init\(\)
-```cj
-public init()
-```
-Default constructor, initializes to identity quaternion (0,0,0,1)
-
 ### func init\(Float64,Float64,Float64,Float64\)
 ```cj
 public init(x: Float64, y: Float64, z: Float64, w: Float64)
@@ -153,6 +147,12 @@ Parameter:
 |y|Float64||
 |z|Float64||
 |w|Float64||
+
+### func init\(\)
+```cj
+public init()
+```
+Default constructor, initializes to identity quaternion (0,0,0,1)
 
 ### func invert\(\)
 ```cj

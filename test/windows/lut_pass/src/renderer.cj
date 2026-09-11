@@ -36,7 +36,7 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.utils.memory.BgfxMemory
 import three.utils.log.Logger
 import three.rendering.types.*
@@ -98,7 +98,7 @@ var g_lutTextures: ArrayList<TextureHandle> = ArrayList<TextureHandle>()
  * @param lutType LUT 类型（1=identity 2=warm 3=cool 4=contrast）
  * @return 上传后的 3D 纹理句柄
  */
-public func createLutTexture(renderer: BgfxRenderer, lutType: Int64): TextureHandle {
+public func createLutTexture(renderer: ThreeRenderer, lutType: Int64): TextureHandle {
     let size = LUT_SIZE
     let total = size * size * size * 4  // RGBA8 每 texel 4 字节
     let data = Array<UInt8>(total, { _ => 0u8 })

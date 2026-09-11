@@ -24,7 +24,7 @@ import three.window.MouseButton
 import three.rendering.geometry.*
 import three.rendering.buffer.*
 import three.rendering.cameras.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.materials.ShaderMaterial
 import three.audio.*
 import three.audio.listener.*

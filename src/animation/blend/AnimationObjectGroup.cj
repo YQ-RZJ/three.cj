@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] AnimationObjectGroup 动画对象组
  * @brief[zh-cn] 管理一组动画目标对象，允许一组对象共享同一个动画
  * @explain[zh-cn] 将多个 Object3D 对象组织为一个整体，使它们能够被同一个动画剪辑驱动。
@@ -42,30 +64,44 @@ public class AnimationObjectGroup {
     public var uuid: String
     /**
      * @brief[zh-cn] 内部对象数组（缓存对象后跟活跃对象）
+     *
+     * @brief[en] Internal object array (cached objects followed by active objects)
      */
     internal var _objects: ArrayList<Object3D>
     /**
      * @brief[zh-cn] 缓存对象数量阈值
+     *
+     * @brief[en] Cached object count threshold
      */
     internal var nCachedObjects_: Int64
     /**
      * @brief[zh-cn] 按对象 UUID 到索引的映射
+     *
+     * @brief[en] Map from object UUID to index
      */
     internal var _indicesByUUID: HashMap<String, Int64>
     /**
      * @brief[zh-cn] 已订阅的属性路径列表
+     *
+     * @brief[en] List of subscribed property paths
      */
     internal var _paths: ArrayList<String>
     /**
      * @brief[zh-cn] 已解析的属性路径列表
+     *
+     * @brief[en] List of parsed property paths
      */
     internal var _parsedPaths: ArrayList<HashMap<String, Any>>
     /**
      * @brief[zh-cn] 按路径分组的属性绑定列表
+     *
+     * @brief[en] List of property bindings grouped by path
      */
     internal var _bindings: ArrayList<ArrayList<PropertyBinding>>
     /**
      * @brief[zh-cn] 按路径到绑定列表索引的映射
+     *
+     * @brief[en] Map from path to index in the bindings list
      */
     internal var _bindingsIndicesByPath: HashMap<String, Int64>
     /**
@@ -326,6 +362,13 @@ public class AnimationObjectGroup {
      *
      * 订阅属性路径 — 返回给定路径的绑定数组
      * 由 PropertyBinding.Composite 使用
+     *
+     * @param[en] path The property path
+     * @param[en] parsedPath The parsed path
+     * @return[en] The array of bindings
+     *
+     * Subscribes to a property path — returns the binding array for the given path.
+     * Used by PropertyBinding.Composite
      */
     internal func subscribe_(path: String, parsedPath: HashMap<String, Any>): ArrayList<PropertyBinding> {
         let indicesByPath = this._bindingsIndicesByPath
@@ -361,6 +404,10 @@ public class AnimationObjectGroup {
      * @param[zh-cn] path 属性路径
      *
      * 取消订阅属性路径 — 告诉组忘记属性路径
+     *
+     * @param[en] path The property path
+     *
+     * Unsubscribes from a property path — tells the group to forget the path
      */
     internal func unsubscribe_(path: String): Unit {
         let indicesByPath = this._bindingsIndicesByPath

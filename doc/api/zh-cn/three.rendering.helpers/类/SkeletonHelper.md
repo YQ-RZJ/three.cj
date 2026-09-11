@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造骨骼辅助对象
+
 ### func init\(Object3D\)
 ```cj
 public init(object: Object3D)
 ```
-构造骨骼辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|object|Object3D|骨骼层级根对象，通常是 SkinnedMesh 或包含 Bone 的 Object3D|
+|object|Object3D||
 
 ### func setColors\(Color,Color\)
 ```cj

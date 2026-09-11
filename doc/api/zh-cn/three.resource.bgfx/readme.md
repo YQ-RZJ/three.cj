@@ -5,5 +5,5 @@
 ### 类
 |  名称   | 描述  |
 |  ----  | ----  |
-|[BgfxResourceOps](./类/BgfxResourceOps.md#class-bgfxresourceops)|bgfx 底层资源操作封装类|
+|[ResourceOps](./类/ResourceOps.md#class-resourceops)|bgfx 底层资源操作封装类|
 

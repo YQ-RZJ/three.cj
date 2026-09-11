@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Mesh
  * @brief[zh-cn] 网格渲染对象，3D 场景中最常用的三角形面片渲染实体
  * @explain[zh-cn] 网格由 BufferGeometry（顶点/索引）和 Material（着色参数）组成，
@@ -34,7 +56,7 @@ import fastjson.stream.*
  * @brief[en] Mesh rendering object, the most commonly used triangle face rendering entity in 3D scenes
  * @explain[en] Consists of BufferGeometry and Material, supporting morphTarget animation and ray intersection testing
  */
-@JsonAdapter[withSuperClass = Object3D]
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public open class Mesh <: Object3D & IMesh {
     /**
      * @brief[zh-cn] 顶点/索引几何
@@ -80,7 +102,6 @@ public open class Mesh <: Object3D & IMesh {
         super()
         this.geometry = geometry
         this.material = material
-        this.kind = "Mesh"
         this.morphTargetDictionary = HashMap<String, Int64>()
         this.morphTargetInfluences = Array<Float64>()
         this.count = 1

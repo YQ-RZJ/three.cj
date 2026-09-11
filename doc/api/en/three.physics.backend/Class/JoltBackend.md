@@ -211,6 +211,22 @@ Return:
 
 - Angular velocity (three left-handed coordinates)
 
+### func getConstraintCurrentAngle\(PhysicsConstraintHandle\)
+```cj
+public func getConstraintCurrentAngle(handle: PhysicsConstraintHandle): Float64
+```
+Gets the hinge constraint current angle (radians)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handle|
+
+Return: 
+
+- The current angle (radians); 0 for an invalid handle
+
 ### func getFriction\(PhysicsBodyHandle\)
 ```cj
 public func getFriction(handle: PhysicsBodyHandle): Float64
@@ -371,6 +387,22 @@ Return:
 
 - Rotation quaternion (three left-handed coordinates)
 
+### func getSliderCurrentPosition\(PhysicsConstraintHandle\)
+```cj
+public func getSliderCurrentPosition(handle: PhysicsConstraintHandle): Float64
+```
+Gets the slider constraint current position (meters)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handle|
+
+Return: 
+
+- The current position (meters); 0 for an invalid handle
+
 ### func init\(\)
 ```cj
 public init()
@@ -518,6 +550,76 @@ Parameter:
 |---|---|---|
 |handle|PhysicsConstraintHandle|Constraint handleenabled Whether to enable the constraint|
 |enabled|Bool||
+
+### func setConstraintLimits\(PhysicsConstraintHandle,Float64,Float64\)
+```cj
+public func setConstraintLimits(handle: PhysicsConstraintHandle, limitMin: Float64, limitMax: Float64): Unit
+```
+Updates constraint limits at runtime (Hinge/Slider, radians or meters)
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Only valid for Hinge/Slider constraints</p>
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handlelimitMin The minimum limitlimitMax The maximum limit|
+|limitMin|Float64||
+|limitMax|Float64||
+
+### func setConstraintMaxFriction\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setConstraintMaxFriction(handle: PhysicsConstraintHandle, friction: Float64): Unit
+```
+Sets the constraint max friction (torque for Hinge, force for Slider)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handlefriction The maximum friction value|
+|friction|Float64||
+
+### func setConstraintMotorState\(PhysicsConstraintHandle,PhysicsMotorState\)
+```cj
+public func setConstraintMotorState(handle: PhysicsConstraintHandle, state: PhysicsMotorState): Unit
+```
+Sets the constraint motor state (Hinge/Slider)
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Only valid for Hinge/Slider constraints; use the SixDOF-specific API for SixDOF</p>
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handlestate The motor state (Off/Velocity/Position)|
+|state|PhysicsMotorState||
+
+### func setConstraintTargetAngle\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setConstraintTargetAngle(handle: PhysicsConstraintHandle, angle: Float64): Unit
+```
+Sets the hinge constraint target angle (motor position mode, radians)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handleangle The target angle (radians)|
+|angle|Float64||
+
+### func setConstraintTargetAngularVelocity\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setConstraintTargetAngularVelocity(handle: PhysicsConstraintHandle, angularVelocity: Float64): Unit
+```
+Sets the hinge constraint target angular velocity (motor velocity mode, rad/s)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handleangularVelocity The target angular velocity (rad/s)|
+|angularVelocity|Float64||
 
 ### func setContactListener\(Option<IPhysicsSensorListener>\)
 ```cj
@@ -675,6 +777,72 @@ Parameter:
 |handle|PhysicsBodyHandle|Body handlerotation Rotation quaternion (three left-handed coordinates)activation Whether to activate the body at the same time|
 |rotation|Quaternion||
 |activation|PhysicsActivation||
+
+### func setSixDOFMotorState\(PhysicsConstraintHandle,Int64,PhysicsMotorState\)
+```cj
+public func setSixDOFMotorState(handle: PhysicsConstraintHandle, axis: Int64, state: PhysicsMotorState): Unit
+```
+Sets the motor state of one axis of a SixDOF constraint
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handleaxis The axis index (0=X translation, 1=Y, 2=Z, 3=X rotation, 4=Y, 5=Z)state The motor state|
+|axis|Int64||
+|state|PhysicsMotorState||
+
+### func setSixDOFTargetPosition\(PhysicsConstraintHandle,Vector3\)
+```cj
+public func setSixDOFTargetPosition(handle: PhysicsConstraintHandle, target: Vector3): Unit
+```
+Sets the SixDOF constraint-space target position (translation motors)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handletarget The target position in constraint space|
+|target|Vector3||
+
+### func setSixDOFTargetVelocity\(PhysicsConstraintHandle,Vector3\)
+```cj
+public func setSixDOFTargetVelocity(handle: PhysicsConstraintHandle, target: Vector3): Unit
+```
+Sets the SixDOF constraint-space target velocity (translation motors)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handletarget The target velocity in constraint space|
+|target|Vector3||
+
+### func setSliderTargetPosition\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setSliderTargetPosition(handle: PhysicsConstraintHandle, position: Float64): Unit
+```
+Sets the slider constraint target position (motor position mode, meters)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handleposition The target position (meters)|
+|position|Float64||
+
+### func setSliderTargetVelocity\(PhysicsConstraintHandle,Float64\)
+```cj
+public func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: Float64): Unit
+```
+Sets the slider constraint target velocity (motor velocity mode, m/s)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|handle|PhysicsConstraintHandle|The constraint handlevelocity The target velocity (m/s)|
+|velocity|Float64||
 
 ### func shutdown\(\)
 ```cj

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] FrameTask
  * @brief[zh-cn] 帧任务与执行上下文
  * @explain[zh-cn] FrameTask 是分帧调度的最小执行单元，包含唯一 ID、优先级（用于 BinaryHeap 排序）、执行模式（CONSUME/LOOP/ONCE）、参数队列（ICircularQueue，支持消耗与循环两种取数方式）、回调函数（接收 FrameTaskContext）和耗时统计（lastTime / EWMA 平均耗时）。HeapNode 实现：priority 越小越优先（最小堆），0 表示强制队列。设计要点：params 字段统一为 ICircularQueue 类型，确保 LOOP 模式可直接调用 next()；run(deltaTime) 返回 Bool：true 表示本帧可继续执行；false 表示停止本帧调度；ONCE 模式执行一次后自动标记 finished；耗时用 MonoTime 测量，纳秒转毫秒用 Float64 保留精度。
@@ -24,14 +46,20 @@ import three.core.interfaces.*
 public enum FrameTaskMode {
     /**
      * @brief[zh-cn] 消耗型：每次 run pop 一个参数执行，参数队列空时自动结束
+     *
+     * @brief[en] CONSUME: each run pops one parameter for execution, auto-ends when the parameter queue is empty
      */
     | CONSUME
     /**
      * @brief[zh-cn] 循环型：每次 run next() 不消耗参数，由 callback 决定何时停止本帧
+     *
+     * @brief[en] LOOP: each run calls next() without consuming parameters; the callback decides when to stop this frame
      */
     | LOOP
     /**
      * @brief[zh-cn] 一次性：执行一次 callback 后自动 unregister，不使用参数队列
+     *
+     * @brief[en] ONCE: executes the callback once then auto-unregisters; no parameter queue used
      */
     | ONCE
 }
@@ -46,18 +74,26 @@ public enum FrameTaskMode {
 public class FrameTaskContext {
     /**
      * @brief[zh-cn] 当前任务
+     *
+     * @brief[en] Current task
      */
     public let task: FrameTask
     /**
      * @brief[zh-cn] 帧间隔时间（毫秒）
+     *
+     * @brief[en] Frame interval time (milliseconds)
      */
     public let deltaTime: Float64
     /**
      * @brief[zh-cn] 执行次数计数
+     *
+     * @brief[en] Execution count
      */
     public let idx: Int64
     /**
      * @brief[zh-cn] 本次执行参数
+     *
+     * @brief[en] Parameters for this execution
      */
     public let args: Array<Any>
 
@@ -91,7 +127,7 @@ public class FrameTaskContext {
  * mode = FrameTaskMode.CONSUME,
  * priority = 1,
  * callback = { ctx =>
- * println("execute idx=${ctx.idx}, args=${ctx.args}")
+ * Logger.info(["FrameTask", "execute idx=${ctx.idx}, args=${ctx.args}"])
  * return true  // 继续执行
  * },
  * params = CircularQueue<Array<Any>>()
@@ -105,51 +141,75 @@ public class FrameTaskContext {
 public class FrameTask <: HeapNode {
     /**
      * @brief[zh-cn] 唯一 ID（由调度器分配，调用方不应直接修改）
+     *
+     * @brief[en] Unique ID (assigned by the dispatcher; callers should not modify it directly)
      */
     public var id: Int64
     /**
      * @brief[zh-cn] 任务模式
+     *
+     * @brief[en] Task mode
      */
     public let mode: FrameTaskMode
     /**
      * @brief[zh-cn] 优先级，0=强制队列；>0 进入 BinaryHeap 优先级队列，值越小优先级越高
+     *
+     * @brief[en] Priority: 0=forced queue; >0 enters the BinaryHeap priority queue, lower value means higher priority
      */
     public var priority: Int64
     /**
      * @brief[zh-cn] 是否暂停（暂停时不参与调度，但保留状态）
+     *
+     * @brief[en] Whether paused (paused tasks are excluded from scheduling but keep their state)
      */
     public var paused: Bool
     /**
      * @brief[zh-cn] 共享值，可在多个 callback 之间共享数据
+     *
+     * @brief[en] Shared value, can share data among multiple callbacks
      */
     public var shareValue: ?Any
     /**
      * @brief[zh-cn] 回调函数，返回 true 表示本帧继续；false 表示本帧停止
+     *
+     * @brief[en] Callback function: returning true means continue this frame; false means stop this frame
      */
     public let callback: (FrameTaskContext) -> Bool
     /**
      * @brief[zh-cn] 参数队列
+     *
+     * @brief[en] Parameter queue
      */
     public let params: ICircularQueue<Array<Any>>
 
     /**
      * @brief[zh-cn] 执行次数计数
+     *
+     * @brief[en] Execution count
      */
     private var _idx: Int64
     /**
      * @brief[zh-cn] 最近一次执行耗时（毫秒）
+     *
+     * @brief[en] Time consumed by the most recent execution (milliseconds)
      */
     private var _lastTime: Float64
     /**
      * @brief[zh-cn] EWMA 平均耗时（毫秒）
+     *
+     * @brief[en] EWMA average execution time (milliseconds)
      */
     private var _avgTime: Float64
     /**
      * @brief[zh-cn] 是否已完成（参数空或 ONCE 执行完）
+     *
+     * @brief[en] Whether finished (parameters empty or ONCE executed once)
      */
     private var _finished: Bool
     /**
      * @brief[zh-cn] 在 BinaryHeap 中的索引，-1 表示不在堆中
+     *
+     * @brief[en] Index in the BinaryHeap, -1 means not in the heap
      */
     private var _index: Int64
 
@@ -196,6 +256,8 @@ public class FrameTask <: HeapNode {
 
     /**
      * @brief[zh-cn] 在堆中的索引（-1 表示不在堆中）
+     *
+     * @brief[en] Index in the heap (-1 means not in the heap)
      */
     public mut prop index: Int64 {
         get() { _index }
@@ -227,6 +289,8 @@ public class FrameTask <: HeapNode {
 
     /**
      * @brief[zh-cn] 是否已完成
+     *
+     * @brief[en] Whether the task is finished
      */
     public prop finished: Bool {
         get() { _finished }
@@ -234,6 +298,8 @@ public class FrameTask <: HeapNode {
 
     /**
      * @brief[zh-cn] 最近一次执行耗时（毫秒）
+     *
+     * @brief[en] Time consumed by the most recent execution (milliseconds)
      */
     public prop lastTimeConsume: Float64 {
         get() { _lastTime }
@@ -241,6 +307,8 @@ public class FrameTask <: HeapNode {
 
     /**
      * @brief[zh-cn] EWMA 平均耗时（毫秒），用于调度器预算判断
+     *
+     * @brief[en] EWMA average execution time (milliseconds), used for the dispatcher's budget check
      */
     public prop averageTimeConsume: Float64 {
         get() { _avgTime }
@@ -248,6 +316,8 @@ public class FrameTask <: HeapNode {
 
     /**
      * @brief[zh-cn] 执行次数计数
+     *
+     * @brief[en] Execution count
      */
     public prop executionCount: Int64 {
         get() { _idx }

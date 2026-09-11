@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BokehPass 景深（Depth of Field）后处理 pass
  * @brief[zh-cn] 景深（DOF）后处理 pass —— 带散景（bokeh）的镜头模糊
  * @explain[zh-cn] 算法（完整非简化移植）：
@@ -74,7 +96,7 @@
 
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.common.RenderObject
@@ -183,7 +205,7 @@ public class BokehPass <: Pass {
     private var _layoutHandleCache: Option<VertexLayoutHandle> = None
 
     /** 渲染器引用（render() 时缓存，setSize/dispose 销毁 GPU 资源时经其高阶 API 序列化） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 构造 BokehPass。
@@ -241,7 +263,7 @@ public class BokehPass <: Pass {
      * 创建深度 RT（RGBA16F + D24 depth attachment）。
      * 配置：RGBA16F + MIN_POINT|MAG_POINT（最近邻采样，避免深度插值）。
      */
-    private func _ensureRTs(renderer: BgfxRenderer): Unit {
+    private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
         if (isValidHandle(this._depthTex)) { return }
 
@@ -264,7 +286,7 @@ public class BokehPass <: Pass {
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(renderer: BgfxRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(renderer: ThreeRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = renderer.createFrameBuffer(2u8, handles, true)
         return fb
@@ -289,7 +311,7 @@ public class BokehPass <: Pass {
 
     // ===== 场景几何体缓存（对齐 SSRPass/_renderDepth 范式） =====
 
-    private func _getOrCreateLayout(renderer: BgfxRenderer): VertexLayoutHandle {
+    private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
         match (this._layoutHandleCache) {
             case Some(lh) => return lh
             case None => ()
@@ -336,7 +358,7 @@ public class BokehPass <: Pass {
         return list.toArray()
     }
 
-    private func _createVB(renderer: BgfxRenderer, geom: BufferGeometry): VertexBufferHandle {
+    private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._vbCache.get(geomId)) {
             case Some(vb) => return vb
@@ -392,7 +414,7 @@ public class BokehPass <: Pass {
         }
     }
 
-    private func _createIB(renderer: BgfxRenderer, geom: BufferGeometry): IndexBufferHandle {
+    private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._ibCache.get(geomId)) {
             case Some(ib) => return ib
@@ -430,7 +452,7 @@ public class BokehPass <: Pass {
     }
 
     /** 设置 view transform（view=matrixWorldInverse, proj=projectionMatrix，对齐 SSRPass） */
-    private func _setViewTransformFor(renderer: BgfxRenderer, viewId: UInt16, camera: Camera): Unit {
+    private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
         let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
         let viewMem = BgfxMemory(64u32)
@@ -488,7 +510,7 @@ public class BokehPass <: Pass {
      * 设置单个 vec4 uniform（x=value, y/z/w=0）。辅助方法，简化 6 个 uniforms 的设置。
      */
     private func setUniformVec4(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         uniforms: BgfxUniforms,
         name: String,
         value: Float64
@@ -515,7 +537,7 @@ public class BokehPass <: Pass {
      * @param deltaTime 帧间隔（秒）
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -564,7 +586,7 @@ public class BokehPass <: Pass {
      * overrideMaterial=深度材质，clear 为白色（ABGR=0xFFFFFFFF → RGBA=(1,1,1,1) → unpack 深度=1.0=far）：
      * 背景无片元时保持 far，bokeh shader 用深度 1.0 → viewZ=far → factor=focus-far → 背景全糊。
      */
-    private func _renderDepth(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderDepth(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._depthFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -612,7 +634,7 @@ public class BokehPass <: Pass {
      * nearClip/farClip 每帧从相机同步。
      */
     private func _renderBokeh(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         camera: Camera,
         readBuffer: FrameBufferHandle,
         writeBuffer: FrameBufferHandle,

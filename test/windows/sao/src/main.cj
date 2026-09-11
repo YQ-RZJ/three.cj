@@ -12,7 +12,7 @@ package sp_sao
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.KeyCode
 import three.window.KeyboardProvider
@@ -23,7 +23,7 @@ import three.utils.log.Logger
 import three.utils.log.LogLevel
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxSAOPass
+import three.rendering.postprocessing.SAOPass
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -34,9 +34,9 @@ public class TestWindow <: WindowEngine {
     // 输入提供者（可插拔架构）
     var _kb: Option<KeyboardProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var composer: EffectComposer
-    var saoPass: BgfxSAOPass
+    var saoPass: SAOPass
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 65.0, aspect: 1.0, near: 3.0, far: 10.0)
     var group: Group = Group()
@@ -47,7 +47,7 @@ public class TestWindow <: WindowEngine {
     /// 构造：创建 EffectComposer 与默认 BgfxSAOPass（仅占位，onInit 里用真实场景重建）
     public init() {
         this.composer = EffectComposer(this.renderer)
-        this.saoPass = BgfxSAOPass(this.scene, this.camera)
+        this.saoPass = SAOPass(this.scene, this.camera)
     }
 
     // ===== 生命周期：窗口创建后（初始化渲染器/场景/合成器） =====
@@ -59,15 +59,17 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x30, 0x30, 0x60))  // 灰蓝色背景
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
 
@@ -84,10 +86,10 @@ public class TestWindow <: WindowEngine {
         //   composer.addPass(saoPass)
         //   composer.render()
         this.composer.addPass(RenderPass(this.scene, this.camera))
-        this.saoPass = BgfxSAOPass(this.scene, this.camera)
-        // 参数：官方未显式修改 params（构造函数默认值）→ BgfxSAOPass 默认值即官方默认
+        this.saoPass = SAOPass(this.scene, this.camera)
+        // 参数：官方未显式修改 params（构造函数默认值）→ SAOPass 默认值即官方默认
         //   output=Default(0)：AO 混合到场景；调试可用 SAO=1/Normal=2
-        this.saoPass.output = BgfxSAOPass.OUTPUT_DEFAULT
+        this.saoPass.output = SAOPass.OUTPUT_DEFAULT
         this.composer.addPass(this.saoPass)
         this.composer.setSize(Int64(w), Int64(h))
 
@@ -150,7 +152,7 @@ public class TestWindow <: WindowEngine {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")
     }

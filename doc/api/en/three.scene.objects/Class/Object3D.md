@@ -655,17 +655,11 @@ public var frustumCulled: Bool
 ```cj
 public var id: Int64
 ```
-
+kind 由
 
 ### var isStatic
 ```cj
 public var isStatic: Bool
-```
-
-
-### var kind
-```cj
-public var kind: String
 ```
 
 

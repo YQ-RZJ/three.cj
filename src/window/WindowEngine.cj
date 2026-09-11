@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] WindowEngine 窗口引擎 v2：全局事件分发器 + 每窗口独立事件队列 + 生命周期回调
  * @brief[zh-cn] 窗口引擎 v2：全局事件分发器 + 每窗口独立事件队列 + 生命周期回调（对齐 RGF 窗口模式）
  * @explain[zh-cn] 线程模型（v2，重写自 v1 的"单 SThread + _execWindow 序列化 + 互斥锁输入状态"）：
@@ -8,7 +30,7 @@
  * - 因此 v2 采用混合线程架构："SDL 主线程 API 全程固定一个 SThread；纯逻辑用 spawn"：
  * * SDLDispatcher（全局单例）：持有一个固定 SThread（系统线程）承载全部 SDL 调用——
  * SDL_Init / SDL_PollEvent 事件泵（本线程即"初始化线程"）、窗口创建/销毁/窗口操作
- * 命令（外部经 execSDL() 同步提交，对齐 BgfxRenderer._execBgfx 模式）；
+ * 命令（外部经 execSDL() 同步提交，对齐 ThreeRenderer._execBgfx 模式）；
  * 事件按 windowID 推入各窗口独立事件队列，多窗口互不抢占；
  * * 每个 WindowEngine 实例（窗口类）启动一个 spawn 用户态线程泵：从自己的队列取事件 →
  * 构建本循环固定快照（InputSnapshot）→ 调用生命周期回调（onFrame 读快照）→ 循环末重置；
@@ -19,9 +41,9 @@
  * onInit() → 循环 { onFrame(dt) } → onClose() → onDestroy()
  * 典型用法（继承覆写，RGF 模式）：
  * class MyWindow <: WindowEngine {
- * var renderer: BgfxRenderer
+ * var renderer: ThreeRenderer
  * override func onInit() {
- * renderer = BgfxRenderer()
+ * renderer = ThreeRenderer()
  * renderer.initBgfx(this.getNativeWindowHandle(), this.getWidth(), this.getHeight())
  * }
  * override func onFrame(dt: Float64) {
@@ -41,13 +63,13 @@
  * - 本循环内任何时刻读取一致（读快照，不再有读后清 / beginFrame 清 / 互斥锁）；
  * - 边沿状态（pressed/released）与位移/滚轮累积在循环末自动重置。
  * 跨平台原生窗口句柄：通过 SDL 窗口属性（SDL_PROP_WINDOW_*）获取，
- * 供渲染引擎（BgfxRenderer.initBgfx(hwnd, w, h)）绑定窗口。
+ * 供渲染引擎（ThreeRenderer.initBgfx(hwnd, w, h)）绑定窗口。
  * . Each loop uses a fixed event snapshot: reads are consistent at any
  * moment within a frame (no read-then-clear / beginFrame-clear / mutex), and edge
  * states (pressed/released) plus motion/wheel deltas reset automatically at loop end.
  * The cross-platform native window handle is obtained via SDL window properties
  * (SDL_PROP_WINDOW_*), for binding the window to a renderer
- * (BgfxRenderer.initBgfx(hwnd, w, h)).
+ * (ThreeRenderer.initBgfx(hwnd, w, h)).
  *
  * @file[en] WindowEngine  Window engine v2: global event dispatcher + per-window independent event queues + lifecycle callbacks
  * @brief[en] Window engine v2: a global event dispatcher, per-window event queues and
@@ -63,7 +85,7 @@
  * * SDLDispatcher (global singleton) hosts all SDL calls on one fixed SThread
  * (system thread): SDL_Init, the SDL_PollEvent pump (this thread is the
  * "initialization thread"), and window create/destroy/operation commands
- * submitted synchronously via execSDL() (mirroring BgfxRenderer._execBgfx);
+ * submitted synchronously via execSDL() (mirroring ThreeRenderer._execBgfx);
  * events are pushed into each window's own queue by windowID.
  * * Each WindowEngine (window class) starts a spawned user-space pump thread that
  * drains its own queue, builds a fixed per-frame InputSnapshot, invokes lifecycle
@@ -121,12 +143,15 @@ public struct DispatchEvent {
     var b1: Bool = false
     /// 通用布尔 2（键盘=repeat）
     var b2: Bool = false
+    /// 文本输入内容（SDL_EVENT_TEXT_INPUT，UTF-8）
+    var text: String = ""
 
     /// 构造分发事件（各字段按事件类型复用，未用字段保持默认值）。
     internal init(`type`!: UInt32, windowID!: UInt32,
                   f1!: Float32 = 0.0, f2!: Float32 = 0.0,
                   f3!: Float32 = 0.0, f4!: Float32 = 0.0, f5!: Float32 = 0.0,
-                  b1!: Bool = false, b2!: Bool = false) {
+                  b1!: Bool = false, b2!: Bool = false,
+                  text!: String = "") {
         this.`type` = `type`
         this.windowID = windowID
         this.f1 = f1
@@ -136,6 +161,7 @@ public struct DispatchEvent {
         this.f5 = f5
         this.b1 = b1
         this.b2 = b2
+        this.text = text
     }
 }
 
@@ -148,7 +174,7 @@ public struct DispatchEvent {
  * @explain[zh-cn] 职责：持有全局唯一的 SDL 事件泵（SDL_PollEvent），将每个事件按 windowID
  * 推入对应 WindowEngine 的独立事件队列。多窗口共享此分发器，事件互不抢占
  * （各窗口泵只读自己的队列）。
- * 线程模型（对齐 BgfxRenderer._execBgfx）：
+ * 线程模型（对齐 ThreeRenderer._execBgfx）：
  * - SDL3 要求 SDL_PollEvent/窗口创建/销毁/窗口操作只能在"初始化 video 子系统
  * 的线程"调用；而仓颉用户态线程（spawn，M:N）可能在系统线程间迁移，不能承载
  * 这些 API。故本类持有一个固定 SThread（系统线程）承载全部 SDL 调用：
@@ -158,14 +184,38 @@ public struct DispatchEvent {
  * 不直接调用任何 SDL 窗口 API（需要时经 execSDL 转发）。
  * 生命周期：首个窗口启动时 ensureStarted()（内部 SDL_Init），末个窗口注销时停止
  * （内部 SDL_Quit）。引用计数保护。
+ *
+ * @brief[en] Global event dispatcher
+ * @explain[en] Responsibility: owns the single global SDL event pump (SDL_PollEvent) and pushes
+ * each event, by windowID, into the corresponding WindowEngine's independent event queue.
+ * Multiple windows share this dispatcher and events never preempt each other
+ * (each window pump only reads its own queue).
+ * Threading model (aligned with ThreeRenderer._execBgfx):
+ * - SDL3 requires SDL_PollEvent / window create, destroy and window operations to be called
+ * on the thread that initialized the video subsystem, while Cangjie user-space threads
+ * (spawn, M:N) may migrate across system threads and cannot host these APIs. Therefore this
+ * class holds one fixed SThread (system thread) that carries all SDL calls:
+ * * the SDL_Init / SDL_PollEvent event pump (this thread is the "initialization thread");
+ * * window create/destroy/operation commands, submitted externally via execSDL() and
+ * executed synchronously on this thread;
+ * - Each per-window pump thread (spawn user-space thread) only reads its own event queue,
+ * builds a snapshot and calls onFrame; it never calls SDL window APIs directly
+ * (forwarded through execSDL when needed).
+ * Lifecycle: ensureStarted() on the first window (internally SDL_Init), stopped when the
+ * last window unregisters (internally SDL_Quit). Protected by reference counting.
  */
 internal class SDLDispatcher {
     /// 窗口注册表：windowID → 事件队列
     private static let _registry = ConcurrentHashMap<UInt32, ConcurrentLinkedQueue<DispatchEvent>>()
     /// 引用计数（已注册窗口数）
     private static let _refCount = AtomicInt64(0)
+    /// 缓存：SDL 线程分发事件时直接用此引用，避免在 SDL 外来线程上
+    /// 调 ConcurrentHashMap.get（该调用会触发 GetOrCreateTypeInfo，
+    /// 在外来线程上与 GC/主线程竞争导致 GenericTiDesc 崩溃）。
+    private static var _cachedQueue: Option<ConcurrentLinkedQueue<DispatchEvent>> = None
+    private static var _cachedWindowID: UInt32 = 0
 
-    // ===== SDL 系统线程同步原语（对齐 BgfxRenderer._execBgfx） =====
+    // ===== SDL 系统线程同步原语（对齐 ThreeRenderer._execBgfx） =====
     // 使用 three.core.thread 的系统级 Mutex/Condition（基于 sdl4cj，而非 std.sync），
     // 因为需要跨用户态（spawn 泵）与系统线程（SDL SThread）同步。
     private static let _sdlMtx = Mutex()
@@ -206,7 +256,7 @@ internal class SDLDispatcher {
     }
 
     /**
-     * 提交命令到 SDL 系统线程同步执行（对齐 BgfxRenderer._execBgfx）。
+     * 提交命令到 SDL 系统线程同步执行（对齐 ThreeRenderer._execBgfx）。
      * 闭包内只能包含对 SDL 的原始调用，禁止嵌套调用其它走 execSDL 的方法（会自我等待死锁）。
      */
     internal static func execSDL(cmd: () -> Unit): Unit {
@@ -217,8 +267,9 @@ internal class SDLDispatcher {
         _sdlCmd = Some(cmd)
         _sdlDone = false
         _sdlCmdCnd.signal()
+        // 使用 1s 超时循环等待（不做无限等待）：避免条件变量唤醒丢失时永久阻塞
         while (!_sdlDone) {
-            _sdlDoneCnd.wait(_sdlMtx)
+            _sdlDoneCnd.wait(_sdlMtx, 1000)
         }
         _sdlMtx.unlock()
     }
@@ -235,6 +286,8 @@ internal class SDLDispatcher {
     internal static func register(windowID: UInt32, queue: ConcurrentLinkedQueue<DispatchEvent>): Unit {
         _refCount.fetchAdd(1)
         _registry.add(windowID, queue)
+        _cachedWindowID = windowID
+        _cachedQueue = Some(queue)
     }
 
     /**
@@ -330,8 +383,17 @@ internal class SDLDispatcher {
         }
         let windowID = _eventWindowID(evPtr, t)
         if (windowID == 0) { return }
-        if (let Some(q) <- _registry.get(windowID)) {
-            q.add(_toDispatchEvent(evPtr, t, windowID))
+        /* 使用缓存引用而非 _registry.get——避免在 SDL 外来线程上
+         * 调 ConcurrentHashMap.get 触发 GetOrCreateTypeInfo 与 GC 竞争。 */
+        if (windowID == _cachedWindowID) {
+            match (_cachedQueue) {
+                case Some(q) => q.add(_toDispatchEvent(evPtr, t, windowID))
+                case None => ()
+            }
+        } else {
+            if (let Some(q) <- _registry.get(windowID)) {
+                q.add(_toDispatchEvent(evPtr, t, windowID))
+            }
         }
     }
 
@@ -339,6 +401,8 @@ internal class SDLDispatcher {
     private static func _eventWindowID(evPtr: CPointer<SDL_Event>, t: UInt32): UInt32 {
         if (t == SDL_EVENT_KEY_DOWN || t == SDL_EVENT_KEY_UP) {
             return unsafe { CPointer<SDL_KeyboardEvent>(evPtr).read().windowID }
+        } else if (t == SDL_EVENT_TEXT_INPUT) {
+            return unsafe { CPointer<SDL_TextInputEvent>(evPtr).read().windowID }
         } else if (t == SDL_EVENT_MOUSE_MOTION) {
             return unsafe { CPointer<SDL_MouseMotionEvent>(evPtr).read().windowID }
         } else if (t == SDL_EVENT_MOUSE_BUTTON_DOWN || t == SDL_EVENT_MOUSE_BUTTON_UP) {
@@ -361,6 +425,10 @@ internal class SDLDispatcher {
             return DispatchEvent(`type`: t, windowID: windowID,
                                  f1: Float32(evt.scancode), f2: Float32(evt.key), f5: Float32(evt.mod),
                                  b1: evt.down, b2: evt.repeat)
+        } else if (t == SDL_EVENT_TEXT_INPUT) {
+            let evt = unsafe { CPointer<SDL_TextInputEvent>(evPtr).read() }
+            let txt = if (evt.text.isNull()) { "" } else { unsafe { (evt.text as CString).toString() } }
+            return DispatchEvent(`type`: t, windowID: windowID, text: txt)
         } else if (t == SDL_EVENT_MOUSE_MOTION) {
             let evt = unsafe { CPointer<SDL_MouseMotionEvent>(evPtr).read() }
             return DispatchEvent(`type`: t, windowID: windowID,
@@ -486,6 +554,22 @@ public open class WindowEngine {
     // ===== 窗口泵线程（仓颉用户态线程，M:N 调度） =====
     private var _pumpThread: Option<Future<Unit>> = None
 
+    // ===== Gui（ImGui）集成 =====
+    /// 是否启用 Gui（由 useGui() 标记；start() 内创建；_windowLoop 内初始化/销毁）
+    private var _enableGui: Bool = false
+    /// Gui 上下文（启用后由 _windowLoop 创建）
+    private var _gui: Option<UiContext> = None
+    /// 渲染器的 execBgfx 提交方法（由 bindRenderer 注入，供 Gui render/shutdown 路由 bgfx 调用）
+    internal var _execBgfx: Option<(() -> Unit) -> Unit> = None
+
+    // ===== DPI（像素比） =====
+    /// 当前窗口像素比（物理像素 / 逻辑像素），由 _updatePixelRatio 计算并缓存
+    private var _pixelRatio: Float64 = 1.0
+    /// 是否自动检测 DPI（默认 true）
+    private var _dpiAutoDetect: Bool = true
+    /// 手动 DPI 缩放值（_dpiAutoDetect=false 时生效）
+    private var _manualDpiScale: Float64 = 0.0
+
     // ===== 生命周期回调（窗口线程主循环调用——open 可覆写，RGF 模式） =====
     /**
      * @brief[zh-cn] 窗口创建后调用（初始化渲染器/场景；可读 getNativeWindowHandle/getWidth/getHeight）
@@ -514,6 +598,18 @@ public open class WindowEngine {
      * @brief[en] Called after the window is destroyed
      */
     public open func onDestroy(): Unit {}
+    /**
+     * @brief[zh-cn] 窗口尺寸变化后调用（泵线程；getWidth/getHeight 已更新为新值）
+     * @explain[zh-cn] 渲染器由用户持有，引擎只负责通知：用户应在此调用 renderer.setSize(w, h)
+     *         触发后备缓冲重建（bgfx reset），并更新相机 aspect + updateProjectionMatrix()。
+     *         拖拽缩放期间每帧最多回调一次（多事件自动合并）。
+     *
+     * @brief[en] Called after the window size changed (pump thread; getWidth/getHeight already updated)
+     * @explain[en] The renderer is user-owned, so the engine only notifies: call renderer.setSize(w, h)
+     *         here to rebuild the backbuffer (bgfx reset), and update camera aspect + updateProjectionMatrix().
+     *         At most one callback per frame during interactive resizing (events are coalesced).
+     */
+    public open func onResize(width: Int32, height: Int32): Unit {}
 
     // ===== lambda 绑定（绑定优先于覆写，RGF 模式） =====
     private var _bindOnInit: Option<() -> Unit> = None
@@ -556,6 +652,16 @@ public open class WindowEngine {
         get() { this._bindOnDestroy }
         set(v) { this._bindOnDestroy = v }
     }
+    private var _bindOnResize: Option<(Int32, Int32) -> Unit> = None
+    /**
+     * @brief[zh-cn] 绑定式事件 - 窗口尺寸变化后（优先于覆写 onResize）
+     *
+     * @brief[en] Bound event - after window size changed (takes precedence over the onResize override)
+     */
+    public mut prop bindOnResize: Option<(Int32, Int32) -> Unit> {
+        get() { this._bindOnResize }
+        set(v) { this._bindOnResize = v }
+    }
 
     /**
      * @brief[zh-cn] 构造窗口引擎（尚未创建窗口，需调用 start）
@@ -563,6 +669,57 @@ public open class WindowEngine {
      * @brief[en] Constructs a window engine (no window created yet; call start first)
      */
     public init() {}
+
+    // =========================================================================
+    // Gui（ImGui）集成
+    // =========================================================================
+
+    /**
+     * @brief[zh-cn] 启用 Gui（ImGui）。须在 start() 之前调用。
+     * @explain[zh-cn] 启用后引擎会在 onInit 之后自动创建 UiContext，在 onFrame 前后自动
+     *         执行 NewFrame/Render。须通过 bindRenderer() 绑定渲染器的 execBgfx。
+     *
+     * @brief[en] Enables the GUI (ImGui). Must be called before start().
+     * @explain[en] Once enabled, the engine automatically creates a UiContext after onInit
+     *         and runs NewFrame/Render around onFrame. Must call bindRenderer() to bind
+     *         the renderer's execBgfx.
+     */
+    public func useGui(): Unit {
+        this._enableGui = true
+    }
+
+    /**
+     * @brief[zh-cn] 获取 Gui 上下文（启用后由 _windowLoop 创建）
+     * @return[zh-cn] Gui 上下文；未启用或未初始化时返回 None
+     *
+     * @brief[en] Gets the GUI context (created by _windowLoop after enabling)
+     * @return[en] The GUI context, or None if not enabled or not initialized
+     */
+    public prop gui: Option<UiContext> {
+        get() { this._gui }
+    }
+
+    /**
+     * @brief[zh-cn] 绑定渲染器的 execBgfx 提交方法（供 Gui 路由 bgfx 后端调用）
+     * @param[zh-cn] execBgfx 渲染器的 execBgfx 方法引用
+     *
+     * @brief[en] Binds the renderer's execBgfx submit method (for the GUI to route bgfx backend calls)
+     * @param[en] execBgfx The renderer's execBgfx method reference
+     */
+    public func bindRenderer(execBgfx: (() -> Unit) -> Unit): Unit {
+        this._execBgfx = Some(execBgfx)
+    }
+
+    /**
+     * @brief[zh-cn] 获取 SDL 窗口指针（供 ImGui SDL3 后端初始化使用）
+     * @return[zh-cn] SDL 窗口指针
+     *
+     * @brief[en] Gets the SDL window pointer (for ImGui SDL3 backend initialization)
+     * @return[en] The SDL window pointer
+     */
+    public func getSDLWindow(): SDL_Window {
+        return this._window
+    }
 
     // =========================================================================
     // 输入提供者管理（可插拔）
@@ -685,21 +842,43 @@ public open class WindowEngine {
                 }
                 // 记录状态 + 注册分发器
                 this._window = win
-                this._width = w
-                this._height = h
+                // 回填 SDL 实际窗口尺寸（OHOS 等平台建窗时可能忽略传入的 w/h，
+                // 直接取 XComponent/native window 的真实尺寸；若不回填，_width
+                // 停留在占位值，后续 getPixelRatio() 会用 drawable/占位 算出
+                // 异常大的 pixelRatio，导致物理尺寸溢出 UInt16 而崩溃）。
+                let rwBox = Box(0i32)
+                let rhBox = Box(0i32)
+                unsafe {
+                    let wp = LibC.malloc<Int32>()
+                    let hp = LibC.malloc<Int32>()
+                    wp.write(0); hp.write(0)
+                    if (SDL_GetWindowSize_cj(win, wp, hp)) {
+                        rwBox.value = wp.read()
+                        rhBox.value = hp.read()
+                    }
+                    LibC.free(wp); LibC.free(hp)
+                }
+                let rw = if (rwBox.value > 0) { rwBox.value } else { w }
+                let rh = if (rhBox.value > 0) { rhBox.value } else { h }
+                this._width = rw
+                this._height = rh
                 this._title = t
                 this._nativeHandle = this._getNativeHandle(win)
                 this._windowID = SDL_GetWindowID_cj(win)
                 this._snapshot = InputSnapshot()
-                this._snapshot.width = w
-                this._snapshot.height = h
+                this._snapshot.width = rw
+                this._snapshot.height = rh
                 SDLDispatcher.register(this._windowID, this._eventQueue)
                 SDL_ShowWindow_cj(win)
                 okBox.value = true
             }
         })
         if (!okBox.value) { return false }
-        // 3. 启动窗口泵线程（spawn 用户态线程；主线程须 wait() 保持存活，
+        // 3. 若启用 Gui，创建 UiContext 实例（在 _windowLoop 中 onInit 后初始化）
+        if (this._enableGui) {
+            this._gui = Some(UiContext())
+        }
+        // 4. 启动窗口泵线程（spawn 用户态线程；主线程须 wait() 保持存活，
         //    否则 main 退出会杀死未完成的 spawn 线程）
         this._exitRequested = false
         this._pumpThread = Some(spawn { => this._windowLoop() })
@@ -796,7 +975,23 @@ public open class WindowEngine {
         }
         // 生命周期：窗口创建后
         if (let Some(f) <- this._bindOnInit) { f() } else { this.onInit() }
+        // onInit 中应已完成 bgfx 初始化；此时初始化 Gui 上下文（依赖 bgfx）
+        match (this._gui) {
+            case Some(ctx) =>
+                if (!ctx.initialized) {
+                    match (this._execBgfx) {
+                        case Some(execFn) =>
+                            Logger.info(["WindowEngine._windowLoop: initializing Gui context"])
+                            ctx.initialize(this, execFn)
+                            Logger.info(["WindowEngine._windowLoop: Gui context initialized"])
+                        case None => Logger.warn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
+                    }
+                }
+            case None => ()
+        }
         var lastTime = MonoTime.now()
+        var lastWidth = this._width
+        var lastHeight = this._height
         while (!this._snapshot.closeRequested && !this._exitRequested) {
             // ① 各 Provider 帧开始（轮询设备状态）
             for (p in this._providers) {
@@ -804,11 +999,56 @@ public open class WindowEngine {
             }
             // ② 收集本循环全部事件 → 分发给各 Provider
             this._drainQueue()
+            // ②a 尺寸变化 → 触发 onResize（泵线程；拖拽缩放的多事件在此合并为每帧一次）
+            if (this._width != lastWidth || this._height != lastHeight) {
+                lastWidth = this._width
+                lastHeight = this._height
+                if (let Some(f) <- this._bindOnResize) { f(this._width, this._height) } else { this.onResize(this._width, this._height) }
+            }
             // ③ 用户逻辑/渲染——读快照（值固定）
             let now = MonoTime.now()
             let dt = Float64((now - lastTime).toMilliseconds()) / 1000.0
             lastTime = now
-            if (let Some(f) <- this._bindOnFrame) { f(dt) } else { this.onFrame(dt) }
+            // ③a 开始 Gui 新帧（在 onFrame 之前，确保控件 API 可用）
+            match (this._gui) {
+                case Some(ctx) =>
+                    if (ctx.initialized) {
+                        this._updatePixelRatio()
+                        ctx.setPixelRatio(this._pixelRatio)
+                        ctx.newFrame(dt, this._width, this._height)
+                    }
+                case None => ()
+            }
+            // ③ 用户帧回调：异常时绝不能让泵线程静默死亡——否则主协程 win.wait()
+            // 会永久挂起、进程卡死。记录异常并请求关闭，使 onClose 清理流程正常走完。
+            var frameFailed = false
+            try {
+                if (let Some(f) <- this._bindOnFrame) { f(dt) } else { this.onFrame(dt) }
+            } catch (e: Exception) {
+                frameFailed = true
+                Logger.error(["WindowEngine._windowLoop: onFrame 抛出异常: ${e.message}; 请求关闭窗口"])
+            }
+            if (frameFailed) {
+                this.requestClose()
+                break
+            }
+            // ③b Gui render hook：onFrame 结束后将 Gui 绘制提交到渲染线程
+            match (this._gui) {
+                case Some(ctx) =>
+                    if (ctx.initialized) {
+                        match (this._execBgfx) {
+                            case Some(execFn) =>
+                                let vw = this._width
+                                let vh = this._height
+                                execFn({ =>
+                                    ctx.render(vw, vh)
+                                })
+                            case None =>
+                                Logger.warn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
+                        }
+                    }
+                case None => ()
+            }
             // ④ 循环末尾重置（下一循环重新收集）
             this._snapshot.resetForNextFrame()
             for (p in this._providers) {
@@ -818,6 +1058,14 @@ public open class WindowEngine {
         // 清理所有输入提供者
         for (p in this._providers) {
             p.shutdown()
+        }
+        // 销毁 Gui 上下文：必须在 onClose()（renderer.shutdown() 停掉 bgfx 线程）
+        // 与 SDL 窗口销毁之前——其 SDL3/bgfx 后端关闭依赖这两个线程仍存活
+        match (this._gui) {
+            case Some(ctx) =>
+                ctx.shutdown()
+                this._gui = None
+            case None => ()
         }
         // 生命周期：关闭前 + 销毁
         if (let Some(f) <- this._bindOnClose) { f() } else { this.onClose() }
@@ -857,6 +1105,27 @@ public open class WindowEngine {
             for (p in this._providers) {
                 p.onEvent(evt)
             }
+        }
+        // 将输入事件转发给 Gui（ImGui）上下文
+        match (this._gui) {
+            case Some(ctx) =>
+                if (ctx.initialized) {
+                    if (t == SDL_EVENT_KEY_DOWN || t == SDL_EVENT_KEY_UP) {
+                        ctx.addKeyEvent(UInt32(evt.f1), UInt32(evt.f2), UInt32(evt.f5), evt.b1, evt.b2)
+                    } else if (t == SDL_EVENT_TEXT_INPUT) {
+                        ctx.addTextInput(evt.text)
+                    } else if (t == SDL_EVENT_MOUSE_MOTION) {
+                        ctx.addMousePosEvent(evt.f1, evt.f2)
+                    } else if (t == SDL_EVENT_MOUSE_BUTTON_DOWN || t == SDL_EVENT_MOUSE_BUTTON_UP) {
+                        // SDL 按钮：1=左 2=中 3=右；ImGui：0=左 1=右 2=中
+                        let sdlBtn = Int32(evt.f1)
+                        let imBtn: Int32 = if (sdlBtn == 1i32) { 0i32 } else if (sdlBtn == 3i32) { 1i32 } else if (sdlBtn == 2i32) { 2i32 } else { sdlBtn - 1i32 }
+                        ctx.addMouseButtonEvent(imBtn, evt.b1)
+                    } else if (t == SDL_EVENT_MOUSE_WHEEL) {
+                        ctx.addMouseWheelEvent(evt.f1, evt.f2)
+                    }
+                }
+            case None => ()
         }
     }
 
@@ -927,13 +1196,16 @@ public open class WindowEngine {
         this._height = h
         this._snapshot.width = w
         this._snapshot.height = h
-        // 窗口未创建（如初始化失败）时无 SDL 窗口可调，仅更新内部尺寸供查询；
-        // 窗口创建后转发到 SDL 系统线程同步窗口大小。
-        if (!this._window.isNull()) {
-            SDLDispatcher.execSDL({ =>
-                SDL_SetWindowSize_cj(this._window, w, h)
-            })
-        }
+        // 注意：
+        // 1. 此处不调用 _updatePixelRatio()——该函数经 execSDL 走 SDL 线程查询
+        //    drawable size，会阻塞调用方线程。updateSize 可能被 ArkTS 主线程
+        //    （onAreaChange 回调）调用，阻塞主线程会触发 THREAD_BLOCK_6S。
+        //    pixelRatio 延迟到 SDL 泵线程（onFrame 中 getPixelRatio）重算。
+        // 2. 此处不调用 SDL_SetWindowSize_cj——OHOS 上窗口尺寸由 XComponent 驱动，
+        //    且 OHOS_SetWindowSize 内部经 NAPI 操作 ArkUI 节点，从 SDL 线程调用
+        //    可能等待主线程，与主线程的 execSDL 等待形成死锁。引擎只需同步内部
+        //    逻辑尺寸，实际窗口 resize 由平台事件（XComponent surface change /
+        //    WM SIZE 消息）驱动。
     }
 
     /**
@@ -1151,6 +1423,110 @@ public open class WindowEngine {
             if (!this._window.isNull()) { resultBox.value = SDL_GetWindowDisplayScale_cj(this._window) }
         })
         return resultBox.value
+    }
+
+    /**
+     * @brief[zh-cn] 获取窗口像素尺寸（物理后备缓冲尺寸）
+     * @return[zh-cn] (物理宽度, 物理高度)
+     * @explain[zh-cn] 在 HiDPI 显示器上通常大于逻辑尺寸（getWidth/getHeight）。bgfx 等渲染器应使用此尺寸作为后备缓冲大小。
+     *
+     * @brief[en] Gets the window pixel dimensions (physical backbuffer size)
+     * @return[en] (physical width, physical height)
+     * @explain[en] On HiDPI displays this is usually larger than the logical size (getWidth/getHeight). Renderers like bgfx should use this as the backbuffer size.
+     */
+    public func getDrawableSize(): (Int32, Int32) {
+        let wBox = Box(0i32)
+        let hBox = Box(0i32)
+        SDLDispatcher.execSDL({ =>
+            if (!this._window.isNull()) {
+                let wp = unsafe { LibC.malloc<Int32>() }
+                let hp = unsafe { LibC.malloc<Int32>() }
+                unsafe { wp.write(0); hp.write(0) }
+                if (SDL_GetWindowSizeInPixels_cj(this._window, wp, hp)) {
+                    wBox.value = unsafe { wp.read() }
+                    hBox.value = unsafe { hp.read() }
+                }
+                unsafe { LibC.free(wp); LibC.free(hp) }
+            }
+        })
+        return (wBox.value, hBox.value)
+    }
+
+    /**
+     * @brief[zh-cn] 获取窗口像素比（物理像素 / 逻辑像素）
+     * @return[zh-cn] 像素比；查询失败或无窗口时返回 1.0
+     * @explain[zh-cn] 基于 getDrawableSize() 与逻辑尺寸计算，可直接传给 renderer.setPixelRatio()。
+     *         若已通过 setDpiScale 设置手动值，则返回手动值。
+     *
+     * @brief[en] Gets the window pixel ratio (physical pixels / logical pixels)
+     * @return[en] Pixel ratio; returns 1.0 if query fails or no window exists
+     * @explain[en] Computed from getDrawableSize() and logical dimensions; can be passed directly
+     *         to renderer.setPixelRatio(). Returns the manual value if set via setDpiScale.
+     */
+    public func getPixelRatio(): Float32 {
+        this._updatePixelRatio()
+        return Float32(this._pixelRatio)
+    }
+
+    /**
+     * @brief[zh-cn] 重新计算并缓存当前窗口像素比
+     * @return[zh-cn] 缓存后的像素比
+     *
+     * @brief[en] Recalculates and caches the current window pixel ratio
+     * @return[en] The cached pixel ratio
+     */
+    private func _updatePixelRatio(): Float64 {
+        if (!this._dpiAutoDetect && this._manualDpiScale > 0.0) {
+            this._pixelRatio = this._manualDpiScale
+            return this._pixelRatio
+        }
+        let (dw, dh) = this.getDrawableSize()
+        if (this._width <= 0 || this._height <= 0) {
+            this._pixelRatio = 1.0
+            return this._pixelRatio
+        }
+        let ratioX = Float32(dw) / Float32(this._width)
+        let ratioY = Float32(dh) / Float32(this._height)
+        this._pixelRatio = Float64((ratioX + ratioY) * 0.5f32)
+        return this._pixelRatio
+    }
+
+    /**
+     * @brief[zh-cn] 设置是否自动检测 DPI
+     * @param[zh-cn] autoDetect true 时通过 SDL 自动检测；false 时强制使用 setDpiScale 指定的值
+     *
+     * @brief[en] Sets whether to auto-detect DPI
+     * @param[en] autoDetect true to auto-detect via SDL; false to enforce the value set by setDpiScale
+     */
+    public func setDpiAutoDetect(autoDetect: Bool): Unit {
+        this._dpiAutoDetect = autoDetect
+        this._updatePixelRatio()
+    }
+
+    /**
+     * @brief[zh-cn] 设置手动 DPI 缩放值
+     * @param[zh-cn] scale 像素比（必须 > 0）；设置后会自动关闭自动检测
+     *
+     * @brief[en] Sets the manual DPI scale value
+     * @param[en] scale Pixel ratio (must be > 0); auto-detection is automatically disabled after setting
+     */
+    public func setDpiScale(scale: Float64): Unit {
+        if (scale > 0.0) {
+            this._manualDpiScale = scale
+            this._dpiAutoDetect = false
+            this._updatePixelRatio()
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 获取当前 DPI 缩放值
+     * @return[zh-cn] 当前像素比
+     *
+     * @brief[en] Gets the current DPI scale value
+     * @return[en] Current pixel ratio
+     */
+    public func getDpiScale(): Float64 {
+        return this._pixelRatio
     }
 
     /**
@@ -1510,13 +1886,14 @@ public open class WindowEngine {
      * @return[en] The safe-area rectangle, or None if the query failed
      */
     public func getSafeArea(): Option<SDL_Rect> {
-        let rectBox = Box<Option<SDL_Rect>>(None)
+        let noneRect: Option<SDL_Rect> = None
+        let rectBox = Box<Option<SDL_Rect>>(noneRect)
         SDLDispatcher.execSDL({ =>
             if (!this._window.isNull()) {
                 let rp = unsafe { LibC.malloc<SDL_Rect>() }
                 unsafe { rp.write(SDL_Rect()) }
                 let ok = SDL_GetWindowSafeArea_cj(this._window, rp)
-                rectBox.value = if (ok) { Some(unsafe { rp.read() }) } else { None }
+                rectBox.value = if (ok) { Some(unsafe { rp.read() }) } else { noneRect }
                 unsafe { LibC.free(rp) }
             }
         })
@@ -1592,13 +1969,14 @@ public open class WindowEngine {
      * @return[en] The bounds rectangle, or None if the query failed
      */
     public func getDisplayBounds(displayID: UInt32): Option<SDL_Rect> {
-        let rectBox = Box<Option<SDL_Rect>>(None)
+        let noneRect: Option<SDL_Rect> = None
+        let rectBox = Box<Option<SDL_Rect>>(noneRect)
         let id = displayID
         SDLDispatcher.execSDL({ =>
             let rectPtr = unsafe { LibC.malloc<SDL_Rect>() }
             unsafe { rectPtr.write(SDL_Rect()) }
             let ok = SDL_GetDisplayBounds_cj(id, rectPtr)
-            rectBox.value = if (ok) { Some(unsafe { rectPtr.read() }) } else { None }
+            rectBox.value = if (ok) { Some(unsafe { rectPtr.read() }) } else { noneRect }
             unsafe { LibC.free(rectPtr) }
         })
         return rectBox.value

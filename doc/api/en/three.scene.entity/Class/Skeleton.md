@@ -101,6 +101,18 @@ public func pose(): Unit
 ```
 Pose each bone to its initial pose, then recalculate each bone's matrix/position/quaternion/scale
 
+### func syncFromSkeletonData\(SkeletonData\)
+```cj
+public func syncFromSkeletonData(skelData: SkeletonData): Unit
+```
+Synchronizes bone data from SkeletonData
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|skelData|SkeletonData|Skeleton computation data|
+
 ### func update\(\)
 ```cj
 public func update(): Unit

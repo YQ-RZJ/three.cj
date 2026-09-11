@@ -1,9 +1,31 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] AudioContext 音频上下文单例，管理 OpenAL 设备/上下文 + 专用音频线程
  * @brief[zh-cn] 音频上下文单例：管理 OpenAL 设备/上下文与专用音频线程
  * @explain[zh-cn] 对应 Three.js 的 AudioContext（管理 Web Audio API 的 AudioContext 实例），
  * Three.cj 使用 OpenAL 的 Device + Context 作为底层实现。
- * 线程模型（对齐 BgfxRenderer._execBgfx）：
+ * 线程模型（对齐 ThreeRenderer._execBgfx）：
  * - 所有 OpenAL/EFX API 调用必须经 _execAudio 序列化到专用音频系统线程执行。
  * 原因：OpenAL context 是线程局部的（alcMakeContextCurrent 仅对调用线程生效），
  * 集中到单线程可避免多线程竞争 + 与渲染/物理/主逻辑线程隔离。
@@ -18,7 +40,7 @@
  * @brief[en] Audio context singleton managing the OpenAL device/context and a dedicated audio thread
  * @explain[en] Corresponds to Three.js AudioContext (which manages a Web Audio API
  * AudioContext); Three.cj uses the OpenAL Device + Context as the backend.
- * Threading model (aligned with BgfxRenderer._execBgfx):
+ * Threading model (aligned with ThreeRenderer._execBgfx):
  * - All OpenAL/EFX API calls must be serialized onto a dedicated audio system
  * thread via _execAudio, because the OpenAL context is thread-local
  * (alcMakeContextCurrent only affects the calling thread), and a single thread
@@ -28,7 +50,7 @@
  * - execAudio(cmd) is the public serialization entry point: external modules such
  * as AudioLoader/StreamingAudio queue their OpenAL calls onto the audio thread
  * to avoid data races.
- * Deadlock constraint (same as BgfxRenderer): execAudio is not reentrant — the
+ * Deadlock constraint (same as ThreeRenderer): execAudio is not reentrant — the
  * closure must contain only raw OpenAL calls and must not call other methods that
  * go through execAudio, or it will self-deadlock.
  */
@@ -38,6 +60,7 @@ import openalsoft4cj.alc.*
 import openalsoft4cj.al.*
 import std.collection.*
 import three.core.thread.*
+import three.utils.log.Logger
 
 /**
  * @brief[zh-cn] 音频上下文单例，管理 OpenAL 设备和上下文 + 专用音频线程
@@ -52,57 +75,81 @@ import three.core.thread.*
 public class AudioContext {
     /**
      * @brief[zh-cn] 单例实例
+     *
+     * @brief[en] The singleton instance
      */
     private static var _instance: Option<AudioContext> = None
 
     /**
      * @brief[zh-cn] OpenAL 设备句柄
+     *
+     * @brief[en] The OpenAL device handle
      */
     private var _device: CPointer<Unit>
 
     /**
      * @brief[zh-cn] OpenAL 上下文句柄
+     *
+     * @brief[en] The OpenAL context handle
      */
     private var _context: CPointer<Unit>
 
     /**
      * @brief[zh-cn] 是否已初始化
+     *
+     * @brief[en] Whether initialized
      */
     private var _initialized: Bool
 
-    // ===== 音频同步原语（对齐 BgfxRenderer._renderMtx/_renderCmdCnd） =====
+    // ===== 音频同步原语（对齐 ThreeRenderer._renderMtx/_renderCmdCnd） =====
     // 使用 three.core.thread 的系统级 Mutex/Condition（基于 sdl4cj，而非 std.sync），
     // 因为需要跨用户态与系统线程同步。
     /**
      * @brief[zh-cn] 音频线程互斥锁
+     *
+     * @brief[en] The audio thread mutex
      */
     private var _audioMtx = Mutex()
     /**
      * @brief[zh-cn] 音频命令条件变量
+     *
+     * @brief[en] The audio command condition variable
      */
     private var _audioCmdCnd = Condition()
     /**
      * @brief[zh-cn] 音频完成条件变量
+     *
+     * @brief[en] The audio completion condition variable
      */
     private var _audioDoneCnd = Condition()
     /**
      * @brief[zh-cn] 待执行的音频命令
+     *
+     * @brief[en] The pending audio command
      */
     private var _audioCmd: Option<() -> Unit> = None
     /**
      * @brief[zh-cn] 命令是否执行完成
+     *
+     * @brief[en] Whether the command has finished executing
      */
     private var _audioDone: Bool = false
     /**
      * @brief[zh-cn] 是否退出音频线程
+     *
+     * @brief[en] Whether to exit the audio thread
      */
     private var _audioExit: Bool = false
     /**
      * @brief[zh-cn] 音频系统线程
+     *
+     * @brief[en] The audio system thread
      */
     private var _audioSThread: Option<SThread<Unit>> = None
     /**
      * @brief[zh-cn] 初始化结果
+     *
+     * @brief[en] The initialization result
      */
     private var _initResult: Bool = false
 
@@ -161,10 +208,12 @@ public class AudioContext {
         this._initialized = false
     }
 
-    // ===== 音频线程基础设施（对照 BgfxRenderer._initRenderThread/_renderLoop/_execBgfx） =====
+    // ===== 音频线程基础设施（对照 ThreeRenderer._initRenderThread/_renderLoop/_execBgfx） =====
 
     /**
      * @brief[zh-cn] 启动专用音频线程（若尚未启动）
+     *
+     * @brief[en] Starts the dedicated audio thread (if not yet started)
      */
     private func _initAudioThread(): Unit {
         if (this._audioSThread.isSome()) { return }
@@ -174,6 +223,9 @@ public class AudioContext {
 
     /**
      * @brief[zh-cn] 音频线程主循环：等待命令、执行、通知完成，直至收到退出信号
+     *
+     * @brief[en] The audio thread main loop: waits for a command, executes it, and
+     * notifies completion until an exit signal is received
      */
     private func _audioLoop(): Unit {
         while (!this._audioExit) {
@@ -198,6 +250,13 @@ public class AudioContext {
      * @param[zh-cn] cmd 待执行的闭包（仅包含原始 OpenAL 调用）
      *
      * @note[zh-cn] 闭包内只能包含原始 OpenAL 调用，禁止嵌套调用其它走 execAudio 的方法。
+     *
+     * @brief[en] Internal thread serialization: submits cmd to the audio thread for
+     * synchronous execution and waits for completion
+     * @param[en] cmd The closure to execute (containing only raw OpenAL calls)
+     *
+     * @note[en] The closure must contain only raw OpenAL calls; nesting calls to
+     * other methods that go through execAudio is forbidden.
      */
     private func _execAudio(cmd: () -> Unit): Unit {
         if (this._audioSThread.isNone()) {
@@ -265,14 +324,14 @@ public class AudioContext {
             unsafe { LibC.free(devName) }
 
             if (this._device.isNull()) {
-                println("[AudioContext] 无法打开默认音频设备")
+                Logger.error(["AudioContext", "无法打开默认音频设备"])
                 return
             }
 
             // 创建上下文
             this._context = alcCreateContext_cj(this._device, CPointer<Int32>())
             if (this._context.isNull()) {
-                println("[AudioContext] 无法创建上下文")
+                Logger.error(["AudioContext", "无法创建上下文"])
                 alcCloseDevice_cj(this._device)
                 this._device = CPointer<Unit>()
                 return

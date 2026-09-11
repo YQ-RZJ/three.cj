@@ -60,7 +60,7 @@ public func getVelocity(): Vector3
 
 ### func init\(AudioListener\)
 ```cj
-public init(listener!: AudioListener)
+public init(listener!: AudioListener = AudioListener())
 ```
 创建 3D 位置音频源
 

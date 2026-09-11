@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] GroundReflector 地面反射器
  * @brief[zh-cn] 地面反射器（SSRPass 专用）—— 平面反射（planar reflection）对象
  * @explain[zh-cn] Three.cj 重构命名：类为对象（Mesh 子类），保留在 three.scene.entity 包，
@@ -25,10 +47,10 @@
  * 按 ReflectorMaterial kind 映射到 "reflector" shader，把反射贴图经 textureMatrix
  * 投影到地面（blendOverlay 混合 + useDepthTexture 分支距离衰减/菲涅尔）。
  * Three.cj bgfx 差异：
- * - Three.cj 由 BgfxSSRPass 用 RenderPass 范式：execBgfx 设 view 0 frame buffer = 反射 RT +
+ * - Three.cj 由 SSRPass 用 RenderPass 范式：execBgfx 设 view 0 frame buffer = 反射 RT +
  * clear，再 renderer.render(scene, virtualCamera)（renderer.render 内部用 virtualCamera 的
  * matrixWorldInverse/projectionMatrix 设 view transform，BgfxBackend 从 camera 读取）。
- * - bgfx D24 深度 attachment 不可直接采样，故 useDepthTexture=true 时由 BgfxSSRPass
+ * - bgfx D24 深度 attachment 不可直接采样，故 useDepthTexture=true 时由 SSRPass
  * 用 aodepth shader 渲 NDC 深度到 RGBA32F 深度 RT（对齐 SSR/GTAO 独立深度 RT 范式）。
  * - bgfx 渲染管线无 clippingPlanes 概念，
  * clipBias 存字段作预留（默认 0 无影响），不应用全局裁剪。
@@ -37,7 +59,7 @@
  * textureWidth: 512, textureHeight: 512, color: Color(0x777777),
  * useDepthTexture: true, clipBias: 0.003)
  * scene.add(reflector)
- * let ssrPass = BgfxSSRPass(scene, camera)
+ * let ssrPass = SSRPass(scene, camera)
  * ssrPass.groundReflector = Some(reflector)
  * composer.addPass(ssrPass)
  *
@@ -46,10 +68,14 @@
 
 package three.scene.entity
 
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
+
 import three.rendering.geometry.BufferGeometry
 import three.rendering.materials.ReflectorMaterial
 import three.utils.memory.AutoFreePtr
-import three.resource.bgfx.BgfxResourceOps
+import three.resource.bgfx.ResourceOps
 import three.utils.log.Logger
 import three.rendering.cameras.Camera
 import three.rendering.cameras.PerspectiveCamera
@@ -63,17 +89,18 @@ import bgfx4cj.bgfx as bgfx
  * @brief[zh-cn] 地面反射器（SSRPass 专用平面反射组件）
  * @explain[zh-cn] 地面反射器组件，继承 Mesh。
  * 持反射 RT + 镜像相机数学（computeVirtualCamera）；渲场景到反射 RT 的动作
- * 由 BgfxSSRPass 编排（Three.cj 包依赖约束，见文件头注释）。
+ * 由 SSRPass 编排（Three.cj 包依赖约束，见文件头注释）。
  *
  * @brief[en] Ground reflector (SSRPass dedicated planar reflection component)
  * @explain[en] Ground reflector component, extends Mesh.
  * Holds reflection RT + mirror camera math (computeVirtualCamera); rendering scene to reflection RT
- * is orchestrated by BgfxSSRPass (Three.cj package dependency constraint, see file header comments).
+ * is orchestrated by SSRPass (Three.cj package dependency constraint, see file header comments).
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
 public class GroundReflector <: Mesh {
     /**
      * 分配给本组件的 bgfx view ID 段。
-     *   +0: 反射场景渲染（用 view 0 语义 + renderer.render，见 BgfxSSRPass._renderGroundReflector）
+     *   +0: 反射场景渲染（用 view 0 语义 + renderer.render，见 SSRPass._renderGroundReflector）
      *   +1: 反射深度渲染（useDepthTexture=true 时，aodepth → RGBA32F 深度 RT）
      * 取 237 起避开 SSAO 160 / SSR 176 / Bloom 200~212 / ShaderPass 200~209 /
      * SavePass 210 / TexturePass 211 / OutputPass 212 / FXAA 213 / SMAA 214~216 /
@@ -81,6 +108,7 @@ public class GroundReflector <: Mesh {
      * DotScreenPass 226 / HalftonePass 227 / BokehPass 228~229 /
      * RenderPixelatedPass 230~233 / RenderTransitionPass 234~236。
      */
+    @JsonIgnore
     public static let REFLECTOR_VIEW_ID_BASE: UInt16 = 237u16
 
     /**
@@ -135,6 +163,7 @@ public class GroundReflector <: Mesh {
     /**
      * 镜像虚拟相机（computeVirtualCamera 计算结果）。
      */
+    @JsonIgnore
     public var virtualCamera: PerspectiveCamera = PerspectiveCamera()
 
     /**
@@ -164,6 +193,9 @@ public class GroundReflector <: Mesh {
      * @param[en] clipBias Clip bias (default 0; bgfx has no global clip plane, reserved)
      * @param[en] useDepthTexture Whether to use depth texture (default false; true enables distance attenuation/Fresnel)
      */
+    public init() {
+        this(BufferGeometry())
+    }
     public init(
         geometry: BufferGeometry,
         textureWidth!: Int64 = 512,
@@ -201,8 +233,8 @@ public class GroundReflector <: Mesh {
     public func ensureRTs(): Unit {
         if (this._rtCreated) { return }
         Logger.debug(["reflector", "ensureRTs: creating reflect RT ${this._textureWidth}x${this._textureHeight}"])
-        // 经 BgfxResourceOps 封装创建/销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
-        let resOps = BgfxResourceOps()
+        // 经 ResourceOps 封装创建/销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
+        let resOps = ResourceOps()
 
         let reflectTex = resOps.createTexture2D(
             UInt16(this._textureWidth), UInt16(this._textureHeight), false, 1u16,
@@ -253,7 +285,7 @@ public class GroundReflector <: Mesh {
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(resOps: BgfxResourceOps, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(resOps: ResourceOps, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = resOps.createFrameBuffer(2u8, handles, true)
         return fb
@@ -392,7 +424,7 @@ public class GroundReflector <: Mesh {
     }
 
     /**
-     * 取反射 RT frame buffer（渲染目标，由 BgfxSSRPass 设到 view）。
+     * 取反射 RT frame buffer（渲染目标，由 SSRPass 设到 view）。
      */
     public func getReflectFB(): FrameBufferHandle {
         return this._reflectFB
@@ -435,8 +467,8 @@ public class GroundReflector <: Mesh {
      * 释放反射器 GPU 资源。
      */
     public func dispose(): Unit {
-        // 经 BgfxResourceOps 封装销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
-        let resOps = BgfxResourceOps()
+        // 经 ResourceOps 封装销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
+        let resOps = ResourceOps()
         if (isValidHandle(this._reflectFB)) { resOps.destroyFrameBuffer(this._reflectFB) }
         if (isValidHandle(this._reflectTex)) { resOps.destroyTexture(this._reflectTex) }
         if (isValidHandle(this._reflectDepthTex)) { resOps.destroyTexture(this._reflectDepthTex) }

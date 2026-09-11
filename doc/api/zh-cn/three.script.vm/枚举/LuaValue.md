@@ -83,6 +83,22 @@ public func numberValue(default!: Float64 = 0.0): Float64
 
 - 浮点值或默认值
 
+### func of\(Bool\)
+```cj
+public static func of(b: Bool): LuaValue
+```
+便捷构造：从 Bool 装箱
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|b|Bool|布尔值|
+
+返回: 
+
+- 对应的布尔类型 LuaValue
+
 ### func of\(Float64\)
 ```cj
 public static func of(n: Float64): LuaValue
@@ -130,22 +146,6 @@ public static func of(s: String): LuaValue
 返回: 
 
 - 对应的字符串类型 LuaValue
-
-### func of\(Bool\)
-```cj
-public static func of(b: Bool): LuaValue
-```
-便捷构造：从 Bool 装箱
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|b|Bool|布尔值|
-
-返回: 
-
-- 对应的布尔类型 LuaValue
 
 ### func stringValue\(String\)
 ```cj

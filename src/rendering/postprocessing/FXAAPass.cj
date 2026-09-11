@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxFXAAPass FXAA 后处理 pass
  * @brief[zh-cn] FXAA 后处理 pass —— 喂 fxaa shader 的 ShaderPass 子类
  * @explain[zh-cn] 直接继承 ShaderPass，shaderName = "fxaa"（ShaderLibs.cj 已注册）。
@@ -19,7 +41,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -54,7 +76,7 @@ public class FXAAPass <: ShaderPass {
      * @param[en] renderer The renderer
      * @param[en] uniforms The uniform registry where the parent has created the tDiffuse sampler (reused instance)
      */
-    public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit {
+    public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit {
         let rw = renderer.width
         let rh = renderer.height
         let invW: Float32 = if (rw > 0) { 1.0f32 / Float32(rw) } else { 0.0f32 }

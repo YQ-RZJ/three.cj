@@ -85,29 +85,29 @@ Return:
 ```cj
 public var baseUrl: String
 ```
-
+Base URL of the resources
 
 ### var crossOrigin
 ```cj
 public var crossOrigin: String
 ```
-
+Cross-origin setting
 
 ### var manager
 ```cj
 public var manager: LoadingManager
 ```
-
+Loading manager
 
 ### var materialsInfo
 ```cj
 public var materialsInfo: HashMap < String, Any >
 ```
-
+Material info dictionary (name -> info HashMap)
 
 ### var materials
 ```cj
 public var materials: HashMap < String, Material >
 ```
-
+Cache of created materials (name -> Material)
 

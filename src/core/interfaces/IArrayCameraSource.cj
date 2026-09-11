@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] IArrayCameraSource
  * @brief[zh-cn] 数组相机只读接口
  * @explain[zh-cn] three.js 的 FrustumArray.setFromArrayCamera 直接接收 ArrayCamera（cameras 包），遍历其子相机并用 projectionMatrix × matrixWorldInverse 逐个构造 Frustum。cj 侧若让 math 依赖 cameras 会形成循环（cameras 依赖 core，core 依赖 math），因此将子相机矩阵数据访问契约提取为本接口。实现方（ArrayCamera）负责暴露子相机数量与矩阵元素；使用方（FrustumArray，math 包）仅读取数据并自行组装 Matrix4。

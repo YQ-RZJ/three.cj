@@ -26,9 +26,9 @@ Parameter:
 |clearColor|UInt32|clear 颜色（默认透明黑）|
 |clearAlpha|Float64|clear alpha（默认 0）差异：全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 TAA 渲染 pass。
 
@@ -36,7 +36,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（累加结果输出；renderToScreen=true 时写屏幕）|
 |readBuffer|FrameBufferHandle|读 buffer（TAA 不直接用 readBuffer，而是渲染场景到 writeBuffer/sampleRT）|
 |deltaTime|Float64|帧间隔|

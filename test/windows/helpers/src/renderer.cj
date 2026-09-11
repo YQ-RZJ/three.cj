@@ -25,7 +25,7 @@ import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
 import three.rendering.helpers.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.utils.constants.DoubleSide
 import three.audio.listener.AudioListener
 import three.audio.source.PositionalAudio

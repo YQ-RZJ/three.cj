@@ -211,6 +211,22 @@ func getAngularVelocity(handle: PhysicsBodyHandle): Vector3
 
 - 刚体当前角速度
 
+### func getConstraintCurrentAngle\(PhysicsConstraintHandle\)
+```cj
+func getConstraintCurrentAngle(handle: PhysicsConstraintHandle): Float64
+```
+获取铰链约束当前角度（弧度）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄|
+
+返回: 
+
+- 当前角度（弧度）；无效句柄返回 0
+
 ### func getFriction\(PhysicsBodyHandle\)
 ```cj
 func getFriction(handle: PhysicsBodyHandle): Float64
@@ -371,6 +387,22 @@ func getRotation(handle: PhysicsBodyHandle): Quaternion
 
 - 刚体当前旋转
 
+### func getSliderCurrentPosition\(PhysicsConstraintHandle\)
+```cj
+func getSliderCurrentPosition(handle: PhysicsConstraintHandle): Float64
+```
+获取滑块约束当前位置（米）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄|
+
+返回: 
+
+- 当前位置（米）；无效句柄返回 0
+
 ### func initialize\(UInt32,Vector3\)
 ```cj
 func initialize(maxBodies: UInt32, gravity: Vector3): Bool
@@ -516,6 +548,76 @@ func setConstraintEnabled(handle: PhysicsConstraintHandle, enabled: Bool): Unit
 |---|---|---|
 |handle|PhysicsConstraintHandle|约束句柄enabled 是否启用|
 |enabled|Bool||
+
+### func setConstraintLimits\(PhysicsConstraintHandle,Float64,Float64\)
+```cj
+func setConstraintLimits(handle: PhysicsConstraintHandle, limitMin: Float64, limitMax: Float64): Unit
+```
+运行时修改约束限位（Hinge/Slider，弧度或米）
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>仅对 Hinge/Slider 约束有效</p>
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄limitMin 限位最小值limitMax 限位最大值|
+|limitMin|Float64||
+|limitMax|Float64||
+
+### func setConstraintMaxFriction\(PhysicsConstraintHandle,Float64\)
+```cj
+func setConstraintMaxFriction(handle: PhysicsConstraintHandle, friction: Float64): Unit
+```
+设置约束最大摩擦（Hinge 为力矩，Slider 为力）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄friction 最大摩擦值|
+|friction|Float64||
+
+### func setConstraintMotorState\(PhysicsConstraintHandle,PhysicsMotorState\)
+```cj
+func setConstraintMotorState(handle: PhysicsConstraintHandle, state: PhysicsMotorState): Unit
+```
+设置约束电机状态（Hinge/Slider 约束）
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>仅对 Hinge/Slider 约束有效；SixDOF 请用六自由度专用接口</p>
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄state 电机状态（Off/Velocity/Position）|
+|state|PhysicsMotorState||
+
+### func setConstraintTargetAngle\(PhysicsConstraintHandle,Float64\)
+```cj
+func setConstraintTargetAngle(handle: PhysicsConstraintHandle, angle: Float64): Unit
+```
+设置铰链约束目标角度（电机位置模式，弧度）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄angle 目标角度（弧度）|
+|angle|Float64||
+
+### func setConstraintTargetAngularVelocity\(PhysicsConstraintHandle,Float64\)
+```cj
+func setConstraintTargetAngularVelocity(handle: PhysicsConstraintHandle, angularVelocity: Float64): Unit
+```
+设置铰链约束目标角速度（电机速度模式，弧度/秒）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄angularVelocity 目标角速度（弧度/秒）|
+|angularVelocity|Float64||
 
 ### func setContactListener\(Option<IPhysicsSensorListener>\)
 ```cj
@@ -673,6 +775,72 @@ func setRotation(handle: PhysicsBodyHandle, rotation: Quaternion, activation: Ph
 |handle|PhysicsBodyHandle|刚体句柄rotation 新旋转activation 激活策略|
 |rotation|Quaternion||
 |activation|PhysicsActivation||
+
+### func setSixDOFMotorState\(PhysicsConstraintHandle,Int64,PhysicsMotorState\)
+```cj
+func setSixDOFMotorState(handle: PhysicsConstraintHandle, axis: Int64, state: PhysicsMotorState): Unit
+```
+设置六自由度约束指定轴的电机状态
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄axis 轴索引（0=X 平移,1=Y,2=Z,3=X 旋转,4=Y,5=Z）state 电机状态|
+|axis|Int64||
+|state|PhysicsMotorState||
+
+### func setSixDOFTargetPosition\(PhysicsConstraintHandle,Vector3\)
+```cj
+func setSixDOFTargetPosition(handle: PhysicsConstraintHandle, target: Vector3): Unit
+```
+设置六自由度约束约束空间目标位置（平移电机）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄target 约束空间目标位置|
+|target|Vector3||
+
+### func setSixDOFTargetVelocity\(PhysicsConstraintHandle,Vector3\)
+```cj
+func setSixDOFTargetVelocity(handle: PhysicsConstraintHandle, target: Vector3): Unit
+```
+设置六自由度约束约束空间目标速度（平移电机）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄target 约束空间目标速度|
+|target|Vector3||
+
+### func setSliderTargetPosition\(PhysicsConstraintHandle,Float64\)
+```cj
+func setSliderTargetPosition(handle: PhysicsConstraintHandle, position: Float64): Unit
+```
+设置滑块约束目标位置（电机位置模式，米）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄position 目标位置（米）|
+|position|Float64||
+
+### func setSliderTargetVelocity\(PhysicsConstraintHandle,Float64\)
+```cj
+func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: Float64): Unit
+```
+设置滑块约束目标速度（电机速度模式，米/秒）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|handle|PhysicsConstraintHandle|约束句柄velocity 目标速度（米/秒）|
+|velocity|Float64||
 
 ### func shutdown\(\)
 ```cj

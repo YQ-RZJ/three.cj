@@ -1,12 +1,32 @@
-package three.rendering.postprocessing
-
 /**
- * @file[zh-cn] BgfxSSRPass 屏幕空间反射（SSR）后处理 pass
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] SSRPass 屏幕空间反射（SSR）后处理 pass
  * @brief[zh-cn] 屏幕空间反射（SSR）后处理 pass
  * @explain[zh-cn] 以 EffectComposer Pass 链方式注入（对齐 bloom/ssao/gtao 的 Bgfx*Pass）：
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxSSRPass(scene, camera))
+ *         composer.addPass(SSRPass(scene, camera))
  *         composer.render()
  *         render() 内部（各子方法经 Pass 基类高阶 API 调用 bgfx，高阶 API 自身走 renderer.execBgfx 序列化到渲染线程）：
  *         1. 法线 pass（view SSR_VIEW_ID_BASE+0）：normal shader 渲场景法线到法线 RT（RGBA16F+D24）
@@ -20,15 +40,15 @@ package three.rendering.postprocessing
  *         - UV 原点左上、v 向下；NDC y = 1 - 2*uv.y
  *         - NDC z ∈ [0,1]（near→0, far→1）
  *         - 场景色从 composer readBuffer 取（对齐 GTAO 使用 readBuffer 做 scene color 的范式）
- *         - 法线/深度 pass 自建场景几何体 VB/IB/layout（对齐 BgfxGTAOPass 自包含模式）
+ *         - 法线/深度 pass 自建场景几何体 VB/IB/layout（对齐 GTAOPass 自包含模式）
  *         日志：每个 pass 入口/出口均输出 Logger.debug，辅助渲染流程跟踪与纠错验证。
  *
- * @file[en] BgfxSSRPass screen-space reflection (SSR) post-processing pass
+ * @file[en] SSRPass screen-space reflection (SSR) post-processing pass
  * @brief[en] Screen-space reflection (SSR) post-processing pass
  * @explain[en] Injected via the EffectComposer Pass chain (aligned with the Bgfx*Pass bloom/ssao/gtao style):
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxSSRPass(scene, camera))
+ *         composer.addPass(SSRPass(scene, camera))
  *         composer.render()
  *         Inside render() (each sub-method calls bgfx via the Pass base-class high-level APIs, which serialize to the render thread via renderer.execBgfx):
  *         1. Normal pass (view SSR_VIEW_ID_BASE+0): normal shader renders scene normals to a normal RT (RGBA16F+D24)
@@ -42,11 +62,10 @@ package three.rendering.postprocessing
  *         - UV origin top-left, v downward; NDC y = 1 - 2*uv.y
  *         - NDC z ∈ [0,1] (near→0, far→1)
  *         - Scene color taken from the composer readBuffer (aligned with the GTAO readBuffer scene-color pattern)
- *         - Normal/depth passes build their own scene geometry VB/IB/layout (aligned with the BgfxGTAOPass self-contained pattern)
+ *         - Normal/depth passes build their own scene geometry VB/IB/layout (aligned with the GTAOPass self-contained pattern)
  *         Logging: Logger.debug at each pass entry/exit to assist render-flow tracing and debugging.
- *
- * @package three.rendering.postprocessing
  */
+package three.rendering.postprocessing
 
 import three.rendering.common.*
 import three.rendering.bgfx.*
@@ -66,7 +85,7 @@ import three.scene.entity.GroundReflector
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.utils.log.Logger
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
 import std.collection.*
@@ -74,7 +93,7 @@ import std.math.*
 import std.fs.*
 import std.env.*
 
-public class BgfxSSRPass <: Pass {
+public class SSRPass <: Pass {
     /**
      * SSR pass 用的 view ID 段约定：
      * SSAO 160~164，GTAO 165~169，SAO 170~175，SSR 176~181，composer 分配 230+
@@ -201,9 +220,9 @@ public class BgfxSSRPass <: Pass {
     /** MAX_STEP（= sqrt(width² + height²)，编译时传入 shader define） */
     private var _maxStep: Int64 = 0
 
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
-    /** 本 pass 自有的 uniform 注册表（对齐 BgfxGTAOPass/BgfxSSAOPass 自包含模式） */
+    /** 本 pass 自有的 uniform 注册表（对齐 GTAOPass/SSAOPass 自包含模式） */
     private var _uniforms: BgfxUniforms = BgfxUniforms()
 
     // ===== 场景几何体缓存（对齐 BgfxBackend._createVB/_createIB 模式） =====
@@ -331,14 +350,14 @@ public class BgfxSSRPass <: Pass {
         }
     }
 
-    private func _createFB(renderer: BgfxRenderer, tex: TextureHandle): FrameBufferHandle {
+    private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(1, { _ => tex })
         let fb = renderer.createFrameBuffer(1u8, handles, true)
         return fb
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(renderer: BgfxRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(renderer: ThreeRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = renderer.createFrameBuffer(2u8, handles, true)
         return fb
@@ -384,9 +403,9 @@ public class BgfxSSRPass <: Pass {
         }
     }
 
-    // ===== 自建场景几何体 VB/IB/layout（对齐 BgfxGTAOPass 模式） =====
+    // ===== 自建场景几何体 VB/IB/layout（对齐 GTAOPass 模式） =====
 
-    private func _getOrCreateLayout(renderer: BgfxRenderer): VertexLayoutHandle {
+    private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
         match (this._layoutHandleCache) {
             case Some(lh) => return lh
             case None => ()
@@ -534,7 +553,7 @@ public class BgfxSSRPass <: Pass {
      * 故不再外层包裹 renderer.execBgfx（避免嵌套死锁）。
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -560,7 +579,7 @@ public class BgfxSSRPass <: Pass {
                         return
                     }
 
-                    let baseView = BgfxSSRPass.SSR_VIEW_ID_BASE
+                    let baseView = SSRPass.SSR_VIEW_ID_BASE
                     let uniforms = this._uniforms
 
                     // ===== 注意：不再在渲染开始前"预编译所有 shader" =====
@@ -629,7 +648,7 @@ public class BgfxSSRPass <: Pass {
     /**
      * 法线 pass：normal shader 渲场景到法线 RT。
      */
-    private func _renderNormals(renderer: BgfxRenderer, scene: Scene, camera: Camera, baseView: UInt16): Unit {
+    private func _renderNormals(renderer: ThreeRenderer, scene: Scene, camera: Camera, baseView: UInt16): Unit {
         let viewId = baseView
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._normalFB)
@@ -732,7 +751,7 @@ public class BgfxSSRPass <: Pass {
      * 深度 pass：aodepth shader 渲场景到深度 RT（写 gl_FragCoord.z = NDC 深度）。
      * 用独立深度 RT（对齐 GTAO）。
      */
-    private func _renderDepth(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderDepth(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._depthFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -790,7 +809,7 @@ public class BgfxSSRPass <: Pass {
      *
      * 注：本 pass 仅在 selective=true 时调用（render 链在此条件下插入）。
      */
-    private func _renderMetalness(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderMetalness(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._metalnessFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -870,7 +889,7 @@ public class BgfxSSRPass <: Pass {
      * ssr shader（MAX_STEP, DISTANCE_ATTENUATION, FRESNEL defines）。
      */
     private func _renderSSRCalc(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         camera: Camera,
         readBuffer: FrameBufferHandle,
         viewId: UInt16,
@@ -984,7 +1003,7 @@ public class BgfxSSRPass <: Pass {
 
     /**
      * 编译 SSR shader，带动态 MAX_STEP + DISTANCE_ATTENUATION + FRESNEL defines。
-     * 对照 BgfxUnrealBloomPass 的 KERNEL_RADIUS define 编译模式。
+     * 对照 UnrealBloomPass 的 KERNEL_RADIUS define 编译模式。
      *
      * 循环编译说明（用户最终决策——纯编译期 MAX_STEP，移除动态 uniform）：
      *   MAX_STEP 按 this._maxStep = min(sqrt(w²+h²), 1024) 动态传入 define。
@@ -1154,7 +1173,7 @@ public class BgfxSSRPass <: Pass {
      * @param uniforms uniform 注册表
      */
     private func _renderBlur(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         viewId: UInt16,
         inputTex: TextureHandle,
         outputFB: FrameBufferHandle,
@@ -1200,7 +1219,7 @@ public class BgfxSSRPass <: Pass {
      *   - Normal：copy shader 透传法线纹理
      */
     private func _renderOutput(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         readBuffer: FrameBufferHandle,
         writeBuffer: FrameBufferHandle,
         viewId: UInt16,
@@ -1216,7 +1235,7 @@ public class BgfxSSRPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
         // Depth 模式：ssrdepth shader（tDepth + cameraNearFar）
-        if (this.output == BgfxSSRPass.OUTPUT_DEPTH) {
+        if (this.output == SSRPass.OUTPUT_DEPTH) {
             let depthProgOpt = PostProcessingShaders.get("ssrdepth")
             match (depthProgOpt) {
                 case Some(depthSp) =>
@@ -1246,7 +1265,7 @@ public class BgfxSSRPass <: Pass {
         }
 
         // Default 模式：ssrapply（sceneColor × (1-ssrAlpha) + ssrColor × ssrAlpha）
-        if (this.output == BgfxSSRPass.OUTPUT_DEFAULT) {
+        if (this.output == SSRPass.OUTPUT_DEFAULT) {
             let applyProgOpt = PostProcessingShaders.get("ssrapply")
             match (applyProgOpt) {
                 case Some(applySp) =>
@@ -1277,7 +1296,7 @@ public class BgfxSSRPass <: Pass {
         }
 
         // SSR 模式：copy shader 透传 blur2/ssr 纹理
-        if (this.output == BgfxSSRPass.OUTPUT_SSR) {
+        if (this.output == SSRPass.OUTPUT_SSR) {
             var srcTex = this._ssrTex
             if (this.blur) {
                 srcTex = this._blur2Tex
@@ -1287,20 +1306,20 @@ public class BgfxSSRPass <: Pass {
         }
 
         // Beauty 模式：copy shader 透传 readBuffer 场景色
-        if (this.output == BgfxSSRPass.OUTPUT_BEAUTY) {
+        if (this.output == SSRPass.OUTPUT_BEAUTY) {
             let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
             this._renderCopyOutput(renderer, viewId, sceneTex, uniforms)
             return
         }
 
         // Normal 模式：copy shader 透传法线纹理
-        if (this.output == BgfxSSRPass.OUTPUT_NORMAL) {
+        if (this.output == SSRPass.OUTPUT_NORMAL) {
             this._renderCopyOutput(renderer, viewId, this._normalTex, uniforms)
             return
         }
 
         // HitNormals 模式（调试用）：显示命中点法线
-        if (this.output == BgfxSSRPass.OUTPUT_HITNORMALS) {
+        if (this.output == SSRPass.OUTPUT_HITNORMALS) {
             this._renderHitNormals(renderer, viewId, uniforms)
             return
         }
@@ -1310,7 +1329,7 @@ public class BgfxSSRPass <: Pass {
      * 渲染命中点法线调试视图：ssr 计算时不仅输出反射颜色，还输出命中点法线
      */
     private func _renderHitNormals(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         viewId: UInt16,
         uniforms: BgfxUniforms
     ): Unit {
@@ -1368,7 +1387,7 @@ public class BgfxSSRPass <: Pass {
 
     /** copy shader 透传辅助：用 PostProcessingShaders "copy" 透传指定纹理到输出。 */
     private func _renderCopyOutput(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         viewId: UInt16,
         srcTex: TextureHandle,
         uniforms: BgfxUniforms
@@ -1399,7 +1418,7 @@ public class BgfxSSRPass <: Pass {
     /**
      * 为指定 view 设置相机 view/proj 变换（改用 renderer.setViewTransform 高阶 API）。
      */
-    private func _setViewTransformFor(renderer: BgfxRenderer, viewId: UInt16, camera: Camera): Unit {
+    private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
         let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
         let viewMem = BgfxMemory(64u32)
@@ -1449,7 +1468,7 @@ public class BgfxSSRPass <: Pass {
      * @param reflector 地面反射器
      */
     private func _renderGroundReflector(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         scene: Scene,
         camera: Camera,
         reflector: GroundReflector
@@ -1506,7 +1525,7 @@ public class BgfxSSRPass <: Pass {
      * @param reflector 地面反射器（虚拟相机已由 computeVirtualCamera 计算）
      */
     private func _renderReflectorDepth(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         scene: Scene,
         reflector: GroundReflector
     ): Unit {

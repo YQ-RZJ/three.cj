@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] AnimationAction 动画动作类
  * @brief[zh-cn] 管理单个动画剪辑的播放、混合、淡入淡出与变速
  * @explain[zh-cn] AnimationAction 是 AnimationClip 的调度实例，控制动画的播放状态、
@@ -64,104 +86,123 @@ public class AnimationAction {
 
     /**
      * @brief[zh-cn] 插值器设置（结束行为）
+     *
+     * @brief[en] Interpolant settings (ending behavior)
      */
     internal var _interpolantSettings: HashMap<String, Int64>
     /**
      * @brief[zh-cn] 插值器数组，每个轨道一个
+     *
+     * @brief[en] Array of interpolants, one per track
      */
     internal var _interpolants: Array<Interpolant>
     /**
      * @brief[zh-cn] 属性绑定数组，每个轨道一个 PropertyMixer
+     *
+     * @brief[en] Array of property bindings, one PropertyMixer per track
      */
     internal var _propertyBindings: Array<PropertyMixer>
 
     /**
      * @brief[zh-cn] 缓存索引（内存管理用）
+     *
+     * @brief[en] Cache index (for memory management)
      */
     internal var _cacheIndex: Option<Int64>
     /**
      * @brief[zh-cn] 按 clip 分组的缓存索引
+     *
+     * @brief[en] Cache index grouped by clip
      */
     internal var _byClipCacheIndex: Option<Int64>
     /**
      * @brief[zh-cn] 时间缩放插值器
+     *
+     * @brief[en] Time scale interpolant
      */
     internal var _timeScaleInterpolant: Option<Interpolant>
     /**
      * @brief[zh-cn] 恢复时间缩放值
+     *
+     * @brief[en] Time scale value to restore
      */
     internal var _restoreTimeScale: Option<Float64>
     /**
      * @brief[zh-cn] 权重插值器
+     *
+     * @brief[en] Weight interpolant
      */
     internal var _weightInterpolant: Option<Interpolant>
 
     /**
      * @brief[zh-cn] 循环模式（LoopRepeat | LoopOnce | LoopPingPong），通过 setLoop 设置
+     * @note[zh-cn] 默认值为 LoopRepeat
      *
      * @brief[en] Loop mode (LoopRepeat | LoopOnce | LoopPingPong), set via setLoop
-     *
-     * @note[zh-cn] 默认值为 LoopRepeat
      * @note[en] Defaults to LoopRepeat
      */
     public var loop: Int64
 
     /**
      * @brief[zh-cn] 循环计数
+     *
+     * @brief[en] Loop counter
      */
     internal var _loopCount: Int64
 
     /**
      * @brief[zh-cn] 调度开始时间（全局混合器时间），为空表示未调度
+     *
+     * @brief[en] Scheduled start time (global mixer time); None means not scheduled
      */
     internal var _startTime: Option<Float64>
 
     /**
      * @brief[zh-cn] 此动作的本地时间（秒，从 0 开始）
+     * @note[zh-cn] 值会被钳制或包裹到 [0, clip.duration]（根据循环状态），默认值为 0
      *
      * @brief[en] Local time of this action in seconds, starting at 0
-     *
-     * @note[zh-cn] 值会被钳制或包裹到 [0, clip.duration]（根据循环状态），默认值为 0
      * @note[en] The value is clamped or wrapped to [0, clip.duration] depending on the loop state; defaults to 0
      */
     public var time: Float64
 
     /**
      * @brief[zh-cn] AnimationAction#time 的缩放因子
+     * @note[zh-cn] 值为 0 时暂停动画，负值使动画反向播放，默认值为 1
      *
      * @brief[en] Scale factor for AnimationAction#time
-     *
-     * @note[zh-cn] 值为 0 时暂停动画，负值使动画反向播放，默认值为 1
      * @note[en] A value of 0 pauses the animation and a negative value plays it backwards; defaults to 1
      */
     public var timeScale: Float64
 
     /**
      * @brief[zh-cn] 有效时间缩放（考虑暂停和变速）
+     *
+     * @brief[en] Effective time scale (taking pausing and warping into account)
      */
     internal var _effectiveTimeScale: Float64
 
     /**
      * @brief[zh-cn] 此动作的影响程度（区间 [0, 1]）
+     * @note[zh-cn] 0 表示无影响，1 表示完全影响，介于两者之间的值可用于混合多个动作；默认值为 1
      *
      * @brief[en] How much this action affects the object (range [0, 1])
-     *
-     * @note[zh-cn] 0 表示无影响，1 表示完全影响，介于两者之间的值可用于混合多个动作；默认值为 1
      * @note[en] 0 means no influence and 1 means full influence; values in between can blend multiple actions; defaults to 1
      */
     public var weight: Float64
 
     /**
      * @brief[zh-cn] 有效权重（考虑启用状态）
+     *
+     * @brief[en] Effective weight (taking the enabled state into account)
      */
     internal var _effectiveWeight: Float64
 
     /**
      * @brief[zh-cn] 此动作执行的剪辑重复次数，可通过 setLoop 设置
+     * @note[zh-cn] 对 LoopOnce 模式无影响，默认值为 Infinity
      *
      * @brief[en] Number of times the clip is repeated for this action, set via setLoop
-     *
-     * @note[zh-cn] 对 LoopOnce 模式无影响，默认值为 Infinity
      * @note[en] No effect on LoopOnce mode; defaults to Infinity
      */
     public var repetitions: Float64
@@ -175,10 +216,9 @@ public class AnimationAction {
 
     /**
      * @brief[zh-cn] 是否启用
+     * @note[zh-cn] 禁用时动作无影响；重新启用时从当前时间继续，默认值为 true
      *
      * @brief[en] Whether the action is enabled
-     *
-     * @note[zh-cn] 禁用时动作无影响；重新启用时从当前时间继续，默认值为 true
      * @note[en] A disabled action has no effect; re-enabling resumes from the current time; defaults to true
      */
     public var enabled: Bool
@@ -655,6 +695,13 @@ public class AnimationAction {
      * @param[zh-cn] accuIndex 累积索引
      *
      * 更新动作（由 AnimationMixer 调用）
+     *
+     * @param[en] time Global mixer time
+     * @param[en] deltaTime Time delta
+     * @param[en] timeDirection Time direction
+     * @param[en] accuIndex Accumulation index
+     *
+     * Updates the action (called by AnimationMixer)
      */
     internal func _update(time: Float64, deltaTime: Float64, timeDirection: Float64, accuIndex: Int64): Unit {
         if (!this.enabled) {
@@ -710,6 +757,11 @@ public class AnimationAction {
      * @return[zh-cn] 有效权重
      *
      * 更新权重
+     *
+     * @param[en] time Global mixer time
+     * @return[en] The effective weight
+     *
+     * Updates the weight
      */
     internal func _updateWeight(time: Float64): Float64 {
         var weight: Float64 = 0.0
@@ -743,6 +795,11 @@ public class AnimationAction {
      * @return[zh-cn] 有效时间缩放
      *
      * 更新时间缩放
+     *
+     * @param[en] time Global mixer time
+     * @return[en] The effective time scale
+     *
+     * Updates the time scale
      */
     internal func _updateTimeScale(time: Float64): Float64 {
         var timeScale: Float64 = 0.0
@@ -782,6 +839,11 @@ public class AnimationAction {
      * @return[zh-cn] 剪辑时间
      *
      * 更新时间
+     *
+     * @param[en] deltaTime Time delta
+     * @return[en] The clip time
+     *
+     * Updates the time
      */
     internal func _updateTime(deltaTime: Float64): Float64 {
         let duration = this._clip.duration
@@ -892,6 +954,12 @@ public class AnimationAction {
      * @param[zh-cn] pingPong 是否乒乓循环
      *
      * 设置插值器端点行为
+     *
+     * @param[en] atStart Whether the ending occurs at the start
+     * @param[en] atEnd Whether the ending occurs at the end
+     * @param[en] pingPong Whether ping-pong looping is used
+     *
+     * Sets the interpolant ending behavior
      */
     internal func _setEndings(atStart: Bool, atEnd: Bool, pingPong: Bool): Unit {
         let settings = this._interpolantSettings
@@ -922,6 +990,13 @@ public class AnimationAction {
      * @return[zh-cn] 返回自身以支持链式调用
      *
      * 调度淡入淡出效果
+     *
+     * @param[en] duration The duration
+     * @param[en] weightNow The current weight
+     * @param[en] weightThen The target weight
+     * @return[en] Returns itself for chaining
+     *
+     * Schedules a fading effect
      */
     internal func _scheduleFading(duration: Float64, weightNow: Float64, weightThen: Float64): AnimationAction {
         let mixer = this._mixer

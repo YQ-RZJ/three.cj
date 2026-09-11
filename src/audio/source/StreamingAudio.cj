@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] StreamingAudio 流式音频播放源
  * @brief[zh-cn] 支持大文件/长音频分段解码与播放的流式音频
  * @explain[zh-cn] 基于 OpenAL 的 alSourceQueueBuffers/alSourceUnqueueBuffers 队列缓冲机制，
@@ -42,6 +64,10 @@
  */
 package three.audio.source
 
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
+
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -54,6 +80,7 @@ import openalsoft4cj.miniaudio.*
 
 import three.audio.device.*
 import three.audio.listener.*
+import three.utils.log.Logger
 
 /**
  * @brief[zh-cn] 流式音频，继承 Audio
@@ -68,64 +95,89 @@ import three.audio.listener.*
  * - Maintains an internal miniaudio decoder for incremental decoding
  * - Requires periodic updateStream() calls to keep playing
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Audio]
 public open class StreamingAudio <: Audio {
     /**
      * @brief[zh-cn] miniaudio 解码器句柄（不透明，1024 字节缓冲）
+     *
+     * @brief[en] The miniaudio decoder handle (opaque, 1024-byte buffer)
      */
     private var _decoder: CPointer<UInt8>
 
     /**
      * @brief[zh-cn] 解码器是否已初始化
+     *
+     * @brief[en] Whether the decoder has been initialized
      */
     private var _decoderInitialized: Bool
 
     /**
      * @brief[zh-cn] 流式缓冲区 ID 数组（N 个轮换缓冲）
+     *
+     * @brief[en] Array of streaming buffer IDs (N rotating buffers)
      */
     private var _streamBufferIds: CPointer<UInt32>
 
     /**
      * @brief[zh-cn] 流式缓冲数量
+     *
+     * @brief[en] The number of streaming buffers
      */
     private var _streamBufferCount: Int32
 
     /**
      * @brief[zh-cn] 每个分段的帧数
+     *
+     * @brief[en] The number of frames per chunk
      */
     private var _chunkFrameCount: UInt64
 
     /**
      * @brief[zh-cn] 可复用的 PCM 读取缓冲
+     *
+     * @brief[en] The reusable PCM read buffer
      */
     private var _pcmReadBuffer: CPointer<UInt8>
 
     /**
      * @brief[zh-cn] PCM 读取缓冲字节大小
+     *
+     * @brief[en] The size of the PCM read buffer in bytes
      */
     private var _pcmReadBufferSize: Int64
 
     /**
      * @brief[zh-cn] 声道数（从解码器获取）
+     *
+     * @brief[en] The number of channels (from the decoder)
      */
     private var _channels: UInt32
 
     /**
      * @brief[zh-cn] 采样率（从解码器获取）
+     *
+     * @brief[en] The sample rate (from the decoder)
      */
     private var _sampleRate: UInt32
 
     /**
      * @brief[zh-cn] OpenAL 格式（AL_FORMAT_MONO16 / AL_FORMAT_STEREO16）
+     *
+     * @brief[en] The OpenAL format (AL_FORMAT_MONO16 / AL_FORMAT_STEREO16)
      */
     private var _format: UInt32
 
     /**
      * @brief[zh-cn] 是否到达文件末尾
+     *
+     * @brief[en] Whether the end of the file has been reached
      */
     private var _eof: Bool
 
     /**
      * @brief[zh-cn] 文件路径（用于 loop 时重新初始化解码器）
+     *
+     * @brief[en] The file path (used to reinitialize the decoder when looping)
      */
     private var _filePath: String
 
@@ -136,6 +188,9 @@ public open class StreamingAudio <: Audio {
      * @brief[en] Creates a streaming audio instance
      * @param[en] listener The associated audio listener
      */
+    public init() {
+        this(listener: AudioListener())
+    }
     public init(listener!: AudioListener) {
         super(listener: listener)
         this._decoder = CPointer<UInt8>()
@@ -179,7 +234,7 @@ public open class StreamingAudio <: Audio {
             this._decoder = unsafe { LibC.malloc<UInt8>(count: 1024) }
             let result = ma_decoder_init_file_cj(pathCs, CPointer<Unit>(), CPointer<Unit>(this._decoder))
             if (result != MaResult.Success.value()) {
-                println("[StreamingAudio] 解码器初始化失败: ${filePath}, 错误码=${result.toString()}")
+                Logger.error(["StreamingAudio", "解码器初始化失败: ${filePath}, 错误码=${result.toString()}"])
                 unsafe { LibC.free(this._decoder) }
                 this._decoder = CPointer<UInt8>()
                 return
@@ -415,6 +470,8 @@ public open class StreamingAudio <: Audio {
 
     /**
      * @brief[zh-cn] 填充初始缓冲队列（播放前调用）
+     *
+     * @brief[en] Fills the initial buffer queue (called before playback)
      */
     private func _fillInitialBuffers(): Unit {
         let srcId = this.sourceId
@@ -468,6 +525,9 @@ public open class StreamingAudio <: Audio {
     /**
      * @brief[zh-cn] 重置解码器到起始位置（stop/loop 时调用）
      * @explain[zh-cn] 通过 uninit + init_file 实现，因为 miniaudio 无通用 seek-to-start。
+     *
+     * @brief[en] Resets the decoder to the start position (called on stop/loop)
+     * @explain[en] Implemented via uninit + init_file, since miniaudio has no generic seek-to-start.
      */
     private func _resetDecoder(): Unit {
         if (!this._decoderInitialized) { return }
@@ -479,7 +539,7 @@ public open class StreamingAudio <: Audio {
             let result = ma_decoder_init_file_cj(pathCs, CPointer<Unit>(), CPointer<Unit>(decoder))
             unsafe { LibC.free(pathCs) }
             if (result != MaResult.Success.value()) {
-                println("[StreamingAudio] 解码器重置失败: ${filePath}")
+                Logger.error(["StreamingAudio", "解码器重置失败: ${filePath}"])
                 this._decoderInitialized = false
             }
         })

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Manager 实体/组件/系统管理器与系统-实体映射
  * @brief[zh-cn] 包含 EntityManager、ComponentManager、SystemManager 以及两种系统-实体映射管理器
  * @explain[zh-cn] - EntityManager：以 etyId 为键管理实体，删除时触发 destruct（自动回收 ID）
@@ -42,6 +64,8 @@ import three.utils.pool.ObjectPool
 public class EntityManager {
     /**
      * @brief[zh-cn] 所有实体：etyId -> 实体
+     *
+     * @brief[en] All entities: etyId -> entity
      */
     private let _entitys: HashMap<EntityId, Entity> = HashMap<EntityId, Entity>()
 
@@ -146,6 +170,8 @@ public class EntityManager {
 public class ComponentManager {
     /**
      * @brief[zh-cn] 组件对象池：cptId -> 池
+     *
+     * @brief[en] Component object pools: cptId -> pool
      */
     private let _pools: HashMap<ComponentId, ObjectPool<Component>> = HashMap<ComponentId, ObjectPool<Component>>()
 
@@ -171,6 +197,8 @@ public class ComponentManager {
 
     /**
      * @brief[zh-cn] 获取或按登记工厂创建组件池
+     *
+     * @brief[en] Gets an existing component pool or creates one using the registered factory
      */
     private func _ensurePool(cptId: ComponentId): ?ObjectPool<Component> {
         if (let Some(pool) <- _pools.get(cptId)) {
@@ -228,14 +256,20 @@ public class ComponentManager {
 public class ArrSysEtyMapManager <: ISysEtyMapManager<System, Entity> {
     /**
      * @brief[zh-cn] 记录区：sysId -> (etyId -> 实体)
+     *
+     * @brief[en] Record area: sysId -> (etyId -> entity)
      */
     private let _mapping: HashMap<SystemId, HashMap<EntityId, Entity>> = HashMap<SystemId, HashMap<EntityId, Entity>>()
     /**
      * @brief[zh-cn] 系统表引用（bind 挂接）
+     *
+     * @brief[en] System table reference (attached via bind)
      */
     private var _systems: HashMap<SystemId, System> = HashMap<SystemId, System>()
     /**
      * @brief[zh-cn] 实体表引用（bind 挂接）
+     *
+     * @brief[en] Entity table reference (attached via bind)
      */
     private var _entitys: HashMap<EntityId, Entity> = HashMap<EntityId, Entity>()
 
@@ -384,14 +418,20 @@ public class ArrSysEtyMapManager <: ISysEtyMapManager<System, Entity> {
 public class TreeSysEtyMapManager <: ISysEtyMapManager<System, Entity> {
     /**
      * @brief[zh-cn] 记录区：需求掩码 -> 命中实体列表
+     *
+     * @brief[en] Record area: requirement mask -> list of matched entities
      */
     private let _sysMappingEntity: BinaryPatriciaTrie<ArrayList<Entity>> = BinaryPatriciaTrie<ArrayList<Entity>>()
     /**
      * @brief[zh-cn] 系统表引用（bind 挂接）
+     *
+     * @brief[en] System table reference (attached via bind)
      */
     private var _systems: HashMap<SystemId, System> = HashMap<SystemId, System>()
     /**
      * @brief[zh-cn] 实体表引用（bind 挂接）
+     *
+     * @brief[en] Entity table reference (attached via bind)
      */
     private var _entitys: HashMap<EntityId, Entity> = HashMap<EntityId, Entity>()
 
@@ -496,6 +536,8 @@ public class TreeSysEtyMapManager <: ISysEtyMapManager<System, Entity> {
 
     /**
      * @brief[zh-cn] 删除实体成员（倒序就地删除）
+     *
+     * @brief[en] Removes an entity member (in-place deletion in reverse order)
      */
     private func _delEntity(id: EntityId, cptMask: Array<UInt8>): Unit {
         for ((_, set) in _sysMappingEntity.fBitSubsetOf(cptMask)) {
@@ -529,6 +571,8 @@ public class TreeSysEtyMapManager <: ISysEtyMapManager<System, Entity> {
 public class SystemManager {
     /**
      * @brief[zh-cn] 所有系统：sysId -> 系统
+     *
+     * @brief[en] All systems: sysId -> system
      */
     private let _systems: HashMap<SystemId, System> = HashMap<SystemId, System>()
 
@@ -541,6 +585,8 @@ public class SystemManager {
 
     /**
      * @brief[zh-cn] 系统所需要更新的所有实体
+     *
+     * @brief[en] All entities that a system needs to update
      */
     private let _sysMap: ISysEtyMapManager<System, Entity>
 
@@ -659,6 +705,8 @@ public class SystemManager {
 
     /**
      * @brief[zh-cn] 驱动单个系统
+     *
+     * @brief[en] Drives (ticks) a single system
      */
     private func _tick(id: SystemId, dt: Float64): Unit {
         if (let Some(sys) <- _systems.get(id)) {

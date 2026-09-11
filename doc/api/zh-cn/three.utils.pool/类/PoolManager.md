@@ -84,6 +84,23 @@ public func recycle(id: Int64, obj: Object): Unit
 
 - IllegalStateException 当该 ID 未注册时
 
+### func register\(Int64,\(\)\->Object\)
+```cj
+public func register(id: Int64, factory:() -> Object): Unit
+```
+注册指定 ID 的对象池
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|id|Int64|对象类型 IDfactory 对象工厂|
+|factory|()->Object||
+
+异常: 
+
+- IllegalStateException 当该 ID 已注册时
+
 ### func register\(Int64,\(\)\->Object,?\(Object\)\->Unit,?\(Object\)\->Unit\)
 ```cj
 public func register(id: Int64, factory:() -> Object, onRecycle:?(Object) -> Unit, onReuse:?(Object) -> Unit): Unit
@@ -98,23 +115,6 @@ public func register(id: Int64, factory:() -> Object, onRecycle:?(Object) -> Uni
 |factory|()->Object||
 |onRecycle|?(Object)->Unit||
 |onReuse|?(Object)->Unit||
-
-异常: 
-
-- IllegalStateException 当该 ID 已注册时
-
-### func register\(Int64,\(\)\->Object\)
-```cj
-public func register(id: Int64, factory:() -> Object): Unit
-```
-注册指定 ID 的对象池
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|id|Int64|对象类型 IDfactory 对象工厂|
-|factory|()->Object||
 
 异常: 
 

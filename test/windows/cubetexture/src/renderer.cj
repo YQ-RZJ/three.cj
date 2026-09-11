@@ -23,7 +23,7 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.MouseButton
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass

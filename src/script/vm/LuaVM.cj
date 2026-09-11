@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] LuaVM LuaJIT 脚本虚拟机高级封装（three.script.vm 子包）
  * @brief[zh-cn] LuaJIT 脚本虚拟机高级封装，提供安全、易用的 Lua 脚本引擎
  * @explain[zh-cn] 在 luajit4cj 的 CFFI 之上提供安全、易用的 Lua 脚本引擎。能力覆盖：
@@ -40,6 +62,8 @@ import luajit4cj.luajit.*
 
 /**
  * @brief[zh-cn] 类型化的 None（用于 _doChunk/_loadChunk 的 Option<String> 参数）
+ *
+ * @brief[en] Typed None (used for the Option<String> parameters of _doChunk/_loadChunk)
  */
 private let _NO_STR: Option<String> = None
 
@@ -63,11 +87,15 @@ private let _NO_STR: Option<String> = None
 public class LuaVM {
     /**
      * @brief[zh-cn] lua_State 句柄（null 表示已关闭）
+     *
+     * @brief[en] The lua_State handle (null means closed)
      */
     private var _L: CPointer<Unit>
 
     /**
      * @brief[zh-cn] 是否已打开标准库
+     *
+     * @brief[en] Whether the standard libraries have been opened
      */
     private var _libsOpened: Bool
 
@@ -209,6 +237,12 @@ public class LuaVM {
      * name chunk 名（可选）
      * path 文件路径（三选一）
      * @return[zh-cn] 返回值数组
+     *
+     * @brief[en] Unified execution entry: exactly one of chunk/name/path (internal)
+     * @param[en] code The Lua source (used only when path is None)
+     * name The chunk name (optional)
+     * path The file path (one of the three)
+     * @return[en] The array of return values
      */
     private func _doChunk(code: Option<String>, name: Option<String>,
                           path: Option<String>): Array<LuaValue> {
@@ -303,6 +337,12 @@ public class LuaVM {
      * name chunk 名（可选）
      * path 文件路径（二选一）
      * @return[zh-cn] 编译后的 LuaFunction
+     *
+     * @brief[en] Unified compilation entry (internal): either chunk or path
+     * @param[en] code The Lua source (used only when path is None)
+     * name The chunk name (optional)
+     * path The file path (one of the two)
+     * @return[en] The compiled LuaFunction
      */
     private func _loadChunk(code: Option<String>, name: Option<String>,
                             path: Option<String>): LuaFunction {
@@ -650,6 +690,11 @@ public class LuaVM {
      * @return[zh-cn] 有效的 lua_State 句柄
      *
      * @throws[zh-cn] LuaError 状态机已关闭时抛出
+     *
+     * @brief[en] Validates that the state is valid and returns the underlying handle
+     * @return[en] A valid lua_State handle
+     *
+     * @throws[en] LuaError Thrown when the state is closed
      */
     private func _requireState(): CPointer<Unit> {
         if (this._L.isNull()) {
@@ -661,6 +706,10 @@ public class LuaVM {
     /**
      * @brief[zh-cn] 弹出栈顶错误消息并返回 String（pcall/load 失败时栈顶为错误）
      * @return[zh-cn] 错误消息字符串
+     *
+     * @brief[en] Pops the error message on top of the stack and returns it as a String
+     * (the top of the stack holds the error when pcall/load fails)
+     * @return[en] The error message string
      */
     private func _popError(): String {
         let L = this._L
@@ -718,6 +767,10 @@ public class LuaVM {
  * @brief[zh-cn] String → CString（malloc 分配，用完须调用 _freeCString 释放）
  * @param[zh-cn] s 待转换的字符串
  * @return[zh-cn] 转换后的 CString
+ *
+ * @brief[en] String → CString (malloc-allocated; call _freeCString when done)
+ * @param[en] s The string to convert
+ * @return[en] The converted CString
  */
 internal func _toCString(s: String): CString {
     return unsafe { LibC.mallocCString(s) }
@@ -726,6 +779,9 @@ internal func _toCString(s: String): CString {
 /**
  * @brief[zh-cn] 释放由 _toCString 分配的 CString
  * @param[zh-cn] cs 待释放的 CString
+ *
+ * @brief[en] Frees a CString allocated by _toCString
+ * @param[en] cs The CString to free
  */
 internal func _freeCString(cs: CString): Unit {
     unsafe { LibC.free(cs) }
@@ -737,6 +793,12 @@ internal func _freeCString(cs: CString): Unit {
  * @param[zh-cn] L 底层 lua_State 句柄
  * idx 栈索引
  * @return[zh-cn] 对应的 LuaValue
+ *
+ * @brief[en] Reads a LuaValue from a stack index (basic types; tables/functions etc.
+ * return a nil placeholder, access them via LuaTable/LuaFunction)
+ * @param[en] L The underlying lua_State handle
+ * idx The stack index
+ * @return[en] The corresponding LuaValue
  */
 internal func _readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
     let t = lua_type_cj(L, idx)
@@ -769,6 +831,10 @@ internal func _readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
  * @brief[zh-cn] 压入 LuaValue 到栈
  * @param[zh-cn] L 底层 lua_State 句柄
  * v 要压入的 LuaValue
+ *
+ * @brief[en] Pushes a LuaValue onto the stack
+ * @param[en] L The underlying lua_State handle
+ * v The LuaValue to push
  */
 internal func _pushValue(L: CPointer<Unit>, v: LuaValue): Unit {
     match (v) {

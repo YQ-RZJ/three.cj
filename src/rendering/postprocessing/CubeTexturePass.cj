@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] CubeTexturePass 立方体贴图背景后处理 pass
  * @brief[zh-cn] 立方体贴图背景 pass —— 把 CubeTexture 当作天空盒/背景渲染
  * @explain[zh-cn] 设计：
@@ -39,7 +61,7 @@ package three.rendering.postprocessing
 
 import three.rendering.cameras.*
 import three.rendering.textures.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.shaders.ShaderLibs
@@ -112,7 +134,7 @@ public class CubeTexturePass <: Pass {
     private var _cubeLayout: Option<VertexLayoutHandle> = None
 
     /** 渲染器引用（render() 时缓存，dispose 经其高阶 API 销毁 GPU 资源） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 构造 CubeTexturePass。
@@ -136,7 +158,7 @@ public class CubeTexturePass <: Pass {
      * bgfx 差异：BoxGeometry 在 bgfx 里是 VB（24 顶点 × position+normal+uv）+ IB（36 索引），
      * cube shader 只用 position，故 VB 仅存 position（8 顶点，36 索引）。
      */
-    private func _ensureCubeMesh(renderer: BgfxRenderer): Unit {
+    private func _ensureCubeMesh(renderer: ThreeRenderer): Unit {
         match (this._cubeVB) {
             case Some(_) => return
             case None => ()
@@ -226,7 +248,7 @@ public class CubeTexturePass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -370,7 +392,7 @@ public class CubeTexturePass <: Pass {
      * 若 CubeTexture 无 images 数据（空占位），返回 invalid handle（idx=65535），
      * 调用方日志告警（测试侧需构造带 6 面数据的 CubeTexture）。
      */
-    private func _getCubeTextureHandle(renderer: BgfxRenderer): TextureHandle {
+    private func _getCubeTextureHandle(renderer: ThreeRenderer): TextureHandle {
         // 缓存命中直接返回
         match (this._cubeTexHandleCache) {
             case Some(h) => return h

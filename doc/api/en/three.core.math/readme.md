@@ -32,8 +32,10 @@
 |[MathUtils](./Class/MathUtils.md#class-mathutils)|Math utility class providing a collection of commonly used math functions|
 |[Matrix2](./Class/Matrix2.md#class-matrix2)|2x2 matrix class, stored in column-major order|
 |[Matrix3](./Class/Matrix3.md#class-matrix3)|3x3 matrix class, stored in column-major order|
+|[Matrix4F](./Class/Matrix4F.md#class-matrix4f)|Float32 4x4 matrix class (column-major storage)|
 |[Matrix4](./Class/Matrix4.md#class-matrix4)|4x4 matrix class, column-major storage (elements array)|
 |[Plane](./Class/Plane.md#class-plane)|Plane class, represented by unit normal and constant|
+|[QuaternionF](./Class/QuaternionF.md#class-quaternionf)|Float32 quaternion class for representing 3D rotations|
 |[Quaternion](./Class/Quaternion.md#class-quaternion)|Quaternion class for representing 3D rotations|
 |[Ray](./Class/Ray.md#class-ray)|Ray class, defined by origin and direction vector|
 |[ReversedDepthFuncs](./Class/ReversedDepthFuncs.md#class-reverseddepthfuncs)|Reversed depth function mapping table|
@@ -42,7 +44,9 @@
 |[Spherical](./Class/Spherical.md#class-spherical)|Spherical coordinates class for representing points in 3D space|
 |[Triangle](./Class/Triangle.md#class-triangle)|Triangle class, defined by three vertices|
 |[Vector2](./Class/Vector2.md#class-vector2)|2D vector class, represents an ordered pair (x, y)|
+|[Vector3F](./Class/Vector3F.md#class-vector3f)|Float32 3D vector class|
 |[Vector3](./Class/Vector3.md#class-vector3)|3D vector class, represents an ordered triple (x, y, z)|
+|[Vector4F](./Class/Vector4F.md#class-vector4f)|Float32 4D vector class|
 |[Vector4](./Class/Vector4.md#class-vector4)|4D vector class, represents an ordered quadruple (x, y, z, w)|
 
 ### Enum

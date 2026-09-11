@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 箭头辅助对象
  * @brief[zh-cn] 三维箭头辅助对象，用于可视化方向
  * @explain[zh-cn] 
@@ -12,6 +34,10 @@
  * and a cone (arrow head), supports setting direction, length and color.
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -37,6 +63,7 @@ import std.math.*
  * Composed of a line (direction) and a cone (arrow head),
  * supports setting direction, length and color.
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public class ArrowHelper <: Object3D {
     private static var _lineGeometry: Option<BufferGeometry> = None<BufferGeometry>
     private static var _coneGeometry: Option<BufferGeometry> = None<BufferGeometry>
@@ -47,6 +74,7 @@ public class ArrowHelper <: Object3D {
      *
      * @brief[en] Line body of the arrow
      */
+    @JsonIgnore
     public var line: Line
 
     /**
@@ -54,6 +82,7 @@ public class ArrowHelper <: Object3D {
      *
      * @brief[en] Cone head of the arrow
      */
+    @JsonIgnore
     public var cone: Mesh
 
     /**
@@ -75,7 +104,6 @@ public class ArrowHelper <: Object3D {
      */
     public init(dir!: Vector3 = Vector3(0.0, 0.0, 1.0), origin!: Vector3 = Vector3(0.0, 0.0, 0.0), length!: Float64 = 1.0, color!: UInt32 = 0xffff00, headLength!: Float64 = 0.0, headWidth!: Float64 = 0.0) {
         super()
-        this.kind = "ArrowHelper"
 
         let hl = if (headLength == 0.0) { length * 0.2 } else { headLength }
         let hw = if (headWidth == 0.0) { hl * 0.2 } else { headWidth }

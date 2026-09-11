@@ -23,6 +23,13 @@ public var borderless: Bool = false
 ```
 Whether the window is borderless (SDL_WINDOW_BORDERLESS; defaults to false)
 
+### var enableGui
+```cj
+public var enableGui: Bool = false
+```
+Whether to enable Gui (defaults to false; when enabled, the engine
+automatically manages the Gui context lifecycle)
+
 ### var fullscreen
 ```cj
 public var fullscreen: Bool = false

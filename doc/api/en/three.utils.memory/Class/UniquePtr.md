@@ -21,6 +21,19 @@ Return:
 
 - The raw CPointer<T>
 
+### func init\(CPointer<T>,\(CPointer<T>\)\->Unit\)
+```cj
+public init(p: CPointer < T >, deleter:(CPointer < T >) -> Unit)
+```
+Constructs a UniquePtr wrapping a pointer (with a custom deleter)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|p|CPointer<T>|The pointer to managedeleter Custom deleter function|
+|deleter|(CPointer<T>)->Unit||
+
 ### func init\(\)
 ```cj
 public init()
@@ -38,19 +51,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |p|CPointer<T>|The pointer to manage|
-
-### func init\(CPointer<T>,\(CPointer<T>\)\->Unit\)
-```cj
-public init(p: CPointer < T >, deleter:(CPointer < T >) -> Unit)
-```
-Constructs a UniquePtr wrapping a pointer (with a custom deleter)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|p|CPointer<T>|The pointer to managedeleter Custom deleter function|
-|deleter|(CPointer<T>)->Unit||
 
 ### func isValid\(\)
 ```cj

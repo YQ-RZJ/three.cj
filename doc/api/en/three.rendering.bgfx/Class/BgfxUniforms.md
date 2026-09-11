@@ -5,6 +5,23 @@ public class BgfxUniforms
 ```
 bgfx uniform variable management
 
+### func createUniform\(String,UInt32\)
+```cj
+public func createUniform(name: String, uniformType: UInt32): UniformHandle
+```
+Create uniform handle
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|name|String|Uniform nameuniformType Uniform type (BGFX_UNIFORM_VEC4/BGFX_UNIFORM_MAT3/BGFX_UNIFORM_MAT4/BGFX_UNIFORM_SAMPLER etc.)|
+|uniformType|UInt32||
+
+Return: 
+
+- Uniform handle (Box wrapper)
+
 ### func createUniform\(String,UInt32,UInt16\)
 ```cj
 public func createUniform(name: String, uniformType: UInt32, num: UInt16): UniformHandle
@@ -22,23 +39,6 @@ Parameter:
 Return: 
 
 - Uniform handle
-
-### func createUniform\(String,UInt32\)
-```cj
-public func createUniform(name: String, uniformType: UInt32): UniformHandle
-```
-Create uniform handle
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|name|String|Uniform nameuniformType Uniform type (BGFX_UNIFORM_VEC4/BGFX_UNIFORM_MAT3/BGFX_UNIFORM_MAT4/BGFX_UNIFORM_SAMPLER etc.)|
-|uniformType|UInt32||
-
-Return: 
-
-- Uniform handle (Box wrapper)
 
 ### func dispose\(\)
 ```cj

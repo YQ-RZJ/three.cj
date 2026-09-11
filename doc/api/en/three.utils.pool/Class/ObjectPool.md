@@ -21,6 +21,19 @@ public func clear(): Unit
 ```
 Clears the cache
 
+### func init\(Int64,\(\)\->T\)
+```cj
+public init(capacity: Int64, factory:() -> T)
+```
+Constructs an object pool (without callbacks)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|capacity|Int64|Maximum cache capacity (<= 0 means unlimited)factory Object factory returning a new instance|
+|factory|()->T||
+
 ### func init\(Int64,\(\)\->T,?\(T\)\->Unit,?\(T\)\->Unit\)
 ```cj
 public init(capacity: Int64, factory:() -> T, onRecycle:?(T) -> Unit, onReuse:?(T) -> Unit)
@@ -35,19 +48,6 @@ Parameter:
 |factory|()->T||
 |onRecycle|?(T)->Unit||
 |onReuse|?(T)->Unit||
-
-### func init\(Int64,\(\)\->T\)
-```cj
-public init(capacity: Int64, factory:() -> T)
-```
-Constructs an object pool (without callbacks)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|capacity|Int64|Maximum cache capacity (<= 0 means unlimited)factory Object factory returning a new instance|
-|factory|()->T||
 
 ### func recycle\(T\)
 ```cj

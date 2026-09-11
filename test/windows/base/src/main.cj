@@ -12,7 +12,7 @@ package threeTest
 
 import std.io.*
 import std.time.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
@@ -28,7 +28,7 @@ import three.rendering.cameras.*
  */
 public class TestWindow <: WindowEngine {
     // ===== 渲染状态（onInit 创建 / onFrame 使用 / onClose 清理） =====
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 60.0, aspect: 1.0, near: 0.1, far: 100.0)
     var mesh: Mesh = Mesh(geometry: createColoredBoxGeometry(1.5, 1.5, 1.5),
@@ -41,16 +41,18 @@ public class TestWindow <: WindowEngine {
         let hwnd = this.getNativeWindowHandle()
         let w = this.getWidth()
         let h = this.getHeight()
-        println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}, DPR=${dpr}）...")
+        this.renderer.setPixelRatio(Float64(dpr))
         let rok = this.renderer.initBgfx(hwnd, w, h)
         if (!rok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x30, 0x30, 0x60))  // 灰蓝色背景
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("")
 
         println("[3/5] 创建场景...")
@@ -96,7 +98,7 @@ public class TestWindow <: WindowEngine {
         let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
         println("  运行时间: ${elapsed}s")
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")
     }

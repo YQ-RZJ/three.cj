@@ -23,6 +23,12 @@ public var borderless: Bool = false
 ```
 是否无边框窗口（对应 SDL_WINDOW_BORDERLESS，默认 false）
 
+### var enableGui
+```cj
+public var enableGui: Bool = false
+```
+是否启用 Gui（默认 false；启用后引擎自动管理 Gui 上下文生命周期）
+
 ### var fullscreen
 ```cj
 public var fullscreen: Bool = false

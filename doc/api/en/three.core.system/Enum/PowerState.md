@@ -9,37 +9,37 @@ Power state enumeration
 ```cj
 Charged
 ```
-
+Plugged in, battery fully charged
 
 ### Charging
 ```cj
 Charging
 ```
-
+Plugged in, charging
 
 ### Error
 ```cj
 Error
 ```
-
+Unable to determine power state (-1 on the C side)
 
 ### NoBattery
 ```cj
 NoBattery
 ```
-
+Plugged in, no battery
 
 ### OnBattery
 ```cj
 OnBattery
 ```
-
+Not plugged in, running on battery
 
 ### Unknown
 ```cj
 Unknown
 ```
-
+Unable to determine power state
 
 ### func fromValue\(UInt32\)
 ```cj

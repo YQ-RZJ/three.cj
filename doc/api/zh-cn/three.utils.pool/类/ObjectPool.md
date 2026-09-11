@@ -21,6 +21,19 @@ public func clear(): Unit
 ```
 清理缓存
 
+### func init\(Int64,\(\)\->T\)
+```cj
+public init(capacity: Int64, factory:() -> T)
+```
+构造对象池（不带回调）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|capacity|Int64|最大缓存容量（<= 0 表示不限制）factory 对象工厂，返回新创建的实例|
+|factory|()->T||
+
 ### func init\(Int64,\(\)\->T,?\(T\)\->Unit,?\(T\)\->Unit\)
 ```cj
 public init(capacity: Int64, factory:() -> T, onRecycle:?(T) -> Unit, onReuse:?(T) -> Unit)
@@ -35,19 +48,6 @@ public init(capacity: Int64, factory:() -> T, onRecycle:?(T) -> Unit, onReuse:?(
 |factory|()->T||
 |onRecycle|?(T)->Unit||
 |onReuse|?(T)->Unit||
-
-### func init\(Int64,\(\)\->T\)
-```cj
-public init(capacity: Int64, factory:() -> T)
-```
-构造对象池（不带回调）
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|capacity|Int64|最大缓存容量（<= 0 表示不限制）factory 对象工厂，返回新创建的实例|
-|factory|()->T||
 
 ### func recycle\(T\)
 ```cj

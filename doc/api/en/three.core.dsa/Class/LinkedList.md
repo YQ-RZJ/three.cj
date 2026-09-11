@@ -75,7 +75,7 @@ Return:
 ```cj
 public func clear(): Unit
 ```
-
+Clear the list
 
 ### func init\(\)
 ```cj
@@ -87,7 +87,7 @@ Default constructor
 ```cj
 public func isEmpty(): Bool
 ```
-
+Whether the list is empty
 
 ### func iterator\(\)
 ```cj
@@ -131,35 +131,35 @@ Parameter:
 ```cj
 public func toArray(): Array < T >
 ```
-
+Convert to an array (from head to tail)
 
 ### prop firstNode:?LinkedListNode < T >
 ```cj
 public prop firstNode:?LinkedListNode < T >
 ```
-
+Head node
 
 ### prop first:?T
 ```cj
 public prop first:?T
 ```
-
+Head element
 
 ### prop lastNode:?LinkedListNode < T >
 ```cj
 public prop lastNode:?LinkedListNode < T >
 ```
-
+Tail node
 
 ### prop last:?T
 ```cj
 public prop last:?T
 ```
-
+Tail element
 
 ### prop size: Int64
 ```cj
 public prop size: Int64
 ```
-
+Number of elements
 

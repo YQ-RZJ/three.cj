@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] FrameDispatch
  * @brief[zh-cn] 帧调度器
  * @explain[zh-cn] 核心思路：强制队列（priority=0）每帧全部执行，无视时间预算；优先级队列（priority>0）基于 BinaryHeap 按优先级排序，每帧按优先级顺序处理，遇到时间预算超限则剩余任务延后到下一帧。调度流程 frameEvent(deltaTime)：1. 处理强制队列：每个 task 循环执行 run() 直到 notEmpty()=false 或 run()=false；2. 处理优先级队列：从 heap pop 全部到临时列表（按优先级排序）→ 按顺序处理，每个 task 循环执行 run() → 时间预算超限时把剩余 push 回 heap。单线程使用，无加锁；跨线程使用需调用方加锁。
@@ -27,7 +49,7 @@ import three.core.interfaces.*
  * FrameTaskMode.CONSUME,
  * 1,
  * { ctx =>
- * println("execute idx=${ctx.idx}, args=${ctx.args}")
+ * Logger.info(["FrameDispatch", "execute idx=${ctx.idx}, args=${ctx.args}"])
  * return true
  * },
  * params: params
@@ -44,31 +66,45 @@ import three.core.interfaces.*
 public class FrameDispatch {
     /**
      * @brief[zh-cn] 强制执行队列（priority<=0，无视时间预算）
+     *
+     * @brief[en] Forced execution queue (priority<=0, ignores time budget)
      */
     private var _forceList: ArrayList<FrameTask>
     /**
      * @brief[zh-cn] 优先级队列（priority>0）
+     *
+     * @brief[en] Priority queue (priority>0)
      */
     private var _heap: BinaryHeap<FrameTask>
     /**
      * @brief[zh-cn] ID → Task 映射，用于 unregister/pause/resume 查找
+     *
+     * @brief[en] ID → Task mapping, used for unregister/pause/resume lookup
      */
     private var _idToTask: HashMap<Int64, FrameTask>
     /**
      * @brief[zh-cn] 暂停的任务 ID 集合（不在调度中，但仍在 _idToTask 中保留以便 resume）
+     *
+     * @brief[en] Set of paused task IDs (excluded from scheduling, but still kept in _idToTask for resume)
      */
     private var _pausedIds: HashSet<Int64>
 
     /**
      * @brief[zh-cn] 下一个任务 ID
+     *
+     * @brief[en] Next task ID
      */
     private var _nextId: Int64
     /**
      * @brief[zh-cn] 时间预算上限（毫秒），优先级队列的总执行时间上限
+     *
+     * @brief[en] Time budget limit (milliseconds), total execution time cap for the priority queue
      */
     public var maximum: Float64
     /**
      * @brief[zh-cn] 当前轮次帧已消耗时间（毫秒）
+     *
+     * @brief[en] Time consumed in the current frame round (milliseconds)
      */
     private var _frameElapsed: Float64
 
@@ -91,6 +127,8 @@ public class FrameDispatch {
 
     /**
      * @brief[zh-cn] 当前轮次帧已消耗时间（毫秒）
+     *
+     * @brief[en] Time consumed in the current frame round (milliseconds)
      */
     public prop frameElapsed: Float64 {
         get() { _frameElapsed }
@@ -98,6 +136,8 @@ public class FrameDispatch {
 
     /**
      * @brief[zh-cn] 当前活跃任务数量（不含暂停）
+     *
+     * @brief[en] Number of currently active tasks (excluding paused ones)
      */
     public prop activeTaskCount: Int64 {
         get() { _idToTask.size - _pausedIds.size }
@@ -105,6 +145,8 @@ public class FrameDispatch {
 
     /**
      * @brief[zh-cn] 暂停任务数量
+     *
+     * @brief[en] Number of paused tasks
      */
     public prop pausedTaskCount: Int64 {
         get() { _pausedIds.size }

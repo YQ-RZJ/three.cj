@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] VolumeCloudPass 体积云后处理 pass
  * @brief[zh-cn] 体积云后处理 pass —— 全屏 ray marching 体积云
  * @explain[zh-cn] 改造为全屏后处理：
@@ -45,7 +67,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -126,7 +148,7 @@ public class VolumeCloudPass <: ShaderPass {
     /**
      * 挂载的渲染器（onAttach 时从 composer 持有，dispose 销毁自建纹理用）。
      */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 构造 VolumeCloudPass。
@@ -197,7 +219,7 @@ public class VolumeCloudPass <: ShaderPass {
      * @param renderer 渲染器
      * @param uniforms 已创建 tDiffuse sampler 的 uniform 注册表（继续创建体积云 uniforms）
      */
-    public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit {
+    public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit {
         // 懒创建 3D 噪声纹理（首次 submit 前生成并上传）
         if (!this._noiseTexCreated) {
             this._createNoiseTexture(renderer)
@@ -246,7 +268,7 @@ public class VolumeCloudPass <: ShaderPass {
      * 执行体积云 pass：帧号自增后委托基类（绑定 tDiffuse + submit quad）。
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -284,7 +306,7 @@ public class VolumeCloudPass <: ShaderPass {
      *
      * @param renderer 渲染器（createTexture3D 上传）
      */
-    private func _createNoiseTexture(renderer: BgfxRenderer): Unit {
+    private func _createNoiseTexture(renderer: ThreeRenderer): Unit {
         let size = this.texSize
         let noise = SimplexNoise()
         let scale = 0.05
@@ -329,7 +351,7 @@ public class VolumeCloudPass <: ShaderPass {
      * 设置单个 vec4 uniform（xyzw 全量传入）。辅助方法，简化 uniforms 设置。
      */
     private func setUniformVec4(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         uniforms: BgfxUniforms,
         name: String,
         values: Array<Float64>

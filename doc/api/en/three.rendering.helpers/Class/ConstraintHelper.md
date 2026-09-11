@@ -3,13 +3,19 @@
 ```cj
 public class ConstraintHelper <: Object3D
 ```
-
+Physics constraint helper object
 
 ### func dispose\(\)
 ```cj
 public func dispose(): Unit
 ```
+Releases GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Constructs a Constraint helper
 
 ### func init\(PhysicsWorld,PhysicsConstraintDesc,RigidBody,RigidBody,UInt32\)
 ```cj
@@ -31,7 +37,7 @@ Parameter:
 ```cj
 public func update(): Unit
 ```
-
+Syncs both rigid bodies' state and updates the visualization
 
 ### var anchorA
 ```cj

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Skeleton
  * @brief[zh-cn] 骨骼，管理一组 Bone 及其逆矩阵的辅助类
  * @explain[zh-cn] 供 SkinnedMesh 顶点蒙皮变换使用。各 Bone 的 matrixWorld 与其 inverseMatrix 相乘得 offsetMatrix，
@@ -23,11 +45,13 @@ import three.utils.constants.*
 import three.rendering.textures.DataTexture
 import three.utils.memory.AutoFreePtr
 import three.core.interfaces.IPropertyBindingRoot
+import three.animation.skeletal.*
 import std.collection.*
 import std.math.*
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
+import three.utils.log.Logger
 
 /**
  * @brief[zh-cn] 骨骼类，管理一组 Bone 及其逆矩阵
@@ -54,9 +78,12 @@ public class Skeleton <: IPropertyBindingRoot {
 
     /**
      * @brief[zh-cn] 髀骨偏移矩阵的扁平数组（每髀骨 16 个 Float64），渲染时内部使用
+     * @explain[zh-cn] 派生缓存：update() 每帧由 bones.matrixWorld × boneInverses 重算，不参与 JSON 序列化
      *
      * @brief[en] Flattened bone offset matrix array (16 Float64 per bone), used internally for rendering
+     * @explain[en] Derived cache: recomputed each frame by update() from bones.matrixWorld × boneInverses, not serialized
      */
+    @JsonIgnore
     public var boneMatrices: Option<Array<Float64>>
 
     /**
@@ -335,4 +362,72 @@ public class Skeleton <: IPropertyBindingRoot {
     }
 
     // 将本骨骼序列化为 JSON（手写 toJSON 兼容层已移除，改用 fastjson 宏）。
+
+    /**
+     * @brief[zh-cn] 从 SkeletonData 同步骨骼数据
+     * @param[zh-cn] skelData 骨骼计算数据
+     * @explain[zh-cn] 将 SkeletonData 的关节层级映射到当前 Skeleton 的 Bone 数组。
+     *                  1. 清空现有 bones
+     *                  2. 为每个关节创建 Bone，设置名称和父关系
+     *                  3. 从 SoA 休息姿势提取局部变换，设置到 Bone 的 position/quaternion/scale
+     *                  4. 调用 updateMatrixWorld 更新全局矩阵
+     *
+     * @brief[en] Synchronizes bone data from SkeletonData
+     * @param[en] skelData Skeleton computation data
+     * @explain[en] Maps the joint hierarchy of SkeletonData onto the Bone array of the current Skeleton.
+     *                  1. Clear the existing bones
+     *                  2. Create a Bone for each joint, setting name and parent relationships
+     *                  3. Extract local transforms from the SoA rest pose and apply them to each Bone's position/quaternion/scale
+     *                  4. Call updateMatrixWorld to update world matrices
+     */
+    public func syncFromSkeletonData(skelData: SkeletonData): Unit {
+        this.bones = ArrayList<Bone>()
+        let numJoints = skelData.numJoints()
+        if (numJoints == 0) { return }
+
+        // 创建所有 Bone
+        for (i in 0..numJoints) {
+            let bone = Bone()
+            bone.name = skelData.jointName(i)
+            this.bones.add(bone)
+        }
+        // 调试：输出运行时骨骼顺序（与 glTF skin.joints 顺序对比）
+        var names = ""
+        for (i in 0..numJoints) {
+            names += "${i}:${skelData.jointName(i)} "
+        }
+        Logger.debug(["Skeleton", "sync-order ${names}"])
+
+        // 休息姿势（SoA 布局，每个 SoaTransform 含 4 个关节）
+        let restPoses = skelData.jointRestPoses()
+
+        // 设置父子关系和局部变换（通过 add 建立 parent/children 双向链接）
+        for (i in 0..numJoints) {
+            let parentIdx = skelData.jointParent(i)
+            if (parentIdx >= 0) {
+                this.bones[parentIdx].add(this.bones[i])
+            }
+
+            // 从 SoaTransform 提取局部变换
+            let soaIdx = i / 4
+            let slot = i % 4
+            if (soaIdx < restPoses.size) {
+                let t = restPoses[soaIdx].getTranslation(slot)
+                let r = restPoses[soaIdx].getRotation(slot)
+                let s = restPoses[soaIdx].getScale(slot)
+                this.bones[i].position.set(Float64(t.x), Float64(t.y), Float64(t.z))
+                this.bones[i].quaternion.set(Float64(r.x), Float64(r.y), Float64(r.z), Float64(r.w))
+                this.bones[i].scale.set(Float64(s.x), Float64(s.y), Float64(s.z))
+            }
+        }
+
+        // 更新所有 Bone 的 matrixWorld
+        for (i in 0..numJoints) {
+            this.bones[i].updateMatrix()
+            this.bones[i].updateMatrixWorld(true)
+        }
+
+        // 计算逆矩阵
+        this.calculateInverses()
+    }
 }

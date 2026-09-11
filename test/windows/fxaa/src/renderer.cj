@@ -25,7 +25,7 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 
 /// 创建场景：相机 + 方向光 + 环境光 + 盒子 + 多色球 + 地面
 public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera, ArrayList<Object3D>) {

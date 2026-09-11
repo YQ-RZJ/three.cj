@@ -5,9 +5,9 @@ public open class ShaderPass <: Pass
 ```
 Generic shader pass
 
-### func bindExtraUniforms\(BgfxRenderer,BgfxUniforms\)
+### func bindExtraUniforms\(ThreeRenderer,BgfxUniforms\)
 ```cj
-public open func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit
+public open func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit
 ```
 Subclass extension hook: binds extra uniforms before submit
 
@@ -15,7 +15,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |uniforms|BgfxUniforms|The uniform registry where the tDiffuse sampler has been created (extra uniforms can be added)|
 
 ### func dispose\(\)
@@ -37,9 +37,9 @@ Parameter:
 |shaderName|String|The registered full-screen shader name in ShaderLibs|
 |textureID|String|The sampler name bound to readBuffer (default tDiffuse)|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public open override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public open override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Executes the shader pass
 
@@ -47,7 +47,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (written here when renderToScreen=false)|
 |readBuffer|FrameBufferHandle|Read buffer (bound to the textureID sampler)|
 |deltaTime|Float64|Frame delta time|

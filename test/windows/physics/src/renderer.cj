@@ -286,6 +286,26 @@ void main()
 }
 """
 
+public let TERRAIN_FS: String = """
+$input v_normal, v_worldPos
+
+#include <bgfx_shader.sh>
+
+void main()
+{
+    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
+    vec3 normal   = normalize(v_normal);
+    float diff    = max(dot(normal, lightDir), 0.0);
+    float ambient = 0.25;
+
+    // 大地棕绿（与其它物体区分，避免同色物体贴合被误认为破面）
+    vec3 baseColor = vec3(0.45, 0.55, 0.30);
+
+    vec3 litColor = baseColor * (ambient + diff * 0.9);
+    gl_FragColor = vec4(litColor, 1.0);
+}
+"""
+
 public let MESH_FS: String = """
 $input v_normal, v_worldPos
 

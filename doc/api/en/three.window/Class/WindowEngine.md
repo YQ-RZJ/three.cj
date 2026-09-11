@@ -26,6 +26,18 @@ Parameter:
 |---|---|---|
 |provider|InputProvider|The input provider instance|
 
+### func bindRenderer\(\(\(\)\->Unit\)\->Unit\)
+```cj
+public func bindRenderer(execBgfx:(() -> Unit) -> Unit): Unit
+```
+Binds the renderer's execBgfx submit method (for the GUI to route bgfx backend calls)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|execBgfx|(()->Unit)->Unit|The renderer's execBgfx method reference|
+
 ### func getAspectRatio\(\)
 ```cj
 public func getAspectRatio():(Float32, Float32)
@@ -87,6 +99,26 @@ Gets the list of all display IDs
 Return: 
 
 - The list of display IDs
+
+### func getDpiScale\(\)
+```cj
+public func getDpiScale(): Float64
+```
+Gets the current DPI scale value
+
+Return: 
+
+- Current pixel ratio
+
+### func getDrawableSize\(\)
+```cj
+public func getDrawableSize():(Int32, Int32)
+```
+Gets the window pixel dimensions (physical backbuffer size)
+
+Return: 
+
+- (physical width, physical height)
 
 ### func getHeight\(\)
 ```cj
@@ -175,6 +207,16 @@ Return:
 
 - The pixel format (SDL_PixelFormat enum value)
 
+### func getPixelRatio\(\)
+```cj
+public func getPixelRatio(): Float32
+```
+Gets the window pixel ratio (physical pixels / logical pixels)
+
+Return: 
+
+- Pixel ratio; returns 1.0 if query fails or no window exists
+
 ### func getPosition\(\)
 ```cj
 public func getPosition():(Int32, Int32)
@@ -224,6 +266,16 @@ Checks whether the window is currently in relative mouse mode
 Return: 
 
 - Whether the window is in relative mouse mode
+
+### func getSDLWindow\(\)
+```cj
+public func getSDLWindow(): SDL_Window
+```
+Gets the SDL window pointer (for ImGui SDL3 backend initialization)
+
+Return: 
+
+- The SDL window pointer
 
 ### func getSafeArea\(\)
 ```cj
@@ -355,6 +407,19 @@ public open func onInit(): Unit
 Called after the window is created (init renderer/scene; can read
 getNativeWindowHandle/getWidth/getHeight)
 
+### func onResize\(Int32,Int32\)
+```cj
+public open func onResize(width: Int32, height: Int32): Unit
+```
+Called after the window size changed (pump thread; getWidth/getHeight already updated)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|width|Int32||
+|height|Int32||
+
 ### func raise\(\)
 ```cj
 public func raise(): Bool
@@ -445,6 +510,30 @@ Parameter:
 Return: 
 
 - Whether the operation succeeded
+
+### func setDpiAutoDetect\(Bool\)
+```cj
+public func setDpiAutoDetect(autoDetect: Bool): Unit
+```
+Sets whether to auto-detect DPI
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|autoDetect|Bool|true to auto-detect via SDL; false to enforce the value set by setDpiScale|
+
+### func setDpiScale\(Float64\)
+```cj
+public func setDpiScale(scale: Float64): Unit
+```
+Sets the manual DPI scale value
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|scale|Float64|Pixel ratio (must be > 0); auto-detection is automatically disabled after setting|
 
 ### func setFocusable\(Bool\)
 ```cj
@@ -723,6 +812,12 @@ Parameter:
 |width|Int32|New width in pixelsheight New height in pixels|
 |height|Int32||
 
+### func useGui\(\)
+```cj
+public func useGui(): Unit
+```
+Enables the GUI (ImGui). Must be called before start().
+
 ### func wait\(\)
 ```cj
 public func wait(): Unit
@@ -770,11 +865,23 @@ public mut prop bindOnInit: Option <() -> Unit >
 ```
 Bound event - after window creation
 
+### prop bindOnResize: Option <\(Int32, Int32\) \-> Unit >
+```cj
+public mut prop bindOnResize: Option <(Int32, Int32) -> Unit >
+```
+Bound event - after window size changed (takes precedence over the onResize override)
+
 ### prop closeRequested: Bool
 ```cj
 public prop closeRequested: Bool
 ```
 Whether the user requested to close the window (reads the snapshot - fixed)
+
+### prop gui: Option < UiContext >
+```cj
+public prop gui: Option < UiContext >
+```
+Gets the GUI context (created by _windowLoop after enabling)
 
 ### prop initialized: Bool
 ```cj

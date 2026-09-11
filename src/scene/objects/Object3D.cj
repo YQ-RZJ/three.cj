@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Object3D
  * @brief[zh-cn] 3D 对象基类，所有场景对象的父类
  * @explain[zh-cn] Object3D 是 Three.js 场景图的核心节点类，提供位置、旋转、缩放、矩阵变换、
@@ -33,7 +55,7 @@ import std.io.*
  * @brief[en] 3D object base class, parent of all scene objects
  * @explain[en] Provides position, rotation, scale, matrix transforms, hierarchical relationships, ray casting, bounding box calculation, etc.
  */
-@JsonAdapter
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; ignorePrivate = true]
 public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandable & ILoadResult & IPropertyBindingRoot {
     @JsonIgnore
     private static var object3DId: Int64 = 0
@@ -51,7 +73,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
     public var visible: Bool
     public var children: ArrayList<Object3D>
     public var up: Vector3
-    public var kind: String
+    // kind 由 @JsonAdapter(polymorphic) 宏自动生成：多态类型判别 prop（返回类名），无需手写
     public var id: Int64
     public var uuid: String
 
@@ -66,7 +88,6 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
     public var frustumCulled: Bool
     public var renderOrder: Float64
     /** animations：动画剪辑列表（接口类型 IAnimationClip），通过 @JsonCustom 自定义序列化 */
-    @JsonIgnore
     public var animations: ArrayList<IAnimationClip>
     @JsonCustom["animations"]
     public open mut prop animationsJson: String {
@@ -144,7 +165,6 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
         this.visible = true
         this.children = ArrayList<Object3D>()
         this.up = Vector3(0.0, 1.0, 0.0)
-        this.kind = "Object3D"
         // BUGFIX: this.id 永远为 0 导致 RenderObjects 缓存键冲突
         // 对照 Three.js: Object.defineProperty(this, 'id', { value: _object3DId ++ })
         this.id = Object3D.object3DId
@@ -277,7 +297,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
         this.frustumCulled = source.frustumCulled
         this.renderOrder = source.renderOrder
         this.up.copy(source.up)
-        this.kind = source.kind
+        // kind 为宏生成的多态判别 prop（按实际类名虚分发），不可复制也无需复制
         this.layers = source.layers
         this.animations = source.animations
         

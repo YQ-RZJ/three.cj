@@ -162,18 +162,6 @@ Return:
 
 - CPointer<Memory>
 
-### func init\(UInt32\)
-```cj
-public init(size: UInt32)
-```
-Allocates memory via bgfx_alloc
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|size|UInt32|Allocation size in bytes|
-
 ### func init\(CPointer<Unit>,UInt32\)
 ```cj
 public init(data: CPointer < Unit >, size: UInt32)
@@ -186,6 +174,18 @@ Parameter:
 |---|---|---|
 |data|CPointer<Unit>|Source data pointersize Data size in bytes|
 |size|UInt32||
+
+### func init\(UInt32\)
+```cj
+public init(size: UInt32)
+```
+Allocates memory via bgfx_alloc
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|size|UInt32|Allocation size in bytes|
 
 ### func readFloat\(Int64\)
 ```cj

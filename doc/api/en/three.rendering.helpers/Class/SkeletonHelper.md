@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 Dispose GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Construct a skeleton helper
+
 ### func init\(Object3D\)
 ```cj
 public init(object: Object3D)
 ```
-Construct a skeleton helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|object|Object3D|Root object of the bone hierarchy, typically a SkinnedMesh or Object3D containing Bones|
+|object|Object3D||
 
 ### func setColors\(Color,Color\)
 ```cj

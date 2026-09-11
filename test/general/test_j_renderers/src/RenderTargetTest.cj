@@ -5,7 +5,7 @@
  * 对照 JS:
  *   new WebGLRenderTarget() → object instanceof EventDispatcher → true
  *   new WebGLRenderTarget() → 可实例化
- * 注：仓颉 BgfxRenderTarget 构造会调用 bgfx_create_frame_buffer_cj（需渲染环境，
+ * 注：仓颉 ThreeRenderTarget 构造会调用 bgfx_create_frame_buffer_cj（需渲染环境，
  * 无窗口下挂起），故此处仅验证纯逻辑断言；帧缓冲创建见渲染测试项目（sp_ 系列）。
  */
 package test_j_renderers
@@ -26,7 +26,7 @@ public class RenderTargetTest <: TestClass {
     }
 
     func test_placeholder() {
-        // 占位断言：BgfxRenderTarget 帧缓冲创建需渲染环境（见渲染测试），
+        // 占位断言：ThreeRenderTarget 帧缓冲创建需渲染环境（见渲染测试），
         // 此处验证常量语义即可（对照 JS WebGLRenderTarget 默认尺寸语义）。
         assertEqual("render target default semantic", "true", (64 > 0).toString(), "true")
     }

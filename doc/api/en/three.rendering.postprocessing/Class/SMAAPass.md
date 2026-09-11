@@ -19,9 +19,9 @@ public init()
 
 差异：全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 SMAA pass（3 pass：Edges → Weights → Blend）。
 
@@ -29,7 +29,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（pass 3 输出）|
 |readBuffer|FrameBufferHandle|读 buffer（pass 1/3 输入）|
 |deltaTime|Float64|帧间隔|

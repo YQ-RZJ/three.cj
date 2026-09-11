@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] CubicInterpolant
  * @brief[zh-cn] 三次样条插值器
  * @explain[zh-cn] 使用三次样条曲线进行插值，继承自 Interpolant。支持 ZeroCurvatureEnding、ZeroSlopeEnding、WrapAroundEnding 三种边界模式。
@@ -22,18 +44,26 @@ import three.utils.constants.*
 public class CubicInterpolant <: Interpolant {
     /**
      * @brief[zh-cn] 前一区间权重
+     *
+     * @brief[en] Weight of the previous interval
      */
     private var _weightPrev: Float64
     /**
      * @brief[zh-cn] 前一区间偏移
+     *
+     * @brief[en] Offset of the previous interval
      */
     private var _offsetPrev: Int64
     /**
      * @brief[zh-cn] 后一区间权重
+     *
+     * @brief[en] Weight of the next interval
      */
     private var _weightNext: Float64
     /**
      * @brief[zh-cn] 后一区间偏移
+     *
+     * @brief[en] Offset of the next interval
      */
     private var _offsetNext: Int64
 

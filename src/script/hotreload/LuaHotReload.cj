@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] LuaHotReload Lua 脚本热更新（three.script.hotreload 子包）
  * @brief[zh-cn] Lua 脚本热更新，支持运行时重新加载 Lua 脚本文件
  * @explain[zh-cn] 支持运行时重新加载 Lua 脚本文件（无需重启宿主程序）。
@@ -28,6 +50,7 @@ package three.script.hotreload
 import std.fs.{File, Path as FsPath}
 import std.collection.*
 import three.script.vm.*
+import three.utils.log.Logger
 
 /**
  * @brief[zh-cn] Lua 脚本热更新器
@@ -196,7 +219,7 @@ public class LuaHotReload {
             ok = true
         } catch (e: LuaError) {
             // 脚本错误：保留旧脚本继续运行
-            println("[LuaHotReload] 脚本重新加载失败: " + e.message)
+            Logger.error(["LuaHotReload", "脚本重新加载失败: " + e.message])
             ok = false
         } catch (_) {
             ok = false

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 点光源
  * @brief[zh-cn] 从某点向各方向均匀照射的光源
  * @explain[zh-cn] 
@@ -36,7 +58,7 @@ import fastjson.stream.*
  * Corresponds to Three.js lights/PointLight.js. Light decays with distance according to decay (physically correct when decay=2).
  * Point lights do not cast directional shadows; instead they use PointLightShadow to generate a 6-face cube shadow map.
  */
-@JsonAdapter[withSuperClass = Light]
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Light]
 public class PointLight <: Light {
 
     /**
@@ -58,6 +80,7 @@ public class PointLight <: Light {
      *
      * @brief[en] Shadow configuration object
      */
+    @JsonIgnore
     public var shadow: PointLightShadow
 
     /**
@@ -75,7 +98,6 @@ public class PointLight <: Light {
      */
     public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0, distance!: Float64 = 0.0, decay!: Float64 = 2.0) {
         super(color: color, intensity: intensity)
-        this.kind = "PointLight"
         this.distance = distance
         this.decay = decay
         this.shadow = PointLightShadow()

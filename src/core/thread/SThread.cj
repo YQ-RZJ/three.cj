@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] SThread
  * @brief[zh-cn] 系统线程：基于 SDL_CreateThread 的线程封装
  * @explain[zh-cn] 提供与 rycj.system.SThread 相同的能力：回调执行 + 返回值捕获；get() / get(timeoutMS) / tryGet() 结果获取；线程内异常安全捕获并在 get() 时重新抛出。内部通过全局线程池（key → 对象）在 SDL 线程入口中还原对象引用，与 rycj 的实现方式一致。
@@ -20,19 +42,27 @@ import sdl4cj.sdl.*
 
 /**
  * @brief[zh-cn] 全局线程池（key → _SysThread 对象）
+ *
+ * @brief[en] Global thread pool (key → _SysThread object)
  */
 let GLB_THREAD_POOL: ConcurrentHashMap<Int64, Any> = ConcurrentHashMap()
 /**
  * @brief[zh-cn] 全局自增键
+ *
+ * @brief[en] Global auto-increment key
  */
 var GLB_INCREMENT_KEY: AtomicInt64 = AtomicInt64(Int64.Min)
 /**
  * @brief[zh-cn] 全局回收键队列
+ *
+ * @brief[en] Global recycled-key queue
  */
 let GLB_RECYCLE_KEY: ConcurrentLinkedQueue<Int64> = ConcurrentLinkedQueue()
 
 /**
  * @brief[zh-cn] 获取唯一键（优先复用回收键）
+ *
+ * @brief[en] Get a unique key (recycled keys are reused first)
  */
 func getOnlyKey(): Int64 {
     if (GLB_RECYCLE_KEY.isEmpty()) {
@@ -44,6 +74,8 @@ func getOnlyKey(): Int64 {
 
 /**
  * @brief[zh-cn] 回收键并从线程池移除
+ *
+ * @brief[en] Recycle the key and remove it from the thread pool
  */
 func recycleKey(key: Int64): Unit {
     GLB_RECYCLE_KEY.add(key)
@@ -52,6 +84,8 @@ func recycleKey(key: Int64): Unit {
 
 /**
  * @brief[zh-cn] 从指针还原 _SysThread 对象
+ *
+ * @brief[en] Restore the _SysThread object from a pointer
  */
 func getObjFromPtr(p: CPointer<Unit>): Option<_SysThread> {
     let keyVal = unsafe { CPointer<Int64>(p).read() }
@@ -75,10 +109,16 @@ func threadEntry(p: CPointer<Unit>): Int32 {
     if (obj._priority >= 0) {
         SDL_SetCurrentThreadPriority_cj(obj._priority)
     }
+    // 注意：仓颉异常体系中 Error 与 Exception 并列（无共同 Throwable 基类）。
+    // OverflowException / RuntimeException 等都继承 Exception，而非 Error；
+    // 若只 catch (e: Error)，这些异常会逃逸到 MRT_EndForeignCJThread 触发 abort。
+    // 故 Exception 与 Error 都需捕获，统一存入 error（Exception）供 get() 重抛。
     let retv = try {
         obj._function()
+    } catch (e: Exception) {
+        obj.error = Some(e)
     } catch (e: Error) {
-        obj.error = e
+        obj.error = Some(Exception(e.toString()))
     }
     obj._resultMtx.lock()
     obj._result = retv
@@ -106,18 +146,26 @@ func threadEntry(p: CPointer<Unit>): Int32 {
 public enum ThreadPriority {
     /**
      * @brief[zh-cn] 低优先级
+     *
+     * @brief[en] Low priority
      */
     | Low
     /**
      * @brief[zh-cn] 正常优先级
+     *
+     * @brief[en] Normal priority
      */
     | Normal
     /**
      * @brief[zh-cn] 高优先级
+     *
+     * @brief[en] High priority
      */
     | High
     /**
      * @brief[zh-cn] 时间关键（最高）优先级
+     *
+     * @brief[en] Time-critical (highest) priority
      */
     | TimeCritical
 
@@ -150,42 +198,62 @@ public enum ThreadPriority {
 internal class _SysThread {
     /**
      * @brief[zh-cn] 全局唯一键
+     *
+     * @brief[en] Globally unique key
      */
     internal let _key: Int64
     /**
      * @brief[zh-cn] 键值指针
+     *
+     * @brief[en] Pointer to the key value
      */
     private let _pKeyVal: CPointer<Int64>
     /**
      * @brief[zh-cn] 回调函数
+     *
+     * @brief[en] Callback function
      */
     internal let _function: () -> Any
     /**
      * @brief[zh-cn] 执行结果
+     *
+     * @brief[en] Execution result
      */
     internal var _result: Option<Any> = None
     /**
      * @brief[zh-cn] 结果互斥锁
+     *
+     * @brief[en] Result mutex
      */
     internal let _resultMtx = Mutex()
     /**
      * @brief[zh-cn] 结果条件变量
+     *
+     * @brief[en] Result condition variable
      */
     internal let _resultCnd = Condition()
     /**
-     * @brief[zh-cn] 线程内异常
+     * @brief[zh-cn] 线程内异常（Exception；Error 被包装为 Exception(message)）
+     *
+     * @brief[en] Exception captured inside the thread (Exception; Error is wrapped as Exception(message))
      */
-    internal var error: Option<Error> = None
+    internal var error: Option<Exception> = None
     /**
      * @brief[zh-cn] SDL 线程句柄
+     *
+     * @brief[en] SDL thread handle
      */
     private var _thread: SDL_Thread = CPointer<Unit>()
     /**
      * @brief[zh-cn] 是否已 join
+     *
+     * @brief[en] Whether the thread has been joined
      */
     private var _joined: Bool = false
     /**
      * @brief[zh-cn] SDL 线程优先级（Int32），负数表示不设置（使用系统默认）
+     *
+     * @brief[en] SDL thread priority (Int32); negative means not set (use system default)
      */
     internal var _priority: Int32 = -1
 
@@ -427,6 +495,8 @@ internal class _SysThread {
 public open class SThread<T> {
     /**
      * @brief[zh-cn] 内部线程对象
+     *
+     * @brief[en] Internal thread object
      */
     private let obj: _SysThread
 

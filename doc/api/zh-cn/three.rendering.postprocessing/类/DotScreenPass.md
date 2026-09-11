@@ -25,9 +25,9 @@ public init(center!: Vector2 = Vector2(0.5, 0.5), angle!: Float64 = 1.57, scale!
 |angle|Float64|点阵旋转角度（默认 1.57 ≈ π/2）|
 |scale|Float64|点阵密度（默认 1.0）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 dot screen pass
 
@@ -35,7 +35,7 @@ public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHand
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（本 pass 的输出目标）|
 |readBuffer|FrameBufferHandle|读 buffer（上一 pass 结果，绑到 tDiffuse）|
 |deltaTime|Float64|帧间隔|

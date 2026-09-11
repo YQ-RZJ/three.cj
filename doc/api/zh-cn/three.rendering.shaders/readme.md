@@ -10,7 +10,7 @@
 ### 类
 |  名称   | 描述  |
 |  ----  | ----  |
-|[BgfxSamplerStages](./类/BgfxSamplerStages.md#class-bgfxsamplerstages)|全局 sampler stage 分配器|
+|[SamplerStages](./类/SamplerStages.md#class-samplerstages)|全局 sampler stage 分配器|
 |[ShaderChunks](./类/ShaderChunks.md#class-shaderchunks)|管理所有着色器块的注册和组合|
 |[ShaderCompileJob](./类/ShaderCompileJob.md#class-shadercompilejob)|着色器编译任务|
 |[ShaderCompiler](./类/ShaderCompiler.md#class-shadercompiler)|着色器编译器|

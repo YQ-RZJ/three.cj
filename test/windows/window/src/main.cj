@@ -1,6 +1,6 @@
 /**
  * @file main
- * @brief test_window：WindowEngine v2 + InputEngine + BgfxRenderer 集成测试
+ * @brief test_window：WindowEngine v2 + InputEngine + ThreeRenderer 集成测试
  *
  * 验证（v2 生命周期模式——对齐 RGF 窗口模式）：
  *  - WindowEngine v2 跨平台窗口创建（SDL3，全局事件分发器 + 每窗口独立泵）
@@ -19,7 +19,7 @@ import three.window.KeyboardProvider
 import three.window.MouseProvider
 import three.window.KeyCode
 import three.window.MouseButton
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
@@ -36,7 +36,7 @@ import three.rendering.lights.*
  */
 public class TestWindow <: WindowEngine {
     // ===== 渲染状态（onInit 创建 / onFrame 使用 / onClose 清理） =====
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var input: InputEngine = InputEngine()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 60.0, aspect: 1.0, near: 0.1, far: 100.0)
@@ -64,16 +64,18 @@ public class TestWindow <: WindowEngine {
         let hwnd = this.getNativeWindowHandle()
         let w = this.getWidth()
         let h = this.getHeight()
-        println("[2/6] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        println("[2/6] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}, DPR=${dpr}）...")
+        this.renderer.setPixelRatio(Float64(dpr))
         let rok = this.renderer.initBgfx(hwnd, w, h)
         if (!rok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x30, 0x30, 0x60))
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("")
 
         println("[3/6] 创建场景...")

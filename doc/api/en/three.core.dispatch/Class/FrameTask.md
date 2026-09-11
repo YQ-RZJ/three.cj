@@ -70,71 +70,71 @@ Return:
 ```cj
 public prop averageTimeConsume: Float64
 ```
-
+EWMA average execution time (milliseconds), used for the dispatcher's budget check
 
 ### prop executionCount: Int64
 ```cj
 public prop executionCount: Int64
 ```
-
+Execution count
 
 ### prop finished: Bool
 ```cj
 public prop finished: Bool
 ```
-
+Whether the task is finished
 
 ### prop index: Int64
 ```cj
 public mut prop index: Int64
 ```
-
+Index in the heap (-1 means not in the heap)
 
 ### prop lastTimeConsume: Float64
 ```cj
 public prop lastTimeConsume: Float64
 ```
-
+Time consumed by the most recent execution (milliseconds)
 
 ### let callback
 ```cj
 public let callback:(FrameTaskContext) -> Bool
 ```
-
+Callback function: returning true means continue this frame; false means stop this frame
 
 ### var id
 ```cj
 public var id: Int64
 ```
-
+Unique ID (assigned by the dispatcher; callers should not modify it directly)
 
 ### let mode
 ```cj
 public let mode: FrameTaskMode
 ```
-
+Task mode
 
 ### let params
 ```cj
 public let params: ICircularQueue < Array < Any >>
 ```
-
+Parameter queue
 
 ### var paused
 ```cj
 public var paused: Bool
 ```
-
+Whether paused (paused tasks are excluded from scheduling but keep their state)
 
 ### var priority
 ```cj
 public var priority: Int64
 ```
-
+Priority: 0=forced queue; >0 enters the BinaryHeap priority queue, lower value means higher priority
 
 ### var shareValue
 ```cj
 public var shareValue:?Any
 ```
-
+Shared value, can share data among multiple callbacks
 

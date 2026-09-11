@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] EventManager
  * @brief[zh-cn] 事件总线
  * @explain[zh-cn] 提供基于事件名称 + 目标对象的事件分发能力。与 three.core.EventDispatcher 的职责区分：EventDispatcher 用于对象内事件分发（绑定到具体对象，标准 JS 事件 API）；EventManager 用于全局事件总线（独立运行，支持 name+target 二维过滤与对象池复用）。设计要点：1. 双索引 _idToEvent 主存储 + _nameToIds 名称索引，O(1) 查找；2. 句柄式 API：addEvent 返回 EventRecord 实例，调用方保存后用于精确 remove（仓颉函数类型无法引用比较，故不提供按 callback 移除的 API）；3. send 时先快照回调函数引用，再移除 once 监听器，最后调用回调——避免迭代中修改索引；避免回调中触发状态变更导致并发修改；4. 单线程版本，不加锁；跨线程使用需调用方自行加锁。
@@ -37,14 +59,20 @@ import std.collection.*
 public class EventManager {
     /**
      * @brief[zh-cn] ID → EventRecord 主存储
+     *
+     * @brief[en] ID → EventRecord primary storage
      */
     private var _idToEvent: HashMap<Int64, EventRecord>
     /**
      * @brief[zh-cn] 名称 → ID 集合索引
+     *
+     * @brief[en] Name → ID set index
      */
     private var _nameToIds: HashMap<String, HashSet<Int64>>
     /**
      * @brief[zh-cn] 对象池
+     *
+     * @brief[en] Object pool
      */
     private var _factory: EventFactory
 
@@ -251,6 +279,8 @@ public class EventManager {
 
     /**
      * @brief[zh-cn] 当前注册的监听器数量
+     *
+     * @brief[en] Number of currently registered listeners
      */
     public prop listenerCount: Int64 {
         get() { _idToEvent.size }

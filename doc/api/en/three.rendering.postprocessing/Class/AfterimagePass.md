@@ -23,9 +23,9 @@ Parameter:
 |---|---|---|
 |damp|Float64|Damping factor (default 0.96)|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Executes the afterimage pass
 
@@ -33,7 +33,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (output target of the copy pass)|
 |readBuffer|FrameBufferHandle|Read buffer (current frame input, bound to tNew)|
 |deltaTime|Float64|Frame delta time|

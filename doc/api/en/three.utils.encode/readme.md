@@ -6,6 +6,7 @@
 |  Name   | Describe  |
 |  ----  | ----  |
 |[Base64](./Class/Base64.md#class-base64)|Base64 encoding/decoding utility|
+|[GroupVarint](./Class/GroupVarint.md#class-groupvarint)||
 |[Hash](./Class/Hash.md#class-hash)|Non-cryptographic hash algorithm utility class|
 |[Hex](./Class/Hex.md#class-hex)|Hex encoding/decoding utility|
 |[MD5](./Class/MD5.md#class-md5)|MD5 digest algorithm utility class|

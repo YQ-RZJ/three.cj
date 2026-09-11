@@ -119,5 +119,5 @@ Entity ID
 ```cj
 public var monitorComponentChanges:?(Array < UInt8 >, Entity) -> Unit = None
 ```
-
+Component change listener (oldMask, entity), hooked by World.addEntity
 

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] bgfx 顶点绑定状态管理
  * @brief[zh-cn] 替代 WebGLBindingStates，管理顶点属性绑定状态
  * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLBindingStates.js。在 WebGL 中使用 VAO（Vertex Array Object）管理顶点属性绑定，在 bgfx 中使用 VertexLayout 管理顶点布局，绑定状态通过 bgfx_set_vertex_buffer_cj 设置。
@@ -123,22 +145,32 @@ public class AttributeCache {
 public class BgfxBindingStates {
     /**
      * @brief[zh-cn] 最大顶点属性数
+     *
+     * @brief[en] Maximum number of vertex attributes
      */
     private var maxVertexAttributes: Int64
     /**
      * @brief[zh-cn] 绑定状态缓存：geometryId -> objectId -> programId -> wireframe -> state
+     *
+     * @brief[en] Binding state cache: geometryId -> objectId -> programId -> wireframe -> state
      */
     private var bindingStates: HashMap<Int64, HashMap<Int64, HashMap<Int64, HashMap<Bool, BindingState>>>>
     /**
      * @brief[zh-cn] 默认状态
+     *
+     * @brief[en] Default state
      */
     private let defaultState: BindingState
     /**
      * @brief[zh-cn] 当前状态
+     *
+     * @brief[en] Current state
      */
     private var currentState: BindingState
     /**
      * @brief[zh-cn] 是否强制更新
+     *
+     * @brief[en] Whether to force update
      */
     private var forceUpdate: Bool
 

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BatchedMesh 批化网格
  * @brief[zh-cn] 将多份独立几何打包到单一 BufferGeometry 中渲染的高效对象
  * @explain[zh-cn] 各几何由 geometryId 标识，可动态 addGeometry/deleteGeometry/setGeometryAt，
@@ -14,6 +36,10 @@
  * Inherits Mesh; raycast/onBeforeRender/onBeforeShadow integration will be completed in Level 8.
  */
 package three.scene.entity
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -30,6 +56,7 @@ import std.collection.*
  *
  * @brief[en] Batched mesh that packs multiple independent geometries into a single BufferGeometry for rendering
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
 public class BatchedMesh <: Mesh {
 
     /**
@@ -75,14 +102,17 @@ public class BatchedMesh <: Mesh {
 
     // 矩阵纹理（DataTexture）：实例矩阵打包到纹理供 shader 读取。
     // 对照 JS `this._matricesTexture = null`（BatchedMesh.js:277），渲染器初始化时注入。
+    @JsonIgnore
     public var _matricesTexture: Option<DataTexture>
 
     // 间接纹理（DataTexture）：geometryId→实例索引映射。
     // 对照 JS `this._indirectTexture = null`（BatchedMesh.js:278），渲染器初始化时注入。
+    @JsonIgnore
     public var _indirectTexture: Option<DataTexture>
 
     // 颜色纹理（DataTexture）：实例颜色打包到纹理。
     // 对照 JS `this._colorsTexture = null`（BatchedMesh.js:279），渲染器初始化时注入。
+    @JsonIgnore
     public var _colorsTexture: Option<DataTexture>
 
     // 内部：已分配几何 id 集合（用于 deleteGeometry 后 id 复用判定）。
@@ -93,9 +123,11 @@ public class BatchedMesh <: Mesh {
     // maxVertexCount - 最大顶点数量上限。
     // maxIndexCount - 最大索引数量上限。
     // material - 材质。
+    public init() {
+        this(0, 0, 0)
+    }
     public init(maxGeometryCount: Int64, maxVertexCount: Int64, maxIndexCount: Int64, material!: Material = Material()) {
         super(geometry: BufferGeometry(), material: material)
-        this.kind = "BatchedMesh"
         this.maxGeometryCount = maxGeometryCount
         this.maxVertexCount = maxVertexCount
         this.maxIndexCount = maxIndexCount

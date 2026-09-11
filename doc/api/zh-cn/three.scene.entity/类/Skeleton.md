@@ -101,6 +101,18 @@ public func pose(): Unit
 ```
 将各髀骨 pose 到初始姿势，随后重算各髀骨的 matrix/position/quaternion/scale
 
+### func syncFromSkeletonData\(SkeletonData\)
+```cj
+public func syncFromSkeletonData(skelData: SkeletonData): Unit
+```
+从 SkeletonData 同步骨骼数据
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|skelData|SkeletonData|骨骼计算数据|
+
 ### func update\(\)
 ```cj
 public func update(): Unit

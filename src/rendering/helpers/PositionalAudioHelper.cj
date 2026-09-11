@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] PositionalAudio 辅助对象
  * @brief[zh-cn] 3D 位置音频可视化辅助对象
  * @explain[zh-cn]
@@ -11,8 +33,26 @@
  *
  * @note[zh-cn] Three.cj 使用左手坐标系、CCW 点序；本 helper 在左手系内绘制，
  * 音频源的朝向对应左手系 +Z 方向（与 PositionalAudio.updateMatrixWorld 同步到 OpenAL 的方向一致）。
+ *
+ * @file[en] PositionalAudio Helper
+ * @brief[en] Visualization helper object for 3D positional audio
+ * @explain[en]
+ * Visualizes the key spatial properties of a PositionalAudio:
+ * - Position marker (small axes/cross)
+ * - Directional cones (coneInnerAngle / coneOuterAngle)
+ * - Reference-distance sphere (refDistance) and max-distance sphere (maxDistance)
+ * - Velocity vector (velocity, for Doppler effect debugging)
+ * Call update() to sync the latest state of the observed audio source.
+ *
+ * @note[en] Three.cj uses a left-handed coordinate system with CCW winding; this helper
+ * draws within the left-handed system. The audio source's orientation corresponds to the
+ * left-handed +Z direction (consistent with what PositionalAudio.updateMatrixWorld syncs to OpenAL).
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -30,7 +70,13 @@ import std.math.*
  * @explain[zh-cn]
  * 用线框锥体表示方向性 coneInnerAngle/coneOuterAngle，
  * 用线框球表示 refDistance/maxDistance，用箭头表示 velocity。
+ *
+ * @brief[en] 3D positional audio helper object
+ * @explain[en]
+ * Wireframe cones represent the directional coneInnerAngle/coneOuterAngle,
+ * wireframe spheres represent refDistance/maxDistance, and an arrow represents velocity.
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public class PositionalAudioHelper <: Object3D {
     /// 被可视化的 3D 位置音频源
     public var audio: PositionalAudio
@@ -57,12 +103,18 @@ public class PositionalAudioHelper <: Object3D {
      * @brief[zh-cn] 构造 PositionalAudio 辅助对象
      * @param[zh-cn] audio 要可视化的 PositionalAudio
      * color 辅助对象颜色，默认 0xffff00
+     *
+     * @brief[en] Constructs a PositionalAudio helper
+     * @param[en] audio The PositionalAudio to visualize
+     * color Helper color, default 0xffff00
      */
+    public init() {
+        this(PositionalAudio())
+    }
     public init(audio: PositionalAudio, color!: UInt32 = 0xffff00) {
         super()
         this.audio = audio
         this.color = color
-        this.kind = "PositionalAudioHelper"
         this.matrixAutoUpdate = false
 
         let innerGeom = _buildConeGeometry(32)
@@ -108,6 +160,8 @@ public class PositionalAudioHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 同步音频源状态并更新可视化
+     *
+     * @brief[en] Syncs the audio source state and updates the visualization
      */
     public func update(): Unit {
         this.audio.updateWorldMatrix(true, false, false)
@@ -156,6 +210,8 @@ public class PositionalAudioHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 释放 GPU 资源
+     *
+     * @brief[en] Releases GPU resources
      */
     public func dispose(): Unit {
         this.innerCone.geometry.dispose()

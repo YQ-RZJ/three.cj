@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Physics 物理模块父包（仅用于声明 three.physics 包，便于 cjpm 识别 interfaces/world/body/backend 子包）
  * @brief[zh-cn] 本文件声明物理模块父包
  * @explain[zh-cn] 对照 Engine/Physics 目录规划（doc/dir.md）：
@@ -31,7 +53,7 @@
  * three.physics.world      — PhysicsWorld facade + dedicated physics thread (three.core.thread SThread)
  * three.physics.body       — runtime handles and convenience builders for rigid bodies
  * three.physics.binding    — Object3D ↔ rigid body binding (PhysicsBinding)
- * Threading model (aligned with AudioContext/BgfxRenderer): PhysicsWorld owns a dedicated
+ * Threading model (aligned with AudioContext/ThreeRenderer): PhysicsWorld owns a dedicated
  * three.core.thread.SThread; all backend calls are serialized onto the physics thread via
  * _execPhysics, and the render thread only reads back transforms to sync Object3D. Backend
  * instances (IPhysicsBackend) may themselves be created/destroyed on the physics thread.

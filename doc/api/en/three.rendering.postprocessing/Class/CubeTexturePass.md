@@ -25,9 +25,9 @@ Parameter:
 |cubeTex|CubeTexture|立方体贴图|
 |opacity|Float64|不透明度（默认 1.0）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行立方体贴图 pass：把 cubeTex 渲到 readBuffer 或屏幕。
 
@@ -35,7 +35,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（本 pass 不用）|
 |readBuffer|FrameBufferHandle|读 buffer（renderToScreen=false 时写这里）|
 |deltaTime|Float64|帧间隔|

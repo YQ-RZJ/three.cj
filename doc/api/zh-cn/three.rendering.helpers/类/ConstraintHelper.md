@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造 Constraint 辅助对象
+
 ### func init\(PhysicsWorld,PhysicsConstraintDesc,RigidBody,RigidBody,UInt32\)
 ```cj
 public init(world: PhysicsWorld, desc: PhysicsConstraintDesc, bodyA: RigidBody, bodyB: RigidBody, color!: UInt32 = 0xffaa00)
 ```
-构造 Constraint 辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|world|PhysicsWorld|所属物理世界desc 约束描述（用于获取锚点、轴、类型）bodyA 刚体 A 便捷封装bodyB 刚体 B 便捷封装color 颜色，默认 0xffaa00|
+|world|PhysicsWorld||
 |desc|PhysicsConstraintDesc||
 |bodyA|RigidBody||
 |bodyB|RigidBody||

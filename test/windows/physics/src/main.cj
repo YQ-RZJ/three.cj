@@ -20,7 +20,7 @@ package threePhysicsTest
 
 import std.io.*
 import std.fs.{File, Path as FsPath}
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
@@ -184,7 +184,7 @@ public func verifyCollisionQueries(world: PhysicsWorld): Unit {
  */
 public class TestWindow <: WindowEngine {
     // ===== 渲染/物理状态（onInit 创建 / onFrame 使用 / onClose 清理） =====
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var physicsWorld: PhysicsWorld = PhysicsWorld()
     var sensorListener: TestSensorListener = TestSensorListener()
     var scene: Scene = Scene()
@@ -202,21 +202,30 @@ public class TestWindow <: WindowEngine {
     var kinematicTarget: Option<RigidBody> = None
     var kinematicDir: Float64 = 1.0
 
+    // 高级验证驱动器（电机/软体/载具/高度场/调试渲染，advanced_test.cj）
+    let advDriver: AdvancedTestDriver = AdvancedTestDriver()
+
     // ===== 生命周期：窗口创建后（初始化渲染器 + 物理世界 + 场景） =====
     public override func onInit(): Unit {
         let hwnd = this.getNativeWindowHandle()
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/6] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        println("[ADV] onInit: before getPixelRatio")
+        let dpr = this.getPixelRatio()
+        println("[ADV] onInit: after getPixelRatio dpr=${dpr}")
+        this.renderer.setPixelRatio(Float64(dpr))
+        println("[ADV] onInit: before initBgfx")
         let ok = this.renderer.initBgfx(hwnd, w, h)
+        println("[ADV] onInit: after initBgfx ok=${ok}")
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x1a, 0x1a, 0x2e))
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("")
 
         // ---- 步骤 3: 创建场景 + 物理世界 ----
@@ -245,12 +254,22 @@ public class TestWindow <: WindowEngine {
         }
         this.kinematicDir = 1.0
 
+        // ---- 高级验证：装置创建（共享同一物理世界 + 渲染场景） ----
+        this.advDriver.setup(this.physicsWorld, this.scene)
+
         println("[4/6] 进入渲染+物理循环（onFrame 由窗口泵线程驱动）...")
         println("  按窗口关闭按钮退出\n")
     }
 
     // ===== 生命周期：每循环（读固定快照——物理步进 + 渲染） =====
     public override func onFrame(dt: Float64): Unit {
+        // [DBG] 自动退出：1200 帧（≈20s）后自动关闭，便于无人值守验证
+        // （高级验证阶段 0-11：电机/软体/载具/高度场/调试渲染/滑块/约束动物园/布娃娃/角色）
+        if (this.frame >= 1200) {
+            println("[DBG] auto-close at frame=${this.frame}")
+            this.requestClose()
+            return
+        }
         // 力演示：每 120 帧给圆柱体一次侧向冲量（推动滚动）
         if (this.frame % 120 == 0) {
             match (this.forceTarget) {
@@ -275,6 +294,9 @@ public class TestWindow <: WindowEngine {
 
         // 步进物理世界（独立物理线程执行，主线程等待完成）
         this.physicsWorld.update(this.dt, collisionSteps: 1)
+
+        // 高级验证状态机推进（物理步进之后，读到的 transform 是最新值）
+        this.advDriver.tick(this.physicsWorld)
 
         // 更新相机宽高比
         let w = this.getWidth()
@@ -377,6 +399,14 @@ public class TestWindow <: WindowEngine {
             // 忽略落盘失败
         }
 
+        // ===== 高级验证日志落盘（physics_advanced.log） =====
+        try {
+            File.appendTo(FsPath("./physics_advanced.log"), this.advDriver.log.toString().toArray())
+            println("高级验证日志已落盘 physics_advanced.log")
+        } catch (_) {
+            println("高级验证日志落盘失败")
+        }
+
         // ---- 步骤 5: 清理物理世界 ----
         println("")
         println("[5/6] 清理物理世界...")
@@ -393,7 +423,7 @@ public class TestWindow <: WindowEngine {
         // ---- 步骤 6: 关闭渲染器 ----
         println("")
         this.renderer.shutdown()
-        println("[6/6] BgfxRenderer + WindowEngine 已关闭")
+        println("[6/6] ThreeRenderer + WindowEngine 已关闭")
     }
 }
 
@@ -430,8 +460,10 @@ public func createPhysicsScene(width: Int32, height: Int32, world: PhysicsWorld,
     // 创建相机
     let aspect = Float64(width) / Float64(height)
     let camera = PerspectiveCamera(fov: 60.0, aspect: aspect, near: 0.1, far: 100.0)
-    camera.position.set(0.0, 8.0, 20.0)
-    camera.lookAt(Vector3(0.0, 2.0, 0.0))
+    // 取景需覆盖高级验证装置的分布：动物园 x∈[20,32.5]、地形中心(-25,0,5)、
+    // 角色 x=-18、滑块 (15,*,8)，故相机拉高后退并略俯视场景中心
+    camera.position.set(0.0, 14.0, 32.0)
+    camera.lookAt(Vector3(0.0, 3.0, -2.0))
     camera.name = "MainCamera"
     println("  相机创建成功: 位置=(${camera.position.x}, ${camera.position.y}, ${camera.position.z})")
 

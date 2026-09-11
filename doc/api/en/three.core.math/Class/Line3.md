@@ -229,16 +229,6 @@ Return:
 
 - This instance
 
-### func getCenter\(\)
-```cj
-public func getCenter(): Vector3
-```
-Get the center point of the line segment (creates a new vector)
-
-Return: 
-
-- Center point
-
 ### func getCenter\(Vector3\)
 ```cj
 public func getCenter(target: Vector3): Vector3
@@ -250,6 +240,16 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |target|Vector3|Target vector|
+
+Return: 
+
+- Center point
+
+### func getCenter\(\)
+```cj
+public func getCenter(): Vector3
+```
+Get the center point of the line segment (creates a new vector)
 
 Return: 
 

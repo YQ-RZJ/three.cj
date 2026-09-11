@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BinaryHeap
  * @brief[zh-cn] 二叉堆（默认最小堆），支持最大堆和最小堆
  * @explain[zh-cn] 底层使用 ArrayList<T> 存储堆节点，通过节点自带的 index 字段实现 O(log n) 的 push/pop/remove/update 操作。
@@ -21,6 +43,8 @@ import std.collection.*
 public interface HeapNode {
     /**
      * @brief[zh-cn] 在堆中的索引，-1 表示不在堆中
+     *
+     * @brief[en] Index in the heap, -1 means not in the heap
      */
     mut prop index: Int64
 
@@ -46,14 +70,20 @@ public interface HeapNode {
 public class BinaryHeap<T> where T <: HeapNode {
     /**
      * @brief[zh-cn] 内部节点数组
+     *
+     * @brief[en] Internal node array
      */
     private let _nodes: ArrayList<T>
     /**
      * @brief[zh-cn] 当前堆大小
+     *
+     * @brief[en] Current heap size
      */
     private var _size: Int64
     /**
      * @brief[zh-cn] 当前容量
+     *
+     * @brief[en] Current capacity
      */
     private var _capacity: Int64
 
@@ -72,6 +102,8 @@ public class BinaryHeap<T> where T <: HeapNode {
 
     /**
      * @brief[zh-cn] 默认构造器，容量 4
+     *
+     * @brief[en] Default constructor with capacity 4
      */
     public init() {
         _size = 0
@@ -212,6 +244,8 @@ public class BinaryHeap<T> where T <: HeapNode {
 
     /**
      * @brief[zh-cn] 当前元素数量
+     *
+     * @brief[en] Current number of elements
      */
     public prop size: Int64 {
         get() { _size }
@@ -219,6 +253,8 @@ public class BinaryHeap<T> where T <: HeapNode {
 
     /**
      * @brief[zh-cn] 是否为空
+     *
+     * @brief[en] Whether the heap is empty
      */
     public func isEmpty(): Bool {
         return _size == 0
@@ -228,6 +264,8 @@ public class BinaryHeap<T> where T <: HeapNode {
 
     /**
      * @brief[zh-cn] 父节点索引
+     *
+     * @brief[en] Parent node index
      */
     private func _parent(index: Int64): Int64 {
         return (index - 1) >> 1
@@ -235,6 +273,8 @@ public class BinaryHeap<T> where T <: HeapNode {
 
     /**
      * @brief[zh-cn] 上浮调整
+     *
+     * @brief[en] Sift-up adjustment
      */
     private func _sortUp(node: T, index: Int64): Unit {
         var idx = index
@@ -253,6 +293,8 @@ public class BinaryHeap<T> where T <: HeapNode {
 
     /**
      * @brief[zh-cn] 下沉调整
+     *
+     * @brief[en] Sift-down adjustment
      */
     private func _sortDown(node: T, index: Int64): Unit {
         var idx = index

@@ -115,6 +115,12 @@ Parameter:
 |---|---|---|
 |distance|Float64||
 
+### prop levelsJson: String
+```cj
+public mut prop levelsJson: String
+```
+格式：[["uuid1", distance1], ["uuid2", distance2], ...]
+
 ### var autoUpdate
 ```cj
 public var autoUpdate: Bool
@@ -131,5 +137,5 @@ public var hysteresis: Float64
 ```cj
 public var levels: ArrayList <(Object3D, Float64) >
 ```
-（元组类型 fastjson 不支持，序列化忽略）
+仓颉版用元组 (Object3D, Float64) 替代 JS 的 {distance, object} 对象。
 

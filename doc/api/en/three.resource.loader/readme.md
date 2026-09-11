@@ -17,7 +17,11 @@
 |[EXRLoader](./Class/EXRLoader.md#class-exrloader)|EXR loader, loads OpenEXR format HDR textures|
 |[FileLoader](./Class/FileLoader.md#class-fileloader)|File loader for loading files via the local file system|
 |[FontLoader](./Class/FontLoader.md#class-fontloader)|Font loader, loads JSON-format font files|
+|[GltfAnimationChannel](./Class/GltfAnimationChannel.md#class-gltfanimationchannel)|Parsed glTF Animation Channel|
+|[GltfAnimationData](./Class/GltfAnimationData.md#class-gltfanimationdata)|Parsed glTF Animation|
+|[GltfAnimationSampler](./Class/GltfAnimationSampler.md#class-gltfanimationsampler)|Parsed glTF Animation Sampler|
 |[GltfLoader](./Class/GltfLoader.md#class-gltfloader)|glTF loader, loads .gltf / .glb format 3D models|
+|[GltfSkinData](./Class/GltfSkinData.md#class-gltfskindata)|Parsed glTF Skin|
 |[HDRLoader](./Class/HDRLoader.md#class-hdrloader)|Radiance RGBE HDR loader|
 |[ImageLoader](./Class/ImageLoader.md#class-imageloader)|Image loader, for loading image resources|
 |[KTXLoader](./Class/KTXLoader.md#class-ktxloader)|KTX compressed texture loader|

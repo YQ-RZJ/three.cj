@@ -5,23 +5,23 @@ package xrmanager
  * - TestWindow <: WindowEngine：onInit（创建渲染器/场景/XR 管理器）→
  *   onFrame（每帧球体旋转 + XR 状态显示 + 渲染）→ onClose（清理）
  * - renderer.cj: 场景设置（球体 + 灯光）与 createScene（构造并验证
- *                BgfxXRManager/BgfxXRController/BgfxXRDepthSensing 全部公开接口），
+ *                XRManager/XRController/XRDepthSensing 全部公开接口），
  *                SceneObjects 持有场景/相机/XR 对象引用
- * - 验证对象：bgfxxr 包（XRManager/XRController/XRDepthSensing）功能对齐，
+ * - 验证对象：xr 包（XRManager/XRController/XRDepthSensing）功能对齐，
  *            非 presenting 时回退渲染球体场景 + 画面内 dbgText 显示 XR 状态
  */
 
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
-import three.rendering.bgfxxr.*
+import three.rendering.xr.*
 import three.rendering.textures.*
 import three.utils.log.Logger
 import three.utils.log.LogLevel
@@ -36,7 +36,7 @@ public class TestWindow <: WindowEngine {
     // 输入提供者（可插拔架构）
     var _mouse: Option<MouseProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var objs: Option<SceneObjects> = None
     var frame: Int64 = 0
     var totalFrames: Int64 = 0
@@ -57,16 +57,18 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x202030))
         this.renderer.setDebug(0x00000008)
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("")
 
         // ---- 步骤 3: 创建场景对象（含 XR 管理器/控制器/深度感知构造与接口验证） ----
@@ -157,7 +159,7 @@ public class TestWindow <: WindowEngine {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")
     }
@@ -165,7 +167,7 @@ public class TestWindow <: WindowEngine {
 
 main(): Int64 {
     Logger.setLevel(LogLevel.Debug)
-    println("=== xrmanager：bgfxxr 包功能验证（XRManager/XRController/XRDepthSensing） ===")
+    println("=== xrmanager：xr 包功能验证（XRManager/XRController/XRDepthSensing） ===")
     println("")
 
     // ---- 步骤 1: 创建窗口（WindowEngine v2） ----

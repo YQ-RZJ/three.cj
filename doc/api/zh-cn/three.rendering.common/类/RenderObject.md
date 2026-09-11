@@ -207,7 +207,7 @@ public var material: Material
 ```cj
 public var mesh: Object3D
 ```
-mesh 别名（兼容 BgfxRenderer 中 ro.mesh 访问）
+mesh 别名（兼容 ThreeRenderer 中 ro.mesh 访问）
 
 ### var modelViewMatrix
 ```cj

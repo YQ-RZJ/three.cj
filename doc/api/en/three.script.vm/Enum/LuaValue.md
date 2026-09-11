@@ -83,6 +83,22 @@ Return:
 
 - The float value or the default
 
+### func of\(Bool\)
+```cj
+public static func of(b: Bool): LuaValue
+```
+Convenience constructor: boxes a Bool
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|b|Bool|The boolean value|
+
+Return: 
+
+- The corresponding boolean LuaValue
+
 ### func of\(Float64\)
 ```cj
 public static func of(n: Float64): LuaValue
@@ -130,22 +146,6 @@ Parameter:
 Return: 
 
 - The corresponding string LuaValue
-
-### func of\(Bool\)
-```cj
-public static func of(b: Bool): LuaValue
-```
-Convenience constructor: boxes a Bool
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|b|Bool|The boolean value|
-
-Return: 
-
-- The corresponding boolean LuaValue
 
 ### func stringValue\(String\)
 ```cj

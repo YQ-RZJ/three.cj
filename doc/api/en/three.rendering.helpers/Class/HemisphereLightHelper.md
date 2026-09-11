@@ -15,15 +15,21 @@ Dispose GPU resources
 ```cj
 public init(light: Light, size!: Float64 = 1.0, color!: Option < Color >= None < Color >)
 ```
-Construct a hemisphere light helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|light|Light|The hemisphere light to visualizesize Size, default 1color Color, uses light color when not set|
+|light|Light||
 |size|Float64||
 |color|Option<Color>||
+
+### func init\(\)
+```cj
+public init()
+```
+Construct a hemisphere light helper
 
 ### func update\(\)
 ```cj

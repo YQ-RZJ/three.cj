@@ -50,12 +50,16 @@ struct Index {
         // 旋转/窗口尺寸变化时触发：把 XComponent 新尺寸（vp）转 px 通知渲染线程。
         // 事件驱动 resize（非轮询）——与参考项目 xcomponent-vsync-master 的
         // OnSurfaceChanged 事件驱动等价，仅在实际尺寸变化时调用一次。
+        // 传逻辑像素（vp）：SDL OHOS 驱动已按 density 将 XComponent 物理像素
+        // 换算为逻辑尺寸（window->w/h = physical / density），引擎的
+        // _width/_height 须与之一致（逻辑像素），否则 pixelRatio = drawable/_width
+        // 会算错（两者同为物理像素时 pixelRatio 恒为 1.0，DPI 缩放失效）。
         .onAreaChange((oldValue: Area, newValue: Area) => {
           const widthVp = newValue.width;
           const heightVp = newValue.height;
           if (typeof widthVp === 'number' && typeof heightVp === 'number') {
-            const w = Math.round(this.getUIContext().vp2px(widthVp));
-            const h = Math.round(this.getUIContext().vp2px(heightVp));
+            const w = Math.round(widthVp);
+            const h = Math.round(heightVp);
             resizeThreeRender(w, h);
             hilog.info(DOMAIN, TAG, 'onAreaChange -> resizeThreeRender(%{public}d, %{public}d)', w, h);
           }

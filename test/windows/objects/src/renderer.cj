@@ -27,7 +27,7 @@ import three.rendering.geometry.*
 import three.rendering.buffer.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.MouseButton
 
 /// 场景中关键对象的引用，供渲染循环更新

@@ -217,12 +217,6 @@ public var forceSinglePass: Bool
 ```
 Whether to force single-pass rendering, default false
 
-### var kind
-```cj
-public var kind: String
-```
-Type label
-
 ### var name
 ```cj
 public var name: String

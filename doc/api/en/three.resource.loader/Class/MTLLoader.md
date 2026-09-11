@@ -59,5 +59,5 @@ Return:
 ```cj
 public var materialOptions: Option < HashMap < String, Any >>
 ```
-
+Material options (only None is currently supported)
 

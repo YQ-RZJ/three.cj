@@ -15,12 +15,6 @@ Return:
 
 - New fog instance
 
-### func init\(\)
-```cj
-public init()
-```
-No-argument constructor (for fastjson deserialization)
-
 ### func init\(Color,Float64,Float64\)
 ```cj
 public init(color: Color, near!: Float64 = 1.0, far!: Float64 = 1000.0)
@@ -48,6 +42,12 @@ Parameter:
 |hex|UInt32|Hex color valuenear Fog start distance, default 1far Fog end distance, default 1000|
 |near|Float64||
 |far|Float64||
+
+### func init\(\)
+```cj
+public init()
+```
+No-argument constructor (for fastjson deserialization)
 
 ### var color
 ```cj

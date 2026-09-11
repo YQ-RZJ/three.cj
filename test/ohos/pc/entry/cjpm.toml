@@ -1,13 +1,13 @@
 [dependencies]
   [dependencies.three]
     path = "../../../../"
-    output-type = "static"
+    output-type = "dynamic"
 
 [package]
   cjc-version = "1.1.0"
   compile-option = "--dy-std --cfg=\"${COMPILE_CONDITION_ENTRY}\""
   description = "CangjieUI Application"
-  link-option = "-L ${EXTEDN_LIBS_PATH} --whole-archive -l:librequirecj_napi.a --no-whole-archive -l:libc++_static.a -l:libc++abi.a -l:libunwind.a" # requireCJLib 桥接库（--whole-archive 强制链接 constructor，注册 requireCJLib NAPI 模块；link-option 直接传给 ld.lld，不能用 -Wl, 前缀）
+  link-option = "-L ${EXTEDN_LIBS_PATH} --whole-archive -l:librequirecj_napi.a --no-whole-archive -l:libc++_static.a -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -l:libnative_window.so" # requireCJLib 桥接库（--whole-archive 强制链接 constructor，注册 requireCJLib NAPI 模块；link-option 直接传给 ld.lld，不能用 -Wl, 前缀）
   name = "ohos_app_cangjie_entry"
   output-type = "dynamic"
   src-dir = "./src/main/cangjie"

@@ -15,11 +15,7 @@ Disposes the virtual character and frees the underlying handle
 ```cj
 public func getGroundState(): UInt32
 ```
-Gets the ground state (GroundState enum value)
-
-Return: 
-
-- The GroundState enum value (0 = OnGround)
+Gets the ground state (0 = OnGround, 1 = OnSteepGround, 2 = NotSupported, 3 = InAir)
 
 ### func getLinearVelocity\(\)
 ```cj
@@ -29,7 +25,7 @@ Gets the virtual character's linear velocity
 
 Return: 
 
-- The current linear velocity (world coordinates)
+- The current linear velocity (world space, three left-handed)
 
 ### func getPosition\(\)
 ```cj
@@ -39,44 +35,15 @@ Gets the virtual character's position
 
 Return: 
 
-- The current position (world coordinates)
-
-### func init\(CPointer<Unit>,Vector3,CPointer<Unit>,Quaternion,Float32,Float32\)
-```cj
-public init(shape: CPointer < Unit >, position: Vector3, system: CPointer < Unit >, rotation!: Quaternion = Quaternion(), mass!: Float32 = 70.0f32, maxSlopeAngle!: Float32 = 0.7853982f32)
-```
-Creates a virtual character
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|shape|CPointer<Unit>|The character collision shape handle (a JPH_Shape handle created and kept by the caller)position The initial position (world coordinates)system The physics system handlerotation The initial rotation (quaternion)mass The mass (kilograms, used for impulse calculations)maxSlopeAngle The maximum standable slope angle (radians)|
-|position|Vector3||
-|system|CPointer<Unit>||
-|rotation|Quaternion||
-|mass|Float32||
-|maxSlopeAngle|Float32||
+- The current position (world space, three left-handed)
 
 ### func isOnGround\(\)
 ```cj
 public func isOnGround(): Bool
 ```
-Whether the virtual character is on the ground (OnGround)
+Whether the virtual character is on the ground (GroundState == OnGround)
 
-Return: 
-
-- true if on the ground
-
-### func isValid\(\)
-```cj
-public func isValid(): Bool
-```
-Whether the virtual character was created successfully (handle valid and not disposed)
-
-Return: 
-
-- true if valid
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>The ground state is valid for this frame after update</p>
 
 ### func setLinearVelocity\(Vector3\)
 ```cj
@@ -88,7 +55,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|velocity|Vector3|The target linear velocity (world-space direction)|
+|velocity|Vector3|The target linear velocity (world space, three left-handed)|
 
 ### func setPosition\(Vector3\)
 ```cj
@@ -100,19 +67,24 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|position|Vector3|The target position (world coordinates)|
+|position|Vector3|The target position (world space, three left-handed)|
 
-### func update\(Float32,UInt32,CPointer<Unit>\)
+### func update\(Float32,Vector3\)
 ```cj
-public func update(deltaTime: Float32, layer: UInt32, system: CPointer < Unit >): Unit
+public func update(deltaTime: Float32, gravity!: Vector3 = Vector3(0.0, - 9.81, 0.0)): Unit
 ```
-Updates the virtual character (call every frame)
+Updates the virtual character (call every frame after PhysicsWorld.update)
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|deltaTime|Float32|The time step (seconds)layer The object layer (collision layer used while the character moves)system The physics system handle|
-|layer|UInt32||
-|system|CPointer<Unit>||
+|deltaTime|Float32|The time step (seconds)gravity The gravity vector (default (0,-9.81,0), matching the physics world; sethorizontal movement with setLinearVelocity beforehand — the vertical component ispreserved and gravity is added on top)|
+|gravity|Vector3||
+
+### prop isValid: Bool
+```cj
+public prop isValid: Bool
+```
+Whether the virtual character is valid (created successfully and not disposed)
 

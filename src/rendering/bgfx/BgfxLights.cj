@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] bgfx 光照管理
  * @brief[zh-cn] 替代 WebGLLights，收集和设置光照 uniform 数据
  * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLLights.js 及 16-shadowmaps/shadowmaps.cpp。多光源 uniform 策略：方向光、点光源、聚光源、半球光等均使用数组化 uniform 传递到着色器。阴影相关 uniform 与 shadowmaps Uniforms 结构对齐。
@@ -118,6 +140,8 @@ public class LightUniformData {
 public class LightUniformsCache {
     /**
      * @brief[zh-cn] 光照 uniform 缓存（光源 ID -> uniform 数据）
+     *
+     * @brief[en] Light uniform cache (light ID -> uniform data)
      */
     private var cache: HashMap<Int64, LightUniformData>
 
@@ -534,14 +558,20 @@ public class LightUniformContainer {
 public class BgfxLights {
     /**
      * @brief[zh-cn] 光照 uniform 缓存
+     *
+     * @brief[en] Light uniform cache
      */
     private var cache: LightUniformsCache
     /**
      * @brief[zh-cn] 多光源 uniform 容器
+     *
+     * @brief[en] Multi-light uniform container
      */
     private var uniformContainer: LightUniformContainer
     /**
      * @brief[zh-cn] 渲染统计
+     *
+     * @brief[en] Render statistics
      */
     private var info: BgfxInfo
 

@@ -75,9 +75,11 @@ This document provides a brief overview of all test projects located under `thre
 - [VIII. Model Loading & Render Pipeline](#viii-model-loading--render-pipeline)
   - [glTFLoader](#gltfloader)
   - [toon_pipeline](#toon_pipeline)
+  - [animation](#animation)
 - [IX. Engine & Extensions](#ix-engine--extensions)
   - [audio](#audio)
   - [physics](#physics)
+  - [gui](#gui)
   - [xrmanager](#xrmanager)
 
 ---
@@ -670,6 +672,16 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 ---
 
+### animation
+
+> glTF skeletal skinning animation test: loads a glb model with skin and animation clips, drives CPU skinning through the ozz animation pipeline (SkeletonData → SamplingJob → BlendingJob → LocalToModelJob), with mouse-drag orbit and wheel zoom support.
+
+![animation](../../asstes/animation.gif)
+
+[Jump to Project Directory](../../../test/windows/animation/)
+
+---
+
 ## IX. Engine & Extensions
 
 ### audio
@@ -690,6 +702,16 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 ![physics](../../asstes/physics.gif)
 
 [Jump to Project Directory](../../../test/windows/physics/)
+
+---
+
+### gui
+
+> Immediate-mode GUI test based on imgui4cj: side-by-side comparison of a window without ImGui and one with ImGui; the ImGui window contains UiText / UiSliderFloat / UiButton widgets with an interactive counter.
+
+![gui](../../asstes/gui.gif)
+
+[Jump to Project Directory](../../../test/windows/gui/)
 
 ---
 

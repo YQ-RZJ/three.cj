@@ -352,12 +352,6 @@ public func getComponent(index: Int64): Float64
 
 - 分量值
 
-### func init\(\)
-```cj
-public init()
-```
-默认构造函数，初始化为 (0, 0, 0, 1)
-
 ### func init\(Float64,Float64,Float64,Float64\)
 ```cj
 public init(x: Float64, y: Float64, z: Float64, w: Float64)
@@ -372,6 +366,12 @@ public init(x: Float64, y: Float64, z: Float64, w: Float64)
 |y|Float64||
 |z|Float64||
 |w|Float64||
+
+### func init\(\)
+```cj
+public init()
+```
+默认构造函数，初始化为 (0, 0, 0, 1)
 
 ### func lengthSq\(\)
 ```cj

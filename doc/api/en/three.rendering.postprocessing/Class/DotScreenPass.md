@@ -25,9 +25,9 @@ Parameter:
 |angle|Float64|Dot grid rotation angle (default 1.57 ≈ π/2)|
 |scale|Float64|Dot grid density (default 1.0)|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Executes the dot screen pass
 
@@ -35,7 +35,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (output target of this pass)|
 |readBuffer|FrameBufferHandle|Read buffer (previous pass result, bound to tDiffuse)|
 |deltaTime|Float64|Frame delta time|

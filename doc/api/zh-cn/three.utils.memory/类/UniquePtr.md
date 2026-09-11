@@ -21,6 +21,19 @@ public func get(): CPointer < T >
 
 - 原始 CPointer<T>
 
+### func init\(CPointer<T>,\(CPointer<T>\)\->Unit\)
+```cj
+public init(p: CPointer < T >, deleter:(CPointer < T >) -> Unit)
+```
+构造 UniquePtr 包装一个指针（使用自定义释放函数）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|p|CPointer<T>|要管理的指针deleter 自定义释放函数|
+|deleter|(CPointer<T>)->Unit||
+
 ### func init\(\)
 ```cj
 public init()
@@ -38,19 +51,6 @@ public init(p: CPointer < T >)
 |名称|类型|描述|
 |---|---|---|
 |p|CPointer<T>|要管理的指针|
-
-### func init\(CPointer<T>,\(CPointer<T>\)\->Unit\)
-```cj
-public init(p: CPointer < T >, deleter:(CPointer < T >) -> Unit)
-```
-构造 UniquePtr 包装一个指针（使用自定义释放函数）
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|p|CPointer<T>|要管理的指针deleter 自定义释放函数|
-|deleter|(CPointer<T>)->Unit||
 
 ### func isValid\(\)
 ```cj

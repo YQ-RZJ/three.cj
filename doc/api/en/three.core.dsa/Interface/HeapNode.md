@@ -25,5 +25,5 @@ Return:
 ```cj
 mut prop index: Int64
 ```
-
+Index in the heap, -1 means not in the heap
 

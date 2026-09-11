@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 Releases streaming audio resources (decoder + streaming buffers + source)
 
+### func init\(\)
+```cj
+public init()
+```
+Creates a streaming audio instance
+
 ### func init\(AudioListener\)
 ```cj
 public init(listener!: AudioListener)
 ```
-Creates a streaming audio instance
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|listener|AudioListener|The associated audio listener|
+|listener|AudioListener||
 
 ### func load\(String\)
 ```cj

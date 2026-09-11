@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造方向光辅助对象
+
 ### func init\(Light,Float64,Option<Color>\)
 ```cj
 public init(light: Light, size!: Float64 = 1.0, color!: Option < Color >= None < Color >)
 ```
-构造方向光辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|light|Light|要可视化的方向光size 平面尺寸，默认 1color 颜色，未设置时使用光源颜色|
+|light|Light||
 |size|Float64||
 |color|Option<Color>||
 

@@ -26,5 +26,5 @@ public static func get(name: String):?ShaderProgram
 public static func initialize(): Unit
 ```
 注册全部后处理 shader（copy/output/bloom/fxaa/smaa/ssao 系列）。
-由 BgfxRenderer 初始化或各 pass 首次使用时调用（幂等）。
+由 ThreeRenderer 初始化或各 pass 首次使用时调用（幂等）。
 

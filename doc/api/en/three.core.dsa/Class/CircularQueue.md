@@ -21,7 +21,7 @@ Parameter:
 ```cj
 public func clear(): Unit
 ```
-
+Clear the queue
 
 ### func init\(\)
 ```cj
@@ -45,7 +45,7 @@ Parameter:
 ```cj
 public func isEmpty(): Bool
 ```
-
+Whether the queue is empty
 
 ### func next\(\)
 ```cj
@@ -81,11 +81,11 @@ Return:
 ```cj
 public func toArray(): Array < T >
 ```
-
+Convert to an array (in enqueue order)
 
 ### prop size: Int64
 ```cj
 public prop size: Int64
 ```
-
+Current number of elements
 

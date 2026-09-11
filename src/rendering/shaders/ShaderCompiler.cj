@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] ShaderCompiler  着色器编译器
  * @brief[zh-cn] 使用专用大栈线程进行 shader 编译，避免栈溢出。
  *
@@ -28,22 +50,54 @@ import bgfx4cj.shaderc.{ sc_compile_cj, ScOptions, ScResult }
  * Use waitFor() to block until the worker thread finishes compilation.
  */
 public class ShaderCompileJob {
-    /** @brief[zh-cn] 日志标签 */
+    /**
+     * @brief[zh-cn] 日志标签
+     *
+     * @brief[en] Log label
+     */
     public let label: String
-    /** @brief[zh-cn] varying 定义 C 指针 */
+    /**
+     * @brief[zh-cn] varying 定义 C 指针
+     *
+     * @brief[en] Varying definitions C pointer
+     */
     public let varyingPtr: CPointer<Unit>
-    /** @brief[zh-cn] varying 定义大小 */
+    /**
+     * @brief[zh-cn] varying 定义大小
+     *
+     * @brief[en] Varying definitions size
+     */
     public let varyingSize: UInt32
-    /** @brief[zh-cn] shader 源码 C 指针 */
+    /**
+     * @brief[zh-cn] shader 源码 C 指针
+     *
+     * @brief[en] Shader source C pointer
+     */
     public let srcPtr: CPointer<Unit>
-    /** @brief[zh-cn] shader 源码大小 */
+    /**
+     * @brief[zh-cn] shader 源码大小
+     *
+     * @brief[en] Shader source size
+     */
     public let srcSize: UInt32
-    /** @brief[zh-cn] 编译选项 C 指针 */
+    /**
+     * @brief[zh-cn] 编译选项 C 指针
+     *
+     * @brief[en] Compile options C pointer
+     */
     public let optionsPtr: CPointer<ScOptions>
-    /** @brief[zh-cn] 编译结果 C 指针 */
+    /**
+     * @brief[zh-cn] 编译结果 C 指针
+     *
+     * @brief[en] Compile result C pointer
+     */
     public let resultPtr: CPointer<ScResult>
 
-    /** @brief[zh-cn] sc_compile 返回值（-999 表示尚未完成） */
+    /**
+     * @brief[zh-cn] sc_compile 返回值（-999 表示尚未完成）
+     *
+     * @brief[en] sc_compile return value (-999 means not yet completed)
+     */
     public var compileResult: Int32 = -999
 
     // 同步原语
@@ -60,6 +114,15 @@ public class ShaderCompileJob {
      * @param[zh-cn] srcSize shader 源码大小
      * @param[zh-cn] optionsPtr 编译选项 C 指针
      * @param[zh-cn] resultPtr 编译结果 C 指针
+     *
+     * @brief[en] Constructor
+     * @param[en] label Log label
+     * @param[en] varyingPtr Varying definitions C pointer
+     * @param[en] varyingSize Varying definitions size
+     * @param[en] srcPtr Shader source C pointer
+     * @param[en] srcSize Shader source size
+     * @param[en] optionsPtr Compile options C pointer
+     * @param[en] resultPtr Compile result C pointer
      */
     public init(
         label: String,
@@ -121,12 +184,23 @@ public class ShaderCompileJob {
  * - restart() → stop() + start() 快捷方式
  *
  * @brief[en] Shader compiler
- * @brief[en] Single-worker large-stack shader compiler. glslang/glsl-optimizer C library is not thread-safe,
- * so multiple workers would provide no benefit.
- * Lifecycle: start → stop (join worker, release resources) → restart.
+ * @explain[en] Compiles shaders on a dedicated large-stack worker thread to avoid
+ * glslang/glsl-optimizer stack overflow (the default 1MB stack is not enough).
+ * Single-worker mode — the glslang/glsl-optimizer C libraries are not thread-safe,
+ * so multiple workers would require serialization and provide no benefit.
+ *
+ * Lifecycle:
+ * - start() → starts the worker thread
+ * - stop() → waits for the current job, **joins the worker thread**, releases all thread resources
+ * - start() again → can be restarted at any time (e.g. new shaders needed mid-game)
+ * - restart() → shortcut for stop() + start()
  */
 public class ShaderCompiler {
-    /** @brief[zh-cn] 默认线程栈大小（8MB，远超 glslang 典型栈需求） */
+    /**
+     * @brief[zh-cn] 默认线程栈大小（8MB，远超 glslang 典型栈需求）
+     *
+     * @brief[en] Default thread stack size (8MB, far exceeding typical glslang stack requirements)
+     */
     public static let DEFAULT_STACK_SIZE: Int64 = 8 * 1024 * 1024
 
     // 任务队列
@@ -209,6 +283,9 @@ public class ShaderCompiler {
     /**
      * @brief[zh-cn] 获取已提交的任务总数
      * @return[zh-cn] 已提交总数
+     *
+     * @brief[en] Gets the total number of submitted tasks
+     * @return[en] Total submitted
      */
     public static func totalSubmitted(): Int64 {
         return _totalSubmitted
@@ -217,6 +294,9 @@ public class ShaderCompiler {
     /**
      * @brief[zh-cn] 获取已完成的任务数
      * @return[zh-cn] 已完成数
+     *
+     * @brief[en] Gets the number of completed tasks
+     * @return[en] Number completed
      */
     public static func totalCompleted(): Int64 {
         return _totalCompleted
@@ -225,6 +305,9 @@ public class ShaderCompiler {
     /**
      * @brief[zh-cn] 获取编译失败数
      * @return[zh-cn] 失败数
+     *
+     * @brief[en] Gets the number of compilation failures
+     * @return[en] Failure count
      */
     public static func totalErrors(): Int64 {
         return _totalErrors
@@ -258,6 +341,10 @@ public class ShaderCompiler {
      * @brief[zh-cn] Worker 线程主循环
      * @explain[zh-cn] 从队列中取任务，执行 sc_compile_cj，标记完成。
      * 使用 Condition 等待，无忙等。_running=false 时退出。
+     *
+     * @brief[en] Worker thread main loop
+     * @explain[en] Takes jobs from the queue, runs sc_compile_cj and marks them complete.
+     * Waits on a Condition with no busy polling; exits when _running=false.
      */
     private static func _workerLoop(): Unit {
         Logger.debug(["ShaderCompiler", "Worker started"])

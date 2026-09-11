@@ -1,11 +1,33 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxBlitQuad
  * @brief[zh-cn] 全屏四边形 vertex/index buffer + layout 资源管理
- * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.ensureBlitVB / getOrCreateBlitLayout*。用途：阴影 debug mode 6 的全屏 blit（shadowblit pass）用全屏四边形采样阴影贴图。四边形：vec3 a_position（NDC [-1,1]）+ vec2 a_texcoord0（V 翻转适配 D3D11）。
+ * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.ensureBlitVB / getOrCreateBlitLayout*。用途：阴影 debug mode 6 的全屏 blit（shadowblit pass）用全屏四边形采样阴影贴图。四边形：vec3 a_position（NDC [-1,1]）+ vec2 a_texcoord0（V 翻转适配 D3D11）。
  *
  * @file[en] BgfxBlitQuad
  * @brief[en] Full-screen quad vertex/index buffer + layout resource management
- * @explain[en] Mirrors bgfx4cj-last BgfxRenderer.ensureBlitVB / getOrCreateBlitLayout*. Usage: shadow debug mode 6 full-screen blit (shadowblit pass) uses full-screen quad to sample shadow map. Quad: vec3 a_position (NDC [-1,1]) + vec2 a_texcoord0 (V flipped for D3D11).
+ * @explain[en] Mirrors bgfx4cj-last ThreeRenderer.ensureBlitVB / getOrCreateBlitLayout*. Usage: shadow debug mode 6 full-screen blit (shadowblit pass) uses full-screen quad to sample shadow map. Quad: vec3 a_position (NDC [-1,1]) + vec2 a_texcoord0 (V flipped for D3D11).
  */
 package three.rendering.bgfx
 
@@ -44,6 +66,8 @@ internal class BgfxBlitQuad {
 
     /**
      * @brief[zh-cn] 全屏四边形 layout 指针缓存（供 _getOrCreateBlitLayoutPtr 复用）
+     *
+     * @brief[en] Full-screen quad layout pointer cache (reused by _getOrCreateBlitLayoutPtr)
      */
     private var _blitLayoutPtrCache: Option<CPointer<VertexLayout>> = None
 
@@ -51,10 +75,10 @@ internal class BgfxBlitQuad {
 
     /**
      * @brief[zh-cn] 确保全屏四边形 vertex/index buffer 已创建
-     * @explain[zh-cn] 对照 bgfx4cj-last BgfxRenderer.ensureBlitVB：vec3 a_position + vec2 a_texcoord0，4 顶点 6 索引。全屏三角形覆盖：position 已是 NDC [-1,1] 坐标，uv 在 [0,1]。
+     * @explain[zh-cn] 对照 bgfx4cj-last ThreeRenderer.ensureBlitVB：vec3 a_position + vec2 a_texcoord0，4 顶点 6 索引。全屏三角形覆盖：position 已是 NDC [-1,1] 坐标，uv 在 [0,1]。
      *
      * @brief[en] Ensure full-screen quad vertex/index buffer is created
-     * @explain[en] Mirrors bgfx4cj-last BgfxRenderer.ensureBlitVB: vec3 a_position + vec2 a_texcoord0, 4 vertices 6 indices. Full-screen triangle cover: position in NDC [-1,1], uv in [0,1].
+     * @explain[en] Mirrors bgfx4cj-last ThreeRenderer.ensureBlitVB: vec3 a_position + vec2 a_texcoord0, 4 vertices 6 indices. Full-screen triangle cover: position in NDC [-1,1], uv in [0,1].
      */
     public func ensureBlitVB(): Unit {
         match (this._blitVB) {

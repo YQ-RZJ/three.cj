@@ -24,9 +24,9 @@ Parameter:
 |map|TextureHandle|Texture to render (bgfx TextureHandle)|
 |opacity|Float64|Opacity (default 1.0)|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Executes the texture pass: renders the map to readBuffer or the screen
 
@@ -34,7 +34,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (unused by this pass; result goes to readBuffer or screen)|
 |readBuffer|FrameBufferHandle|Read buffer (written here when renderToScreen=false)|
 |deltaTime|Float64|Frame delta time|

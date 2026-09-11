@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Scene
  * @brief[zh-cn] 场景，场景图根节点
  * @explain[zh-cn] 场景持有所有渲染对象（Object3D）、雾（Fog/FogExp2）、
@@ -36,7 +58,7 @@ import fastjson.stream.*
  * @brief[en] Scene, the root node of the scene graph
  * @explain[en] Holds render objects, fog, background, environment map, etc., implements IScene interface
  */
-@JsonAdapter[withSuperClass = Object3D]
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public class Scene <: Object3D & IScene {
 
     /**
@@ -44,7 +66,6 @@ public class Scene <: Object3D & IScene {
      *
      * @brief[en] Linear fog
      */
-    @JsonIgnore
     public var fog: Option<Fog>
     @JsonCustom["fog"]
     public open mut prop fogJson: String {
@@ -92,7 +113,6 @@ public class Scene <: Object3D & IScene {
      *
      * @brief[en] Background: Some(Color)/Some(Texture)/Some(CubeTexture) or None (no background), default None
      */
-    @JsonIgnore
     public var background: Option<IBackground>
     @JsonCustom["background"]
     public open mut prop backgroundJson: String {
@@ -134,7 +154,6 @@ public class Scene <: Object3D & IScene {
      *
      * @brief[en] Environment map (Texture/CubeTexture), default None
      */
-    @JsonIgnore
     public var environment: Option<Texture>
     @JsonCustom["environment"]
     public open mut prop environmentJson: String {
@@ -235,7 +254,6 @@ public class Scene <: Object3D & IScene {
      */
     public init() {
         super()
-        this.kind = "Scene"
         this.fog = None
         this.fogExp2 = None
         this.background = None

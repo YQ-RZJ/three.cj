@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] RenderTransitionPass 场景过渡渲染 pass
  * @brief[zh-cn] 场景过渡渲染 pass —— 从场景 A 平滑过渡到场景 B
  * @explain[zh-cn] 算法（完整非简化移植）：
@@ -80,7 +102,7 @@
 
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -181,7 +203,7 @@ public class RenderTransitionPass <: Pass {
     private var _transitionProg: Option<ProgramHandle> = None
 
     /** 渲染器引用（render() 时缓存，setSize/dispose 经其高阶 API 创建/销毁资源） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 构造 RenderTransitionPass。
@@ -265,7 +287,7 @@ public class RenderTransitionPass <: Pass {
     /**
      * 创建场景 A/B RT（各 RGBA16F + D24 depth attachment）。
      */
-    private func _ensureRTs(renderer: BgfxRenderer): Unit {
+    private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
         if (isValidHandle(this._renderTargetATex)) { return }
 
@@ -305,7 +327,7 @@ public class RenderTransitionPass <: Pass {
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(renderer: BgfxRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(renderer: ThreeRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = renderer.createFrameBuffer(2u8, handles, true)
         return fb
@@ -373,7 +395,7 @@ public class RenderTransitionPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -441,7 +463,7 @@ public class RenderTransitionPass <: Pass {
      *                   但 view ID 各自独立避免 frame buffer 状态残留）
      */
     private func _renderSceneTo(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         scene: Scene,
         camera: Camera,
         fb: FrameBufferHandle,
@@ -471,7 +493,7 @@ public class RenderTransitionPass <: Pass {
      * 输出目标：renderToScreen=true（最后一个 enabled pass）→ swap chain；否则 → writeBuffer。
      */
     private func _renderComposite(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         viewId: UInt16
     ): Unit {
@@ -529,7 +551,7 @@ public class RenderTransitionPass <: Pass {
      * 设置单个 vec4 uniform（x=value, y/z/w=0）。辅助方法，简化 uniforms 设置。
      */
     private func setUniformVec4(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         uniforms: BgfxUniforms,
         name: String,
         value: Float64

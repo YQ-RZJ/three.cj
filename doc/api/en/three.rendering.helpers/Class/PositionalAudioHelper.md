@@ -3,13 +3,19 @@
 ```cj
 public class PositionalAudioHelper <: Object3D
 ```
-
+3D positional audio helper object
 
 ### func dispose\(\)
 ```cj
 public func dispose(): Unit
 ```
+Releases GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Constructs a PositionalAudio helper
 
 ### func init\(PositionalAudio,UInt32\)
 ```cj
@@ -28,7 +34,7 @@ Parameter:
 ```cj
 public func update(): Unit
 ```
-
+Syncs the audio source state and updates the visualization
 
 ### var audio
 ```cj

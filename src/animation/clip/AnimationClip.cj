@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 动画剪辑
  * @brief[zh-cn] 管理一组关键帧轨道
  * @explain[zh-cn] 
@@ -22,6 +44,7 @@ import three.utils.constants.*
 import three.animation.interfaces.IAnimationClip
 import three.animation.interfaces.IKeyframeTrack
 import three.animation.blend.KeyframeTrack
+import three.animation.skeletal.SkeletalAnimationData
 import three.core.interfaces.ILoadResult
 import std.collection.*
 import std.regex.*
@@ -310,6 +333,22 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
     }
 
     /**
+     * @brief[zh-cn] 骨骼动画压缩数据（可选）
+     * @explain[zh-cn] 当此动画片段包含骨骼动画时，此字段存储压缩后的关键帧数据（SoA 格式）。
+     *                  由 AnimationBuilder 从 RawAnimation 构建时自动填充。
+     *                  AnimationMixer 在检测到此字段非空时，会走骨骼动画 Job 管线。
+     *
+     * @brief[en] Compressed skeletal animation data (optional)
+     * @explain[en] When this clip contains skeletal animation, this field stores the
+     *                  compressed keyframe data (SoA format). It is filled automatically
+     *                  when the clip is built from a RawAnimation by AnimationBuilder.
+     *                  When AnimationMixer detects this field is non-empty, it runs the
+     *                  skeletal animation job pipeline.
+     */
+    @JsonIgnore
+    public var skeletalData: Option<SkeletalAnimationData> = None
+
+    /**
      * @brief[zh-cn] 构造一个新的动画剪辑
      * @param[zh-cn] name 剪辑名称，默认 ''
      * @param[zh-cn] duration 剪辑持续时间（秒），默认 -1（从关键帧计算）
@@ -408,6 +447,8 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
      *
      * @brief[en] Parses a userData JSON string into a HashMap<String, Any> using cjfast_json
      * @explain[en] Corresponds to JS: JSON.parse(json.userData || '{}')
+     * @param[en] jsonStr The JSON string
+     * @return[en] The parsed HashMap<String, Any>
      */
     public static func parseUserData(jsonStr: String): HashMap<String, Any> {
         try {
@@ -427,6 +468,8 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
      *
      * @brief[en] Serializes a HashMap<String, Any> into a JSON string using cjfast_json
      * @explain[en] Corresponds to JS: JSON.stringify(clip.userData)
+     * @param[en] userData The user data HashMap
+     * @return[en] The JSON string
      */
     public static func stringifyUserData(userData: HashMap<String, Any>): String {
         // 2026-08-20 回退：删除 JsonValue 后，用 JsonStreamWriter 手写序列化 HashMap<String, Any> 的基础值

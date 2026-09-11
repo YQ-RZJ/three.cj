@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Constraint 辅助对象
  * @brief[zh-cn] 物理约束/关节可视化辅助对象
  * @explain[zh-cn]
@@ -10,8 +32,25 @@
  *
  * @note[zh-cn] Three.cj 使用左手坐标系、CCW 点序；本 helper 在左手系内绘制，
  * 与 RigidBody 绑定对象的世界变换保持一致。
+ *
+ * @file[en] Constraint Helper
+ * @brief[en] Physics constraint/joint visualization helper object
+ * @explain[en]
+ * Visualizes the anchors, connecting line and constraint axes of a PhysicsConstraint:
+ * - Two anchor markers (bodyA / bodyB)
+ * - A line between the anchors
+ * - Constraint axis arrows for hinge/slider/cone constraints
+ * Call update() to sync the latest state of both rigid bodies.
+ *
+ * @note[en] Three.cj uses a left-handed coordinate system with CCW winding; this helper
+ * draws within the left-handed system and stays consistent with the world transform of the
+ * RigidBody-bound objects.
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -32,33 +71,47 @@ import std.math.*
  * @brief[zh-cn] 物理约束辅助对象
  * @explain[zh-cn]
  * 用锚点标记 + 连线 + 约束轴箭头可视化物理约束。
+ *
+ * @brief[en] Physics constraint helper object
+ * @explain[en]
+ * Visualizes a physics constraint with anchor markers, a connecting line and constraint axis arrows.
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public class ConstraintHelper <: Object3D {
     /// 所属物理世界
+    @JsonIgnore
     public var world: PhysicsWorld
 
     /// 约束创建描述
+    @JsonIgnore
     public var desc: PhysicsConstraintDesc
 
     /// 刚体 A
+    @JsonIgnore
     public var bodyA: RigidBody
 
     /// 刚体 B
+    @JsonIgnore
     public var bodyB: RigidBody
 
     /// 锚点 A 标记
+    @JsonIgnore
     public var anchorA: PointLightHelper
 
     /// 锚点 B 标记
+    @JsonIgnore
     public var anchorB: PointLightHelper
 
     /// 两锚点连线
+    @JsonIgnore
     public var connection: Line
 
     /// 约束轴箭头
+    @JsonIgnore
     public var axisArrow: ArrowHelper
 
     /// 辅助对象颜色
+    @JsonIgnore
     public var color: UInt32
 
     /**
@@ -68,7 +121,27 @@ public class ConstraintHelper <: Object3D {
      * bodyA 刚体 A 便捷封装
      * bodyB 刚体 B 便捷封装
      * color 颜色，默认 0xffaa00
+     *
+     * @brief[en] Constructs a Constraint helper
+     * @param[en] world The physics world the constraint belongs to
+     * desc Constraint description (used to obtain anchors, axes and type)
+     * bodyA Convenience wrapper for rigid body A
+     * bodyB Convenience wrapper for rigid body B
+     * color Color, default 0xffaa00
      */
+    public init() {
+        super()
+        this.world = PhysicsWorld()
+        this.desc = PhysicsConstraintDesc(constraintType: PhysicsConstraintType.Fixed)
+        this.bodyA = RigidBody(world: this.world)
+        this.bodyB = RigidBody(world: this.world)
+        this.color = 0xffaa00
+        this.matrixAutoUpdate = false
+        this.anchorA = PointLightHelper()
+        this.anchorB = PointLightHelper()
+        this.connection = Line()
+        this.axisArrow = ArrowHelper()
+    }
     public init(world: PhysicsWorld, desc: PhysicsConstraintDesc,
                 bodyA: RigidBody, bodyB: RigidBody,
                 color!: UInt32 = 0xffaa00) {
@@ -78,7 +151,6 @@ public class ConstraintHelper <: Object3D {
         this.bodyA = bodyA
         this.bodyB = bodyB
         this.color = color
-        this.kind = "ConstraintHelper"
         this.matrixAutoUpdate = false
 
         this.anchorA = PointLightHelper(PointLight(color: Color(color), intensity: 1.0), sphereSize: 0.1)
@@ -106,6 +178,8 @@ public class ConstraintHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 同步两端刚体状态并更新可视化
+     *
+     * @brief[en] Syncs both rigid bodies' state and updates the visualization
      */
     public func update(): Unit {
         let posA = this.bodyA.getPosition()
@@ -149,6 +223,8 @@ public class ConstraintHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 释放 GPU 资源
+     *
+     * @brief[en] Releases GPU resources
      */
     public func dispose(): Unit {
         this.anchorA.dispose()

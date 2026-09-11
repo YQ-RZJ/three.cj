@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] IPhysicsBackend 可插拔物理后端抽象接口
  * @brief[zh-cn] 定义后端无关的物理抽象类型与后端接口
  * @explain[zh-cn] 设计目标：three.physics 上层（PhysicsWorld/RigidBody/Binding）只依赖本接口与
@@ -694,6 +716,49 @@ public enum PhysicsConstraintType {
      * @brief[en] Gear constraint (couples two hinge rotations at a ratio)
      */
     | Gear
+}
+
+/**
+ * @brief[zh-cn] 约束电机状态（对应 JPH_MotorState）
+ * @explain[zh-cn] 控制 Hinge/Slider/SixDOF 约束电机的驱动模式。
+ *
+ * @brief[en] Constraint motor state (corresponds to JPH_MotorState)
+ * @explain[en] Drive mode of a Hinge/Slider/SixDOF constraint motor.
+ */
+public enum PhysicsMotorState {
+    /**
+     * @brief[zh-cn] 电机关闭（不做任何驱动）
+     *
+     * @brief[en] Motor off (no driving at all)
+     */
+    | Off
+    /**
+     * @brief[zh-cn] 速度模式（维持目标速度）
+     *
+     * @brief[en] Velocity mode (maintain a target velocity)
+     */
+    | Velocity
+    /**
+     * @brief[zh-cn] 位置模式（驱动到目标位置/角度）
+     *
+     * @brief[en] Position mode (drive to a target position/angle)
+     */
+    | Position
+
+    /**
+     * @brief[zh-cn] 转换为 JPH_MotorState 的 UInt32 值
+     * @return[zh-cn] C ABI 兼容的枚举值
+     *
+     * @brief[en] Converts to the JPH_MotorState UInt32 value
+     * @return[en] The C ABI compatible enum value
+     */
+    public func value(): UInt32 {
+        match (this) {
+            case Off => 0
+            case Velocity => 1
+            case Position => 2
+        }
+    }
 }
 
 /**
@@ -1683,9 +1748,149 @@ public interface IPhysicsBackend {
      *
      * @brief[en] Sets whether the constraint is enabled
      * @param[en] handle The constraint handle
-     * enabled Whether the constraint is enabled
+     * enabled Whether to enable the constraint
      */
     func setConstraintEnabled(handle: PhysicsConstraintHandle, enabled: Bool): Unit
+
+    /**
+     * @brief[zh-cn] 设置约束电机状态（Hinge/Slider 约束）
+     * @param[zh-cn] handle 约束句柄
+     * state 电机状态（Off/Velocity/Position）
+     * @note[zh-cn] 仅对 Hinge/Slider 约束有效；SixDOF 请用六自由度专用接口
+     *
+     * @brief[en] Sets the constraint motor state (Hinge/Slider)
+     * @param[en] handle The constraint handle
+     * state The motor state (Off/Velocity/Position)
+     * @note[en] Only valid for Hinge/Slider constraints; use the SixDOF-specific API for SixDOF
+     */
+    func setConstraintMotorState(handle: PhysicsConstraintHandle, state: PhysicsMotorState): Unit
+
+    /**
+     * @brief[zh-cn] 设置铰链约束目标角速度（电机速度模式，弧度/秒）
+     * @param[zh-cn] handle 约束句柄
+     * angularVelocity 目标角速度（弧度/秒）
+     *
+     * @brief[en] Sets the hinge constraint target angular velocity (motor velocity mode, rad/s)
+     * @param[en] handle The constraint handle
+     * angularVelocity The target angular velocity (rad/s)
+     */
+    func setConstraintTargetAngularVelocity(handle: PhysicsConstraintHandle, angularVelocity: Float64): Unit
+
+    /**
+     * @brief[zh-cn] 设置铰链约束目标角度（电机位置模式，弧度）
+     * @param[zh-cn] handle 约束句柄
+     * angle 目标角度（弧度）
+     *
+     * @brief[en] Sets the hinge constraint target angle (motor position mode, radians)
+     * @param[en] handle The constraint handle
+     * angle The target angle (radians)
+     */
+    func setConstraintTargetAngle(handle: PhysicsConstraintHandle, angle: Float64): Unit
+
+    /**
+     * @brief[zh-cn] 获取铰链约束当前角度（弧度）
+     * @param[zh-cn] handle 约束句柄
+     * @return[zh-cn] 当前角度（弧度）；无效句柄返回 0
+     *
+     * @brief[en] Gets the hinge constraint current angle (radians)
+     * @param[en] handle The constraint handle
+     * @return[en] The current angle (radians); 0 for an invalid handle
+     */
+    func getConstraintCurrentAngle(handle: PhysicsConstraintHandle): Float64
+
+    /**
+     * @brief[zh-cn] 设置滑块约束目标速度（电机速度模式，米/秒）
+     * @param[zh-cn] handle 约束句柄
+     * velocity 目标速度（米/秒）
+     *
+     * @brief[en] Sets the slider constraint target velocity (motor velocity mode, m/s)
+     * @param[en] handle The constraint handle
+     * velocity The target velocity (m/s)
+     */
+    func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: Float64): Unit
+
+    /**
+     * @brief[zh-cn] 设置滑块约束目标位置（电机位置模式，米）
+     * @param[zh-cn] handle 约束句柄
+     * position 目标位置（米）
+     *
+     * @brief[en] Sets the slider constraint target position (motor position mode, meters)
+     * @param[en] handle The constraint handle
+     * position The target position (meters)
+     */
+    func setSliderTargetPosition(handle: PhysicsConstraintHandle, position: Float64): Unit
+
+    /**
+     * @brief[zh-cn] 获取滑块约束当前位置（米）
+     * @param[zh-cn] handle 约束句柄
+     * @return[zh-cn] 当前位置（米）；无效句柄返回 0
+     *
+     * @brief[en] Gets the slider constraint current position (meters)
+     * @param[en] handle The constraint handle
+     * @return[en] The current position (meters); 0 for an invalid handle
+     */
+    func getSliderCurrentPosition(handle: PhysicsConstraintHandle): Float64
+
+    /**
+     * @brief[zh-cn] 运行时修改约束限位（Hinge/Slider，弧度或米）
+     * @param[zh-cn] handle 约束句柄
+     * limitMin 限位最小值
+     * limitMax 限位最大值
+     * @note[zh-cn] 仅对 Hinge/Slider 约束有效
+     *
+     * @brief[en] Updates constraint limits at runtime (Hinge/Slider, radians or meters)
+     * @param[en] handle The constraint handle
+     * limitMin The minimum limit
+     * limitMax The maximum limit
+     * @note[en] Only valid for Hinge/Slider constraints
+     */
+    func setConstraintLimits(handle: PhysicsConstraintHandle, limitMin: Float64, limitMax: Float64): Unit
+
+    /**
+     * @brief[zh-cn] 设置约束最大摩擦（Hinge 为力矩，Slider 为力）
+     * @param[zh-cn] handle 约束句柄
+     * friction 最大摩擦值
+     *
+     * @brief[en] Sets the constraint max friction (torque for Hinge, force for Slider)
+     * @param[en] handle The constraint handle
+     * friction The maximum friction value
+     */
+    func setConstraintMaxFriction(handle: PhysicsConstraintHandle, friction: Float64): Unit
+
+    /**
+     * @brief[zh-cn] 设置六自由度约束指定轴的电机状态
+     * @param[zh-cn] handle 约束句柄
+     * axis 轴索引（0=X 平移,1=Y,2=Z,3=X 旋转,4=Y,5=Z）
+     * state 电机状态
+     *
+     * @brief[en] Sets the motor state of one axis of a SixDOF constraint
+     * @param[en] handle The constraint handle
+     * axis The axis index (0=X translation, 1=Y, 2=Z, 3=X rotation, 4=Y, 5=Z)
+     * state The motor state
+     */
+    func setSixDOFMotorState(handle: PhysicsConstraintHandle, axis: Int64, state: PhysicsMotorState): Unit
+
+    /**
+     * @brief[zh-cn] 设置六自由度约束约束空间目标位置（平移电机）
+     * @param[zh-cn] handle 约束句柄
+     * target 约束空间目标位置
+     *
+     * @brief[en] Sets the SixDOF constraint-space target position (translation motors)
+     * @param[en] handle The constraint handle
+     * target The target position in constraint space
+     */
+    func setSixDOFTargetPosition(handle: PhysicsConstraintHandle, target: Vector3): Unit
+
+    /**
+     * @brief[zh-cn] 设置六自由度约束约束空间目标速度（平移电机）
+     * @param[zh-cn] handle 约束句柄
+     * target 约束空间目标速度
+     *
+     * @brief[en] Sets the SixDOF constraint-space target velocity (translation motors)
+     * @param[en] handle The constraint handle
+     * target The target velocity in constraint space
+     */
+    func setSixDOFTargetVelocity(handle: PhysicsConstraintHandle, target: Vector3): Unit
 
     // ===== 步进 =====
 

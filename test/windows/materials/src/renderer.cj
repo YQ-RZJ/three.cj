@@ -29,7 +29,7 @@ import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
 import three.scene.entity.LineSegments
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 
 /// 场景中关键对象的引用，供渲染循环更新
 public class SceneObjects {

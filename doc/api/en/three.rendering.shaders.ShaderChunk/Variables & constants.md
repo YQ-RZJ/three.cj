@@ -789,7 +789,7 @@ public const common: String = #"
 #define normalMatrix u_normalMatrix
 
 // three.js chunk 引用 modelViewMatrix/projectionMatrix/viewMatrix/modelMatrix 等标准 uniform 变量名
-// 映射到 bgfx scene 标准 uniform（由 BgfxRenderer 绑定到 u_view/u_proj/u_model[0] 等）
+// 映射到 bgfx scene 标准 uniform（由 ThreeRenderer 绑定到 u_view/u_proj/u_model[0] 等）
 // 注意：modelViewMatrix = viewMatrix * modelMatrix，无对应 bgfx 单独 uniform，用 u_viewProj 近似
 #define viewMatrix u_view
 #define projectionMatrix u_proj

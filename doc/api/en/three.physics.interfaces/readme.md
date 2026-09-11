@@ -34,5 +34,6 @@
 |[PhysicsContactEvent](./Enum/PhysicsContactEvent.md#enum-physicscontactevent)|Collision callback event type (ContactListener)|
 |[PhysicsLayer](./Enum/PhysicsLayer.md#enum-physicslayer)|Physics layer (collision grouping)|
 |[PhysicsMotionType](./Enum/PhysicsMotionType.md#enum-physicsmotiontype)|Rigid-body motion type (backend-agnostic abstraction, corresponds to JPH_MotionType)|
+|[PhysicsMotorState](./Enum/PhysicsMotorState.md#enum-physicsmotorstate)|Constraint motor state (corresponds to JPH_MotorState)|
 |[PhysicsShapeType](./Enum/PhysicsShapeType.md#enum-physicsshapetype)|Shape-type enum (no parameters; parameters are held by the PhysicsShape struct)|
 

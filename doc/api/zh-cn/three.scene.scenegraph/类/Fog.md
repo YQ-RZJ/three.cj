@@ -15,12 +15,6 @@ public func clone(): Fog
 
 - 新雾实例
 
-### func init\(\)
-```cj
-public init()
-```
-无参构造（供 fastjson 反序列化使用）
-
 ### func init\(Color,Float64,Float64\)
 ```cj
 public init(color: Color, near!: Float64 = 1.0, far!: Float64 = 1000.0)
@@ -48,6 +42,12 @@ public init(hex: UInt32, near!: Float64 = 1.0, far!: Float64 = 1000.0)
 |hex|UInt32|十六进制颜色值near 雾起始距离，默认 1far 雾终止距离，默认 1000|
 |near|Float64||
 |far|Float64||
+
+### func init\(\)
+```cj
+public init()
+```
+无参构造（供 fastjson 反序列化使用）
 
 ### var color
 ```cj

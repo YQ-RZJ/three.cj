@@ -58,7 +58,7 @@ public class ObjectsInheritanceTest <: TestClass {
         let instanced = InstancedMesh(geometry: BufferGeometry(), material: Material(), count: 1)
         assertEqual("InstancedMesh is Object3D", "true", (instanced is Object3D).toString(), "true")
 
-        let skinned = SkinnedMesh(BufferGeometry(), Material())
+        let skinned = SkinnedMesh(geometry: BufferGeometry(), material: Material())
         assertEqual("SkinnedMesh is Object3D", "true", (skinned is Object3D).toString(), "true")
 
         let lod = LOD()

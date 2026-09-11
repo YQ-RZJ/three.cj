@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 光源阴影配置基类
  * @brief[zh-cn] 光源阴影配置的抽象基类，各具体光源阴影类型继承本类
  * @explain[zh-cn] 
@@ -46,13 +68,14 @@ import fastjson.stream.*
  * Contains shadow camera, bias, blur radius, shadow map size, CSM cascade configuration, etc.
  * Subclasses include DirectionalLightShadow, PointLightShadow, SpotLightShadow.
  */
-@JsonAdapter
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; ignorePrivate = true]
 public open class LightShadow {
     /**
      * @brief[zh-cn] 光源观察世界的视角相机
      *
      * @brief[en] The camera used to view the world from the light's perspective
      */
+    @JsonIgnore
     public var camera: Camera
 
     /**
@@ -191,13 +214,6 @@ public open class LightShadow {
     public var cascadeCameras: ArrayList<OrthographicCamera>
 
     /**
-     * @brief[zh-cn] 类型标签，与JS侧的type字段对齐
-     *
-     * @brief[en] Type label, aligned with the type field on the JS side
-     */
-    public var kind: String
-
-    /**
      * @brief[zh-cn] 阴影相机视锥体，渲染器内部用于裁剪
      *
      * @brief[en] Shadow camera frustum, used internally by the renderer for culling
@@ -258,7 +274,6 @@ public open class LightShadow {
         this.cascadeLambda = 0.5
         this.cascadeSplits = ArrayList<Float64>()
         this.cascadeCameras = ArrayList<OrthographicCamera>()
-        this.kind = "LightShadow"
         this._frustum = Frustum()
         this._frameExtents = Vector2(1.0, 1.0)
         this._viewportCount = 1
@@ -293,7 +308,7 @@ public open class LightShadow {
         this.cascadeLambda = 0.5
         this.cascadeSplits = ArrayList<Float64>()
         this.cascadeCameras = ArrayList<OrthographicCamera>()
-        this.kind = "LightShadow"
+        
         this._frustum = Frustum()
         this._frameExtents = Vector2(1.0, 1.0)
         this._viewportCount = 1

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 存储缓冲属性
  * @brief[zh-cn] 存储缓冲属性类，用于 GPU 计算的缓冲属性存储资源
  * @explain[zh-cn] StorageBufferAttribute 继承自 DataMap，表示可在计算着色器中读写的缓冲属性存储资源。仓颉：nodes 包已移除，IChainValue 不再实现；本类保持纯 DataMap 存储类型。对照源码: three.js/src/renderers/common/StorageBufferAttribute.js

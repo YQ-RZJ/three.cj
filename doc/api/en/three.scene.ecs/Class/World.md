@@ -109,12 +109,6 @@ Return:
 
 - Entity instance, or None if not found
 
-### func init\(\)
-```cj
-public init()
-```
-Constructor (default hash-mode mapping manager)
-
 ### func init\(ISysEtyMapManager<System,Entity>\)
 ```cj
 public init(sysMapMgr: ISysEtyMapManager < System, Entity >)
@@ -126,6 +120,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |sysMapMgr|ISysEtyMapManager<System,Entity>|System-entity mapping manager implementation|
+
+### func init\(\)
+```cj
+public init()
+```
+Constructor (default hash-mode mapping manager)
 
 ### func onUpdate\(Float64\)
 ```cj

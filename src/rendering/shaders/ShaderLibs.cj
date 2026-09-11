@@ -1,9 +1,34 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] ShaderLibs  着色器库
  * @brief[zh-cn] 定义 Three.js ShaderLib 的 bgfx 实现
  *
  * @file[en] ShaderLibs  Shader library
  * @brief[en] Define the bgfx implementation of Three.js ShaderLib
+ * @note[en] bgfx shaders require precompiled .bin files, or offline compilation with the shaderc tool.
+ * At runtime an empty shader is created as a placeholder; in practice precompiled .bin files must be loaded.
+ * To enable dynamic shader compilation, the full libshaderc library must be linked.
  *
  * @note[zh-cn] bgfx 着色器需要预编译的 .bin 文件，或使用 shaderc 工具离线编译。
  * 运行时创建空着色器作为占位，实际需加载预编译的 .bin 文件。
@@ -25,7 +50,7 @@ import three.rendering.shaders.ShaderChunk.*
 
 // ===== 跨平台着色器编译配置 =====
 // 使用 @When 条件编译在编译期根据目标平台选择对应的 shader 编译参数
-// 与 BgfxRenderer.cj 中的 DEFAULT_RENDERER_TYPE 保持一致
+// 与 ThreeRenderer.cj 中的 DEFAULT_RENDERER_TYPE 保持一致
 
 // Windows: Direct3D11 → HLSL（使用 D3DCompiler 动态库）
 @When[os == "Windows"]
@@ -346,12 +371,12 @@ public class ShaderProgram <: IShaderProgram {
 
     public func resolveShaders(): Unit {
         // ★占位符注入：把 chunk 中 SAMPLER2D/SAMPLERCUBE 的 __STAGE_XXX__ 占位符
-        // 替换为 BgfxSamplerStages 中的实际 stage 数字，确保着色器端 reg 与后端
+        // 替换为 SamplerStages 中的实际 stage 数字，确保着色器端 reg 与后端
         // bgfx_set_texture_cj 的 stage 始终一致（全局 stage 分配器统一管理）。
         let vsResolved = ShaderChunks.resolve(this.vertexShader)
         let fsResolved = ShaderChunks.resolve(this.fragmentShader)
-        this.vertexShaderBgfx = BgfxSamplerStages.applyPlaceholders(vsResolved)
-        this.fragmentShaderBgfx = BgfxSamplerStages.applyPlaceholders(fsResolved)
+        this.vertexShaderBgfx = SamplerStages.applyPlaceholders(vsResolved)
+        this.fragmentShaderBgfx = SamplerStages.applyPlaceholders(fsResolved)
     }
 
     // 延迟 resolve（幂等）：源码未解析时执行完整解析（替换 bgfx_shader.sh 内联 +
@@ -366,8 +391,8 @@ public class ShaderProgram <: IShaderProgram {
             let fsProcessed = this.fragmentShader.replace("#include <bgfx_shader.sh>", BGFX_SHADER_SOURCE)
             let vsResolved = ShaderChunks.resolve(vsProcessed)
             let fsResolved = ShaderChunks.resolve(fsProcessed)
-            this.vertexShaderBgfx = BgfxSamplerStages.applyPlaceholders(vsResolved)
-            this.fragmentShaderBgfx = BgfxSamplerStages.applyPlaceholders(fsResolved)
+            this.vertexShaderBgfx = SamplerStages.applyPlaceholders(vsResolved)
+            this.fragmentShaderBgfx = SamplerStages.applyPlaceholders(fsResolved)
         }
     }
 
@@ -1329,7 +1354,7 @@ vec2 v_thicknessMapUv : TEXCOORD14 = vec2(0.0, 0.0);
         programs.add("lambert", ShaderProgram("lambert", lambertVS, lambertFS, varyingDef: lambertVaryingDef))
 
         // 3. meshphong - Phong 高光光照
-        // uniform 声明严格对齐 BgfxRenderer.cj 渲染管线注册的 uniform：
+        // uniform 声明严格对齐 ThreeRenderer.cj 渲染管线注册的 uniform：
         //   u_color(Vec4,1) u_cameraPos(Vec4,1) u_shininess(Vec4,1)
         //   u_lightDir(Vec4,4) u_lightColor(Vec4,4)      方向光
         //   u_pointPosition(Vec4,4) u_pointColor(Vec4,4) u_pointParams(Vec4,4)  点光源
@@ -3084,7 +3109,7 @@ vec2 a_texcoord0 : TEXCOORD0;
         programs.add("vblur", ShaderProgram("vblur", vblurVS, vblurFS, varyingDef: blurVaryingDef))
 
         // ===== SSAO pass 已迁移至 postprocessing/PostProcessingShaders.cj =====
-        // ssao/ssaoblur/ssaodepth/ssaoapply 系列注册已移出，由 BgfxSSAOPass 经
+        // ssao/ssaoblur/ssaodepth/ssaoapply 系列注册已移出，由 SSAOPass 经
         // PostProcessingShaders.get 取用（normal 为渲染管线通用 shader，保留在本库）。
     }
 

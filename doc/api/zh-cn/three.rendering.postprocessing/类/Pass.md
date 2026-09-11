@@ -29,9 +29,9 @@ public open func onAttach(composer: EffectComposer): Unit
 |---|---|---|
 |composer|EffectComposer|挂载的 EffectComposer|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public open func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public open func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 pass 渲染逻辑
 
@@ -39,7 +39,7 @@ public open func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, 
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写入 buffer（FrameBufferHandle）|
 |readBuffer|FrameBufferHandle|读取 buffer（上一 pass 结果）|
 |deltaTime|Float64|帧间隔（秒）|

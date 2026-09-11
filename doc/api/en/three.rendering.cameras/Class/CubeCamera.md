@@ -5,19 +5,25 @@ public class CubeCamera <: Object3D
 ```
 Cube camera
 
-### func init\(Float64,Float64,IRenderTarget\)
+### func init\(\)
 ```cj
-public init(near: Float64, far: Float64, renderTarget: IRenderTarget)
+public init()
 ```
 Construct a new cube camera
+
+### func init\(Float64,Float64,?IRenderTarget\)
+```cj
+public init(near: Float64, far: Float64, renderTarget:?IRenderTarget)
+```
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|near|Float64|Near clipping plane distancefar Far clipping plane distancerenderTarget CubeRenderTarget render target|
+|near|Float64||
 |far|Float64||
-|renderTarget|IRenderTarget||
+|renderTarget|?IRenderTarget||
 
 ### func updateCoordinateSystem\(\)
 ```cj
@@ -52,7 +58,7 @@ Current coordinate system (None means uninitialized, aligned with JS side defaul
 
 ### var renderTarget
 ```cj
-public var renderTarget: IRenderTarget
+public var renderTarget:?IRenderTarget
 ```
 Cube map render target (CubeRenderTarget), 6-face color + optional mipmap
 

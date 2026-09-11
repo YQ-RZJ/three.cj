@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] SkinnedMesh
  * @brief[zh-cn] 蒙皮网格，带骨骼蒙皮变形的 Mesh
  * @explain[zh-cn] 每位顶点按 skinIndex/skinWeight 加权混合若干髀骨的 offsetMatrix。
@@ -21,16 +43,26 @@ import three.core.event.*
 import three.core.math.*
 import three.rendering.materials.*
 import three.utils.constants.*
+import three.animation.skeletal.*
 import std.collection.*
 import std.math.*
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 /**
  * @brief[zh-cn] 蒙皮网格，带骨骼蒙皮变形的 Mesh
- * @explain[zh-cn] bindMatrix/bindMatrixInverse 定义绑定姿势；bindMode 控制 Attached/Detached 模式
+ * @explain[zh-cn] bindMatrix/bindMatrixInverse 定义绑定姿势；bindMode 控制 Attached/Detached 模式。
+ *                  JSON 序列化：bindMode/bindMatrix/skeleton 持久化；bindMatrixInverse 为派生量
+ *                  （updateMatrixWorld 每帧重算）、_bindPositions/_bindNormals 为运行时蒙皮缓存，均忽略。
  *
  * @brief[en] Skinned mesh, a Mesh with bone skinning deformation
- * @explain[en] bindMatrix/bindMatrixInverse define bind pose; bindMode controls Attached/Detached mode
+ * @explain[en] bindMatrix/bindMatrixInverse define bind pose; bindMode controls Attached/Detached mode.
+ *              JSON serialization: bindMode/bindMatrix/skeleton are persisted; bindMatrixInverse is
+ *              derived (recomputed each frame by updateMatrixWorld) and _bindPositions/_bindNormals
+ *              are runtime skinning caches, both ignored.
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
 public class SkinnedMesh <: Mesh {
 
     /**
@@ -55,11 +87,32 @@ public class SkinnedMesh <: Mesh {
     public var bindMatrix: Matrix4
 
     /**
-     * @brief[zh-cn] 绑定姿势矩阵的逆
+     * @brief[zh-cn] 绑定姿势矩阵的逆（派生量：updateMatrixWorld 每帧由 bindMatrix/matrixWorld 重算，不参与 JSON）
      *
-     * @brief[en] Inverse of the bind pose matrix
+     * @brief[en] Inverse of the bind pose matrix (derived: recomputed each frame by updateMatrixWorld, not serialized)
      */
+    @JsonIgnore
     public var bindMatrixInverse: Matrix4
+
+    /**
+     * @brief[zh-cn] 绑定姿势的原始顶点位置缓存（运行时蒙皮缓存，不参与 JSON）
+     * @explain[zh-cn] 首次 applySkinningJob 时从 position 属性记录；
+     *                  之后每帧都从该缓存做蒙皮，避免变形结果逐帧累积。
+     *
+     * @brief[en] Cache of the original bind-pose vertex positions (runtime skinning cache, excluded from JSON)
+     * @explain[en] Recorded from the position attribute on the first applySkinningJob call;
+     *                  every subsequent frame skins from this cache to avoid deformation accumulating frame by frame.
+     */
+    @JsonIgnore
+    private var _bindPositions: ?Array<Float32>
+
+    /**
+     * @brief[zh-cn] 绑定姿势的原始顶点法线缓存（运行时蒙皮缓存，不参与 JSON）
+     *
+     * @brief[en] Cache of the original bind-pose vertex normals (runtime skinning cache, excluded from JSON)
+     */
+    @JsonIgnore
+    private var _bindNormals: ?Array<Float32>
 
     /**
      * @brief[zh-cn] 构造一个新的蒙皮网格
@@ -70,13 +123,14 @@ public class SkinnedMesh <: Mesh {
      * @param[en] geometry Vertex/index geometry
      * material Material
      */
-    public init(geometry: BufferGeometry, material: Material) {
+    public init(geometry!: BufferGeometry = BufferGeometry(), material!: Material = Material()) {
         super(geometry: geometry, material: material)
-        this.kind = "SkinnedMesh"
         this.bindMode = AttachedBindMode
         this.bindMatrix = Matrix4()
         this.bindMatrixInverse = Matrix4()
         this.skeleton = Skeleton()
+        this._bindPositions = None
+        this._bindNormals = None
     }
 
     /**
@@ -268,6 +322,127 @@ public class SkinnedMesh <: Mesh {
     }
 
     /**
+     * @brief[zh-cn] 使用 SkinningJob 批量蒙皮所有顶点
+     * @explain[zh-cn] 从 skeleton 的 boneWorldMatrices 构建关节矩阵数组，
+     *                  读取 geometry 的 skinIndex/skinWeight，
+     *                  调用 SkinningJob 进行批量 CPU 蒙皮。
+     *                  结果直接写入 geometry 的 position 属性。
+     *
+     * @brief[en] Skins all vertices in batch using SkinningJob
+     * @explain[en] Builds the joint matrix array from the skeleton's boneWorldMatrices,
+     *                  reads skinIndex/skinWeight from the geometry,
+     *                  and invokes SkinningJob to perform batch CPU skinning.
+     *                  Results are written directly into the geometry's position attribute.
+     */
+    public func applySkinningJob(): Unit {
+        let geo = this.geometry
+        let skeleton = this.skeleton
+        let numBones = skeleton.bones.size
+
+        // 构建关节矩阵数组：offset = bone.matrixWorld × boneInverse（世界姿势 × 逆绑定矩阵），
+        // 每个矩阵 16 个 Float32（列主序）
+        let jointMatrices = Array<Float32>(numBones * 16, { _ => 0.0f32 })
+        for (b in 0..numBones) {
+            let offset = Matrix4().multiplyMatrices(skeleton.bones[b].matrixWorld, skeleton.boneInverses[b])
+            for (e in 0..16) {
+                jointMatrices[b * 16 + e] = Float32(offset.elements[e])
+            }
+        }
+
+        // 读取 skinIndex 和 skinWeight
+        var idxAttrOpt = geo.getAttribute("skinIndex")
+        var wgtAttrOpt = geo.getAttribute("skinWeight")
+
+        match (idxAttrOpt) {
+            case Some(idxAttr) =>
+                match (wgtAttrOpt) {
+                    case Some(wgtAttr) =>
+                        match (geo.getAttribute("position")) {
+                            case Some(posAttr) =>
+                                let numVertices = idxAttr.count
+                                let numInfluences = 4
+
+                                // 位置输入：优先使用绑定姿势缓存，避免逐帧蒙皮结果累积变形
+                                let posArr = match (this._bindPositions) {
+                                    case Some(cached) => cached
+                                    case None =>
+                                        let fresh = Array<Float32>(numVertices * 3, { _ => 0.0f32 })
+                                        for (i in 0..numVertices) {
+                                            fresh[i * 3] = Float32(posAttr.getX(i))
+                                            fresh[i * 3 + 1] = Float32(posAttr.getY(i))
+                                            fresh[i * 3 + 2] = Float32(posAttr.getZ(i))
+                                        }
+                                        this._bindPositions = Some(fresh)
+                                        fresh
+                                }
+
+                                // 法线输入：同样缓存绑定姿势法线
+                                var normalsOpt: ?Array<Float32> = None
+                                match (geo.getAttribute("normal")) {
+                                    case Some(normAttr) =>
+                                        normalsOpt = match (this._bindNormals) {
+                                            case Some(cached) => Some(cached)
+                                            case None =>
+                                                let fresh = Array<Float32>(numVertices * 3, { _ => 0.0f32 })
+                                                for (i in 0..numVertices) {
+                                                    fresh[i * 3] = Float32(normAttr.getX(i))
+                                                    fresh[i * 3 + 1] = Float32(normAttr.getY(i))
+                                                    fresh[i * 3 + 2] = Float32(normAttr.getZ(i))
+                                                }
+                                                this._bindNormals = Some(fresh)
+                                                Some(fresh)
+                                        }
+                                    case None => ()
+                                }
+
+                                var jointIndices = Array<Int16>(numVertices * numInfluences, { _ => 0i16 })
+                                var jointWeights = Array<Float32>(numVertices * numInfluences, { _ => 0.0f32 })
+                                for (v in 0..numVertices) {
+                                    jointIndices[v * 4] = Int16(idxAttr.getX(v))
+                                    jointIndices[v * 4 + 1] = Int16(idxAttr.getY(v))
+                                    jointIndices[v * 4 + 2] = Int16(idxAttr.getZ(v))
+                                    jointIndices[v * 4 + 3] = Int16(idxAttr.getW(v))
+                                    jointWeights[v * 4] = Float32(wgtAttr.getX(v))
+                                    jointWeights[v * 4 + 1] = Float32(wgtAttr.getY(v))
+                                    jointWeights[v * 4 + 2] = Float32(wgtAttr.getZ(v))
+                                    jointWeights[v * 4 + 3] = Float32(wgtAttr.getW(v))
+                                }
+
+                                let weights = SkinWeights(numInfluences, jointIndices, jointWeights)
+                                let skinInput = SkinInput(numVertices, posArr, normals: normalsOpt)
+                                let job = SkinningJob()
+                                job.jointMatrices = jointMatrices
+                                job.weights = weights
+                                job.input = skinInput
+
+                                if (job.validate() && job.run()) {
+                                    var resultPositions = job.output.positions
+                                    for (i in 0..numVertices) {
+                                        posAttr.setXYZ(i, Float64(resultPositions[i * 3]), Float64(resultPositions[i * 3 + 1]), Float64(resultPositions[i * 3 + 2]))
+                                    }
+                                    posAttr.version += 1
+                                    match (geo.getAttribute("normal")) {
+                                        case Some(normAttr) =>
+                                            match (job.output.normals) {
+                                                case Some(resultNormals) =>
+                                                    for (i in 0..numVertices) {
+                                                        normAttr.setXYZ(i, Float64(resultNormals[i * 3]), Float64(resultNormals[i * 3 + 1]), Float64(resultNormals[i * 3 + 2]))
+                                                    }
+                                                    normAttr.version += 1
+                                                case None => ()
+                                            }
+                                        case None => ()
+                                    }
+                                }
+                            case None => ()
+                        }
+                    case None => ()
+                }
+            case None => ()
+        }
+    }
+
+    /**
      * @brief[zh-cn] 将给定蒙皮网格实例的值复制到本实例
      * @param[zh-cn] source 源对象
      * recursive 是否递归复制子对象
@@ -299,7 +474,7 @@ public class SkinnedMesh <: Mesh {
      * @return[en] New skinned mesh instance
      */
     public override func clone(): Object3D {
-        let obj = SkinnedMesh(BufferGeometry(), Material())
+        let obj = SkinnedMesh(geometry: BufferGeometry(), material: MeshBasicMaterial())
         return obj.copy(this, true)
     }
 }

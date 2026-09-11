@@ -21,6 +21,7 @@
 |[TouchEvent](./Class/TouchEvent.md#class-touchevent)|Touch event|
 |[TouchPoint](./Class/TouchPoint.md#class-touchpoint)|Touch point data|
 |[TouchProvider](./Class/TouchProvider.md#class-touchprovider)|Touch input provider|
+|[UiContext](./Class/UiContext.md#class-uicontext)|UI context — manages ImGui lifecycle and rendering|
 |[WindowConfig](./Class/WindowConfig.md#class-windowconfig)|Window creation configuration|
 |[WindowEngine](./Class/WindowEngine.md#class-windowengine)|Window engine v2 (aligned with the RGF window model)|
 |[WindowEvent](./Class/WindowEvent.md#class-windowevent)|Window event|

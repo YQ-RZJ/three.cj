@@ -1,12 +1,34 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxRenderPass 场景渲染 pass
  * @brief[zh-cn] 场景渲染 pass —— 把场景/相机渲染到 composer 的 readBuffer
  * @explain[zh-cn] 持有 scene + camera。render() 流程：
  *         1. bgfx_set_view_frame_buffer(viewId=0, readBuffer)：把主 view 输出指向 readBuffer
  *         2. bgfx_set_view_clear(0, COLOR|DEPTH, clearColor, 1.0, 0)
- *         3. renderer.render(scene, camera)：经 BgfxRenderer.render 委托 backend
+ *         3. renderer.render(scene, camera)：经 ThreeRenderer.render 委托 backend
  *         needsSwap=true（pass 后 composer 交换 buffer，下一 pass 从此读）。
- *         注意：本引擎 BgfxRenderer.render 内部委托到渲染线程，因此本 pass 的 render 仅设置
+ *         注意：本引擎 ThreeRenderer.render 内部委托到渲染线程，因此本 pass 的 render 仅设置
  *         view 0 的 frame buffer + clear，真正的场景绘制由 renderer.render(scene, camera) 完成。
  *
  * @file[en] BgfxRenderPass scene rendering pass
@@ -14,9 +36,9 @@
  * @explain[en] Holds scene + camera. render() flow:
  *         1. bgfx_set_view_frame_buffer(viewId=0, readBuffer): points the main view output to readBuffer
  *         2. bgfx_set_view_clear(0, COLOR|DEPTH, clearColor, 1.0, 0)
- *         3. renderer.render(scene, camera): delegated to the backend via BgfxRenderer.render
+ *         3. renderer.render(scene, camera): delegated to the backend via ThreeRenderer.render
  *         needsSwap=true (composer swaps the buffer after this pass; the next pass reads from it).
- *         Note: BgfxRenderer.render internally delegates to the render thread, so this pass's render
+ *         Note: ThreeRenderer.render internally delegates to the render thread, so this pass's render
  *         only sets view 0's frame buffer + clear; the actual scene drawing is done by renderer.render.
  *
  * @package three.rendering.postprocessing
@@ -32,7 +54,7 @@ import three.core.event.*
 import three.rendering.materials.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.utils.log.Logger
 import three.rendering.types.*
@@ -113,7 +135,7 @@ public class RenderPass <: Pass {
      * @param[en] deltaTime Frame delta time
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Sync
  * @brief[zh-cn] 同步原语：互斥锁 / 条件变量 / 信号量 / 读写锁 / 延时
  * @explain[zh-cn] 基于 sdl4cj 库做高级封装（对应 SDL_mutex.h / SDL_thread.h 的延时）。全部为对象式封装，内部持有 SDL 原生句柄，~init 自动释放。
@@ -22,6 +44,8 @@ import sdl4cj.sdl.*
 public class Mutex {
     /**
      * @brief[zh-cn] SDL 互斥锁句柄
+     *
+     * @brief[en] SDL mutex handle
      */
     private var _mtx: SDL_Mutex = CPointer<Unit>()
 
@@ -78,6 +102,8 @@ public class Mutex {
 
     /**
      * @brief[zh-cn] 内部句柄（供 Condition.wait 使用）
+     *
+     * @brief[en] Internal handle (used by Condition.wait)
      */
     internal func getHandle(): SDL_Mutex {
         return this._mtx
@@ -101,6 +127,8 @@ public class Mutex {
 public class Condition {
     /**
      * @brief[zh-cn] SDL 条件变量句柄
+     *
+     * @brief[en] SDL condition variable handle
      */
     private var _cnd: SDL_Condition = CPointer<Unit>()
 
@@ -191,6 +219,8 @@ public class Condition {
 public class Semaphore {
     /**
      * @brief[zh-cn] SDL 信号量句柄
+     *
+     * @brief[en] SDL semaphore handle
      */
     private var _sem: SDL_Semaphore = CPointer<Unit>()
 
@@ -279,6 +309,8 @@ public class Semaphore {
 public class RWLock {
     /**
      * @brief[zh-cn] SDL 读写锁句柄
+     *
+     * @brief[en] SDL read-write lock handle
      */
     private var _lock: SDL_RWLock = CPointer<Unit>()
 

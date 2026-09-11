@@ -15,7 +15,7 @@ package ohos_app_cangjie_entry
  *    OHOS_XcomponentExport 会把该 XComponent 注册进 SDL 注册表并挂接触摸/键鼠回调；
  *  - SDL 建窗时直接从注册表取该 XComponent 的 native window 建窗，native window
  *    经 SDL_PROP_WINDOW_OHOS_WINDOW_POINTER 交给本文件 onInit 里的
- *    BgfxRenderer.initBgfx 绑定渲染；
+ *    ThreeRenderer.initBgfx 绑定渲染；
  *  - 输入事件按 xcompentId 路由进该 SDL 窗口，经 InputEngine 查询。
  */
 
@@ -24,7 +24,7 @@ import std.time.*
 import std.runtime.*
 import std.math.*
 import ohos.app.ability.ui_ability.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.WindowConfig
 import three.core.math.*
@@ -183,7 +183,7 @@ func createGroundGeometry(): BufferGeometry {
 // 创建音频场景；onFrame 驱动球体绕相机旋转 + 渲染；onClose 清理音频与渲染器。
 
 public class ThreeWindow <: WindowEngine {
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 60.0, aspect: 1.0, near: 0.1, far: 100.0)
     var ground: Mesh
@@ -221,6 +221,8 @@ public class ThreeWindow <: WindowEngine {
         let rh = g_resizeH.load()
         let w = if (rw > 0i32) { rw } else { this.getWidth() }
         let h = if (rh > 0i32) { rh } else { this.getHeight() }
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let rok = this.renderer.initBgfx(hwnd, w, h)
         if (!rok) {
             this.requestClose()
@@ -319,6 +321,10 @@ public class ThreeWindow <: WindowEngine {
         if (rw > 0i32 && rh > 0i32 && (rw != this.appliedW || rh != this.appliedH)) {
             this.appliedW = rw
             this.appliedH = rh
+            // 真实逻辑尺寸变化后重取窗口像素比（getPixelRatio 内部会用新的
+            // _width/_height 重算缓存；updateSize 不在主线程重算以免阻塞），
+            // 再应用到渲染器，避免沿用 onInit 占位尺寸算出的异常 pixelRatio。
+            this.renderer.setPixelRatio(Float64(this.getPixelRatio()))
             this.renderer.setSize(rw, rh)
         }
         let w = this.getWidth()

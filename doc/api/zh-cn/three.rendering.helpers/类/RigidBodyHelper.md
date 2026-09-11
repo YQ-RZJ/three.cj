@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造 RigidBody 辅助对象
+
 ### func init\(RigidBody,PhysicsShape,UInt32\)
 ```cj
 public init(body: RigidBody, shape!: PhysicsShape = PhysicsShape.box(1.0, 1.0, 1.0), color!: UInt32 = 0x00ff00)
 ```
-构造 RigidBody 辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|body|RigidBody|要可视化的 RigidBodyshape 要显示的碰撞形状（默认 Box(1,1,1)）color 线框颜色，默认 0x00ff00|
+|body|RigidBody||
 |shape|PhysicsShape||
 |color|UInt32||
 

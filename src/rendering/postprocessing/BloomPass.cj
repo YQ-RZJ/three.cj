@@ -1,5 +1,27 @@
 /**
- * @file[zh-cn] BgfxBloomPass Bloom 后处理 pass（简单版）
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] BloomPass Bloom 后处理 pass（简单版）
  * @brief[zh-cn] Bloom 后处理 pass（简单版）——水平/垂直高斯卷积 + 强度合成
  * @explain[zh-cn] 算法（简单版 Bloom，3 个 pass）：
  *         1. 水平卷积 pass：ConvolutionShader，uImageIncrement = blurX = (0.001953125, 0)
@@ -23,7 +45,7 @@
  *         - defines KERNEL_SIZE_FLOAT/INT 在材质创建时固化；bgfx 在首次编译时经
  *           compileBgfxWithDefines 传入
  *
- * @file[en] BgfxBloomPass Bloom post-processing pass (simple version)
+ * @file[en] BloomPass Bloom post-processing pass (simple version)
  * @brief[en] Bloom post-processing pass (simple version) - horizontal/vertical Gaussian
  *         convolution + intensity combine
  * @explain[en] Algorithm (simple Bloom, 3 passes):
@@ -53,7 +75,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
@@ -70,7 +92,7 @@ import std.math.*
  * @explain[en] One horizontal and one vertical Gaussian convolution pass, then combine the
  *         blurred result back into the scene scaled by strength.
  */
-public class BgfxBloomPass <: Pass {
+public class BloomPass <: Pass {
     /**
      * @brief[zh-cn] Bloom 强度（合成时 blur 乘数）
      * @brief[en] Bloom strength (blur multiplier at combine)
@@ -152,7 +174,7 @@ public class BgfxBloomPass <: Pass {
     /**
      * 渲染器引用（render() 时缓存，setSize/dispose 经其高阶 API 序列化）。
      */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 归一化高斯核系数（buildKernel(sigma) 结果，补齐到 kernelSize 长度）。
@@ -194,7 +216,7 @@ public class BgfxBloomPass <: Pass {
      */
     private func _buildKernel(sigma: Float64, kernelSize: Int64): Array<Float64> {
         var n = 2 * Int64(ceil(sigma * 3.0)) + 1
-        if (n > BgfxBloomPass.MAX_KERNEL_SIZE) { n = BgfxBloomPass.MAX_KERNEL_SIZE }
+        if (n > BloomPass.MAX_KERNEL_SIZE) { n = BloomPass.MAX_KERNEL_SIZE }
         let halfWidth = (Float64(n) - 1.0) * 0.5
         let values = Array<Float64>(n, { _ => 0.0 })
         var sum = 0.0
@@ -260,9 +282,9 @@ public class BgfxBloomPass <: Pass {
 
     /**
      * 创建单纹理 frame buffer（无 depth）。
-     * 对照 BgfxUnrealBloomPass._createFB。
+     * 对照 UnrealBloomPass._createFB。
      */
-    private func _createFB(renderer: BgfxRenderer, tex: TextureHandle): FrameBufferHandle {
+    private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(1, { _ => tex })
         let fb = renderer.createFrameBuffer(1u8, handles, true)
         return fb
@@ -309,7 +331,7 @@ public class BgfxBloomPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -322,10 +344,10 @@ public class BgfxBloomPass <: Pass {
         Logger.trace(["BloomPass", "render ENTER strength=${this.strength} kernelSize=${this.kernelSize} sigma=${this.sigma}"])
 
         // ===== 1. 水平卷积 pass（BLOOM_VIEW_ID_BASE+0）=====
-        this._renderConvPass(renderer, 0u16, readBuffer, this._rtXFB, this._rtXTex, BgfxBloomPass.BLUR_X, 0.0)
+        this._renderConvPass(renderer, 0u16, readBuffer, this._rtXFB, this._rtXTex, BloomPass.BLUR_X, 0.0)
 
         // ===== 2. 垂直卷积 pass（BLOOM_VIEW_ID_BASE+1）=====
-        this._renderConvPass(renderer, 1u16, this._rtXFB, this._rtYFB, this._rtYTex, 0.0, BgfxBloomPass.BLUR_Y)
+        this._renderConvPass(renderer, 1u16, this._rtXFB, this._rtYFB, this._rtYTex, 0.0, BloomPass.BLUR_Y)
 
         // ===== 3. 合成 pass（BLOOM_VIEW_ID_BASE+2）=====
         this._renderCombine(renderer, readBuffer)
@@ -343,7 +365,7 @@ public class BgfxBloomPass <: Pass {
      * @param incY 步长 y（0 或 blurY.y）
      */
     private func _renderConvPass(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         viewOffset: UInt16,
         inputFB: FrameBufferHandle,
         outFB: FrameBufferHandle,
@@ -351,7 +373,7 @@ public class BgfxBloomPass <: Pass {
         incX: Float64,
         incY: Float64
     ): Unit {
-        let viewId = UInt16(UInt16(BgfxBloomPass.BLOOM_VIEW_ID_BASE) + viewOffset)
+        let viewId = UInt16(UInt16(BloomPass.BLOOM_VIEW_ID_BASE) + viewOffset)
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, outFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
@@ -403,8 +425,8 @@ public class BgfxBloomPass <: Pass {
      * bgfx 差异：依赖 AdditiveBlending 混合状态把 blur 叠加到 readBuffer 既有内容；
      * bgfx 无全局混合状态，shader 内显式采样 scene(readBuffer) + blur(renderTargetY) 相加。
      */
-    private func _renderCombine(renderer: BgfxRenderer, readBuffer: FrameBufferHandle): Unit {
-        let viewId = UInt16(BgfxBloomPass.BLOOM_VIEW_ID_BASE + 2u16)
+    private func _renderCombine(renderer: ThreeRenderer, readBuffer: FrameBufferHandle): Unit {
+        let viewId = UInt16(BloomPass.BLOOM_VIEW_ID_BASE + 2u16)
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         // renderToScreen=true 时写 swap chain（无效 FB handle），否则写 readBuffer（后续 pass 可读）
         if (this.renderToScreen) {

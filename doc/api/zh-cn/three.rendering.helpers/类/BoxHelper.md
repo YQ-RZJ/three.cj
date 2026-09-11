@@ -28,17 +28,23 @@ public func dispose(): Unit
 ```
 释放 GPU 资源
 
+### func init\(\)
+```cj
+public init()
+```
+构造包围盒辅助对象
+
 ### func init\(Object3D,UInt32\)
 ```cj
 public init(object: Object3D, color!: UInt32 = 0xffff00)
 ```
-构造包围盒辅助对象
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|object|Object3D|要监视的对象color 线框颜色，默认黄色 0xffff00|
+|object|Object3D||
 |color|UInt32||
 
 ### func setFromObject\(Object3D\)

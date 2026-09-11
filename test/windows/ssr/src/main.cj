@@ -14,7 +14,7 @@ import std.io.*
 import std.time.*
 import std.math.*
 import std.collection.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.KeyCode
@@ -25,7 +25,7 @@ import three.scene.scenegraph.*
 import three.rendering.cameras.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxSSRPass
+import three.rendering.postprocessing.SSRPass
 import three.utils.log.Logger
 import three.utils.log.LogLevel
 import three.scene.objects.*
@@ -41,12 +41,12 @@ public class TestWindow <: WindowEngine {
     var _kb: Option<KeyboardProvider> = None
     var _mouse: Option<MouseProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 50.0, aspect: 1.0, near: 0.1, far: 100.0)
     var modelGroup: Group = Group()
     var composer: Option<EffectComposer> = None
-    var ssrPass: Option<BgfxSSRPass> = None
+    var ssrPass: Option<SSRPass> = None
     var frame: Int64 = 0
     var totalFrames: Int64 = 0
     var startTime: MonoTime = MonoTime.now()
@@ -67,15 +67,17 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x22, 0x22, 0x22))  // 深灰背景，凸显反射
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
 
@@ -101,12 +103,12 @@ public class TestWindow <: WindowEngine {
         //   composer.render()
         let composer = EffectComposer(this.renderer)
         composer.addPass(RenderPass(this.scene, this.camera))
-        let ssrPass = BgfxSSRPass(this.scene, this.camera)
+        let ssrPass = SSRPass(this.scene, this.camera)
         // 参数对齐官方 webgl_postprocessing_ssr.html（SSRPass 默认值）：
         //   opacity=0.5, maxDistance=180, thickness=0.018, blur=true,
         //   distanceAttenuation=true, fresnel=true, infiniteThick=false
         // output=Default（0）：场景色 + SSR 混合
-        ssrPass.output = BgfxSSRPass.OUTPUT_DEFAULT
+        ssrPass.output = SSRPass.OUTPUT_DEFAULT
         // selective 模式——只有模型执行 SSR（球/立方体/甜甜圈），地面不执行：
         //   Three.js 官方范式：groundReflector（地板 portal 反射）+ selects=[金属物体]，
         //   SSR 只处理 selects 中的物体表面反射。
@@ -266,7 +268,7 @@ public class TestWindow <: WindowEngine {
 
         // 同步 SSR 调试参数到 ssrPass（仅 dirty 时）
         // 注：define 类参数（fresnel/distanceAttenuation/infiniteThick）改动需重新编译 shader，
-        //     BgfxSSRPass._compileSSRShader 在 programHandle==invalid 时才编译，
+        //     SSRPass._compileSSRShader 在 programHandle==invalid 时才编译，
         //     故 dirty 时主动重置 programHandle 强制下帧重编译。
         match (this.ssrPass) {
             case Some(ssrPass) =>
@@ -315,7 +317,7 @@ public class TestWindow <: WindowEngine {
                 if (needRecompile) {
                     // 通过反射重置 programHandle 触发下帧重编译（_compileSSRShader 检测 invalid 时编译）
                     // 此处 ssrPass 暴露 recompile() 方法更优雅，但避免改动 pass 接口，依赖其内部懒编译机制
-                    // 注：BgfxSSRPass 首帧已编译，define 改动需销毁旧 program 重编译。
+                    // 注：SSRPass 首帧已编译，define 改动需销毁旧 program 重编译。
                     // 当前实现：pass 内部 programHandle 不会自动重置，故 define 改动需重启程序生效。
                     // 这是已知限制，记录在日志中。
                     println("  [render] define 参数已改动（fresnel/distanceAttenuation/infiniteThick），需重启程序以重新编译 shader")
@@ -365,7 +367,7 @@ public class TestWindow <: WindowEngine {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")
     }

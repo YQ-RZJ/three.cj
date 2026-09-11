@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] LOD 细节层级
  * @brief[zh-cn] 根据物体到相机距离切换不同精度层级对象的场景节点
  * @explain[zh-cn] 各 level 是 (子对象, 距离阈值) 元组，渲染时按相机距离选最合适的层。
@@ -28,7 +50,7 @@ import fastjson.stream.*
  *
  * @brief[en] LOD (Level of Detail) node that switches between detail levels based on camera distance
  */
-@JsonAdapter[withSuperClass = Object3D]
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public class LOD <: Object3D {
     /**
      * @brief[zh-cn] 是否自动更新（渲染器内部使用）
@@ -42,9 +64,45 @@ public class LOD <: Object3D {
 
     // 层级数组，每项为 (子对象, 距离阈值)，按距离升序。
     // 仓颉版用元组 (Object3D, Float64) 替代 JS 的 {distance, object} 对象。
-    // （元组类型 fastjson 不支持，序列化忽略）
     @JsonIgnore
     public var levels: ArrayList<(Object3D, Float64)>
+
+    // 自定义序列化：将元组转为 JSON 字符串
+    // 格式：[["uuid1", distance1], ["uuid2", distance2], ...]
+    @JsonCustom["levels"]
+    public mut prop levelsJson: String {
+        get() {
+            let stream = ByteBuffer()
+            let writer = JsonStreamWriter(stream)
+            writer.startArray()
+            for (lvl in this.levels) {
+                writer.startArray()
+                lvl[0].uuid.toJson(writer)
+                lvl[1].toJson(writer)
+                writer.endArray()
+            }
+            writer.endArray()
+            writer.flush()
+            String.fromUtf8(readToEnd(stream))
+        }
+        set(v) {
+            this.levels = ArrayList<(Object3D, Float64)>()
+            let reader = JsonStreamReader(ByteBuffer(v.toArray()))
+            reader.startArray()
+            while (let Some(t) <- reader.peek()) {
+                if (t == JsonStreamEndArray) { break }
+                reader.startArray()
+                let uuid = reader.readValue<String>()
+                let dist = reader.readValue<Float64>()
+                reader.endArray()
+                // Object3D 引用需要在场景加载后通过 uuid 匹配
+                let placeholder = Object3D()
+                placeholder.uuid = uuid
+                this.levels.add((placeholder, dist))
+            }
+            reader.endArray()
+        }
+    }
 
     // 当前激活的层级索引（渲染器内部使用，私有，不参与序列化）。
     @JsonIgnore
@@ -55,7 +113,6 @@ public class LOD <: Object3D {
         super()
         this.autoUpdate = true
         this.hysteresis = 0.0
-        this.kind = "LOD"
         this.levels = ArrayList<(Object3D, Float64)>()
         this._currentLevel = -1
     }

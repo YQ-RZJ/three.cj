@@ -60,7 +60,7 @@ Return:
 
 ### func init\(AudioListener\)
 ```cj
-public init(listener!: AudioListener)
+public init(listener!: AudioListener = AudioListener())
 ```
 Creates a 3D positional audio source
 

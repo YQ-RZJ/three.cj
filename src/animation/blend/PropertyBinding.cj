@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] PropertyBinding.cj 属性绑定
  * @brief[zh-cn] 本文件定义属性绑定，负责属性路径的解析与场景图属性值的读写
  * @explain[zh-cn] PropertyBinding 持有场景图中真实属性的引用，供内部使用。
@@ -29,75 +51,109 @@ import std.regex.*
 
 /**
  * @brief[zh-cn] 保留字符集：[] . : /，用于构建正则表达式
+ *
+ * @brief[en] Reserved character set: [] . : /, used to build regular expressions
  */
 internal let _RESERVED_CHARS_RE: String = "\\[\\]\\.:\\/"
 /**
  * @brief[zh-cn] 匹配保留字符的正则表达式
+ *
+ * @brief[en] Regular expression matching reserved characters
  */
 internal let _reservedRe: Regex = Regex("[" + _RESERVED_CHARS_RE + "]")
 
 /**
  * @brief[zh-cn] 匹配非保留字符
+ *
+ * @brief[en] Matches non-reserved characters
  */
 internal let _wordChar: String = "[^" + _RESERVED_CHARS_RE + "]"
 /**
  * @brief[zh-cn] 匹配非保留字符或点号
+ *
+ * @brief[en] Matches non-reserved characters or a dot
  */
 internal let _wordCharOrDot: String = "[^" + _RESERVED_CHARS_RE.replace("\\.", "") + "]"
 
 /**
  * @brief[zh-cn] 匹配父目录，以 '/' 或 ':' 分隔
+ *
+ * @brief[en] Matches parent directories separated by '/' or ':'
  */
 internal let _directoryRe: String = "((?:" + _wordChar + "+" + "[\\/:])*)"
 /**
  * @brief[zh-cn] 匹配目标节点，可包含 word 字符、'.' 或 '-'
+ *
+ * @brief[en] Matches the target node, which may contain word characters, '.' or '-'
  */
 internal let _nodeRe: String = "(" + _wordCharOrDot + "+)?"
 /**
  * @brief[zh-cn] 匹配目标节点上的对象与 accessor，不能含保留字符
+ *
+ * @brief[en] Matches the object and accessor on the target node; must not contain reserved characters
  */
 internal let _objectRe: String = "(?:\\.(" + _wordChar + "+)(?:\\[(.+)\\])?)?"
 /**
  * @brief[zh-cn] 匹配属性与 accessor，不能含保留字符
+ *
+ * @brief[en] Matches the property and accessor; must not contain reserved characters
  */
 internal let _propertyRe: String = "\\.(?:" + _wordChar + "+)(?:\\[(.+)\\])?"
 /**
  * @brief[zh-cn] 完整轨道名匹配正则
+ *
+ * @brief[en] Regular expression matching a full track name
  */
 internal let _trackRe: Regex = Regex("^" + _directoryRe + _nodeRe + _objectRe + _propertyRe + "$")
 
 /**
  * @brief[zh-cn] 支持的节点对象名称
+ *
+ * @brief[en] Supported node object names
  */
 internal let _supportedObjectNames: Array<String> = ["material", "materials", "bones", "map"]
 
 /**
  * @brief[zh-cn] 绑定类型：直接属性绑定
+ *
+ * @brief[en] Binding type: direct property binding
  */
 internal let BindingType_Direct: Int64 = 0
 /**
  * @brief[zh-cn] 绑定类型：整个数组
+ *
+ * @brief[en] Binding type: entire array
  */
 internal let BindingType_EntireArray: Int64 = 1
 /**
  * @brief[zh-cn] 绑定类型：数组元素
+ *
+ * @brief[en] Binding type: array element
  */
 internal let BindingType_ArrayElement: Int64 = 2
 /**
  * @brief[zh-cn] 绑定类型：含 fromArray/toArray 方法
+ *
+ * @brief[en] Binding type: property with fromArray/toArray methods
  */
 internal let BindingType_HasFromToArray: Int64 = 3
 
 /**
  * @brief[zh-cn] 版本控制：无
+ *
+ * @brief[en] Versioning: none
  */
 internal let Versioning_None: Int64 = 0
 /**
  * @brief[zh-cn] 版本控制：标记 needsUpdate
+ *
+ * @brief[en] Versioning: flag needsUpdate
  */
 internal let Versioning_NeedsUpdate: Int64 = 1
 /**
  * @brief[zh-cn] 版本控制：标记 matrixWorldNeedsUpdate
+ *
+ * @brief[en] Versioning: flag matrixWorldNeedsUpdate
  */
 internal let Versioning_MatrixWorldNeedsUpdate: Int64 = 2
 
@@ -112,18 +168,26 @@ internal let Versioning_MatrixWorldNeedsUpdate: Int64 = 2
 public class Composite {
     /**
      * @brief[zh-cn] 目标对象组
+     *
+     * @brief[en] The target object group
      */
     internal var _targetGroup: AnimationObjectGroup
     /**
      * @brief[zh-cn] 各对象的绑定列表
+     *
+     * @brief[en] List of bindings per object
      */
     internal var _bindings: ArrayList<PropertyBinding>
     /**
      * @brief[zh-cn] 属性路径
+     *
+     * @brief[en] The property path
      */
     internal var path: String
     /**
      * @brief[zh-cn] 已解析的路径信息
+     *
+     * @brief[en] The parsed path information
      */
     internal var parsedPath: HashMap<String, Any>
 
@@ -277,23 +341,33 @@ public class PropertyBinding {
     public var propertyIndex: Option<Any>
     /**
      * @brief[zh-cn] 绑定类型
+     *
+     * @brief[en] The binding type
      */
     internal var bindingType: Int64
     /**
      * @brief[zh-cn] 版本控制类型
+     *
+     * @brief[en] The versioning type
      */
     internal var versioning: Int64
     /**
      * @brief[zh-cn] 是否已绑定
+     *
+     * @brief[en] Whether the binding is bound
      */
     internal var bound: Bool
 
     /**
      * @brief[zh-cn] 获取值函数
+     *
+     * @brief[en] The getter function
      */
     internal var getValueFunc: (Array<Float64>, Int64) -> Unit
     /**
      * @brief[zh-cn] 设置值函数
+     *
+     * @brief[en] The setter function
      */
     internal var setValueFunc: (Array<Float64>, Int64) -> Unit
 
@@ -503,6 +577,8 @@ public class PropertyBinding {
 
     /**
      * @brief[zh-cn] 递归搜索子节点树
+     *
+     * @brief[en] Recursively searches the child node subtree
      */
     internal static func _searchNodeSubtree(root: Object3D, nodeName: String): Option<IPropertyBindingRoot> {
         for (i in 0..root.children.size) {
@@ -521,6 +597,8 @@ public class PropertyBinding {
 
     /**
      * @brief[zh-cn] 将对象转换为 AnimationObjectGroup（无法转换时返回 None）
+     *
+     * @brief[en] Converts the object to an AnimationObjectGroup (returns None if not convertible)
      */
     internal static func _asAnimationObjectGroup(obj: Any): Option<AnimationObjectGroup> {
         match (obj) {
@@ -995,6 +1073,8 @@ public class PropertyBinding {
 
     /**
      * @brief[zh-cn] 解析目标对象上的属性
+     *
+     * @brief[en] Resolves the property on the target object
      */
     internal func _resolveProperty(target: Any, propName: String): Unit {
         match (target) {
@@ -1017,6 +1097,8 @@ public class PropertyBinding {
 
     /**
      * @brief[zh-cn] 检查属性是否具有 fromArray/toArray 方法
+     *
+     * @brief[en] Checks whether the property has fromArray/toArray methods
      */
     internal func _checkFromToArray(target: Any, propName: String): Bool {
         match (target) {
@@ -1031,6 +1113,8 @@ public class PropertyBinding {
 
     /**
      * @brief[zh-cn] 检查属性是否为数组类型
+     *
+     * @brief[en] Checks whether the property is an array type
      */
     internal func _isArrayProperty(target: Any, propName: String): Bool {
         match (target) {
@@ -1048,6 +1132,8 @@ public class PropertyBinding {
 
 /**
  * @brief[zh-cn] 从映射中读取字符串值，键不存在或类型不符时返回空字符串
+ *
+ * @brief[en] Reads a string value from the map; returns an empty string when the key is missing or the type mismatches
  */
 internal func _getStringFromMap(map: HashMap<String, Any>, key: String): String {
     let optVal = map.get(key)
@@ -1063,6 +1149,8 @@ internal func _getStringFromMap(map: HashMap<String, Any>, key: String): String 
 
 /**
  * @brief[zh-cn] 从映射中读取整数值，键不存在或类型不符时返回默认值
+ *
+ * @brief[en] Reads an integer value from the map; returns the default when the key is missing or the type mismatches
  */
 internal func _getIntFromMap(map: HashMap<String, Any>, key: String, defaultVal: Int64): Int64 {
     let optVal = map.get(key)
@@ -1078,6 +1166,8 @@ internal func _getIntFromMap(map: HashMap<String, Any>, key: String, defaultVal:
 
 /**
  * @brief[zh-cn] 从映射中读取浮点值，键不存在或类型不符时返回默认值
+ *
+ * @brief[en] Reads a float value from the map; returns the default when the key is missing or the type mismatches
  */
 internal func _getFloatFromMap(map: HashMap<String, Any>, key: String, defaultVal: Float64): Float64 {
     let optVal = map.get(key)

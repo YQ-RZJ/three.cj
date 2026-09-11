@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 交错缓冲区
  * @brief[zh-cn] 将多个属性（如位置、法线、UV、颜色）打包到单个数组缓冲区中
  * @explain[zh-cn] "交错"意味着多个可能不同类型的属性被打包到单个数组缓冲区中。
@@ -8,6 +30,8 @@
  *
  * @file[en] Interleaved Buffer
  * @brief[en] Packs multiple attributes (position, normal, UV, color) into a single array buffer
+ * @explain[en] "Interleaved" means multiple attributes of possibly different types are packed into a single array buffer.
+ * Reference: https://blog.tojicode.com/2011/05/interleaved-array-basics.html
  *
  * @package three.rendering.buffer
  */

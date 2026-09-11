@@ -1,12 +1,32 @@
-package three.rendering.postprocessing
-
 /**
- * @file[zh-cn] BgfxGTAOPass 地面真值环境光遮蔽（GTAO）后处理 pass
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] GTAOPass 地面真值环境光遮蔽（GTAO）后处理 pass
  * @brief[zh-cn] 地面真值环境光遮蔽（GTAO）后处理 pass
  * @explain[zh-cn] 以 EffectComposer Pass 链方式注入（对齐 bloom/ssao 的 Bgfx*Pass）：
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxGTAOPass(scene, camera))
+ *         composer.addPass(GTAOPass(scene, camera))
  *         composer.render()
  *         render() 内部（各子方法经 Pass 基类高阶 API 调用 bgfx，高阶 API 自身走 renderer.execBgfx 序列化到渲染线程）：
  *         1. 法线 pass（view GTAO_VIEW_ID_BASE+0）：normal shader 渲场景法线到法线 RT（RGBA16F+D24）
@@ -16,17 +36,17 @@ package three.rendering.postprocessing
  *         5. 输出 pass（view +4）：按 output 模式输出到 writeBuffer（renderToScreen=true 时写屏幕）
  *         自包含：uniforms（BgfxUniforms 实例）、全屏四边形（composer 共享 quad）、
  *         场景几何体 VB/IB/layout 均在 pass 内懒创建并缓存，不依赖 BgfxBackend 内部资源
- *         （避免 bgfx_backend ↔ postprocessing 包循环依赖，对齐 BgfxUnrealBloomPass/BgfxSSAOPass 自包含模式）。
+ *         （避免 bgfx_backend ↔ postprocessing 包循环依赖，对齐 UnrealBloomPass/SSAOPass 自包含模式）。
  *         噪声纹理：
  *         - gtaoNoiseTexture：magic square 噪声（generateMagicSquareNoise(5)，5x5 RGBA8，RepeatWrapping）
  *         - pdNoiseTexture：SimplexNoise 噪声（_generateNoise(64)，64x64 RGBA8，RepeatWrapping）
  *
- * @file[en] BgfxGTAOPass ground-truth ambient occlusion (GTAO) post-processing pass
+ * @file[en] GTAOPass ground-truth ambient occlusion (GTAO) post-processing pass
  * @brief[en] Ground-truth ambient occlusion (GTAO) post-processing pass
  * @explain[en] Injected via the EffectComposer Pass chain (aligned with the Bgfx*Pass bloom/ssao style):
  *         let composer = EffectComposer(renderer)
  *         composer.addPass(RenderPass(scene, camera))
- *         composer.addPass(BgfxGTAOPass(scene, camera))
+ *         composer.addPass(GTAOPass(scene, camera))
  *         composer.render()
  *         Inside render() (each sub-method calls bgfx via Pass base-class high-level APIs, which serialize to the render thread through renderer.execBgfx):
  *         1. Normal pass (view GTAO_VIEW_ID_BASE+0): normal shader renders scene normals to a normal RT (RGBA16F+D24)
@@ -36,13 +56,12 @@ package three.rendering.postprocessing
  *         5. Output pass (view +4): outputs per output mode to writeBuffer (to screen when renderToScreen=true)
  *         Self-contained: uniforms (BgfxUniforms instance), full-screen quad (composer shared quad),
  *         and scene geometry VB/IB/layout are lazily created and cached inside the pass, not depending on BgfxBackend internals
- *         (avoiding a bgfx_backend ↔ postprocessing package cycle, aligned with the BgfxUnrealBloomPass/BgfxSSAOPass self-contained pattern).
+ *         (avoiding a bgfx_backend ↔ postprocessing package cycle, aligned with the UnrealBloomPass/SSAOPass self-contained pattern).
  *         Noise textures:
  *         - gtaoNoiseTexture: magic square noise (generateMagicSquareNoise(5), 5x5 RGBA8, RepeatWrapping)
  *         - pdNoiseTexture: SimplexNoise noise (_generateNoise(64), 64x64 RGBA8, RepeatWrapping)
- *
- * @package three.rendering.postprocessing
  */
+package three.rendering.postprocessing
 
 import three.rendering.common.*
 import three.rendering.bgfx.*
@@ -60,7 +79,7 @@ import three.scene.entity.Mesh
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.utils.log.Logger
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
 import std.collection.*
@@ -69,7 +88,7 @@ import three.core.dsa.*
 
 
 
-public class BgfxGTAOPass <: Pass {
+public class GTAOPass <: Pass {
     /** GTAO pass 用的 view ID 段约定：SSAO 160~164，GTAO 165~169，SAO 170~175，composer 分配 230+ */
     public static let GTAO_VIEW_ID_BASE: UInt16 = 165u16
 
@@ -139,11 +158,11 @@ public class BgfxGTAOPass <: Pass {
     /** Poisson 降噪采样点（16 个 vec4，CPU 端生成） */
     private var _poissonDisk: Array<Float64> = Array<Float64>(64, { _ => 0.0 })
 
-    /** 本 pass 自有的 uniform 注册表（对齐 BgfxUnrealBloomPass/BgfxSSAOPass 自包含模式） */
+    /** 本 pass 自有的 uniform 注册表（对齐 UnrealBloomPass/SSAOPass 自包含模式） */
     private var _uniforms: BgfxUniforms = BgfxUniforms()
 
     /** 最近一次 render 注入的渲染器（setSize/dispose 销毁 GPU 资源时经 renderer 高阶 API 序列化） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     // ===== 场景几何体缓存（对齐 BgfxBackend._createVB/_createIB 模式） =====
     private var _vbCache: HashMap<Int64, VertexBufferHandle> = HashMap<Int64, VertexBufferHandle>()
@@ -191,7 +210,7 @@ public class BgfxGTAOPass <: Pass {
 
     // ===== RT 创建/销毁 =====
 
-    private func _ensureRTs(renderer: BgfxRenderer): Unit {
+    private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
         if (isValidHandle(this._normalTex)) { return }
 
@@ -252,14 +271,14 @@ public class BgfxGTAOPass <: Pass {
         Logger.trace(["gtao", "_ensureRTs done ${this._width}x${this._height}"])
     }
 
-    private func _createFB(renderer: BgfxRenderer, tex: TextureHandle): FrameBufferHandle {
+    private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(1, { _ => tex })
         let fb = renderer.createFrameBuffer(1u8, handles, true)
         return fb
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(renderer: BgfxRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(renderer: ThreeRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = renderer.createFrameBuffer(2u8, handles, true)
         return fb
@@ -306,7 +325,7 @@ public class BgfxGTAOPass <: Pass {
      * 创建 RGBA8 噪声纹理（RepeatWrapping）。
      * @param data RGBA8 字节数据（长度 = w*h*4）
      */
-    private func _createNoiseTexture(renderer: BgfxRenderer, data: Array<UInt8>, w: UInt16, h: UInt16): TextureHandle {
+    private func _createNoiseTexture(renderer: ThreeRenderer, data: Array<UInt8>, w: UInt16, h: UInt16): TextureHandle {
         let mem = BgfxMemory(UInt32(data.size))
         mem.writeUInt8(data, Int64(data.size))
         return renderer.createTexture2D(
@@ -393,7 +412,7 @@ public class BgfxGTAOPass <: Pass {
 
     // ===== 自建场景几何体 VB/IB/layout（对齐 BgfxBackend._createVB/_createIB 模式） =====
 
-    private func _getOrCreateLayout(renderer: BgfxRenderer): VertexLayoutHandle {
+    private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
         match (this._layoutHandleCache) {
             case Some(lh) => return lh
             case None => ()
@@ -440,7 +459,7 @@ public class BgfxGTAOPass <: Pass {
         return list.toArray()
     }
 
-    private func _createVB(renderer: BgfxRenderer, geom: BufferGeometry): VertexBufferHandle {
+    private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._vbCache.get(geomId)) {
             case Some(vb) => return vb
@@ -496,7 +515,7 @@ public class BgfxGTAOPass <: Pass {
         }
     }
 
-    private func _createIB(renderer: BgfxRenderer, geom: BufferGeometry): IndexBufferHandle {
+    private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._ibCache.get(geomId)) {
             case Some(ib) => return ib
@@ -531,7 +550,7 @@ public class BgfxGTAOPass <: Pass {
      * 故不再外层包裹 renderer.execBgfx（避免嵌套死锁）。
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -552,7 +571,7 @@ public class BgfxGTAOPass <: Pass {
                     this._ensureRTs(renderer)
                     if (!isValidHandle(this._normalFB)) { Logger.trace(["gtao", "render: _ensureRTs failed, normalFB invalid"]); return }
 
-                    let baseView = BgfxGTAOPass.GTAO_VIEW_ID_BASE
+                    let baseView = GTAOPass.GTAO_VIEW_ID_BASE
                     let uniforms = this._uniforms
 
                     // ===== 1. 法线 pass（view+0）：normal shader 渲场景到法线 RT =====
@@ -575,7 +594,7 @@ public class BgfxGTAOPass <: Pass {
     /**
      * 法线 pass：normal shader 渲场景到法线 RT。
      */
-    private func _renderNormals(renderer: BgfxRenderer, scene: Scene, camera: Camera, baseView: UInt16): Unit {
+    private func _renderNormals(renderer: ThreeRenderer, scene: Scene, camera: Camera, baseView: UInt16): Unit {
         let viewId = baseView
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._normalFB)
@@ -660,7 +679,7 @@ public class BgfxGTAOPass <: Pass {
      * 深度 pass：aodepth shader 渲场景到深度 RT（写 gl_FragCoord.z = NDC 深度）。
      * 用 RGBA32F 深度 RT 存 gl_FragCoord.z，GTAO shader 经 perspectiveDepthToViewZ 反算 viewZ。
      */
-    private func _renderDepth(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderDepth(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._depthFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -707,7 +726,7 @@ public class BgfxGTAOPass <: Pass {
      * GTAO 计算 pass：全屏四边形采样法线/深度/噪声纹理，输出 ao。
      * gtao shader（SAMPLES=16, DIRECTIONS=3, STEPS=6）。
      */
-    private func _renderGTAOCalc(renderer: BgfxRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms): Unit {
+    private func _renderGTAOCalc(renderer: ThreeRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._gtaoFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
@@ -782,7 +801,7 @@ public class BgfxGTAOPass <: Pass {
      * PoissonDenoise pass：全屏四边形对 gtao AO 图做保边降噪。
      * gtaopd shader（SAMPLES=16, poisson disk 数组 uniform）。
      */
-    private func _renderPD(renderer: BgfxRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms): Unit {
+    private func _renderPD(renderer: ThreeRenderer, camera: Camera, viewId: UInt16, uniforms: BgfxUniforms): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._pdFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
@@ -852,8 +871,8 @@ public class BgfxGTAOPass <: Pass {
      *   - Depth：gtaodepth shader（1.0 - 线性深度可视化）
      *   - Off：不输出（保持 readBuffer）
      */
-    private func _renderOutput(renderer: BgfxRenderer, readBuffer: FrameBufferHandle, writeBuffer: FrameBufferHandle, viewId: UInt16): Unit {
-        if (this.output == BgfxGTAOPass.OUTPUT_OFF) {
+    private func _renderOutput(renderer: ThreeRenderer, readBuffer: FrameBufferHandle, writeBuffer: FrameBufferHandle, viewId: UInt16): Unit {
+        if (this.output == GTAOPass.OUTPUT_OFF) {
             return
         }
         // 目标：renderToScreen（最后一个 enabled pass）→ swap chain（无效 FB handle）；否则 writeBuffer
@@ -868,7 +887,7 @@ public class BgfxGTAOPass <: Pass {
         let uniforms = this._uniforms
 
         // Depth 模式：gtaodepth shader（tDepth + cameraNearFar）
-        if (this.output == BgfxGTAOPass.OUTPUT_DEPTH) {
+        if (this.output == GTAOPass.OUTPUT_DEPTH) {
             let depthProgOpt = PostProcessingShaders.get("gtaodepth")
             match (depthProgOpt) {
                 case Some(depthSp) =>
@@ -894,7 +913,7 @@ public class BgfxGTAOPass <: Pass {
         }
 
         // Default 模式：gtaoapply（sceneColor × mix(1, ao, intensity)）
-        if (this.output == BgfxGTAOPass.OUTPUT_DEFAULT) {
+        if (this.output == GTAOPass.OUTPUT_DEFAULT) {
             let applyProgOpt = PostProcessingShaders.get("gtaoapply")
             match (applyProgOpt) {
                 case Some(applySp) =>
@@ -921,11 +940,11 @@ public class BgfxGTAOPass <: Pass {
 
         // Diffuse/AO/Denoise/Normal：copy shader 透传对应纹理
         var srcTex: TextureHandle = this._pdTex
-        if (this.output == BgfxGTAOPass.OUTPUT_DIFFUSE) {
+        if (this.output == GTAOPass.OUTPUT_DIFFUSE) {
             srcTex = this.getTexture(renderer, readBuffer, 0u8)
-        } else if (this.output == BgfxGTAOPass.OUTPUT_AO) {
+        } else if (this.output == GTAOPass.OUTPUT_AO) {
             srcTex = this._gtaoTex
-        } else if (this.output == BgfxGTAOPass.OUTPUT_NORMAL) {
+        } else if (this.output == GTAOPass.OUTPUT_NORMAL) {
             srcTex = this._normalTex
         }
         let copyProgOpt = PostProcessingShaders.get("copy")
@@ -951,7 +970,7 @@ public class BgfxGTAOPass <: Pass {
     /**
      * 为指定 view 设置相机 view/proj 变换（改用 renderer.setViewTransform 高阶 API）。
      */
-    private func _setViewTransformFor(renderer: BgfxRenderer, viewId: UInt16, camera: Camera): Unit {
+    private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
         let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
         let viewMem = BgfxMemory(64u32)

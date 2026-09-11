@@ -107,23 +107,23 @@ Parameter:
 ```cj
 public prop activeTaskCount: Int64
 ```
-
+Number of currently active tasks (excluding paused ones)
 
 ### prop frameElapsed: Float64
 ```cj
 public prop frameElapsed: Float64
 ```
-
+Time consumed in the current frame round (milliseconds)
 
 ### prop pausedTaskCount: Int64
 ```cj
 public prop pausedTaskCount: Int64
 ```
-
+Number of paused tasks
 
 ### var maximum
 ```cj
 public var maximum: Float64
 ```
-
+Time budget limit (milliseconds), total execution time cap for the priority queue
 

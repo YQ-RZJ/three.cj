@@ -3,13 +3,19 @@
 ```cj
 public class AudioListenerHelper <: Object3D
 ```
-
+Audio listener helper object
 
 ### func dispose\(\)
 ```cj
 public func dispose(): Unit
 ```
+Releases GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Constructs an AudioListener helper
 
 ### func init\(AudioListener,Float64\)
 ```cj
@@ -28,7 +34,7 @@ Parameter:
 ```cj
 public func update(): Unit
 ```
-
+Syncs the listener state and updates the visualization
 
 ### var axes
 ```cj

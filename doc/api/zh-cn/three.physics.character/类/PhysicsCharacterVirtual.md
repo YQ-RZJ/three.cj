@@ -15,11 +15,7 @@ public func dispose(): Unit
 ```cj
 public func getGroundState(): UInt32
 ```
-获取地面状态（GroundState 枚举值）
-
-返回: 
-
-- GroundState 枚举值（0 = OnGround）
+获取地面状态（0 = OnGround，1 = OnSteepGround，2 = NotSupported，3 = InAir）
 
 ### func getLinearVelocity\(\)
 ```cj
@@ -29,7 +25,7 @@ public func getLinearVelocity(): Vector3
 
 返回: 
 
-- 当前线速度（世界坐标）
+- 当前线速度（世界坐标，three 左手系）
 
 ### func getPosition\(\)
 ```cj
@@ -39,44 +35,15 @@ public func getPosition(): Vector3
 
 返回: 
 
-- 当前位置（世界坐标）
-
-### func init\(CPointer<Unit>,Vector3,CPointer<Unit>,Quaternion,Float32,Float32\)
-```cj
-public init(shape: CPointer < Unit >, position: Vector3, system: CPointer < Unit >, rotation!: Quaternion = Quaternion(), mass!: Float32 = 70.0f32, maxSlopeAngle!: Float32 = 0.7853982f32)
-```
-创建虚拟角色
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|shape|CPointer<Unit>|角色碰撞形状句柄（JPH_Shape 句柄，由调用方创建并保持）position 初始位置（世界坐标）system 物理系统句柄rotation 初始旋转（四元数）mass 质量（千克，用于冲量计算）maxSlopeAngle 最大可站立坡度角（弧度）|
-|position|Vector3||
-|system|CPointer<Unit>||
-|rotation|Quaternion||
-|mass|Float32||
-|maxSlopeAngle|Float32||
+- 当前位置（世界坐标，three 左手系）
 
 ### func isOnGround\(\)
 ```cj
 public func isOnGround(): Bool
 ```
-角色是否在地面上（OnGround）
+虚拟角色是否在地面上（GroundState == OnGround）
 
-返回: 
-
-- 在地面返回 true
-
-### func isValid\(\)
-```cj
-public func isValid(): Bool
-```
-是否创建成功（句柄有效且未销毁）
-
-返回: 
-
-- 有效返回 true
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>update 之后本帧地面状态即有效</p>
 
 ### func setLinearVelocity\(Vector3\)
 ```cj
@@ -88,7 +55,7 @@ public func setLinearVelocity(velocity: Vector3): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|velocity|Vector3|目标线速度（世界坐标方向）|
+|velocity|Vector3|目标线速度（世界坐标，three 左手系）|
 
 ### func setPosition\(Vector3\)
 ```cj
@@ -100,19 +67,24 @@ public func setPosition(position: Vector3): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|position|Vector3|目标位置（世界坐标）|
+|position|Vector3|目标位置（世界坐标，three 左手系）|
 
-### func update\(Float32,UInt32,CPointer<Unit>\)
+### func update\(Float32,Vector3\)
 ```cj
-public func update(deltaTime: Float32, layer: UInt32, system: CPointer < Unit >): Unit
+public func update(deltaTime: Float32, gravity!: Vector3 = Vector3(0.0, - 9.81, 0.0)): Unit
 ```
-更新虚拟角色（每帧调用）
+更新虚拟角色（每帧在 PhysicsWorld.update 之后调用）
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|deltaTime|Float32|时间步长（秒）layer 对象层（角色移动时的碰撞层）system 物理系统句柄|
-|layer|UInt32||
-|system|CPointer<Unit>||
+|deltaTime|Float32|时间步长（秒）gravity 重力向量（默认 (0,-9.81,0)，与物理世界一致；水平移动请在调用前用 setLinearVelocity 设置，竖直分量会被本方法保留并叠加重力）|
+|gravity|Vector3||
+
+### prop isValid: Bool
+```cj
+public prop isValid: Bool
+```
+虚拟角色是否有效（创建成功且未销毁）
 

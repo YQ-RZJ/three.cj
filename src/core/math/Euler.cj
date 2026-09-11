@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Euler
  * @brief[zh-cn] 欧拉角
  * @explain[zh-cn] 表示三维空间中的旋转，使用三个角度和旋转顺序。
@@ -26,21 +48,29 @@ import fastjson.stream.*
 public class Euler {
     /**
      * @brief[zh-cn] x 轴旋转角度（弧度）—— 私有 backing field，JSON 字段名映射为 "x"
+     *
+     * @brief[en] x-axis rotation angle in radians — private backing field, JSON field name mapped to "x"
      */
     @JsonName["x"]
     private var _x: Float64
     /**
      * @brief[zh-cn] y 轴旋转角度（弧度）—— 私有 backing field，JSON 字段名映射为 "y"
+     *
+     * @brief[en] y-axis rotation angle in radians — private backing field, JSON field name mapped to "y"
      */
     @JsonName["y"]
     private var _y: Float64
     /**
      * @brief[zh-cn] z 轴旋转角度（弧度）—— 私有 backing field，JSON 字段名映射为 "z"
+     *
+     * @brief[en] z-axis rotation angle in radians — private backing field, JSON field name mapped to "z"
      */
     @JsonName["z"]
     private var _z: Float64
     /**
      * @brief[zh-cn] 旋转顺序 —— 私有 backing field（枚举类型，fastjson 暂不支持，序列化忽略）
+     *
+     * @brief[en] Rotation order — private backing field (enum type, not yet supported by fastjson, ignored in serialization)
      */
     @JsonIgnore
     private var _order: EulerOrder
@@ -95,6 +125,8 @@ public class Euler {
 
     /**
      * @brief[zh-cn] 变更回调函数，当欧拉角值改变时调用（函数类型，不支持序列化）
+     *
+     * @brief[en] Change callback, invoked when Euler angle values change (function type, not serializable)
      */
     @JsonIgnore
     private var _onChangeCallback: () -> Unit

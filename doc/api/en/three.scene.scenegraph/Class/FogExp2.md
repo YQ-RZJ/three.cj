@@ -15,6 +15,19 @@ Return:
 
 - New exponential fog instance
 
+### func init\(UInt32,Float64\)
+```cj
+public init(hex: UInt32, density!: Float64 = 0.00025)
+```
+Construct a new exponential fog with a hex color value
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|hex|UInt32|Hex color valuedensity Fog density, default 0.00025|
+|density|Float64||
+
 ### func init\(\)
 ```cj
 public init()
@@ -32,19 +45,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |color|Color|Fog colordensity Fog density, default 0.00025|
-|density|Float64||
-
-### func init\(UInt32,Float64\)
-```cj
-public init(hex: UInt32, density!: Float64 = 0.00025)
-```
-Construct a new exponential fog with a hex color value
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|hex|UInt32|Hex color valuedensity Fog density, default 0.00025|
 |density|Float64||
 
 ### var color

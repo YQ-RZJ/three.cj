@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BinaryPatriciaTrie
  * @brief[zh-cn] 二进制 Patricia Trie（前缀压缩字典树）
  * @explain[zh-cn] 针对 Array<UInt8> 的前缀压缩优化，支持 set/get/has/delete 插入、查找、删除；entries/keys/values 遍历；prefixOf(query) 返回所有"键是 query 的前缀"的项；longestPrefix(query) 最长前缀匹配；startsWith(prefix) 返回所有"键以 prefix 开头"的项；bitSubsetOf(query) 按位子集查询（朴素 DFS）；bitLongestSubset(query) 按位子集最长匹配；fBitSubsetOf(query) 按位子集查询（子掩码枚举 + 剪枝优化）；fBitLongestSubset(query) 按位子集最长匹配（高性能版）。底层使用 HashMap<UInt8, Node> 存储子节点，键为 Array<UInt8>。
@@ -19,14 +41,20 @@ import std.collection.*
 internal class TrieNode<V> {
     /**
      * @brief[zh-cn] 边标签（该节点到父节点的路径上的字节序列）
+     *
+     * @brief[en] Edge label (byte sequence on the path from this node to its parent)
      */
     public var part: Array<UInt8>
     /**
      * @brief[zh-cn] 节点值（None 表示该节点不是键终点）
+     *
+     * @brief[en] Node value (None means this node is not a key endpoint)
      */
     public var value: ?V
     /**
      * @brief[zh-cn] 子节点映射（按键的首字节索引）
+     *
+     * @brief[en] Child node map (indexed by the key's first byte)
      */
     public var children: HashMap<UInt8, TrieNode<V>>
 
@@ -45,10 +73,14 @@ internal class TrieNode<V> {
 public class BinaryPatriciaTrie<V> {
     /**
      * @brief[zh-cn] 根节点
+     *
+     * @brief[en] Root node
      */
     private var _root: TrieNode<V>
     /**
      * @brief[zh-cn] 成员数量
+     *
+     * @brief[en] Number of members
      */
     private var _size: Int64
 
@@ -59,6 +91,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] 成员数量
+     *
+     * @brief[en] Number of members
      */
     public prop size: Int64 {
         get() { _size }
@@ -66,6 +100,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] 清空树
+     *
+     * @brief[en] Clear the tree
      */
     public func clear(): Unit {
         _root = TrieNode<V>(Array<UInt8>(0, { _ => 0u8 }))
@@ -550,6 +586,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] bitSubsetOf 的 DFS 主体（朴素枚举所有子节点）
+     *
+     * @brief[en] DFS body of bitSubsetOf (naively enumerates all child nodes)
      */
     private func _bitSubsetDfs(
         node: TrieNode<V>,
@@ -591,6 +629,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] bitLongestSubset 的 DFS 主体
+     *
+     * @brief[en] DFS body of bitLongestSubset
      */
     private func _bitLongestSubsetDfs(
         node: TrieNode<V>,
@@ -630,6 +670,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] fBitSubsetOf 的 DFS 主体（子掩码枚举优化）
+     *
+     * @brief[en] DFS body of fBitSubsetOf (submask enumeration optimization)
      */
     private func _fBitSubsetDfs(
         node: TrieNode<V>,
@@ -715,6 +757,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] fBitLongestSubset 的 DFS 主体
+     *
+     * @brief[en] DFS body of fBitLongestSubset
      */
     private func _fBitLongestSubsetDfs(
         node: TrieNode<V>,
@@ -796,6 +840,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] 统计 8 位数的置位数（popcount）
+     *
+     * @brief[en] Counts the set bits (popcount) of an 8-bit number
      */
     private static func _popcount8(x: UInt8): Int64 {
         var v: UInt8 = x
@@ -825,6 +871,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] 按键长度降序稳定排序
+     *
+     * @brief[en] Stable sort by key length in descending order
      */
     private static func _stableSortByLengthDesc(arr: ArrayList<(Array<UInt8>, V)>): Unit {
         // 简单插入排序，保持稳定性（相同长度保持原顺序）
@@ -844,6 +892,8 @@ public class BinaryPatriciaTrie<V> {
 
     /**
      * @brief[zh-cn] 根节点压缩（单子时合并）
+     *
+     * @brief[en] Root node compression (merge when there is a single child)
      */
     private func _maybeCompressRoot(): Unit {
         if (_root.value.isNone() && _root.children.size == 1) {

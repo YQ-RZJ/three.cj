@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] ClippingGroup
  * @brief[zh-cn] 裁剪组，管理一组用于视锥体裁剪的子对象
  * @explain[zh-cn] 与 Group 类似但语义不同：子对象作为裁剪平面参与渲染，而非普通可见几何。
@@ -10,6 +32,10 @@
  * Only used by WebGPURenderer; bgfx4cj backend retains interface signature to align with JS side, actual clipping handled by renderer internally.
  */
 package three.scene.scenegraph
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -26,6 +52,7 @@ import std.collection.*
  * @brief[en] Clipping group, managing a set of sub-objects for frustum clipping
  * @explain[en] Sub-objects participate in rendering as clipping planes, not ordinary visible geometry
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public class ClippingGroup <: Object3D {
 
     /**
@@ -63,7 +90,6 @@ public class ClippingGroup <: Object3D {
      */
     public init() {
         super()
-        this.kind = "ClippingGroup"
         this.clippingPlanes = ArrayList<Plane>()
         this.enabled = true
         this.clipIntersection = false

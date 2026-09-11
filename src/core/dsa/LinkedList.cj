@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] LinkedList
  * @brief[zh-cn] 双向链表
  * @explain[zh-cn] 命名遵循仓颉 std.collection LinkedList 规范：addFirst/addLast 头尾插入、removeFirst/removeLast 头尾删除、first/last 链首链尾元素、addBefore/addAfter 在指定节点前后插入、remove 删除指定节点、clear 清空、iterator 迭代器。不使用哨兵节点（避免泛型 T 无无参构造的问题）。
@@ -19,14 +41,20 @@ import std.collection.*
 public class LinkedListNode<T> {
     /**
      * @brief[zh-cn] 节点值
+     *
+     * @brief[en] Node value
      */
     public var value: T
     /**
      * @brief[zh-cn] 前驱节点
+     *
+     * @brief[en] Previous node
      */
     private var _prev: ?LinkedListNode<T>
     /**
      * @brief[zh-cn] 后继节点
+     *
+     * @brief[en] Next node
      */
     private var _next: ?LinkedListNode<T>
 
@@ -38,6 +66,8 @@ public class LinkedListNode<T> {
 
     /**
      * @brief[zh-cn] 前驱节点
+     *
+     * @brief[en] Previous node
      */
     public prop prev: ?LinkedListNode<T> {
         get() { _prev }
@@ -45,6 +75,8 @@ public class LinkedListNode<T> {
 
     /**
      * @brief[zh-cn] 后继节点
+     *
+     * @brief[en] Next node
      */
     public prop next: ?LinkedListNode<T> {
         get() { _next }
@@ -64,14 +96,20 @@ public class LinkedListNode<T> {
 public class LinkedList<T> {
     /**
      * @brief[zh-cn] 头节点
+     *
+     * @brief[en] Head node
      */
     private var _head: ?LinkedListNode<T>
     /**
      * @brief[zh-cn] 尾节点
+     *
+     * @brief[en] Tail node
      */
     private var _tail: ?LinkedListNode<T>
     /**
      * @brief[zh-cn] 元素数量
+     *
+     * @brief[en] Number of elements
      */
     private var _size: Int64
 
@@ -239,6 +277,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 链首元素
+     *
+     * @brief[en] Head element
      */
     public prop first: ?T {
         get() {
@@ -251,6 +291,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 链尾元素
+     *
+     * @brief[en] Tail element
      */
     public prop last: ?T {
         get() {
@@ -263,6 +305,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 链首节点
+     *
+     * @brief[en] Head node
      */
     public prop firstNode: ?LinkedListNode<T> {
         get() { _head }
@@ -270,6 +314,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 链尾节点
+     *
+     * @brief[en] Tail node
      */
     public prop lastNode: ?LinkedListNode<T> {
         get() { _tail }
@@ -277,6 +323,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 元素数量
+     *
+     * @brief[en] Number of elements
      */
     public prop size: Int64 {
         get() { _size }
@@ -284,6 +332,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 是否为空
+     *
+     * @brief[en] Whether the list is empty
      */
     public func isEmpty(): Bool {
         return _size == 0
@@ -291,6 +341,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 清空链表
+     *
+     * @brief[en] Clear the list
      */
     public func clear(): Unit {
         _head = None
@@ -300,6 +352,8 @@ public class LinkedList<T> {
 
     /**
      * @brief[zh-cn] 转为数组（从头到尾）
+     *
+     * @brief[en] Convert to an array (from head to tail)
      */
     public func toArray(): Array<T> {
         let list = ArrayList<T>()

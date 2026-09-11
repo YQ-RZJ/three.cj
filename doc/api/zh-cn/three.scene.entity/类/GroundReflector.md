@@ -50,7 +50,7 @@ public func getReflectDepthTex(): TextureHandle
 ```cj
 public func getReflectFB(): FrameBufferHandle
 ```
-取反射 RT frame buffer（渲染目标，由 BgfxSSRPass 设到 view）。
+取反射 RT frame buffer（渲染目标，由 SSRPass 设到 view）。
 
 ### func getRenderTarget\(\)
 ```cj
@@ -68,6 +68,12 @@ public func getTextureSize():(Int64, Int64)
 
 - (宽, 高)取反射 RT 尺寸。
 
+### func init\(\)
+```cj
+public init()
+```
+
+
 ### func init\(BufferGeometry,Int64,Int64,Color,Float64,Bool\)
 ```cj
 public init(geometry: BufferGeometry, textureWidth!: Int64 = 512, textureHeight!: Int64 = 512, color!: Color = Color(0x7f, 0x7f, 0x7f), clipBias!: Float64 = 0.0, useDepthTexture!: Bool = false)
@@ -78,19 +84,19 @@ public init(geometry: BufferGeometry, textureWidth!: Int64 = 512, textureHeight!
 
 |名称|类型|描述|
 |---|---|---|
-|geometry|BufferGeometry|地面平面几何（PlaneGeometry/BoxGeometry）|
-|textureWidth|Int64|反射纹理宽（默认 512）|
-|textureHeight|Int64|反射纹理高（默认 512）|
-|color|Color|反射贴图混合色（默认 0x7F7F7F）|
-|clipBias|Float64|裁剪偏置（默认 0；bgfx 无全局裁剪平面，预留）|
-|useDepthTexture|Bool|是否用深度纹理（默认 false；true 时启用距离衰减/菲涅尔）构造 GroundReflector。|
+|geometry|BufferGeometry||
+|textureWidth|Int64||
+|textureHeight|Int64||
+|color|Color||
+|clipBias|Float64||
+|useDepthTexture|Bool||
 
 ### let REFLECTOR\_VIEW\_ID\_BASE
 ```cj
 public static let REFLECTOR_VIEW_ID_BASE: UInt16 = 237u16
 ```
 分配给本组件的 bgfx view ID 段。
-+0: 反射场景渲染（用 view 0 语义 + renderer.render，见 BgfxSSRPass._renderGroundReflector）
++0: 反射场景渲染（用 view 0 语义 + renderer.render，见 SSRPass._renderGroundReflector）
 +1: 反射深度渲染（useDepthTexture=true 时，aodepth → RGBA32F 深度 RT）
 取 237 起避开 SSAO 160 / SSR 176 / Bloom 200~212 / ShaderPass 200~209 /
 SavePass 210 / TexturePass 211 / OutputPass 212 / FXAA 213 / SMAA 214~216 /

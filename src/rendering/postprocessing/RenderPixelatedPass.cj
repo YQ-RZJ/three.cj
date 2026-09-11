@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] RenderPixelatedPass 像素化渲染 pass
  * @brief[zh-cn] 像素化渲染 pass —— 低分辨率 beauty 渲染 + 深度/法线边缘检测的像素化风格
  * @explain[zh-cn] 算法（完整非简化移植）：
@@ -78,7 +100,7 @@
 
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.common.RenderObject
@@ -183,7 +205,7 @@ public class RenderPixelatedPass <: Pass {
     private var _layoutHandleCache: Option<VertexLayoutHandle> = None
 
     /** 渲染器引用（render() 时缓存，dispose/_destroyRTs 经其高阶 API 销毁资源） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 分配给本 pass 的 bgfx view ID 段。
@@ -269,7 +291,7 @@ public class RenderPixelatedPass <: Pass {
     /**
      * 创建低分辨率 RT（beauty RGBA16F+D24 / 深度 RGBA32F+D24 / 法线 RGBA16F+D24）。
      */
-    private func _ensureRTs(renderer: BgfxRenderer): Unit {
+    private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._renderWidth <= 0 || this._renderHeight <= 0) { return }
         if (isValidHandle(this._beautyTex)) { return }
 
@@ -325,7 +347,7 @@ public class RenderPixelatedPass <: Pass {
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(renderer: BgfxRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
+    private func _createFBWithDepth(renderer: ThreeRenderer, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
         let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
         let fb = renderer.createFrameBuffer(2u8, handles, true)
         return fb
@@ -363,7 +385,7 @@ public class RenderPixelatedPass <: Pass {
 
     // ===== 场景几何体缓存（对齐 SSRPass/_renderDepth 范式） =====
 
-    private func _getOrCreateLayout(renderer: BgfxRenderer): VertexLayoutHandle {
+    private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
         match (this._layoutHandleCache) {
             case Some(lh) => return lh
             case None => ()
@@ -410,7 +432,7 @@ public class RenderPixelatedPass <: Pass {
         return list.toArray()
     }
 
-    private func _createVB(renderer: BgfxRenderer, geom: BufferGeometry): VertexBufferHandle {
+    private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._vbCache.get(geomId)) {
             case Some(vb) => return vb
@@ -466,7 +488,7 @@ public class RenderPixelatedPass <: Pass {
         }
     }
 
-    private func _createIB(renderer: BgfxRenderer, geom: BufferGeometry): IndexBufferHandle {
+    private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._ibCache.get(geomId)) {
             case Some(ib) => return ib
@@ -504,7 +526,7 @@ public class RenderPixelatedPass <: Pass {
     }
 
     /** 设置 view transform（view=matrixWorldInverse, proj=projectionMatrix，对齐 SSRPass） */
-    private func _setViewTransformFor(renderer: BgfxRenderer, viewId: UInt16, camera: Camera): Unit {
+    private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
         let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
         let viewMem = BgfxMemory(64u32)
@@ -544,7 +566,7 @@ public class RenderPixelatedPass <: Pass {
      * 注：bgfx 侧无 per-mesh 材质 override 路径，beauty 用 normal shader 渲出
      * 明度/色彩信息（法线编码），像素化风格下视觉等价（边缘检测靠 depth/normal）。
      */
-    private func _renderBeauty(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderBeauty(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._renderWidth), UInt16(this._renderHeight))
         this.setRenderTarget(renderer, viewId, this._beautyFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -615,7 +637,7 @@ public class RenderPixelatedPass <: Pass {
      * 深度 pass：aodepth shader 渲场景到深度 RT（写 gl_FragCoord.z = NDC 深度）。
      * bgfx 深度 attachment 不可直接采样，故独立深度 RT（对齐 GTAO/SSR 范式）。
      */
-    private func _renderDepth(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderDepth(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._renderWidth), UInt16(this._renderHeight))
         this.setRenderTarget(renderer, viewId, this._depthFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -665,7 +687,7 @@ public class RenderPixelatedPass <: Pass {
      * 法线 pass：normal shader 渲场景到法线 RT（0.5+0.5 编码 view 空间法线）。
      * 与 SSRPass._renderNormals 同构（u_normalMatrix = mat3(view) × mat3(model)，紧凑 9 floats）。
      */
-    private func _renderNormals(renderer: BgfxRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
+    private func _renderNormals(renderer: ThreeRenderer, scene: Scene, camera: Camera, viewId: UInt16): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._renderWidth), UInt16(this._renderHeight))
         this.setRenderTarget(renderer, viewId, this._normalFB)
         this._setViewTransformFor(renderer, viewId, camera)
@@ -742,7 +764,7 @@ public class RenderPixelatedPass <: Pass {
      * 输出目标：renderToScreen=true（最后一个 enabled pass）→ swap chain；否则 → writeBuffer。
      */
     private func _renderComposite(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         readBuffer: FrameBufferHandle,
         writeBuffer: FrameBufferHandle,
         viewId: UInt16
@@ -827,7 +849,7 @@ public class RenderPixelatedPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

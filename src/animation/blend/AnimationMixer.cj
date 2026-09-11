@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] AnimationMixer 动画混合器
  * @brief[zh-cn] 管理动画混合与播放，是场景中特定对象的动画播放器
  * @explain[zh-cn] 当场景中的多个对象独立动画时，每个对象可以使用一个 AnimationMixer。
@@ -17,13 +39,16 @@ package three.animation.blend
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
+import three.scene.entity.*
 import three.core.time.*
 import three.rendering.rendertarget.*
 import three.core.event.*
 import three.core.math.*
+import three.core.math.soa.*
 import three.core.math.interpolants.*
 import three.utils.constants.*
 import three.animation.interfaces.IAnimationClip
+import three.animation.skeletal.*
 import std.collection.*
 import std.math.*
 
@@ -49,48 +74,91 @@ public class AnimationMixer <: EventDispatcher {
 
     /**
      * @brief[zh-cn] 活跃动作数量
+     *
+     * @brief[en] Number of active actions
      */
     private var _nActiveActions: Int64
 
     /**
      * @brief[zh-cn] 所有动作数组（前 nActiveActions 个为活跃，其余为非活跃）
+     *
+     * @brief[en] Array of all actions (the first nActiveActions are active, the rest inactive)
      */
     private var _actions: ArrayList<AnimationAction>
 
     /**
      * @brief[zh-cn] 按 clip UUID 分组的动作映射
+     *
+     * @brief[en] Action map grouped by clip UUID
      */
     private var _actionsByClip: HashMap<String, HashMap<String, Any>>
 
     /**
      * @brief[zh-cn] 活跃绑定数量
+     *
+     * @brief[en] Number of active bindings
      */
     private var _nActiveBindings: Int64
 
     /**
      * @brief[zh-cn] 所有绑定数组（前 nActiveBindings 个为活跃，其余为非活跃）
+     *
+     * @brief[en] Array of all bindings (the first nActiveBindings are active, the rest inactive)
      */
     private var _bindings: ArrayList<PropertyMixer>
 
     /**
      * @brief[zh-cn] 按根对象 UUID 和轨道名分组的绑定映射
+     *
+     * @brief[en] Binding map grouped by root object UUID and track name
      */
     private var _bindingsByRootAndName: HashMap<String, HashMap<String, PropertyMixer>>
 
     /**
      * @brief[zh-cn] 活跃控制插值器数量
+     *
+     * @brief[en] Number of active control interpolants
      */
     private var _nActiveControlInterpolants: Int64
 
     /**
      * @brief[zh-cn] 所有控制插值器数组
+     *
+     * @brief[en] Array of all control interpolants
      */
     private var _controlInterpolants: ArrayList<Interpolant>
 
     /**
      * @brief[zh-cn] 累积索引（0 或 1，帧交替）
+     *
+     * @brief[en] Accumulation index (0 or 1, alternating each frame)
      */
     private var _accuIndex: Int64
+
+    /**
+     * @brief[zh-cn] 骨骼动画数据映射（clip UUID → SkeletalAnimationData）
+     * @explain[zh-cn] 由 registerSkeletalData 注册，updateSkeletal 时按 clip UUID 查找。
+     *                  避免将骨骼数据挂在 AnimationClip 上造成循环依赖。
+     *
+     * @brief[en] Skeletal animation data map (clip UUID → SkeletalAnimationData)
+     * @explain[en] Registered by registerSkeletalData and looked up by clip UUID in
+     *                  updateSkeletal. Avoids attaching skeletal data to AnimationClip,
+     *                  which would cause a circular dependency.
+     */
+    private var _skeletalDataMap: HashMap<String, SkeletalAnimationData>
+
+    /**
+     * @brief[zh-cn] 绑定的场景骨骼（可选）
+     * @explain[zh-cn] updateSkeletal 计算出模型空间矩阵后，若已绑定场景骨骼，
+     *                  则将矩阵分解为局部 TRS 写回对应 Bone 节点，驱动渲染蒙皮。
+     *
+     * @brief[en] The bound scene skeleton (optional)
+     * @explain[en] After updateSkeletal computes model-space matrices, if a scene
+     *                  skeleton is bound, the matrices are decomposed into local TRS
+     *                  and written back to the corresponding Bone nodes to drive
+     *                  render-side skinning.
+     */
+    private var _sceneSkeleton: ?Skeleton
 
     /**
      * @brief[zh-cn] 全局混合器时间（秒，从创建时为 0）
@@ -135,6 +203,8 @@ public class AnimationMixer <: EventDispatcher {
         this._nActiveControlInterpolants = 0
         this._controlInterpolants = ArrayList<Interpolant>()
         this._accuIndex = 0
+        this._skeletalDataMap = HashMap<String, SkeletalAnimationData>()
+        this._sceneSkeleton = None
         this.time = 0.0
         this.timeScale = 1.0
         this.stats = HashMap<String, HashMap<String, ()->Int64>>()
@@ -145,6 +215,11 @@ public class AnimationMixer <: EventDispatcher {
      * @param[zh-cn] prototypeAction 原型动作（用于复用解析路径）
      *
      * 绑定动作到属性混合器
+     *
+     * @param[en] action The action to bind
+     * @param[en] prototypeAction The prototype action (used to reuse parsed paths)
+     *
+     * Binds an action to the property mixers
      */
     internal func _bindAction(action: AnimationAction, prototypeAction: Option<AnimationAction>): Unit {
         let root = action.getRoot()
@@ -211,6 +286,10 @@ public class AnimationMixer <: EventDispatcher {
      * @param[zh-cn] action 要激活的动作
      *
      * 激活动作
+     *
+     * @param[en] action The action to activate
+     *
+     * Activates an action
      */
     internal func _activateAction(action: AnimationAction): Unit {
         if (!this._isActiveAction(action)) {
@@ -262,6 +341,10 @@ public class AnimationMixer <: EventDispatcher {
      * @param[zh-cn] action 要停用的动作
      *
      * 停用动作
+     *
+     * @param[en] action The action to deactivate
+     *
+     * Deactivates an action
      */
     internal func _deactivateAction(action: AnimationAction): Unit {
         if (this._isActiveAction(action)) {
@@ -1023,6 +1106,156 @@ public class AnimationMixer <: EventDispatcher {
             case Some(action) =>
                 this._deactivateAction(action)
                 this._removeInactiveAction(action)
+            case None => ()
+        }
+    }
+
+    // =========================================================================
+    // 骨骼动画 Job 集成（ozz 风格管线：Sampling → Blending → LocalToModel）
+    // =========================================================================
+
+    /**
+     * @brief[zh-cn] 注册骨骼动画数据
+     * @param[zh-cn] clipUUID 动画片段的 UUID
+     * @param[zh-cn] data 骨骼动画压缩数据
+     *
+     * @brief[en] Register skeletal animation data
+     * @param[en] clipUUID The UUID of the animation clip
+     * @param[en] data Compressed skeletal animation data
+     */
+    public func registerSkeletalData(clipUUID: String, data: SkeletalAnimationData): Unit {
+        if (this._skeletalDataMap.contains(clipUUID)) {
+            this._skeletalDataMap.remove(clipUUID)
+        }
+        this._skeletalDataMap.add(clipUUID, data)
+    }
+
+    /**
+     * @brief[zh-cn] 绑定场景骨骼
+     * @explain[zh-cn] updateSkeletal 计算出模型空间矩阵后，若已绑定场景骨骼，
+     *                  则将矩阵分解为相对父关节的局部 TRS 写回对应 Bone 节点，
+     *                  驱动渲染侧蒙皮。Bone 数量须与 SkeletonData 关节数一致。
+     * @param[zh-cn] skeleton 场景层骨骼对象
+     *
+     * @brief[en] Bind the scene skeleton
+     * @explain[en] After updateSkeletal computes model-space matrices, if a scene
+     *                  skeleton is bound, each matrix is decomposed into parent-relative
+     *                  local TRS and written back to the corresponding Bone, driving
+     *                  render-side skinning. Bone count must match the joint count.
+     * @param[en] skeleton The scene-layer skeleton
+     */
+    public func bindSceneSkeleton(skeleton: Skeleton): Unit {
+        this._sceneSkeleton = Some(skeleton)
+    }
+
+    /**
+     * @brief[zh-cn] 使用骨骼采样/混合 Job 管线更新骨骼动画
+     * @explain[zh-cn] 这是 ozz 风格 Job 管线的集成入口。动作时间由 update(deltaTime)
+     *                  推进，本方法负责：
+     *                  1. 对每个活跃且已注册骨骼数据的动作使用 SamplingJob 采样
+     *                  2. 使用 BlendingJob 归一化混合多层动画（无活跃层时回退 rest pose）
+     *                  3. 使用 LocalToModelJob 将局部姿态转换为模型空间矩阵
+     *                  4. 若已绑定场景骨骼，将模型矩阵分解为局部 TRS 写回 Bone 节点
+     *
+     * @brief[en] Updates skeletal animation with the sampling/blending job pipeline
+     * @explain[en] Ozz-style job pipeline entry. Action time is advanced by
+     *                  update(deltaTime); this method samples each active action via
+     *                  SamplingJob, blends layers via BlendingJob (falls back to the
+     *                  rest pose when no layer is active), converts local poses to
+     *                  model-space matrices via LocalToModelJob, and optionally writes
+     *                  parent-relative local TRS back to the bound scene skeleton.
+     *
+     * @param[zh-cn] skeletonData 运行时骨骼数据
+     * @param[zh-cn] deltaTime 帧间隔时间（秒），与 update 的入参保持一致
+     *
+     * @param[en] skeletonData Runtime skeleton data
+     * @param[en] deltaTime Frame interval in seconds, same as the update argument
+     */
+    public func updateSkeletal(skeletonData: SkeletonData, deltaTime: Float32): Unit {
+        let numJoints = skeletonData.numJoints()
+        if (numJoints <= 0) { return }
+
+        let numSoa = skeletonData.numSoaJoints()
+        let restPoses = skeletonData.jointRestPoses()
+
+        // 1. 采样：为每个活跃且已注册骨骼数据的动作构建混合层
+        let layers = ArrayList<BlendLayer>()
+        for (i in 0..this._nActiveActions) {
+            let action = this._actions[i]
+            if (!action.enabled) { continue }
+
+            let weight = Float32(action.getEffectiveWeight())
+            if (weight <= 0.0f32) { continue }
+
+            let clip = action.getClip()
+            let ratio = if (clip.duration > 0.0) {
+                max(0.0f32, min(1.0f32, Float32(action.time / clip.duration)))
+            } else {
+                0.0f32
+            }
+
+            match (this._skeletalDataMap.get(clip.uuid)) {
+                case Some(data) =>
+                    let samplingOutput = Array<SoaTransform>(numSoa, { _ => SoaTransform() })
+                    let samplingJob = SamplingJob()
+                    samplingJob.ratio = ratio
+                    samplingJob.animation = Some(data)
+                    samplingJob.context = SamplingContext()
+                    samplingJob.output = samplingOutput
+                    if (samplingJob.validate() && samplingJob.run()) {
+                        let layer = BlendLayer()
+                        layer.weight = weight
+                        layer.transforms = samplingOutput
+                        layers.add(layer)
+                    }
+                case None => ()  // 未注册骨骼数据的动作跳过
+            }
+        }
+
+        // 2. 混合：无活跃层时 BlendingJob 对所有关节回退 rest pose
+        let blendOutput = Array<SoaTransform>(numSoa, { _ => SoaTransform() })
+        let blendingJob = BlendingJob()
+        blendingJob.threshold = 0.001f32
+        blendingJob.layers = layers
+        blendingJob.restPose = restPoses
+        blendingJob.output = blendOutput
+        if (!blendingJob.run()) { return }
+
+        // 3. 局部空间 → 模型空间
+        let modelMatrices = Array<Matrix4F>(numJoints, { _ => Matrix4F() })
+        let localToModelJob = LocalToModelJob()
+        localToModelJob.skeleton = Some(skeletonData)
+        localToModelJob.input = blendOutput
+        localToModelJob.output = modelMatrices
+        localToModelJob.from = 0
+        localToModelJob.to = 0  // <= 0 表示处理到最后一个关节
+        if (!localToModelJob.run()) { return }
+
+        // 4. 写回场景骨骼：模型矩阵 → 相对父关节的局部 TRS → Bone 节点
+        match (this._sceneSkeleton) {
+            case Some(sceneSkeleton) =>
+                if (sceneSkeleton.bones.size != numJoints) { return }
+                for (joint in 0..numJoints) {
+                    let bone = sceneSkeleton.bones[joint]
+
+                    // Float32 模型矩阵 → Float64 场景矩阵
+                    let model = Matrix4()
+                    model.fromArray(Array<Float64>(16, { e => Float64(modelMatrices[joint].elements[e]) }))
+
+                    // 局部矩阵 = 父模型矩阵的逆 × 当前模型矩阵；根关节直接使用模型矩阵
+                    let parentIdx = skeletonData.jointParent(joint)
+                    let local = if (parentIdx >= 0) {
+                        let parentModel = Matrix4()
+                        parentModel.fromArray(
+                            Array<Float64>(16, { e => Float64(modelMatrices[parentIdx].elements[e]) }))
+                        parentModel.invert()
+                        Matrix4().multiplyMatrices(parentModel, model)
+                    } else {
+                        model
+                    }
+
+                    local.decompose(bone.position, bone.quaternion, bone.scale)
+                }
             case None => ()
         }
     }

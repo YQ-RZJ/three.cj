@@ -24,23 +24,23 @@ Parameter:
 ```cj
 public let args: Array < Any >
 ```
-
+Parameters for this execution
 
 ### let deltaTime
 ```cj
 public let deltaTime: Float64
 ```
-
+Frame interval time (milliseconds)
 
 ### let idx
 ```cj
 public let idx: Int64
 ```
-
+Execution count
 
 ### let task
 ```cj
 public let task: FrameTask
 ```
-
+Current task
 

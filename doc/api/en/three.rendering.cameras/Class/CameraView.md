@@ -15,6 +15,12 @@ Return:
 
 - New CameraView instance
 
+### func init\(\)
+```cj
+public init()
+```
+No-arg constructor (for fastjson deserialization)
+
 ### func init\(Bool,Float64,Float64,Float64,Float64,Float64,Float64\)
 ```cj
 public init(enabled: Bool, fullWidth: Float64, fullHeight: Float64, offsetX: Float64, offsetY: Float64, width: Float64, height: Float64)
@@ -32,12 +38,6 @@ Parameter:
 |offsetY|Float64||
 |width|Float64||
 |height|Float64||
-
-### func init\(\)
-```cj
-public init()
-```
-No-arg constructor (for fastjson deserialization)
 
 ### func toHashMap\(\)
 ```cj

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] EventFactory
  * @brief[zh-cn] 事件记录与对象池
  * @explain[zh-cn] EventRecord 包装事件回调及其元数据（名称、目标、单次标志）。EventFactory 通过自由链表复用 EventRecord 实例，减少 GC 压力。设计要点：EventRecord 字段公开可读，但调用方应将其视为不透明句柄，仅通过 EventManager.remove(listener) 进行移除；对象池用 ArrayList 自由栈实现：allocate 弹出尾部空闲实例，recycle 清空字段并压回；当池空时自动 new 新实例；recycled 标志用于防止重复入池。
@@ -21,26 +43,38 @@ import std.collection.*
 public class EventRecord {
     /**
      * @brief[zh-cn] 唯一 ID
+     *
+     * @brief[en] Unique ID
      */
     public var id: Int64
     /**
      * @brief[zh-cn] 事件名称
+     *
+     * @brief[en] Event name
      */
     public var name: String
     /**
      * @brief[zh-cn] 目标对象（用于过滤分发）
+     *
+     * @brief[en] Target object (used to filter dispatching)
      */
     public var target: ?Object
     /**
      * @brief[zh-cn] 是否仅触发一次
+     *
+     * @brief[en] Whether it triggers only once
      */
     public var once: Bool
     /**
      * @brief[zh-cn] 回调函数
+     *
+     * @brief[en] Callback function
      */
     public var callback: (Array<Object>) -> Unit
     /**
      * @brief[zh-cn] 是否已回收（在池中）—内部使用
+     *
+     * @brief[en] Whether already recycled (in the pool) — internal use
      */
     internal var recycled: Bool
 
@@ -87,14 +121,20 @@ public class EventRecord {
 public class EventFactory {
     /**
      * @brief[zh-cn] 自增 ID 计数器（下一个分配的 ID）
+     *
+     * @brief[en] Auto-incrementing ID counter (next ID to be assigned)
      */
     private var _nextId: Int64
     /**
      * @brief[zh-cn] 空闲对象栈
+     *
+     * @brief[en] Free object stack
      */
     private var _free: ArrayList<EventRecord>
     /**
      * @brief[zh-cn] 已分配数量
+     *
+     * @brief[en] Number of allocated objects
      */
     private var _allocated: Int64
 
@@ -169,6 +209,8 @@ public class EventFactory {
 
     /**
      * @brief[zh-cn] 已分配数量
+     *
+     * @brief[en] Number of allocated objects
      */
     public prop allocatedCount: Int64 {
         get() { _allocated }
@@ -176,6 +218,8 @@ public class EventFactory {
 
     /**
      * @brief[zh-cn] 池中空闲数量
+     *
+     * @brief[en] Number of free objects in the pool
      */
     public prop freeCount: Int64 {
         get() { _free.size }

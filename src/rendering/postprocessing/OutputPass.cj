@@ -1,8 +1,30 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxOutputPass 输出 pass
  * @brief[zh-cn] 输出 pass —— 色调映射 + sRGB 色彩空间转换，pass 链最后一个上屏 pass
  * @explain[zh-cn] 用 OutputShader（含 7 种 ToneMapping + SRGB_TRANSFER）做色调映射 + sRGB 转换。
- *         toneMapping/exposure/sRGB 三个参数由用户显式传（BgfxRenderer 未暴露这些字段）。
+ *         toneMapping/exposure/sRGB 三个参数由用户显式传（ThreeRenderer 未暴露这些字段）。
  *         needsSwap=true（默认，作为最后一个 pass 时 composer 自动 renderToScreen=true）；
  *         renderToScreen=true 时调 bgfx_frame 上屏。
  *         渲染差异：material.defines 由 compileBgfxWithDefines 传 #define 字符串实现；
@@ -11,7 +33,7 @@
  * @file[en] BgfxOutputPass output pass
  * @brief[en] Output pass - tone mapping + sRGB color space conversion, the final on-screen pass of the chain
  * @explain[en] Uses OutputShader (with 7 ToneMapping variants + SRGB_TRANSFER) for tone mapping + sRGB conversion.
- *         The toneMapping/exposure/sRGB parameters are passed explicitly by the user (BgfxRenderer does not expose these fields).
+ *         The toneMapping/exposure/sRGB parameters are passed explicitly by the user (ThreeRenderer does not expose these fields).
  *         needsSwap=true (default; as the last pass the composer automatically sets renderToScreen=true);
  *         when renderToScreen=true, bgfx_frame is called to present.
  *         Rendering differences: material.defines is implemented via compileBgfxWithDefines with #define strings;
@@ -21,7 +43,7 @@
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.constants.*
@@ -146,7 +168,7 @@ public class OutputPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

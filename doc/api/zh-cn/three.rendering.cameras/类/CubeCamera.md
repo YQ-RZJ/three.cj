@@ -5,19 +5,25 @@ public class CubeCamera <: Object3D
 ```
 立方体相机
 
-### func init\(Float64,Float64,IRenderTarget\)
+### func init\(\)
 ```cj
-public init(near: Float64, far: Float64, renderTarget: IRenderTarget)
+public init()
 ```
 构造一个新的立方体相机
+
+### func init\(Float64,Float64,?IRenderTarget\)
+```cj
+public init(near: Float64, far: Float64, renderTarget:?IRenderTarget)
+```
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|near|Float64|近裁剪面距离far 远裁剪面距离renderTarget CubeRenderTarget 渲染目标|
+|near|Float64||
 |far|Float64||
-|renderTarget|IRenderTarget||
+|renderTarget|?IRenderTarget||
 
 ### func updateCoordinateSystem\(\)
 ```cj
@@ -52,7 +58,7 @@ public var coordinateSystem: Option < Int64 >
 
 ### var renderTarget
 ```cj
-public var renderTarget: IRenderTarget
+public var renderTarget:?IRenderTarget
 ```
 立方体贴图渲染目标（CubeRenderTarget），6 面颜色 + optional mipmap
 

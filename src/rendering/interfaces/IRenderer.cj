@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] IRenderer 渲染器接口
  * @brief[zh-cn] 渲染器接口，声明 CubeCamera.update 所需的渲染目标切换方法
  * @explain[zh-cn] Three.js 的 CubeCamera.update(renderer, scene) 参数是 WebGLRenderer（renderers 包）。
@@ -6,7 +28,7 @@
  * 因此将"渲染器"抽象为接口，声明 CubeCamera.update 语义上需要的方法：
  * - 实现方（renderers 包 BgfxRenderer）实现本接口；
  * - 使用方（cameras 包 CubeCamera）仅以接口持有渲染器引用并调用接口方法，不依赖实现类型。
- * render 方法不纳入接口：BgfxRenderer.render 是基类 Renderer.render(Scene, Camera) 的
+ * render 方法不纳入接口：ThreeRenderer.render 是基类 Renderer.render(Scene, Camera) 的
  * override（具体类型签名），接口化会与 override 签名冲突，故 render 保留在具体类。
  *
  * @file[en] IRenderer Renderer interface
@@ -15,9 +37,9 @@
  * If the Cangjie cameras package directly imports renderers, a circular dependency forms
  * (renderers depends on cameras), so "renderer" is abstracted as an interface declaring
  * methods semantically needed by CubeCamera.update:
- * - Implementor (BgfxRenderer in renderers package) implements this interface;
+ * - Implementor (ThreeRenderer in renderers package) implements this interface;
  * - Consumer (CubeCamera in cameras package) holds renderer reference by interface only.
- * The render method is not included: BgfxRenderer.render overrides Renderer.render(Scene, Camera)
+ * The render method is not included: ThreeRenderer.render overrides Renderer.render(Scene, Camera)
  * with a concrete signature; interface-izing it would conflict with the override signature.
  *
  * @package three.rendering.interfaces

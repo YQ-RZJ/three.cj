@@ -74,5 +74,5 @@ Return:
 ```cj
 public var materials: Option < MaterialCreator >
 ```
-
+Material creator (provided by MTLLoader); default materials are used when None
 

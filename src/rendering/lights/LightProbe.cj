@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 光照探针
  * @brief[zh-cn] 光照探针，用球面调和描述场景光照环境的光源
  * @explain[zh-cn] 
@@ -12,6 +34,10 @@
  * bake SH coefficients from HDR environment maps and use as a light source in rendering.
  */
 package three.rendering.lights
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.core.math.*
 import three.rendering.buffer.*
@@ -32,6 +58,7 @@ import std.collection.*
  * Commonly used for Image-Based Lighting: bake SH coefficients from HDR
  * environment maps and use as a light source in rendering.
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Light]
 public class LightProbe <: Light {
 
     /**
@@ -39,6 +66,7 @@ public class LightProbe <: Light {
      *
      * @brief[en] Spherical harmonics coefficients describing scene lighting
      */
+    @JsonIgnore
     public var sh: SphericalHarmonics3
 
     /**
@@ -52,7 +80,6 @@ public class LightProbe <: Light {
      */
     public init(sh!: SphericalHarmonics3 = SphericalHarmonics3(), intensity!: Float64 = 1.0) {
         super(color: Color(0xffffff), intensity: intensity)
-        this.kind = "LightProbe"
         this.sh = sh
     }
 

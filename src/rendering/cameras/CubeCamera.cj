@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] CubeCamera 立方体相机
  * @brief[zh-cn] 用 6 个 PerspectiveCamera 子相机分别捕获场景 6 个方向的视图，合成到 CubeRenderTarget
  * @explain[zh-cn] 立方体相机：用 6 个 PerspectiveCamera 子相机分别捕获场景 ±X/±Y/±Z 6 个方向的视图，
@@ -14,6 +36,10 @@
  * @package three.rendering.cameras
  */
 package three.rendering.cameras
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -37,13 +63,15 @@ import std.collection.*
  * @explain[en] Captures scene views in 6 directions (±X/±Y/±Z) using 6 PerspectiveCamera sub-cameras,
  * composited into CubeRenderTarget, used for environment maps, CubeMap reflections, etc.
  */
+@JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
 public class CubeCamera <: Object3D {
     /**
      * @brief[zh-cn] 立方体贴图渲染目标（CubeRenderTarget），6 面颜色 + optional mipmap
      *
      * @brief[en] Cube map render target (CubeRenderTarget), 6-face color + optional mipmap
      */
-    public var renderTarget: IRenderTarget
+    @JsonIgnore
+    public var renderTarget: ?IRenderTarget
 
     /**
      * @brief[zh-cn] 当前坐标系（None 表示未初始化，与 JS side 默认 null 对齐）
@@ -70,9 +98,11 @@ public class CubeCamera <: Object3D {
      * far Far clipping plane distance
      * renderTarget CubeRenderTarget render target
      */
-    public init(near: Float64, far: Float64, renderTarget: IRenderTarget) {
+    public init() {
+        this(0.1, 2000.0, None)
+    }
+    public init(near: Float64, far: Float64, renderTarget: ?IRenderTarget) {
         super()
-        this.kind = "CubeCamera"
         this.renderTarget = renderTarget
         this.coordinateSystem = None
         this.activeMipmapLevel = 0

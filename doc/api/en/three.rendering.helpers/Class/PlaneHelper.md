@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 Dispose GPU resources
 
+### func init\(\)
+```cj
+public init()
+```
+Construct a plane helper
+
 ### func init\(Plane,Float64,UInt32\)
 ```cj
 public init(plane: Plane, size!: Float64 = 1.0, hex!: UInt32 = 0xffff00)
 ```
-Construct a plane helper
+
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|plane|Plane|The plane to visualizesize Edge length, default 1hex Color, default yellow 0xffff00|
+|plane|Plane||
 |size|Float64||
 |hex|UInt32||
 

@@ -22,12 +22,6 @@ public func copy(source: ShaderMaterial, recursive!: Bool = true): ShaderMateria
 
 - 本实例
 
-### func init\(\)
-```cj
-public init()
-```
-构造一个新的自定义着色器材质
-
 ### func init\(String,String,HashMap<String,Any>\)
 ```cj
 public init(vertexShader: String, fragmentShader: String, uniforms!: HashMap < String, Any >= HashMap < String, Any >())
@@ -41,6 +35,12 @@ public init(vertexShader: String, fragmentShader: String, uniforms!: HashMap < S
 |vertexShader|String|顶点着色器源码fragmentShader 片段着色器源码uniforms 自定义uniform表|
 |fragmentShader|String||
 |uniforms|HashMap<String,Any>||
+
+### func init\(\)
+```cj
+public init()
+```
+构造一个新的自定义着色器材质
 
 ### var fragmentShader
 ```cj

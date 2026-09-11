@@ -32,9 +32,9 @@ Parameter:
 |greyscale|Bool|Grayscale (default false)|
 |disable|Bool|Disabled pass-through (default false)|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 Executes the halftone pass
 
@@ -42,7 +42,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|Renderer|
+|renderer|ThreeRenderer|Renderer|
 |writeBuffer|FrameBufferHandle|Write buffer (output target of this pass)|
 |readBuffer|FrameBufferHandle|Read buffer (previous pass result, bound to tDiffuse)|
 |deltaTime|Float64|Frame delta time|

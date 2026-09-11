@@ -21,22 +21,6 @@ Return:
 
 - This instance
 
-### func at\(Float64\)
-```cj
-public func at(t: Float64): Vector3
-```
-Get the point at parameter t on the ray (creates new vector)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|t|Float64|Parameter value|
-
-Return: 
-
-- Point on the ray
-
 ### func at\(Float64,Vector3\)
 ```cj
 public func at(t: Float64, target: Vector3): Vector3
@@ -49,6 +33,22 @@ Parameter:
 |---|---|---|
 |t|Float64|Parameter valuetarget Target vector|
 |target|Vector3||
+
+Return: 
+
+- Point on the ray
+
+### func at\(Float64\)
+```cj
+public func at(t: Float64): Vector3
+```
+Get the point at parameter t on the ray (creates new vector)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|t|Float64|Parameter value|
 
 Return: 
 

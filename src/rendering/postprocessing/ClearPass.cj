@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxClearPass 清屏 pass
  * @brief[zh-cn] 清屏 pass —— 对当前读 buffer（或屏幕）执行 clear 操作
  * @explain[zh-cn] 设计：
@@ -10,7 +32,7 @@
  *             bgfx_touch(view)（无 submit，仅触发 clear）
  *         用 view 级 clear：bgfx_set_view_frame_buffer + bgfx_set_view_clear + bgfx_touch，
  *         在该 view 的所有 submit 前清帧 buffer。clearColor 是 UInt32（0xAABBGGRR，
- *         与 BgfxRenderer.clearColor 一致）；clearAlpha 由 bgfx_set_view_clear 合并到颜色 uint32 高字节。
+ *         与 ThreeRenderer.clearColor 一致）；clearAlpha 由 bgfx_set_view_clear 合并到颜色 uint32 高字节。
  *
  * @file[en] BgfxClearPass clear pass
  * @brief[en] Clear pass - performs a clear operation on the current read buffer (or screen)
@@ -23,14 +45,14 @@
  *             bgfx_touch(view) (no submit; only triggers the clear)
  *         Uses view-level clear: bgfx_set_view_frame_buffer + bgfx_set_view_clear + bgfx_touch,
  *         clearing the frame buffer before all submits on that view. clearColor is a UInt32
- *         (0xAABBGGRR, consistent with BgfxRenderer.clearColor); clearAlpha is merged into the
+ *         (0xAABBGGRR, consistent with ThreeRenderer.clearColor); clearAlpha is merged into the
  *         color uint32 high byte by bgfx_set_view_clear.
  *
  * @package three.rendering.postprocessing
  */
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.utils.log.Logger
 import three.rendering.types.*
@@ -44,8 +66,8 @@ import std.collection.*
  */
 public class ClearPass <: Pass {
     /**
-     * @brief[zh-cn] Clear 颜色（UInt32，0xAABBGGRR，对齐 BgfxRenderer.clearColor），默认透明黑
-     * @brief[en] Clear color (UInt32, 0xAABBGGRR, aligned with BgfxRenderer.clearColor), default transparent black
+     * @brief[zh-cn] Clear 颜色（UInt32，0xAABBGGRR，对齐 ThreeRenderer.clearColor），默认透明黑
+     * @brief[en] Clear color (UInt32, 0xAABBGGRR, aligned with ThreeRenderer.clearColor), default transparent black
      */
     public var clearColor: UInt32 = 0x00000000u32
 
@@ -91,7 +113,7 @@ public class ClearPass <: Pass {
      * @param[en] deltaTime Frame delta time
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -99,7 +121,7 @@ public class ClearPass <: Pass {
         let viewId = ClearPass.CLEAR_VIEW_ID
         let col = this.clearColor
         // clearColor 是 0xRRGGBB（6 位 hex），alpha [0,1] → 最低字节：布局 0xRRGGBBAA
-        // （对齐 BgfxRenderer.setClearColor 的 (r<<24)|(g<<16)|(b<<8)|a 约定）。
+        // （对齐 ThreeRenderer.setClearColor 的 (r<<24)|(g<<16)|(b<<8)|a 约定）。
         // 错误拼接（alpha<<24）会让 alpha=0 → 全黑。
         let alphaByte = UInt32(Int32(this.clearAlpha * 255.0)) & 0xFFu32
         let colWithAlpha = ((col & 0x00FFFFFFu32) << 8) | alphaByte

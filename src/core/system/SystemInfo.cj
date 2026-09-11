@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] SystemInfo
  * @brief[zh-cn] 系统信息：CPU / 电源 / 剪贴板 / 消息框 / 文件系统 / 杂项 / 日期 查询
  * @explain[zh-cn] 基于 sdl4cj 库做高级封装（对应 SDL_cpuinfo / SDL_power / SDL_clipboard / SDL_messagebox / SDL_filesystem / SDL_misc / SDL_time）。全部为静态方法，无需实例化；部分查询（剪贴板/文件系统）无需窗口即可使用。
@@ -20,26 +42,38 @@ import sdl4cj.sdl.*
 public enum PowerState {
     /**
      * @brief[zh-cn] 无法确定电源状态（C 端为 -1）
+     *
+     * @brief[en] Unable to determine power state (-1 on the C side)
      */
     | Error
     /**
      * @brief[zh-cn] 无法确定电源状态
+     *
+     * @brief[en] Unable to determine power state
      */
     | Unknown
     /**
      * @brief[zh-cn] 未插电，使用电池
+     *
+     * @brief[en] Not plugged in, running on battery
      */
     | OnBattery
     /**
      * @brief[zh-cn] 已插电，无电池
+     *
+     * @brief[en] Plugged in, no battery
      */
     | NoBattery
     /**
      * @brief[zh-cn] 已插电，充电中
+     *
+     * @brief[en] Plugged in, charging
      */
     | Charging
     /**
      * @brief[zh-cn] 已插电，电池已充满
+     *
+     * @brief[en] Plugged in, battery fully charged
      */
     | Charged
 
@@ -90,46 +124,68 @@ public enum PowerState {
 public enum Folder {
     /**
      * @brief[zh-cn] 主目录
+     *
+     * @brief[en] Home directory
      */
     | Home
     /**
      * @brief[zh-cn] 桌面
+     *
+     * @brief[en] Desktop
      */
     | Desktop
     /**
      * @brief[zh-cn] 文档
+     *
+     * @brief[en] Documents
      */
     | Documents
     /**
      * @brief[zh-cn] 下载
+     *
+     * @brief[en] Downloads
      */
     | Downloads
     /**
      * @brief[zh-cn] 音乐
+     *
+     * @brief[en] Music
      */
     | Music
     /**
      * @brief[zh-cn] 图片
+     *
+     * @brief[en] Pictures
      */
     | Pictures
     /**
      * @brief[zh-cn] 公共共享目录
+     *
+     * @brief[en] Public share directory
      */
     | PublicShare
     /**
      * @brief[zh-cn] 保存游戏目录
+     *
+     * @brief[en] Saved games directory
      */
     | SavedGames
     /**
      * @brief[zh-cn] 截图目录
+     *
+     * @brief[en] Screenshots directory
      */
     | Screenshots
     /**
      * @brief[zh-cn] 模板目录
+     *
+     * @brief[en] Templates directory
      */
     | Templates
     /**
      * @brief[zh-cn] 视频目录
+     *
+     * @brief[en] Videos directory
      */
     | Videos
 

@@ -75,35 +75,35 @@ Parameter:
 ```cj
 public static func totalCompleted(): Int64
 ```
-
+Gets the number of completed tasks
 
 Return: 
 
-- 
+- Number completed
 
 ### func totalErrors\(\)
 ```cj
 public static func totalErrors(): Int64
 ```
-
+Gets the number of compilation failures
 
 Return: 
 
-- 
+- Failure count
 
 ### func totalSubmitted\(\)
 ```cj
 public static func totalSubmitted(): Int64
 ```
-
+Gets the total number of submitted tasks
 
 Return: 
 
-- 
+- Total submitted
 
 ### let DEFAULT\_STACK\_SIZE
 ```cj
 public static let DEFAULT_STACK_SIZE: Int64 = 8 * 1024 * 1024
 ```
-
+Default thread stack size (8MB, far exceeding typical glslang stack requirements)
 

@@ -17,7 +17,11 @@
 |[EXRLoader](./类/EXRLoader.md#class-exrloader)|EXR 加载器，加载 OpenEXR 格式的 HDR 纹理|
 |[FileLoader](./类/FileLoader.md#class-fileloader)|文件加载器，用于通过本地文件系统加载文件|
 |[FontLoader](./类/FontLoader.md#class-fontloader)|字体加载器，加载 JSON 格式的字体文件|
+|[GltfAnimationChannel](./类/GltfAnimationChannel.md#class-gltfanimationchannel)|glTF Animation Channel 解析结果|
+|[GltfAnimationData](./类/GltfAnimationData.md#class-gltfanimationdata)|glTF Animation 解析结果|
+|[GltfAnimationSampler](./类/GltfAnimationSampler.md#class-gltfanimationsampler)|glTF Animation Sampler 解析结果|
 |[GltfLoader](./类/GltfLoader.md#class-gltfloader)|glTF 加载器，加载 .gltf / .glb 格式的 3D 模型|
+|[GltfSkinData](./类/GltfSkinData.md#class-gltfskindata)|glTF Skin 解析结果|
 |[HDRLoader](./类/HDRLoader.md#class-hdrloader)|Radiance RGBE HDR 加载器|
 |[ImageLoader](./类/ImageLoader.md#class-imageloader)|图片加载器，用于加载图片资源|
 |[KTXLoader](./类/KTXLoader.md#class-ktxloader)|KTX 压缩纹理加载器|

@@ -28,19 +28,6 @@ public open func dispose(): Unit
 ```
 释放 GPU 资源
 
-### func init\(Color,Float64\)
-```cj
-public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0)
-```
-构造一个新的光源
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|color|Color|光源颜色，默认 0xffffffintensity 光源强度，默认 1|
-|intensity|Float64||
-
 ### func init\(UInt32,Float64\)
 ```cj
 public init(hex: UInt32, intensity!: Float64 = 1.0)
@@ -52,6 +39,19 @@ public init(hex: UInt32, intensity!: Float64 = 1.0)
 |名称|类型|描述|
 |---|---|---|
 |hex|UInt32|颜色十六进制值intensity 光源强度，默认 1|
+|intensity|Float64||
+
+### func init\(Color,Float64\)
+```cj
+public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0)
+```
+构造一个新的光源
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|color|Color|光源颜色，默认 0xffffffintensity 光源强度，默认 1|
 |intensity|Float64||
 
 ### var color

@@ -26,11 +26,11 @@ import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.MouseButton
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxBloomPass
+import three.rendering.postprocessing.BloomPass
 
 /// 球体动画数据
 public class AnimState {

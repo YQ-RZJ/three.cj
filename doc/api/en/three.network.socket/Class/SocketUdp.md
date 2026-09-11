@@ -5,16 +5,6 @@ public class SocketUdp
 ```
 UDP socket
 
-### func bind\(\)
-```cj
-public func bind(): Bool
-```
-Binds using the port given at construction time
-
-Return: 
-
-- Returns true on success, false on failure
-
 ### func bind\(UInt16\)
 ```cj
 public func bind(port: UInt16): Bool
@@ -26,6 +16,16 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |port|UInt16|The port to bind|
+
+Return: 
+
+- Returns true on success, false on failure
+
+### func bind\(\)
+```cj
+public func bind(): Bool
+```
+Binds using the port given at construction time
 
 Return: 
 

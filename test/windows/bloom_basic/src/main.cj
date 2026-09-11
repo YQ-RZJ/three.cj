@@ -7,7 +7,7 @@ package bloom_basic
  * - renderer.cj: 场景设置（多个不同颜色的高强度发光球 + 方向光 + 环境光）与 createScene
  * - EffectComposer 链：RenderPass → BgfxBloomPass（strength/kernelSize/sigma）→ 上屏
  *
- * 验证对象：three.js BloomPass（简单版）迁移 —— BgfxBloomPass
+ * 验证对象：three.js BloomPass（简单版）迁移 —— BloomPass
  *   （1 遍水平卷积 + 1 遍垂直卷积 + scene+strength×blur 合成回 readBuffer）
  * 与 unreal_bloom 测试（UnrealBloomPass 5 级金字塔）形成对照。
  */
@@ -16,7 +16,7 @@ import std.io.*
 import std.time.*
 import std.collection.*
 import std.math.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -29,7 +29,7 @@ import three.scene.objects.*
 import three.rendering.lights.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.BgfxBloomPass
+import three.rendering.postprocessing.BloomPass
 import three.utils.log.Logger
 import three.utils.log.LogLevel
 
@@ -43,7 +43,7 @@ public class TestWindow <: WindowEngine {
     // 输入提供者（可插拔架构）
     var _mouse: Option<MouseProvider> = None
 
-    var renderer: BgfxRenderer = BgfxRenderer()
+    var renderer: ThreeRenderer = ThreeRenderer()
     var scene: Scene = Scene()
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 50.0, aspect: 1.0, near: 0.1, far: 100.0)
     var spheres: ArrayList<Mesh> = ArrayList<Mesh>()
@@ -64,16 +64,18 @@ public class TestWindow <: WindowEngine {
         let w = this.getWidth()
         let h = this.getHeight()
         println("[2/5] 初始化 BgfxRenderer（绑定窗口 ${hwnd}, ${w}x${h}）...")
+        let dpr = this.getPixelRatio()
+        this.renderer.setPixelRatio(Float64(dpr))
         let ok = this.renderer.initBgfx(hwnd, w, h)
         if (!ok) {
-            println("  BgfxRenderer.initBgfx 失败!")
+            println("  ThreeRenderer.initBgfx 失败!")
             this.requestClose()
             return
         }
         this.renderer.setSize(w, h)
         // 深蓝黑背景，突出 bloom 光晕（与 unreal_bloom 一致）
         this.renderer.setClearColor(Color(0x10, 0x12, 0x18))
-        println("  BgfxRenderer 初始化成功")
+        println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
 
@@ -83,7 +85,7 @@ public class TestWindow <: WindowEngine {
         this.camera = camera
         this.spheres = spheres
 
-        // ---- 步骤 4: 进入渲染循环（RenderPass → BgfxBloomPass → 上屏） ----
+        // ---- 步骤 4: 进入渲染循环（RenderPass → BloomPass → 上屏） ----
         println("[4/5] 进入渲染循环（启用简单版 Bloom via EffectComposer）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
 
@@ -96,7 +98,7 @@ public class TestWindow <: WindowEngine {
         composer.addPass(RenderPass(this.scene, this.camera))
         // 简单版 BloomPass：默认 kernelSize=25 / sigma=4（与 three.js 默认一致）。
         // strength=1.0 保持模糊合成强度；对比 unreal_bloom（threshold 提取 + 5 级金字塔）。
-        composer.addPass(BgfxBloomPass(strength: 1.0, kernelSize: 25, sigma: 4.0))
+        composer.addPass(BloomPass(strength: 1.0, kernelSize: 25, sigma: 4.0))
         composer.setSize(Int64(w), Int64(h))
         this.composer = Some(composer)
     }
@@ -185,7 +187,7 @@ public class TestWindow <: WindowEngine {
         }
         println("")
         this.renderer.shutdown()
-        println("  BgfxRenderer 已关闭")
+        println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }
 }

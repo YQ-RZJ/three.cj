@@ -35,7 +35,7 @@ import three.rendering.buffer.*
 import three.rendering.textures.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.window.MouseButton
 import three.window.KeyCode
 import three.rendering.postprocessing.EffectComposer

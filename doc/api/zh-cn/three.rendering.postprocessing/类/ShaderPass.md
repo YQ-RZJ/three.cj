@@ -5,9 +5,9 @@ public open class ShaderPass <: Pass
 ```
 通用 shader pass
 
-### func bindExtraUniforms\(BgfxRenderer,BgfxUniforms\)
+### func bindExtraUniforms\(ThreeRenderer,BgfxUniforms\)
 ```cj
-public open func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit
+public open func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit
 ```
 子类扩展钩子：在 submit 前绑定额外 uniform
 
@@ -15,7 +15,7 @@ public open func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniform
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |uniforms|BgfxUniforms|已创建 tDiffuse sampler 的 uniform 注册表（可继续创建额外 uniform）|
 
 ### func dispose\(\)
@@ -37,9 +37,9 @@ public init(shaderName: String, textureID!: String = "tDiffuse")
 |shaderName|String|ShaderLibs 已注册的全屏 shader 名|
 |textureID|String|绑 readBuffer 的 sampler 名（默认 tDiffuse）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public open override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public open override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 shader pass
 
@@ -47,7 +47,7 @@ public open override func render(renderer: BgfxRenderer, writeBuffer: FrameBuffe
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（renderToScreen=false 时写这里）|
 |readBuffer|FrameBufferHandle|读 buffer（绑到 textureID sampler）|
 |deltaTime|Float64|帧间隔|

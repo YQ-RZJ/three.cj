@@ -348,6 +348,18 @@ public func getStyle(colorSpace!: String = SRGBColorSpace): String
 
 - CSS 样式字符串
 
+### func init\(UInt32\)
+```cj
+public init(hex: UInt32)
+```
+
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|hex|UInt32||
+
 ### func init\(\)
 ```cj
 public init()
@@ -410,18 +422,6 @@ public init(r: UInt8, g: UInt8, b: UInt8)
 |r|UInt8||
 |g|UInt8||
 |b|UInt8||
-
-### func init\(UInt32\)
-```cj
-public init(hex: UInt32)
-```
-
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|hex|UInt32||
 
 ### func lerpColors\(Color,Color,Float64\)
 ```cj

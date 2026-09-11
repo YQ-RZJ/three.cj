@@ -208,3 +208,9 @@ public mut prop uuid: String
 ```
 剪辑的 UUID
 
+### var skeletalData
+```cj
+public var skeletalData: Option < SkeletalAnimationData >= None
+```
+骨骼动画压缩数据（可选）
+

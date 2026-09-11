@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] BgfxLUTPass 颜色分级后处理 pass
  * @brief[zh-cn] 颜色分级后处理 pass —— 通过 3D 查找表（LUT）做色彩映射
  * @explain[zh-cn] 算法：
@@ -35,7 +57,7 @@
 
 package three.rendering.postprocessing
 
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
@@ -110,7 +132,7 @@ public class LUTPass <: ShaderPass {
      *         u_intensity (vec4.x = intensity). In bgfx the uniforms must be bound via the uniform registry
      *         createUniform + setUniform before submit.
      */
-    public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit {
+    public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit {
         // 3D LUT 纹理绑定（stage 1，SAMPLER3D(lut, 1)）
         let uLut = uniforms.createUniform("lut", UniformType.Sampler.value())
         this.bindTexture(renderer, 1u8, uLut, this.lut, 0u32)
@@ -126,7 +148,7 @@ public class LUTPass <: ShaderPass {
      * 设置单个 vec4 uniform（x=value, y/z/w=0）。辅助方法，简化 uniforms 设置。
      */
     private func setUniformVec4(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         uniforms: BgfxUniforms,
         name: String,
         value: Float64
@@ -156,7 +178,7 @@ public class LUTPass <: ShaderPass {
      *         3. submits the full-screen quad (overwrite state).
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

@@ -148,6 +148,21 @@ public func getZ(index: Int64): Float64
 
 - z 分量的值
 
+### func init\(InterleavedBuffer,Int64,Int64,Bool\)
+```cj
+public init(interleavedBuffer: InterleavedBuffer, itemSize: Int64, offset: Int64, normalized!: Bool = false)
+```
+构造一个新的交错缓冲区属性
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|interleavedBuffer|InterleavedBuffer|持有交错数据的缓冲区itemSize 数据项大小offset 属性在缓冲区中的偏移量normalized 是否归一化，默认为 false|
+|itemSize|Int64||
+|offset|Int64||
+|normalized|Bool||
+
 ### func init\(InterleavedBuffer,Int64,Int64\)
 ```cj
 public init(interleavedBuffer: InterleavedBuffer, itemSize: Int64, offset: Int64)
@@ -167,21 +182,6 @@ public init(interleavedBuffer: InterleavedBuffer, itemSize: Int64, offset: Int64
 public init()
 ```
 无参构造（供 fastjson 反序列化使用）
-
-### func init\(InterleavedBuffer,Int64,Int64,Bool\)
-```cj
-public init(interleavedBuffer: InterleavedBuffer, itemSize: Int64, offset: Int64, normalized!: Bool = false)
-```
-构造一个新的交错缓冲区属性
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|interleavedBuffer|InterleavedBuffer|持有交错数据的缓冲区itemSize 数据项大小offset 属性在缓冲区中的偏移量normalized 是否归一化，默认为 false|
-|itemSize|Int64||
-|offset|Int64||
-|normalized|Bool||
 
 ### func setComponent\(Int64,Int64,Float64\)
 ```cj

@@ -15,6 +15,12 @@ public func clone(): CameraView
 
 - 新的 CameraView 实例
 
+### func init\(\)
+```cj
+public init()
+```
+无参构造（供 fastjson 反序列化使用）
+
 ### func init\(Bool,Float64,Float64,Float64,Float64,Float64,Float64\)
 ```cj
 public init(enabled: Bool, fullWidth: Float64, fullHeight: Float64, offsetX: Float64, offsetY: Float64, width: Float64, height: Float64)
@@ -32,12 +38,6 @@ public init(enabled: Bool, fullWidth: Float64, fullHeight: Float64, offsetX: Flo
 |offsetY|Float64||
 |width|Float64||
 |height|Float64||
-
-### func init\(\)
-```cj
-public init()
-```
-无参构造（供 fastjson 反序列化使用）
 
 ### func toHashMap\(\)
 ```cj

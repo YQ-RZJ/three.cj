@@ -5,9 +5,9 @@ public class LUTPass <: ShaderPass
 ```
 颜色分级（LUT）后处理 pass
 
-### func bindExtraUniforms\(BgfxRenderer,BgfxUniforms\)
+### func bindExtraUniforms\(ThreeRenderer,BgfxUniforms\)
 ```cj
-public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUniforms): Unit
+public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit
 ```
 子类扩展钩子：submit 前绑定 LUT 相关 uniform
 
@@ -15,7 +15,7 @@ public override func bindExtraUniforms(renderer: BgfxRenderer, uniforms: BgfxUni
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |uniforms|BgfxUniforms|已创建 tDiffuse sampler 的 uniform 注册表（继续创建 LUT uniforms）|
 
 ### func dispose\(\)
@@ -38,9 +38,9 @@ public init(lut!: TextureHandle = INVALID_TEXTURE_HANDLE, lutSize!: Int64 = 0, i
 |lutSize|Int64|LUT 边长（默认 0，与无效纹理配套；有效纹理时必须 > 0）|
 |intensity|Float64|混合强度（默认 1.0）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行 LUT pass
 
@@ -48,7 +48,7 @@ public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHand
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（本 pass 的输出目标）|
 |readBuffer|FrameBufferHandle|读 buffer（上一 pass 结果，绑到 tDiffuse）|
 |deltaTime|Float64|帧间隔|

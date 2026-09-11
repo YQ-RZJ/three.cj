@@ -11,17 +11,23 @@ public func dispose(): Unit
 ```
 释放流式音频资源（解码器 + 流式缓冲 + 源）
 
+### func init\(\)
+```cj
+public init()
+```
+创建流式音频实例
+
 ### func init\(AudioListener\)
 ```cj
 public init(listener!: AudioListener)
 ```
-创建流式音频实例
+
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|listener|AudioListener|关联的音频监听器|
+|listener|AudioListener||
 
 ### func load\(String\)
 ```cj

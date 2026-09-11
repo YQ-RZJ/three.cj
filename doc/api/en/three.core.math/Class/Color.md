@@ -348,6 +348,18 @@ Return:
 
 - CSS style string
 
+### func init\(UInt32\)
+```cj
+public init(hex: UInt32)
+```
+
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|hex|UInt32||
+
 ### func init\(\)
 ```cj
 public init()
@@ -410,18 +422,6 @@ Parameter:
 |r|UInt8||
 |g|UInt8||
 |b|UInt8||
-
-### func init\(UInt32\)
-```cj
-public init(hex: UInt32)
-```
-
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|hex|UInt32||
 
 ### func lerpColors\(Color,Color,Float64\)
 ```cj

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] AudioListener 辅助对象
  * @brief[zh-cn] 音频监听器可视化辅助对象
  * @explain[zh-cn]
@@ -10,8 +32,25 @@
  *
  * @note[zh-cn] Three.cj 使用左手坐标系、CCW 点序；本 helper 在左手系内绘制，
  * 前方向与 AudioListener.updateMatrixWorld 同步到 OpenAL 的方向一致（取左手系 +Z）。
+ *
+ * @file[en] AudioListener Helper
+ * @brief[en] Visualization helper object for the audio listener
+ * @explain[en]
+ * Visualizes the position and orientation of the AudioListener in the scene:
+ * - Head axes (right/up/front)
+ * - Forward direction arrow (+Z)
+ * - Up-direction half-arc marker
+ * Call update() to sync the listener's latest world transform.
+ *
+ * @note[en] Three.cj uses a left-handed coordinate system with CCW winding; this helper
+ * draws within the left-handed system. The forward direction matches the direction that
+ * AudioListener.updateMatrixWorld syncs to OpenAL (left-handed +Z).
  */
 package three.rendering.helpers
+
+import fastjson.*
+import fastjson.macros.*
+import fastjson.stream.*
 
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -28,29 +67,44 @@ import std.math.*
  * @brief[zh-cn] 音频监听器辅助对象
  * @explain[zh-cn]
  * 用头部坐标轴 + 前方向箭头 + 上方向标记可视化音频监听器的位姿。
+ *
+ * @brief[en] Audio listener helper object
+ * @explain[en]
+ * Visualizes the audio listener's pose with head axes, a forward arrow and an up marker.
  */
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public class AudioListenerHelper <: Object3D {
     /// 被可视化的音频监听器
+    @JsonIgnore
     public var listener: AudioListener
 
     /// 头部坐标轴
+    @JsonIgnore
     public var axes: AxesHelper
 
     /// 前方向箭头（+Z）
+    @JsonIgnore
     public var forwardArrow: ArrowHelper
 
     /// 上方向标记弧线
+    @JsonIgnore
     public var upArc: LineSegments
 
     /**
      * @brief[zh-cn] 构造 AudioListener 辅助对象
      * @param[zh-cn] listener 要可视化的 AudioListener
      * size 头部坐标轴尺寸，默认 1.0
+     *
+     * @brief[en] Constructs an AudioListener helper
+     * @param[en] listener The AudioListener to visualize
+     * size Head axis size, default 1.0
      */
+    public init() {
+        this(AudioListener())
+    }
     public init(listener: AudioListener, size!: Float64 = 1.0) {
         super()
         this.listener = listener
-        this.kind = "AudioListenerHelper"
         this.matrixAutoUpdate = false
 
         this.axes = AxesHelper(size: size)
@@ -74,6 +128,8 @@ public class AudioListenerHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 同步监听器状态并更新可视化
+     *
+     * @brief[en] Syncs the listener state and updates the visualization
      */
     public func update(): Unit {
         this.listener.updateWorldMatrix(true, false, false)
@@ -91,6 +147,8 @@ public class AudioListenerHelper <: Object3D {
 
     /**
      * @brief[zh-cn] 释放 GPU 资源
+     *
+     * @brief[en] Releases GPU resources
      */
     public func dispose(): Unit {
         this.axes.dispose()

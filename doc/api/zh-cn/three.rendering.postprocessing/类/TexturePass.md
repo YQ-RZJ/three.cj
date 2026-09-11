@@ -24,9 +24,9 @@ public init(map: TextureHandle, opacity!: Float64 = 1.0)
 |map|TextureHandle|待渲纹理（bgfx TextureHandle）|
 |opacity|Float64|不透明度（默认 1.0）|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行纹理 pass：把 map 渲到 readBuffer 或屏幕
 
@@ -34,7 +34,7 @@ public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHand
 
 |名称|类型|描述|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（本 pass 不用，结果写 readBuffer 或屏幕）|
 |readBuffer|FrameBufferHandle|读 buffer（renderToScreen=false 时写这里）|
 |deltaTime|Float64|帧间隔|

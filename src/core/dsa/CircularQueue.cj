@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] CircularQueue
  * @brief[zh-cn] 循环队列（通用基础设施）
  * @explain[zh-cn] 本实现基于 ArrayList<T>，统一提供 add(element) 尾部入队、remove() 尾部出队（LIFO 消耗）、peek() 查看当前 next 指向的元素（不消耗）、next() 环形遍历不消耗元素。单线程使用，无加锁。
@@ -24,10 +46,14 @@ import three.core.interfaces.*
 public class CircularQueue<T> <: ICircularQueue<T> {
     /**
      * @brief[zh-cn] 内部存储
+     *
+     * @brief[en] Internal storage
      */
     private let _data: ArrayList<T>
     /**
      * @brief[zh-cn] 当前 next 指向的索引，-1 表示未初始化
+     *
+     * @brief[en] Index the current next points to, -1 means uninitialized
      */
     private var _idx: Int64
 
@@ -119,6 +145,8 @@ public class CircularQueue<T> <: ICircularQueue<T> {
 
     /**
      * @brief[zh-cn] 当前元素数量
+     *
+     * @brief[en] Current number of elements
      */
     public prop size: Int64 {
         get() { _data.size }
@@ -126,6 +154,8 @@ public class CircularQueue<T> <: ICircularQueue<T> {
 
     /**
      * @brief[zh-cn] 是否为空
+     *
+     * @brief[en] Whether the queue is empty
      */
     public func isEmpty(): Bool {
         return _data.size == 0
@@ -133,6 +163,8 @@ public class CircularQueue<T> <: ICircularQueue<T> {
 
     /**
      * @brief[zh-cn] 清空
+     *
+     * @brief[en] Clear the queue
      */
     public func clear(): Unit {
         _data.clear()
@@ -141,6 +173,8 @@ public class CircularQueue<T> <: ICircularQueue<T> {
 
     /**
      * @brief[zh-cn] 转为数组（入队顺序）
+     *
+     * @brief[en] Convert to an array (in enqueue order)
      */
     public func toArray(): Array<T> {
         return _data.toArray()

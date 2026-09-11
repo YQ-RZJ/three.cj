@@ -55,11 +55,11 @@ Parameter:
 ```cj
 public prop allocatedCount: Int64
 ```
-
+Number of allocated objects
 
 ### prop freeCount: Int64
 ```cj
 public prop freeCount: Int64
 ```
-
+Number of free objects in the pool
 

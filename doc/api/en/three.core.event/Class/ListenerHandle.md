@@ -21,5 +21,5 @@ Parameter:
 ```cj
 public let callback:(Event) -> Unit
 ```
-
+Callback function
 

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] 聚光源
  * @brief[zh-cn] 从某点沿某方向以圆锥形照射的光源
  * @explain[zh-cn] 
@@ -37,7 +59,7 @@ import fastjson.stream.*
  * Corresponds to Three.js lights/SpotLight.js. The cone edge widens with distance, and there is no light outside the cone.
  * Spot lights generate shadow maps through SpotLightShadow and can specify the illumination direction via the target property.
  */
-@JsonAdapter[withSuperClass = Light]
+@JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Light]
 public open class SpotLight <: Light {
 
     /**
@@ -80,6 +102,7 @@ public open class SpotLight <: Light {
      *
      * @brief[en] Shadow configuration object
      */
+    @JsonIgnore
     public var shadow: SpotLightShadow
 
     /**
@@ -108,7 +131,6 @@ public open class SpotLight <: Light {
      */
     public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0, distance!: Float64 = 0.0, angle!: Float64 = PI / 3.0, penumbra!: Float64 = 0.0, decay!: Float64 = 2.0) {
         super(color: color, intensity: intensity)
-        this.kind = "SpotLight"
         this.distance = distance
         this.angle = angle
         this.penumbra = penumbra

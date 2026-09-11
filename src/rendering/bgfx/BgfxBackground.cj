@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] bgfx 背景渲染
  * @brief[zh-cn] 替代 WebGLBackground，渲染场景背景（颜色/纹理/天空盒）
  * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLBackground.js。WebGLBackground 负责渲染场景的背景（纯色、纹理或天空盒）。bgfx 通过 bgfx_set_view_clear_cj 设置清除颜色。
@@ -21,22 +43,32 @@ import bgfx4cj.bgfx.*
 public class BgfxBackground {
     /**
      * @brief[zh-cn] 当前清除颜色 R 分量
+     *
+     * @brief[en] Current clear color R component
      */
     private var clearColorR: Float32 = 0.0f32
     /**
      * @brief[zh-cn] 当前清除颜色 G 分量
+     *
+     * @brief[en] Current clear color G component
      */
     private var clearColorG: Float32 = 0.0f32
     /**
      * @brief[zh-cn] 当前清除颜色 B 分量
+     *
+     * @brief[en] Current clear color B component
      */
     private var clearColorB: Float32 = 0.0f32
     /**
      * @brief[zh-cn] 当前清除 Alpha 分量
+     *
+     * @brief[en] Current clear color alpha component
      */
     private var clearColorA: Float32 = 1.0f32
     /**
      * @brief[zh-cn] 当前背景版本号
+     *
+     * @brief[en] Current background version
      */
     private var currentBackgroundVersion: Int64 = 0
 

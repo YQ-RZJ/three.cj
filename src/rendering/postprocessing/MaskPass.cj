@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] MaskPass 遮罩后处理 pass + ClearMaskPass 清遮罩 pass
  * @brief[zh-cn] 遮罩 pass + 清遮罩 pass —— 用 stencil buffer 定义后处理遮罩区域
  * @explain[zh-cn] 设计：
@@ -76,7 +98,7 @@ import three.core.event.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.rendering.cameras.*
-import three.rendering.BgfxRenderer
+import three.rendering.ThreeRenderer
 import three.rendering.common.*
 import three.rendering.bgfx.*
 import three.rendering.types.*
@@ -156,7 +178,7 @@ public open class MaskPass <: Pass {
     private var _layoutHandleCache: Option<VertexLayoutHandle> = None
 
     /** 渲染器引用（render() 时缓存，dispose 经其高阶 API 销毁 GPU 资源） */
-    private var _renderer: Option<BgfxRenderer> = None
+    private var _renderer: Option<ThreeRenderer> = None
 
     /**
      * 构造 MaskPass。
@@ -209,7 +231,7 @@ public open class MaskPass <: Pass {
     /**
      * 取共享顶点 layout handle（position+normal+color+uv，缓存复用）。
      */
-    private func _getOrCreateLayout(renderer: BgfxRenderer): VertexLayoutHandle {
+    private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
         match (this._layoutHandleCache) {
             case Some(lh) => return lh
             case None => ()
@@ -259,7 +281,7 @@ public open class MaskPass <: Pass {
     /**
      * 创建/复用 geometry 的顶点缓冲（按 geomId 缓存）。
      */
-    private func _createVB(renderer: BgfxRenderer, geom: BufferGeometry): VertexBufferHandle {
+    private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._vbCache.get(geomId)) {
             case Some(vb) => return vb
@@ -317,7 +339,7 @@ public open class MaskPass <: Pass {
     /**
      * 创建/复用 geometry 的索引缓冲（按 geomId 缓存）。
      */
-    private func _createIB(renderer: BgfxRenderer, geom: BufferGeometry): IndexBufferHandle {
+    private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
         let geomId = geom.uuid.hashCode()
         match (this._ibCache.get(geomId)) {
             case Some(ib) => return ib
@@ -340,7 +362,7 @@ public open class MaskPass <: Pass {
     /**
      * 为指定 view 设置相机 view/proj 变换（用 renderer.setViewTransform 高阶 API）。
      */
-    private func _setViewTransformFor(renderer: BgfxRenderer, viewId: UInt16, camera: Camera): Unit {
+    private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.elements
         let projArr = camera.projectionMatrix.elements
         let viewMem = BgfxMemory(64u32)
@@ -404,7 +426,7 @@ public open class MaskPass <: Pass {
      * @param stencilState 已编码的 stencil 写状态
      * @param clearValue stencil clear 值（inverse=true 时=1，背景 stencil 置 1 → 后续 EQUAL 测试反选）
      */
-    private func _submitSceneToStencil(renderer: BgfxRenderer, viewId: UInt16, targetFB: FrameBufferHandle, stencilState: UInt32, clearValue: UInt32): Unit {
+    private func _submitSceneToStencil(renderer: ThreeRenderer, viewId: UInt16, targetFB: FrameBufferHandle, stencilState: UInt32, clearValue: UInt32): Unit {
         let w = UInt16(renderer.width)
         let h = UInt16(renderer.height)
         this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
@@ -460,7 +482,7 @@ public open class MaskPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64
@@ -542,7 +564,7 @@ public class ClearMaskPass <: Pass {
      * @param deltaTime 帧间隔
      */
     public override func render(
-        renderer: BgfxRenderer,
+        renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
         readBuffer: FrameBufferHandle,
         deltaTime: Float64

@@ -1,4 +1,26 @@
 /**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
  * @file[zh-cn] Queue
  * @brief[zh-cn] 动态队列（先进先出）
  * @explain[zh-cn] 底层使用 Array<?T> + 头尾指针实现环形缓冲区，出队时只需移动 head 指针，避免数组元素搬移。当 head 超过半数时执行一次紧凑压缩。
@@ -21,22 +43,32 @@ import std.collection.*
 public class Queue<T> where T <: Equatable<T> {
     /**
      * @brief[zh-cn] 内部存储数组（Option 包装）
+     *
+     * @brief[en] Internal storage array (Option-wrapped)
      */
     private var _data: Array<?T>
     /**
      * @brief[zh-cn] 队首索引
+     *
+     * @brief[en] Front index
      */
     private var _head: Int64
     /**
      * @brief[zh-cn] 队尾索引（下一个写入位置）
+     *
+     * @brief[en] Rear index (next write position)
      */
     private var _tail: Int64
     /**
      * @brief[zh-cn] 元素数量
+     *
+     * @brief[en] Number of elements
      */
     private var _size: Int64
     /**
      * @brief[zh-cn] 数组容量
+     *
+     * @brief[en] Array capacity
      */
     private var _capacity: Int64
 
@@ -179,6 +211,8 @@ public class Queue<T> where T <: Equatable<T> {
 
     /**
      * @brief[zh-cn] 扩容
+     *
+     * @brief[en] Expand the capacity
      */
     private func _expand(): Unit {
         let newCapacity = _capacity * 2
@@ -195,6 +229,8 @@ public class Queue<T> where T <: Equatable<T> {
 
     /**
      * @brief[zh-cn] 紧凑压缩
+     *
+     * @brief[en] Compact the array
      */
     private func _compact(): Unit {
         let newData = Array<?T>(_capacity, { _ => None })

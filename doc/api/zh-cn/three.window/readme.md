@@ -21,6 +21,7 @@
 |[TouchEvent](./类/TouchEvent.md#class-touchevent)|触摸事件|
 |[TouchPoint](./类/TouchPoint.md#class-touchpoint)|触摸点数据|
 |[TouchProvider](./类/TouchProvider.md#class-touchprovider)|触摸输入提供者|
+|[UiContext](./类/UiContext.md#class-uicontext)|UI 上下文——管理 ImGui 生命周期与渲染|
 |[WindowConfig](./类/WindowConfig.md#class-windowconfig)|窗口创建配置|
 |[WindowEngine](./类/WindowEngine.md#class-windowengine)|窗口引擎 v2（对齐 RGF 窗口模式）|
 |[WindowEvent](./类/WindowEvent.md#class-windowevent)|窗口事件|

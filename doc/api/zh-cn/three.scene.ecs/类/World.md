@@ -109,12 +109,6 @@ public func getEntity(id: EntityId):?Entity
 
 - 实体实例，不存在返回 None
 
-### func init\(\)
-```cj
-public init()
-```
-构造器（默认哈希模式映射管理器）
-
 ### func init\(ISysEtyMapManager<System,Entity>\)
 ```cj
 public init(sysMapMgr: ISysEtyMapManager < System, Entity >)
@@ -126,6 +120,12 @@ public init(sysMapMgr: ISysEtyMapManager < System, Entity >)
 |名称|类型|描述|
 |---|---|---|
 |sysMapMgr|ISysEtyMapManager<System,Entity>|系统-实体映射管理器实现|
+
+### func init\(\)
+```cj
+public init()
+```
+构造器（默认哈希模式映射管理器）
 
 ### func onUpdate\(Float64\)
 ```cj

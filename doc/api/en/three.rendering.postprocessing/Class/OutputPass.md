@@ -25,9 +25,9 @@ Parameter:
 |exposure|Float64|Exposure (default 1.0)|
 |sRGB|Bool|Whether to perform sRGB conversion (default true)|
 
-### func render\(BgfxRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
+### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
-public override func render(renderer: BgfxRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
+public override func render(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle, deltaTime: Float64): Unit
 ```
 执行输出 pass：色调映射 + sRGB 转换上屏。
 
@@ -35,7 +35,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|renderer|BgfxRenderer|渲染器|
+|renderer|ThreeRenderer|渲染器|
 |writeBuffer|FrameBufferHandle|写 buffer（renderToScreen=false 时写这里）|
 |readBuffer|FrameBufferHandle|读 buffer（待转换的线性 HDR 颜色）|
 |deltaTime|Float64|帧间隔|

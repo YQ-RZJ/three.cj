@@ -5,6 +5,18 @@ public class AnimationMixer <: EventDispatcher
 ```
 Animation mixer that manages the blended playback of a set of animation actions
 
+### func bindSceneSkeleton\(Skeleton\)
+```cj
+public func bindSceneSkeleton(skeleton: Skeleton): Unit
+```
+Bind the scene skeleton
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|skeleton|Skeleton|The scene-layer skeleton|
+
 ### func clipAction\(IAnimationClip,Option<Object3D>,Int64\)
 ```cj
 public func clipAction(clip: IAnimationClip, optionalRoot!: Option < Object3D >= None, blendMode!: Int64 = - 1): AnimationAction
@@ -65,6 +77,19 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |root|Object3D|The root object on which this mixer plays animations|
+
+### func registerSkeletalData\(String,SkeletalAnimationData\)
+```cj
+public func registerSkeletalData(clipUUID: String, data: SkeletalAnimationData): Unit
+```
+Register skeletal animation data
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|clipUUID|String|The UUID of the animation clip|
+|data|SkeletalAnimationData|Compressed skeletal animation data|
 
 ### func setTime\(Float64\)
 ```cj
@@ -136,6 +161,19 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |root|Object3D|The root object to uncache|
+
+### func updateSkeletal\(SkeletonData,Float32\)
+```cj
+public func updateSkeletal(skeletonData: SkeletonData, deltaTime: Float32): Unit
+```
+Updates skeletal animation with the sampling/blending job pipeline
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|skeletonData|SkeletonData|Runtime skeleton data|
+|deltaTime|Float32|Frame interval in seconds, same as the update argument|
 
 ### func update\(Float64\)
 ```cj
