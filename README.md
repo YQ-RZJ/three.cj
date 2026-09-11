@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-0.0.372-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-0.0.375-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-Cross--Platform-lightgrey" style="display: inline-block;" />
@@ -233,7 +233,7 @@ More examples can be found in the `test/windows/`, `test/general/`, and `test/oh
 
 ### Use in Your Project
 
-> **Note**: The `cjpm.toml` of this project references the `EXTEDN_LIBS_PATH` environment variable in `link-option`. You need to set it to the actual location of the dependency files before use. For example: `cmd: set EXTEDN_LIBS_PATH=/path/to/three/libs`
+> **Note**: The `cjpm.toml` of this project references the `EXTEDN_LIBS_PATH_*` environment variable in `link-option`. You need to set it to the actual location of the dependency files before use. For example: `cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
 
 Add the dependency in your `cjpm.toml`:
 

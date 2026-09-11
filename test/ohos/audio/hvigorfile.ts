@@ -27,13 +27,15 @@ let mingwLibs = (() => {
     if (d && existsSync(path.join(d, 'gcc.exe'))) {
       // gcc.exe 位于 <prefix>/bin/，Windows 系统库在
       // <prefix>/x86_64-w64-mingw32/lib/（libgdi32.a、libd3d11.a 等）
-      return ` -L ${path.resolve(d, '..', 'x86_64-w64-mingw32', 'lib')}`
+      return `${path.resolve(d, '..', 'x86_64-w64-mingw32', 'lib')}`
     }
   }
   return ''
 })()
-process.env.EXTEDN_LIBS_PATH = `${libsPath}`
-process.env.EXTEDN_LINK_OPTION = `-L ${libsPath}/arm64-v8a -L ${threeLibsPath}${mingwLibs}`
+process.env.EXTEDN_LIBS_PATH_OHOS_ARM64 = `${libsPath}`
+process.env.EXTEDN_LINK_OPTION_OHOS_ARM64 = `-L ${libsPath}/arm64-v8a`
+process.env.EXTEDN_LIBS_PATH_WIN_X64 = `${threeLibsPath}`
+process.env.EXTEDN_LINK_OPTION_WIN_X64 = `-L ${mingwLibs}`
 
 export default {
   system: appTasks, /* Built-in plugin of Hvigor. It cannot be modified. */

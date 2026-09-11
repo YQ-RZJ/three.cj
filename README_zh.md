@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-0.0.372-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-0.0.375-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-跨平台-lightgrey" style="display: inline-block;" />
@@ -229,7 +229,7 @@ cjpm run
 
 ### 在项目中使用
 
-**注意**：本项目 `cjpm.toml` 的 `link-option` 引用了 `EXTEDN_LIBS_PATH` 环境变量，使用前需配置其值为依赖文件的实际存放位置。比如：`cmd: set EXTEDN_LIBS_PATH=/path/to/three/libs`
+**注意**：本项目 `cjpm.toml` 的 `link-option` 引用了 `EXTEDN_LIBS_PATH_*` 环境变量，使用前需配置其值为依赖文件的实际存放位置。比如：`cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
 
 在 `cjpm.toml` 中添加依赖：
 

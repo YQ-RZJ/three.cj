@@ -48,8 +48,9 @@ let libsPath = path.resolve(process.cwd(), 'entry/libs')
 // 故为 ../../../libs；置于搜索路径末尾，OHOS 目标链接仍优先命中
 // entry/libs 与 arm64-v8a 下的库。
 let threeLibsPath = path.resolve(process.cwd(), '../../../libs')
-process.env.EXTEDN_LIBS_PATH = `${libsPath}`
-process.env.EXTEDN_LINK_OPTION = `-L ${libsPath}/arm64-v8a -L ${threeLibsPath}`
+process.env.EXTEDN_LIBS_PATH_OHOS_ARM64 = `${libsPath}`
+process.env.EXTEDN_LINK_OPTION_OHOS_ARM64 = `-L ${libsPath}/arm64-v8a`
+process.env.EXTEDN_LIBS_PATH_WIN_X64 = `${threeLibsPath}`
 
 // cjpm.toml 的 compile-option 引用 ${COMPILE_CONDITION_ENTRY}
 // （--cfg="${COMPILE_CONDITION_ENTRY}"）。DevEco 插件在 getCjpmProcessEnv 中注入，
