@@ -363,7 +363,7 @@ Project source code follows a unified [documentation comment standard](./doc/dev
 
 ## License
 
-This project is open-sourced under the [MIT](./LICENSE) license.
+This project is open-sourced under the [Apache 2.0](./LICENSE) license.
 
 ### Dependency Licenses
 

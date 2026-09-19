@@ -8,6 +8,7 @@
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-跨平台-lightgrey" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/Apache_2.0_License-gold" style="display: inline-block;" />
 </p>
 
 ## 介绍
@@ -346,7 +347,7 @@ import three.window.ui.*          // 即时模式 UI（ImGui 控件）
 
 ## 开源协议
 
-本项目代码基于 [MIT](./LICENSE) 协议开源。
+本项目代码基于 [Apache 2.0](./LICENSE) 协议开源。
 
 ### 依赖项目许可
 
