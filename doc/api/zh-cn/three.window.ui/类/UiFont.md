@@ -3,7 +3,7 @@
 ```cj
 public class UiFont
 ```
-字体对象包装器
+字体对象（安全类型）
 
 ### func addRemapChar\(UInt16,UInt16\)
 ```cj
@@ -15,8 +15,8 @@ public func addRemapChar(from: UInt16, to: UInt16): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|from|UInt16|源码点（UInt16）|
-|to|UInt16|目标码点（UInt16）|
+|from|UInt16|源码点|
+|to|UInt16|目标码点|
 
 ### func calcTextSize\(String,Float32,Float32\)
 ```cj
@@ -42,18 +42,22 @@ public func getDebugName(): String
 ```
 获取字体调试名称
 
+返回: 
+
+- 调试名称字符串，未加载时为空字符串
+
 ### func getFontBaked\(Float32,Float32\)
 ```cj
 public func getFontBaked(fontSize!: Float32 = 0.0f32, density!: Float32 = 1.0f32): UiFontBaked
 ```
-获取 ImFontBaked（烘焙字体数据）
+获取烘焙字体数据
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|fontSize|Float32||
-|density|Float32||
+|fontSize|Float32|字体大小（0=使用默认）|
+|density|Float32|光栅化密度|
 
 返回: 
 
@@ -61,21 +65,25 @@ public func getFontBaked(fontSize!: Float32 = 0.0f32, density!: Float32 = 1.0f32
 
 ### func getHandle\(\)
 ```cj
-public func getHandle(): CPointer < Unit >
+public func getHandle(): VoidPtr
 ```
-获取底层 ImFont 指针（用于 UiStyle.pushFont）
+获取底层 ImFont 指针（低级接口，一般场景不需要）
 
-### func init\(CPointer<Unit>\)
+返回: 
+
+- 底层 ImFont 指针
+
+### func init\(VoidPtr\)
 ```cj
-public init(fontPtr: CPointer < Unit >)
+public init(fontPtr: VoidPtr)
 ```
-
+以底层 ImFont 指针构造
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|fontPtr|CPointer<Unit>||
+|fontPtr|VoidPtr|底层 ImFont 指针|
 
 ### func isGlyphInFont\(UInt16\)
 ```cj
@@ -87,11 +95,19 @@ public func isGlyphInFont(codepoint: UInt16): Bool
 
 |名称|类型|描述|
 |---|---|---|
-|codepoint|UInt16|Unicode 码点|
+|codepoint|UInt16|Unicode 码点（ImWchar 范围，<= 0xFFFF）|
+
+返回: 
+
+- 存在返回 true
 
 ### func isLoaded\(\)
 ```cj
 public func isLoaded(): Bool
 ```
 字体是否已加载
+
+返回: 
+
+- 已加载返回 true
 

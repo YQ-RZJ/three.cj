@@ -9,13 +9,11 @@ Text input widget
 ```cj
 public override func draw(): Bool
 ```
+Renders the text input box
 
+Return: 
 
-### func getBufPtr\(\)
-```cj
-public func getBufPtr(): CPointer < Int8 >
-```
-获取缓冲区指针（高级用法）
+- Whether the input text changed this frame
 
 ### func getText\(\)
 ```cj

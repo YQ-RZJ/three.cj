@@ -71,102 +71,6 @@ public let BGFX_API_VERSION: UInt32 = bgfx.BGFX_API_VERSION
  */
 public let BUFFER_NONE: UInt16 = bgfx.BUFFER_NONE
 /**
- * @brief[zh-cn] Compute buffer format：8bit × 1
- *
- * @brief[en] Compute buffer format: 8bit × 1
- */
-public let BUFFER_COMPUTE_FORMAT_8X1: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_8X1
-/**
- * @brief[zh-cn] Compute buffer format：8bit × 2
- *
- * @brief[en] Compute buffer format: 8bit × 2
- */
-public let BUFFER_COMPUTE_FORMAT_8X2: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_8X2
-/**
- * @brief[zh-cn] Compute buffer format：8bit × 4
- *
- * @brief[en] Compute buffer format: 8bit × 4
- */
-public let BUFFER_COMPUTE_FORMAT_8X4: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_8X4
-/**
- * @brief[zh-cn] Compute buffer format：16bit × 1
- *
- * @brief[en] Compute buffer format: 16bit × 1
- */
-public let BUFFER_COMPUTE_FORMAT_16X1: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_16X1
-/**
- * @brief[zh-cn] Compute buffer format：16bit × 2
- *
- * @brief[en] Compute buffer format: 16bit × 2
- */
-public let BUFFER_COMPUTE_FORMAT_16X2: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_16X2
-/**
- * @brief[zh-cn] Compute buffer format：16bit × 4
- *
- * @brief[en] Compute buffer format: 16bit × 4
- */
-public let BUFFER_COMPUTE_FORMAT_16X4: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_16X4
-/**
- * @brief[zh-cn] Compute buffer format：32bit × 1
- *
- * @brief[en] Compute buffer format: 32bit × 1
- */
-public let BUFFER_COMPUTE_FORMAT_32X1: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_32X1
-/**
- * @brief[zh-cn] Compute buffer format：32bit × 2
- *
- * @brief[en] Compute buffer format: 32bit × 2
- */
-public let BUFFER_COMPUTE_FORMAT_32X2: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_32X2
-/**
- * @brief[zh-cn] Compute buffer format：32bit × 4
- *
- * @brief[en] Compute buffer format: 32bit × 4
- */
-public let BUFFER_COMPUTE_FORMAT_32X4: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_32X4
-/**
- * @brief[zh-cn] Compute buffer format bit offset
- *
- * @brief[en] Compute buffer format bit offset
- */
-public let BUFFER_COMPUTE_FORMAT_SHIFT: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_SHIFT
-/**
- * @brief[zh-cn] Compute buffer format bit mask
- *
- * @brief[en] Compute buffer format bit mask
- */
-public let BUFFER_COMPUTE_FORMAT_MASK: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_MASK
-/**
- * @brief[zh-cn] 计算缓冲类型：Int
- *
- * @brief[en] Compute buffer type: Int
- */
-public let BUFFER_COMPUTE_TYPE_INT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_INT
-/**
- * @brief[zh-cn] 计算缓冲类型：UInt
- *
- * @brief[en] Compute buffer type: UInt
- */
-public let BUFFER_COMPUTE_TYPE_UINT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_UINT
-/**
- * @brief[zh-cn] 计算缓冲类型：Float
- *
- * @brief[en] Compute buffer type: Float
- */
-public let BUFFER_COMPUTE_TYPE_FLOAT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_FLOAT
-/**
- * @brief[zh-cn] 计算缓冲类型 bit offset
- *
- * @brief[en] Compute buffer type bit offset
- */
-public let BUFFER_COMPUTE_TYPE_SHIFT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_SHIFT
-/**
- * @brief[zh-cn] 计算缓冲类型 bit mask
- *
- * @brief[en] Compute buffer type bit mask
- */
-public let BUFFER_COMPUTE_TYPE_MASK: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_MASK
-/**
  * @brief[zh-cn] 计算缓冲可读
  *
  * @brief[en] Compute buffer readable
@@ -207,12 +111,6 @@ public let BUFFER_INDEX32: UInt16 = bgfx.BUFFER_INDEX32
 // Caps - 能力标志（64bit）
 // =============================================================================
 /**
- * @brief[zh-cn] Alpha to coverage 支持
- *
- * @brief[en] Alpha to coverage support
- */
-public let CAPS_ALPHA_TO_COVERAGE: UInt64 = bgfx.CAPS_ALPHA_TO_COVERAGE
-/**
  * @brief[zh-cn] 独立混合支持
  *
  * @brief[en] Independentblendsupport
@@ -243,12 +141,6 @@ public let CAPS_DRAW_INDIRECT: UInt64 = bgfx.CAPS_DRAW_INDIRECT
  */
 public let CAPS_DRAW_INDIRECT_COUNT: UInt64 = bgfx.CAPS_DRAW_INDIRECT_COUNT
 /**
- * @brief[zh-cn] 片元深度支持
- *
- * @brief[en] Fragmentdepthsupport
- */
-public let CAPS_FRAGMENT_DEPTH: UInt64 = bgfx.CAPS_FRAGMENT_DEPTH
-/**
  * @brief[zh-cn] 片元排序支持
  *
  * @brief[en] Fragment orderingsupport
@@ -267,12 +159,6 @@ public let CAPS_GRAPHICS_DEBUGGER: UInt64 = bgfx.CAPS_GRAPHICS_DEBUGGER
  */
 public let CAPS_HDR10: UInt64 = bgfx.CAPS_HDR10
 /**
- * @brief[zh-cn] HiDPI 支持
- *
- * @brief[en] HiDPI support
- */
-public let CAPS_HIDPI: UInt64 = bgfx.CAPS_HIDPI
-/**
  * @brief[zh-cn] 图像读写支持
  *
  * @brief[en] Image read-writesupport
@@ -284,18 +170,6 @@ public let CAPS_IMAGE_RW: UInt64 = bgfx.CAPS_IMAGE_RW
  * @brief[en] 32-bit indexsupport
  */
 public let CAPS_INDEX32: UInt64 = bgfx.CAPS_INDEX32
-/**
- * @brief[zh-cn] 实例化支持
- *
- * @brief[en] Instancingsupport
- */
-public let CAPS_INSTANCING: UInt64 = bgfx.CAPS_INSTANCING
-/**
- * @brief[zh-cn] 遮挡查询支持
- *
- * @brief[en] Occlusion querysupport
- */
-public let CAPS_OCCLUSION_QUERY: UInt64 = bgfx.CAPS_OCCLUSION_QUERY
 /**
  * @brief[zh-cn] 图元 ID 支持
  *
@@ -315,42 +189,6 @@ public let CAPS_RENDERER_MULTITHREADED: UInt64 = bgfx.CAPS_RENDERER_MULTITHREADE
  */
 public let CAPS_SWAP_CHAIN: UInt64 = bgfx.CAPS_SWAP_CHAIN
 /**
- * @brief[zh-cn] 纹理 blit 支持
- *
- * @brief[en] Texture blit support
- */
-public let CAPS_TEXTURE_BLIT: UInt64 = bgfx.CAPS_TEXTURE_BLIT
-/**
- * @brief[zh-cn] 纹理深度比较支持（LEQUAL）
- *
- * @brief[en] Texture depth comparison support (LEQUAL)
- */
-public let CAPS_TEXTURE_COMPARE_LEQUAL: UInt64 = bgfx.CAPS_TEXTURE_COMPARE_LEQUAL
-/**
- * @brief[zh-cn] 纹理深度比较保留位
- *
- * @brief[en] Texture depth comparison reserved bit
- */
-public let CAPS_TEXTURE_COMPARE_RESERVED: UInt64 = bgfx.CAPS_TEXTURE_COMPARE_RESERVED
-/**
- * @brief[zh-cn] 纹理深度比较支持（全部）
- *
- * @brief[en] Texture depth comparison support (all)
- */
-public let CAPS_TEXTURE_COMPARE_ALL: UInt64 = bgfx.CAPS_TEXTURE_COMPARE_ALL
-/**
- * @brief[zh-cn] 2D texture array support
- *
- * @brief[en] 2D texture array support
- */
-public let CAPS_TEXTURE_2D_ARRAY: UInt64 = bgfx.CAPS_TEXTURE_2D_ARRAY
-/**
- * @brief[zh-cn] 3D 纹理支持
- *
- * @brief[en] 3D texturesupport
- */
-public let CAPS_TEXTURE_3D: UInt64 = bgfx.CAPS_TEXTURE_3D
-/**
  * @brief[zh-cn] Cube texture array support
  *
  * @brief[en] Cube texture array support
@@ -363,35 +201,17 @@ public let CAPS_TEXTURE_CUBE_ARRAY: UInt64 = bgfx.CAPS_TEXTURE_CUBE_ARRAY
  */
 public let CAPS_TEXTURE_DIRECT_ACCESS: UInt64 = bgfx.CAPS_TEXTURE_DIRECT_ACCESS
 /**
- * @brief[zh-cn] Texture readback support
- *
- * @brief[en] Texture readback support
- */
-public let CAPS_TEXTURE_READ_BACK: UInt64 = bgfx.CAPS_TEXTURE_READ_BACK
-/**
  * @brief[zh-cn] Transparent backbuffer support
  *
  * @brief[en] Transparent backbuffer support
  */
 public let CAPS_TRANSPARENT_BACKBUFFER: UInt64 = bgfx.CAPS_TRANSPARENT_BACKBUFFER
 /**
- * @brief[zh-cn] 顶点属性 Half 支持
- *
- * @brief[en] Vertex attribute Half-float support
- */
-public let CAPS_VERTEX_ATTRIB_HALF: UInt64 = bgfx.CAPS_VERTEX_ATTRIB_HALF
-/**
  * @brief[zh-cn] 顶点属性 UInt10 支持
  *
  * @brief[en] Vertex attribute UInt10 support
  */
 public let CAPS_VERTEX_ATTRIB_UINT10: UInt64 = bgfx.CAPS_VERTEX_ATTRIB_UINT10
-/**
- * @brief[zh-cn] 顶点 ID 支持
- *
- * @brief[en] Vertex ID support
- */
-public let CAPS_VERTEX_ID: UInt64 = bgfx.CAPS_VERTEX_ID
 /**
  * @brief[zh-cn] Viewport layer array support
  *
@@ -1584,12 +1404,6 @@ public let STATE_MASK: UInt64 = bgfx.STATE_MASK
  * @brief[en] nostencil
  */
 public let STENCIL_NONE: UInt32 = bgfx.STENCIL_NONE
-/**
- * @brief[zh-cn] 默认模板
- *
- * @brief[en] defaultstencil
- */
-public let STENCIL_DEFAULT: UInt32 = bgfx.STENCIL_DEFAULT
 /**
  * @brief[zh-cn] 模板测试：小于
  *

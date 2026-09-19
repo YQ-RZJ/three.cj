@@ -42,8 +42,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.FilmPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -211,11 +211,11 @@ public class TestWindow <: WindowEngine {
             case Some(p) =>
                 if (p.intensity != g_intensity) {
                     p.intensity = g_intensity
-                    Logger.debug(["film", "intensity synced: " + g_intensity.toString()])
+                    @LogDebug(["film", "intensity synced: " + g_intensity.toString()])
                 }
                 if (p.grayscale != g_grayscale) {
                     p.grayscale = g_grayscale
-                    Logger.debug(["film", "grayscale synced: " + g_grayscale.toString()])
+                    @LogDebug(["film", "grayscale synced: " + g_grayscale.toString()])
                 }
 
                 // R 键重置：清零 time
@@ -274,7 +274,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== film：FilmPass 胶片颗粒后处理 ===")
     println("")
 

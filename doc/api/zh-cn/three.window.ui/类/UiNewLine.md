@@ -9,11 +9,15 @@ public class UiNewLine <: UiWidget
 ```cj
 public override func draw(): Bool
 ```
+渲染换行
 
+返回: 
+
+- 控件交互结果，本控件恒为 false
 
 ### func init\(\)
 ```cj
 public init()
 ```
-
+构造换行控件
 

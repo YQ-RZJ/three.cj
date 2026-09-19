@@ -25,8 +25,8 @@ import three.rendering.lights.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.GTAOPass
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -202,7 +202,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_gtao：地面真值环境光遮蔽（GTAO）后处理 pass ===")
     println("")
 

@@ -105,7 +105,7 @@ public static func isItemClicked(mouseButton!: Int32 = 0): Bool
 
 |名称|类型|描述|
 |---|---|---|
-|mouseButton|Int32||
+|mouseButton|Int32|鼠标按钮（0=左 1=右 2=中，默认 0）|
 
 返回: 
 
@@ -161,7 +161,7 @@ public static func isItemHovered(flags!: Int32 = 0): Bool
 
 |名称|类型|描述|
 |---|---|---|
-|flags|Int32||
+|flags|Int32|ImGui 悬停标志（默认 0）|
 
 返回: 
 
@@ -203,7 +203,7 @@ public static func pushIDInt(intID: Int32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|intID|Int32||
+|intID|Int32|要压入的整数 ID|
 
 ### func pushID\(String\)
 ```cj
@@ -215,7 +215,7 @@ public static func pushID(strID: String): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|strID|String||
+|strID|String|要压入的字符串 ID|
 
 ### func setItemDefaultFocus\(\)
 ```cj

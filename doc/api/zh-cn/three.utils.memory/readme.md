@@ -23,3 +23,8 @@
 |[SharedPtr<T> where T <: CType](./类/SharedPtr.md#class-sharedptr-t-where-t-ctype)|引用计数共享智能指针|
 |[UniquePtr<T> where T <: CType](./类/UniquePtr.md#class-uniqueptr-t-where-t-ctype)|独占所有权智能指针|
 
+### 类型别名
+|  名称   | 描述  |
+|  ----  | ----  |
+|[VoidPtr](./类型别名.md#type-voidptr)|void* 指针包装|
+

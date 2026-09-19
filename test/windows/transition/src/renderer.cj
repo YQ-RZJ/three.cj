@@ -39,6 +39,7 @@ import three.rendering.types.*
 import three.rendering.bgfx.BgfxConstants
 import three.utils.memory.BgfxMemory
 import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.*
 
 /// RenderTransitionPass 默认参数（R 键重置时回到此值）
@@ -108,8 +109,8 @@ public func createMixTexture(renderer: ThreeRenderer): TextureHandle {
     mem.writeUInt8(pixArr, Int64(pixBuf.size))
     let flags: UInt64 = UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
     let tex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA8.value(), flags, Some(mem))
-    let tagDebug: Array<String> = ["transition", "createMixTexture: ${MIX_TEX_SIZE}x${MIX_TEX_SIZE} tex.idx=" + handleIdx(tex).toString()]
-    Logger.debug(tagDebug)
+    let tagDebug: Array<String> = ["transition", "createMixTexture: ${MIX_TEX_SIZE}x${MIX_TEX_SIZE} tex.idx=" + Handle.idx(tex).toString()]
+    @LogDebug(tagDebug)
     return tex
 }
 

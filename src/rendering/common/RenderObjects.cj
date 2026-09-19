@@ -43,7 +43,8 @@ import three.scene.objects.*
 import three.core.time.*
 import three.rendering.rendertarget.*
 import three.core.event.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
@@ -110,10 +111,10 @@ public open class RenderObjects {
         //   = renderer.clearColor 且 min==max、reflectDepthRT 100% far）。
         //   加 camera.id 后，主相机与镜像相机各用独立 RenderObject，viewId 正确。
         let key = mesh.id * 100000000 + material.uuid.hashCode() + camera.id
-        Logger.trace(["RenderObjects.get", "mesh.id=${mesh.id} mesh.name=${mesh.name} mat.uuid=${material.uuid} camera.id=${camera.id} key=${key}"])
+        @LogTrace(["RenderObjects.get", "mesh.id=${mesh.id} mesh.name=${mesh.name} mat.uuid=${material.uuid} camera.id=${camera.id} key=${key}"])
         match (this.cache.get(key)) {
             case Some(ro) =>
-                Logger.trace(["RenderObjects.get", "CACHE HIT key=${key} cached.mesh.name=${ro.mesh.name}"])
+                @LogTrace(["RenderObjects.get", "CACHE HIT key=${key} cached.mesh.name=${ro.mesh.name}"])
                 ro.updateWorldMatrix()
                 return ro
             case None =>

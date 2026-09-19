@@ -43,6 +43,7 @@ package three.window.ui
 
 import std.core.*
 import imgui4cj.imgui.*
+import three.utils.memory.VoidPtr
 
 // =============================================================================
 // UiPayload — 拖放载荷查询
@@ -61,7 +62,14 @@ import imgui4cj.imgui.*
 public class UiPayload {
     private var _payload: CPointer<Unit>
 
-    public init(payloadPtr: CPointer<Unit>) { this._payload = payloadPtr }
+    /**
+     * @brief[zh-cn] 使用底层载荷指针构造包装器
+     * @param[zh-cn] payloadPtr 底层 ImGuiPayload 指针
+     *
+     * @brief[en] Constructs a wrapper with the underlying payload pointer
+     * @param[en] payloadPtr Underlying ImGuiPayload pointer
+     */
+    public init(payloadPtr: VoidPtr) { this._payload = payloadPtr.value }
 
     /**
      * @brief[zh-cn] 获取当前活跃的拖放载荷（在 BeginDragDropTarget/EndDragDropTarget 内调用）
@@ -69,7 +77,7 @@ public class UiPayload {
      * @brief[en] Gets the current active drag-drop payload (call inside BeginDragDropTarget/EndDragDropTarget)
      */
     public static func getCurrentPayload(): UiPayload {
-        return UiPayload(igGetDragDropPayload_cj())
+        return UiPayload(Box(igGetDragDropPayload_cj()))
     }
 
     /**

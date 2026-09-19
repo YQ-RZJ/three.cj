@@ -17,17 +17,17 @@ public static func getCurrentPayload(): UiPayload
 ```
 Gets the current active drag-drop payload (call inside BeginDragDropTarget/EndDragDropTarget)
 
-### func init\(CPointer<Unit>\)
+### func init\(VoidPtr\)
 ```cj
-public init(payloadPtr: CPointer < Unit >)
+public init(payloadPtr: VoidPtr)
 ```
-
+Constructs a wrapper with the underlying payload pointer
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|payloadPtr|CPointer<Unit>||
+|payloadPtr|VoidPtr|Underlying ImGuiPayload pointer|
 
 ### func isDataType\(String\)
 ```cj

@@ -37,7 +37,8 @@ package three.rendering.shaders
 
 import std.collection.*
 import three.rendering.shaders.ShaderChunk.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 管理所有着色器块的注册和组合
@@ -57,7 +58,7 @@ public class ShaderChunks {
      */
     public static func define(name: String, source: String): Unit {
         chunks.add(name, source)
-        if (chunks.size <= 1) { Logger.debug(["chunks", "first define: '" + name + "' size=" + source.size.toString()]) }
+        if (chunks.size <= 1) { @LogDebug(["chunks", "first define: '" + name + "' size=" + source.size.toString()]) }
     }
 
     /**
@@ -83,11 +84,11 @@ public class ShaderChunks {
      */
     public static func resolve(source: String): String {
         var result = source
-        Logger.debug(["chunks", "resolve called, source length=" + source.size.toString() + ", chunks count=" + chunks.size.toString()])
+        @LogDebug(["chunks", "resolve called, source length=" + source.size.toString() + ", chunks count=" + chunks.size.toString()])
         // Print first include directive found
         let inclIdx = source.indexOf("#include")
         if (inclIdx.isSome()) {
-            Logger.debug(["chunks", "first include at " + inclIdx.getOrThrow().toString()])
+            @LogDebug(["chunks", "first include at " + inclIdx.getOrThrow().toString()])
         }
         var found = true
         while (found) {
@@ -109,7 +110,7 @@ public class ShaderChunks {
                                 case None =>
                                     // 调试：检查 chunk 是否真的不存在
                                     let hasChunk = chunks.contains(chunkName)
-                                    Logger.debug(["chunks", "MISSING: '" + chunkName + "' contains=" + hasChunk.toString()])
+                                    @LogDebug(["chunks", "MISSING: '" + chunkName + "' contains=" + hasChunk.toString()])
                                     newLines.add("// MISSING CHUNK: ${chunkName}")
                             }
                         case None =>

@@ -42,7 +42,8 @@ import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /// 默认粒子参数（R 键重置时回到此值）
 public let DEFAULT_PARTICLE_SIZE: Float64 = 0.15

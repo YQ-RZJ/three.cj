@@ -23,8 +23,8 @@ import three.rendering.cameras.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.OutlinePass
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -152,7 +152,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== outline：OutlinePass 描边后处理 ===")
     println("")
 

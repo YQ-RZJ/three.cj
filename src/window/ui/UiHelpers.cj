@@ -34,10 +34,6 @@
  *   let col = UiColor.fromRGBA(1.0, 0.5, 0.2, 1.0)
  *   let rect = UiRect.fromPosSize(10.0, 20.0, 100.0, 50.0)
  *   if (rect.contains(50.0, 30.0)) { ... }
- * @explain[en] Usage example:
- *   let col = UiColor.fromRGBA(1.0, 0.5, 0.2, 1.0)
- *   let rect = UiRect.fromPosSize(10.0, 20.0, 100.0, 50.0)
- *   if (rect.contains(50.0, 30.0)) { ... }
  */
 package three.window.ui
 
@@ -61,12 +57,29 @@ import imgui4cj.imgui.*
 public class UiColor {
     private var _col: ImVec4
 
+    /**
+     * @brief[zh-cn] 以 ImVec4 颜色值构造
+     * @param[zh-cn] col ImVec4 颜色值（RGBA，分量范围 [0, 1]）
+     *
+     * @brief[en] Constructs from an ImVec4 color value
+     * @param[en] col ImVec4 color value (RGBA, components in [0, 1])
+     */
     public init(col: ImVec4) { this._col = col }
 
     /**
      * @brief[zh-cn] 从 RGBA float 构造
+     * @param[zh-cn] r 红色分量
+     * @param[zh-cn] g 绿色分量
+     * @param[zh-cn] b 蓝色分量
+     * @param[zh-cn] a 透明度分量
+     * @return[zh-cn] 颜色对象
      *
      * @brief[en] Constructs from RGBA float
+     * @param[en] r Red component
+     * @param[en] g Green component
+     * @param[en] b Blue component
+     * @param[en] a Alpha component
+     * @return[en] The color object
      */
     public static func fromRGBA(r: Float32, g: Float32, b: Float32, a: Float32): UiColor {
         return UiColor(ImVec4(r, g, b, a))
@@ -74,8 +87,18 @@ public class UiColor {
 
     /**
      * @brief[zh-cn] 从 HSV 构造
+     * @param[zh-cn] h 色相（0~360）
+     * @param[zh-cn] s 饱和度（0~1）
+     * @param[zh-cn] v 明度（0~1）
+     * @param[zh-cn] a 透明度分量，默认 1.0
+     * @return[zh-cn] 颜色对象
      *
      * @brief[en] Constructs from HSV
+     * @param[en] h Hue (0~360)
+     * @param[en] s Saturation (0~1)
+     * @param[en] v Value (0~1)
+     * @param[en] a Alpha component, defaults to 1.0
+     * @return[en] The color object
      */
     public static func fromHSV(h: Float32, s: Float32, v: Float32, a!: Float32 = 1.0f32): UiColor {
         let ptr = ImColor_HSV_cj(h, s, v, a)
@@ -86,8 +109,12 @@ public class UiColor {
 
     /**
      * @brief[zh-cn] 从 ImU32（RGBA packed）构造
+     * @param[zh-cn] col ImU32 打包颜色值
+     * @return[zh-cn] 颜色对象
      *
      * @brief[en] Constructs from ImU32 (RGBA packed)
+     * @param[en] col Packed ImU32 color value
+     * @return[en] The color object
      */
     public static func fromU32(col: UInt32): UiColor {
         let ptr = ImColor_ImColor_U32_cj(col)
@@ -97,40 +124,58 @@ public class UiColor {
 
     /**
      * @brief[zh-cn] 获取底层 ImVec4
+     * @return[zh-cn] 底层 ImVec4 颜色值
      *
      * @brief[en] Gets the underlying ImVec4
+     * @return[en] The underlying ImVec4 color value
      */
     public func getVec4(): ImVec4 { return this._col }
 
     /**
      * @brief[zh-cn] 获取 R 分量
+     * @return[zh-cn] 红色分量
      *
      * @brief[en] Gets the R component
+     * @return[en] Red component
      */
     public func r(): Float32 { return this._col.x }
     /**
      * @brief[zh-cn] 获取 G 分量
+     * @return[zh-cn] 绿色分量
      *
      * @brief[en] Gets the G component
+     * @return[en] Green component
      */
     public func g(): Float32 { return this._col.y }
     /**
      * @brief[zh-cn] 获取 B 分量
+     * @return[zh-cn] 蓝色分量
      *
      * @brief[en] Gets the B component
+     * @return[en] Blue component
      */
     public func b(): Float32 { return this._col.z }
     /**
      * @brief[zh-cn] 获取 A 分量
+     * @return[zh-cn] 透明度分量
      *
      * @brief[en] Gets the A component
+     * @return[en] Alpha component
      */
     public func a(): Float32 { return this._col.w }
 
     /**
      * @brief[zh-cn] 设置 HSV（就地修改）
+     * @explain[zh-cn] 仅修改色相/饱和度/明度，保留当前透明度分量。
+     * @param[zh-cn] h 色相（0~360）
+     * @param[zh-cn] s 饱和度（0~1）
+     * @param[zh-cn] v 明度（0~1）
      *
      * @brief[en] Sets HSV (in-place modification)
+     * @explain[en] Only hue/saturation/value are changed; the current alpha is preserved.
+     * @param[en] h Hue (0~360)
+     * @param[en] s Saturation (0~1)
+     * @param[en] v Value (0~1)
      */
     public func setHSV(h: Float32, s: Float32, v: Float32): Unit {
         let ptr = ImColor_HSV_cj(h, s, v, this._col.w)
@@ -139,8 +184,10 @@ public class UiColor {
 
     /**
      * @brief[zh-cn] 转换为 ImU32
+     * @return[zh-cn] ImU32 打包颜色值
      *
      * @brief[en] Converts to ImU32
+     * @return[en] Packed ImU32 color value
      */
     public func toU32(): UInt32 {
         return igColorConvertFloat4ToU32_cj(this._col)
@@ -165,11 +212,33 @@ public class UiRect {
     private var _min: ImVec2
     private var _max: ImVec2
 
+    /**
+     * @brief[zh-cn] 以 min/max 坐标构造矩形
+     * @param[zh-cn] minX 左上角 X
+     * @param[zh-cn] minY 左上角 Y
+     * @param[zh-cn] maxX 右下角 X
+     * @param[zh-cn] maxY 右下角 Y
+     *
+     * @brief[en] Constructs a rectangle from min/max coordinates
+     * @param[en] minX Top-left X
+     * @param[en] minY Top-left Y
+     * @param[en] maxX Bottom-right X
+     * @param[en] maxY Bottom-right Y
+     */
     public init(minX: Float32, minY: Float32, maxX: Float32, maxY: Float32) {
         this._min = ImVec2(minX, minY)
         this._max = ImVec2(maxX, maxY)
     }
 
+    /**
+     * @brief[zh-cn] 以 ImVec2 端点构造矩形
+     * @param[zh-cn] min 左上角点
+     * @param[zh-cn] max 右下角点
+     *
+     * @brief[en] Constructs a rectangle from ImVec2 endpoints
+     * @param[en] min Top-left point
+     * @param[en] max Bottom-right point
+     */
     public init(min: ImVec2, max: ImVec2) {
         this._min = min
         this._max = max
@@ -177,8 +246,18 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 从位置和尺寸构造
+     * @param[zh-cn] x 左上角 X
+     * @param[zh-cn] y 左上角 Y
+     * @param[zh-cn] w 宽度
+     * @param[zh-cn] h 高度
+     * @return[zh-cn] 矩形对象
      *
      * @brief[en] Constructs from position and size
+     * @param[en] x Top-left X
+     * @param[en] y Top-left Y
+     * @param[en] w Width
+     * @param[en] h Height
+     * @return[en] The rectangle object
      */
     public static func fromPosSize(x: Float32, y: Float32, w: Float32, h: Float32): UiRect {
         return UiRect(x, y, x + w, y + h)
@@ -189,8 +268,10 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 矩形中心点
+     * @return[zh-cn] 中心点坐标
      *
      * @brief[en] Rectangle center point
+     * @return[en] Center point coordinates
      */
     public func getCenter(): ImVec2 {
         return ImRect_GetCenter_cj(this.toPtr())
@@ -198,8 +279,10 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 矩形尺寸
+     * @return[zh-cn] 宽度/高度
      *
      * @brief[en] Rectangle size
+     * @return[en] Width/height
      */
     public func getSize(): ImVec2 {
         return ImRect_GetSize_cj(this.toPtr())
@@ -207,52 +290,68 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 宽度
+     * @return[zh-cn] 矩形宽度
      *
      * @brief[en] Width
+     * @return[en] Rectangle width
      */
     public func getWidth(): Float32 { return this._max.x - this._min.x }
     /**
      * @brief[zh-cn] 高度
+     * @return[zh-cn] 矩形高度
      *
      * @brief[en] Height
+     * @return[en] Rectangle height
      */
     public func getHeight(): Float32 { return this._max.y - this._min.y }
     /**
      * @brief[zh-cn] 面积
+     * @return[zh-cn] 矩形面积
      *
      * @brief[en] Area
+     * @return[en] Rectangle area
      */
     public func getArea(): Float32 { return this.getWidth() * this.getHeight() }
 
     /**
      * @brief[zh-cn] 左上角
+     * @return[zh-cn] 左上角坐标
      *
      * @brief[en] Top-left corner
+     * @return[en] Top-left coordinates
      */
     public func getTL(): ImVec2 { return ImRect_GetTL_cj(this.toPtr()) }
     /**
      * @brief[zh-cn] 右上角
+     * @return[zh-cn] 右上角坐标
      *
      * @brief[en] Top-right corner
+     * @return[en] Top-right coordinates
      */
     public func getTR(): ImVec2 { return ImRect_GetTR_cj(this.toPtr()) }
     /**
      * @brief[zh-cn] 左下角
+     * @return[zh-cn] 左下角坐标
      *
      * @brief[en] Bottom-left corner
+     * @return[en] Bottom-left coordinates
      */
     public func getBL(): ImVec2 { return ImRect_GetBL_cj(this.toPtr()) }
     /**
      * @brief[zh-cn] 右下角
+     * @return[zh-cn] 右下角坐标
      *
      * @brief[en] Bottom-right corner
+     * @return[en] Bottom-right coordinates
      */
     public func getBR(): ImVec2 { return ImRect_GetBR_cj(this.toPtr()) }
 
     /**
      * @brief[zh-cn] 矩形是否反转（min > max）
+     * @return[zh-cn] 反转返回 true
      *
      * @brief[en] Whether the rectangle is inverted (min > max)
+     * @return[en] true if inverted
      */
     public func isInverted(): Bool {
         return ImRect_IsInverted_cj(this.toPtr()) != 0
@@ -263,8 +362,14 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 点是否在矩形内
+     * @param[zh-cn] x 点 X 坐标
+     * @param[zh-cn] y 点 Y 坐标
+     * @return[zh-cn] 点在矩形内返回 true
      *
      * @brief[en] Whether a point is inside the rectangle
+     * @param[en] x Point X coordinate
+     * @param[en] y Point Y coordinate
+     * @return[en] true if the point is inside
      */
     public func contains(x: Float32, y: Float32): Bool {
         return ImRect_Contains_Vec2_cj(this.toPtr(), ImVec2(x, y)) != 0
@@ -272,8 +377,12 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 另一个矩形是否完全在本矩形内
+     * @param[zh-cn] other 另一个矩形
+     * @return[zh-cn] 完全包含返回 true
      *
      * @brief[en] Whether another rectangle is fully contained
+     * @param[en] other Another rectangle
+     * @return[en] true if fully contained
      */
     public func containsRect(other: UiRect): Bool {
         return ImRect_Contains_Rect_cj(this.toPtr(), other.toPtr()) != 0
@@ -281,8 +390,12 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 两个矩形是否重叠
+     * @param[zh-cn] other 另一个矩形
+     * @return[zh-cn] 重叠返回 true
      *
      * @brief[en] Whether two rectangles overlap
+     * @param[en] other Another rectangle
+     * @return[en] true if overlapping
      */
     public func overlaps(other: UiRect): Bool {
         return ImRect_Overlaps_cj(this.toPtr(), other.toPtr()) != 0
@@ -293,8 +406,12 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 扩展矩形（各方向扩大指定量）
+     * @param[zh-cn] amount 各方向扩展量
+     * @return[zh-cn] 扩展后的新矩形
      *
      * @brief[en] Expands the rectangle by the given amount in all directions
+     * @param[en] amount Expansion amount in all directions
+     * @return[en] The expanded rectangle
      */
     public func expand(amount: Float32): UiRect {
         let r = UiRect(this._min.x - amount, this._min.y - amount, this._max.x + amount, this._max.y + amount)
@@ -303,8 +420,14 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 扩展矩形（分别指定 X/Y 扩展量）
+     * @param[zh-cn] dx X 方向扩展量
+     * @param[zh-cn] dy Y 方向扩展量
+     * @return[zh-cn] 扩展后的新矩形
      *
      * @brief[en] Expands the rectangle with separate X/Y amounts
+     * @param[en] dx X expansion amount
+     * @param[en] dy Y expansion amount
+     * @return[en] The expanded rectangle
      */
     public func expandVec(dx: Float32, dy: Float32): UiRect {
         return UiRect(this._min.x - dx, this._min.y - dy, this._max.x + dx, this._max.y + dy)
@@ -312,8 +435,14 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 平移矩形
+     * @param[zh-cn] dx X 方向偏移
+     * @param[zh-cn] dy Y 方向偏移
+     * @return[zh-cn] 平移后的新矩形
      *
      * @brief[en] Translates the rectangle
+     * @param[en] dx X offset
+     * @param[en] dy Y offset
+     * @return[en] The translated rectangle
      */
     public func translate(dx: Float32, dy: Float32): UiRect {
         return UiRect(this._min.x + dx, this._min.y + dy, this._max.x + dx, this._max.y + dy)
@@ -321,8 +450,14 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 添加点（扩展矩形以包含该点）
+     * @param[zh-cn] x 点 X 坐标
+     * @param[zh-cn] y 点 Y 坐标
+     * @return[zh-cn] 包含该点后的新矩形
      *
      * @brief[en] Adds a point (expands rectangle to contain it)
+     * @param[en] x Point X coordinate
+     * @param[en] y Point Y coordinate
+     * @return[en] New rectangle containing the point
      */
     public func addPoint(x: Float32, y: Float32): UiRect {
         return UiRect(
@@ -335,8 +470,12 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 裁剪（与另一个矩形求交）
+     * @param[zh-cn] other 另一个矩形
+     * @return[zh-cn] 两矩形交集的新矩形
      *
      * @brief[en] Clips (intersects with another rectangle)
+     * @param[en] other Another rectangle
+     * @return[en] New rectangle of the intersection
      */
     public func clipWith(other: UiRect): UiRect {
         return UiRect(
@@ -349,8 +488,10 @@ public class UiRect {
 
     /**
      * @brief[zh-cn] 转换为 ImVec4（x=minX, y=minY, z=maxX, w=maxY）
+     * @return[zh-cn] ImVec4 表示
      *
      * @brief[en] Converts to ImVec4 (x=minX, y=minY, z=maxX, w=maxY)
+     * @return[en] ImVec4 representation
      */
     public func toVec4(): ImVec4 {
         return ImVec4(this._min.x, this._min.y, this._max.x, this._max.y)

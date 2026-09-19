@@ -35,7 +35,8 @@ package three.resource.loader
 
 import three.utils.constants.*
 import three.rendering.textures.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 import bgfx4cj.bimg.*
 import std.collection.*
@@ -79,7 +80,7 @@ public class KTXLoader <: CompressedTextureLoader {
         if (buffer.size < 12) { return texData }
         let magic = UInt32(buffer[0]) | (UInt32(buffer[1]) << 8) | (UInt32(buffer[2]) << 16) | (UInt32(buffer[3]) << 24)
         if (magic != 0xAB4B5458u32) {
-            Logger.debug(["KTXLoader", "invalid magic"])
+            @LogDebug(["KTXLoader", "invalid magic"])
             return texData
         }
 
@@ -93,7 +94,7 @@ public class KTXLoader <: CompressedTextureLoader {
         let ic = bimg_image_parse_ktx_cj(allocator, unsafe { CPointer<Unit>(dataPtr) }, UInt32(buffer.size), CPointer<BimgError>())
         dataPtrHolder.dispose()
         if (ic.isNull()) {
-            Logger.debug(["KTXLoader", "parse_ktx failed"])
+            @LogDebug(["KTXLoader", "parse_ktx failed"])
             return texData
         }
 

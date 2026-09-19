@@ -11,6 +11,10 @@ public static func calcItemWidth(): Float32
 ```
 计算当前控件宽度
 
+返回: 
+
+- 当前控件宽度
+
 ### func calcTextSize\(String,Bool,Float32\)
 ```cj
 public static func calcTextSize(text: String, hideTextAfterDoubleHash!: Bool = true, wrapWidth!: Float32 = - 1.0f32):(Float32, Float32)
@@ -45,10 +49,14 @@ public static func col32(r: UInt32, g: UInt32, b: UInt32, a: UInt32): UInt32
 
 |名称|类型|描述|
 |---|---|---|
-|r|UInt32||
-|g|UInt32||
-|b|UInt32||
-|a|UInt32||
+|r|UInt32|红色分量（0~255）|
+|g|UInt32|绿色分量（0~255）|
+|b|UInt32|蓝色分量（0~255）|
+|a|UInt32|透明度分量（0~255）|
+
+返回: 
+
+- ImU32 打包颜色值
 
 ### func dark\(\)
 ```cj
@@ -62,6 +70,10 @@ public static func getClipboardText(): String
 ```
 获取剪贴板文本
 
+返回: 
+
+- 剪贴板文本内容
+
 ### func getColorName\(Int32\)
 ```cj
 public func getColorName(idx: Int32): String
@@ -74,6 +86,10 @@ public func getColorName(idx: Int32): String
 |---|---|---|
 |idx|Int32|颜色索引|
 
+返回: 
+
+- 颜色名称字符串
+
 ### func getColorVec4\(Int32\)
 ```cj
 public static func getColorVec4(idx: Int32): ImVec4
@@ -84,7 +100,11 @@ public static func getColorVec4(idx: Int32): ImVec4
 
 |名称|类型|描述|
 |---|---|---|
-|idx|Int32||
+|idx|Int32|颜色索引（ImGuiCol 枚举值）|
+
+返回: 
+
+- 颜色值（RGBA，分量范围 [0, 1]）
 
 ### func getColor\(Int32\)
 ```cj
@@ -112,6 +132,16 @@ public static func getDisplaySize():(Float32, Float32)
 
 - (width, height) 像素尺寸
 
+### func getFontGlobalScale\(\)
+```cj
+public static func getFontGlobalScale(): Float32
+```
+获取主字体缩放（Style.FontScaleMain）
+
+返回: 
+
+- 缩放因子
+
 ### func getFontSize\(\)
 ```cj
 public func getFontSize(): Float32
@@ -124,13 +154,13 @@ public func getFontSize(): Float32
 
 ### func getFont\(\)
 ```cj
-public func getFont(): CPointer < Unit >
+public func getFont(): UiFont
 ```
 获取当前字体
 
 返回: 
 
-- 当前字体指针
+- 当前字体对象
 
 ### func getFrameCount\(\)
 ```cj
@@ -138,27 +168,29 @@ public static func getFrameCount(): Int32
 ```
 获取 ImGui 帧计数
 
+返回: 
+
+- 已渲染帧数
+
 ### func getScale\(\)
 ```cj
 public static func getScale(): Float32
 ```
 获取当前全局缩放因子
 
-### func getStyle\(\)
-```cj
-public func getStyle(): CPointer < Unit >
-```
-获取样式对象指针
-
 返回: 
 
-- 样式对象指针
+- 当前全局缩放因子
 
 ### func getTime\(\)
 ```cj
 public static func getTime(): Float64
 ```
 获取 ImGui 运行时间（秒）
+
+返回: 
+
+- 自 ImGui 初始化以来的运行秒数
 
 ### func hsvToRGB\(Float32,Float32,Float32\)
 ```cj
@@ -170,9 +202,13 @@ HSV → RGB
 
 |名称|类型|描述|
 |---|---|---|
-|h|Float32||
-|s|Float32||
-|v|Float32||
+|h|Float32|色相（0~360）|
+|s|Float32|饱和度（0~1）|
+|v|Float32|明度（0~1）|
+
+返回: 
+
+- (r, g, b) RGB 分量
 
 ### func light\(\)
 ```cj
@@ -278,9 +314,9 @@ public func pushColor(idx: Int32, color: Color): Unit
 |idx|Int32|颜色索引（ImGuiCol 枚举值）|
 |color|Color|颜色（RGB 分量范围 [0, 1]，alpha 默认 1.0）|
 
-### func pushFont\(CPointer<Unit>,Float32\)
+### func pushFont\(UiFont,Float32\)
 ```cj
-public func pushFont(font: CPointer < Unit >, fontSizeBaseUnscaled!: Float32 = 0.0): Unit
+public func pushFont(font: UiFont, fontSizeBaseUnscaled!: Float32 = 0.0): Unit
 ```
 压入字体
 
@@ -288,7 +324,7 @@ public func pushFont(font: CPointer < Unit >, fontSizeBaseUnscaled!: Float32 = 0
 
 |名称|类型|描述|
 |---|---|---|
-|font|CPointer<Unit>|字体指针|
+|font|UiFont|字体对象|
 |fontSizeBaseUnscaled|Float32|基础字号|
 
 ### func pushItemFlag\(Int32,Bool\)
@@ -314,7 +350,7 @@ public static func pushItemWidth(itemWidth: Float32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|itemWidth|Float32||
+|itemWidth|Float32|控件宽度|
 
 ### func pushTextWrapPos\(Float32\)
 ```cj
@@ -326,7 +362,7 @@ public static func pushTextWrapPos(wrapPosX!: Float32 = 0.0f32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|wrapPosX|Float32||
+|wrapPosX|Float32|换行位置 X，默认 0.0（窗口右边缘）|
 
 ### func pushVarFloat\(Int32,Float32\)
 ```cj
@@ -364,9 +400,13 @@ RGB → HSV
 
 |名称|类型|描述|
 |---|---|---|
-|r|Float32||
-|g|Float32||
-|b|Float32||
+|r|Float32|红色分量（0~1）|
+|g|Float32|绿色分量（0~1）|
+|b|Float32|蓝色分量（0~1）|
+
+返回: 
+
+- (h, s, v) HSV 分量
 
 ### func saveIniToMemory\(\)
 ```cj
@@ -412,13 +452,13 @@ public static func setClipboardText(text: String): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|text|String||
+|text|String|要写入剪贴板的文本|
 
 ### func setFontGlobalScale\(Float32\)
 ```cj
 public static func setFontGlobalScale(scale: Float32): Unit
 ```
-设置全局字体缩放（IO.FontGlobalScale）
+设置主字体缩放（Style.FontScaleMain）
 
 参数: 
 
@@ -438,9 +478,9 @@ public func showFontSelector(label: String): Unit
 |---|---|---|
 |label|String|标签|
 
-### func showStyleEditor\(CPointer<Unit>\)
+### func showStyleEditor\(VoidPtr\)
 ```cj
-public func showStyleEditor(ref!: CPointer < Unit >= CPointer < Unit >()): Unit
+public func showStyleEditor(ref!: VoidPtr = Box(CPointer < Unit >())): Unit
 ```
 显示样式编辑器
 
@@ -448,7 +488,7 @@ public func showStyleEditor(ref!: CPointer < Unit >= CPointer < Unit >()): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|ref|CPointer<Unit>|样式引用（null=编辑全局样式）|
+|ref|VoidPtr|样式引用（null=编辑全局样式）|
 
 ### func showStyleSelector\(String\)
 ```cj
@@ -482,7 +522,11 @@ public static func u32ToVec4(col: UInt32): ImVec4
 
 |名称|类型|描述|
 |---|---|---|
-|col|UInt32||
+|col|UInt32|ImU32 打包颜色值|
+
+返回: 
+
+- ImVec4 颜色值（RGBA，分量范围 [0, 1]）
 
 ### func vec4ToU32\(ImVec4\)
 ```cj
@@ -494,5 +538,9 @@ public static func vec4ToU32(col: ImVec4): UInt32
 
 |名称|类型|描述|
 |---|---|---|
-|col|ImVec4||
+|col|ImVec4|ImVec4 颜色值（RGBA，分量范围 [0, 1]）|
+
+返回: 
+
+- ImU32 打包颜色值
 

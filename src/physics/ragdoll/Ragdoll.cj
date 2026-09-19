@@ -66,7 +66,8 @@ import three.physics.interfaces.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // =============================================================================
 // 内部枚举映射辅助
@@ -773,7 +774,7 @@ public class PhysicsRagdollSettings {
                         }
                     }
                 case _ =>
-                    Logger.warn(["PhysicsRagdoll", "布娃娃仅支持 Jolt 后端"])
+                    @LogWarn(["PhysicsRagdoll", "布娃娃仅支持 Jolt 后端"])
                     PhysicsRagdoll(world: world, handle: CPointer<Unit>(), skeleton: skel)
             }
         })

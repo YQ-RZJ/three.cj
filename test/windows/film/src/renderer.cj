@@ -42,7 +42,8 @@ import three.rendering.postprocessing.FilmPass
 import three.rendering.postprocessing.OutputPass
 import three.rendering.postprocessing.FullScreenQuad
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // ===== 键盘交互状态（原 win32.cj，迁移至 WindowEngine 输入） =====
 public let MODE_FULL: Int64 = 1

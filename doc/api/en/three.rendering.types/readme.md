@@ -2,33 +2,10 @@
 
 ## API List
 
-### Function
+### Class
 |  Name   | Describe  |
 |  ----  | ----  |
-|[handleIdx(FrameBufferHandle)](./Function.md#func-handleidxframebufferhandle)|Get frame buffer handle internal idx (for debug logging only; use isValidHandle for validity check)|
-|[handleIdx(TextureHandle)](./Function.md#func-handleidxtexturehandle)|Get texture handle idx (for logging)|
-|[handleIdx(ProgramHandle)](./Function.md#func-handleidxprogramhandle)|Get program handle idx (for logging)|
-|[handleIdx(UniformHandle)](./Function.md#func-handleidxuniformhandle)|Get uniform handle idx (for logging)|
-|[handleIdx(VertexBufferHandle)](./Function.md#func-handleidxvertexbufferhandle)|Get static vertex buffer handle idx (for logging)|
-|[handleIdx(IndexBufferHandle)](./Function.md#func-handleidxindexbufferhandle)|Get static index buffer handle idx (for logging)|
-|[handleIdx(VertexLayoutHandle)](./Function.md#func-handleidxvertexlayouthandle)|Get vertex layout handle idx (for logging)|
-|[handleIdx(DynamicVertexBufferHandle)](./Function.md#func-handleidxdynamicvertexbufferhandle)|Get dynamic vertex buffer handle idx (for logging)|
-|[handleIdx(DynamicIndexBufferHandle)](./Function.md#func-handleidxdynamicindexbufferhandle)|Get dynamic index buffer handle idx (for logging)|
-|[handleIdx(ShaderHandle)](./Function.md#func-handleidxshaderhandle)|Get shader handle idx (for logging)|
-|[handleIdx(IndirectBufferHandle)](./Function.md#func-handleidxindirectbufferhandle)|Get indirect buffer handle idx (for logging)|
-|[handleIdx(OcclusionQueryHandle)](./Function.md#func-handleidxocclusionqueryhandle)|Get occlusion query handle idx (for logging)|
-|[isValidHandle(FrameBufferHandle)](./Function.md#func-isvalidhandleframebufferhandle)|Check if frame buffer handle is valid (idx != 0xFFFF)|
-|[isValidHandle(TextureHandle)](./Function.md#func-isvalidhandletexturehandle)|Check if texture handle is valid|
-|[isValidHandle(ProgramHandle)](./Function.md#func-isvalidhandleprogramhandle)|Check if program handle is valid|
-|[isValidHandle(UniformHandle)](./Function.md#func-isvalidhandleuniformhandle)|Check if uniform handle is valid|
-|[isValidHandle(VertexBufferHandle)](./Function.md#func-isvalidhandlevertexbufferhandle)|Check if static vertex buffer handle is valid|
-|[isValidHandle(IndexBufferHandle)](./Function.md#func-isvalidhandleindexbufferhandle)|Check if static index buffer handle is valid|
-|[isValidHandle(VertexLayoutHandle)](./Function.md#func-isvalidhandlevertexlayouthandle)|Check if vertex layout handle is valid|
-|[isValidHandle(DynamicVertexBufferHandle)](./Function.md#func-isvalidhandledynamicvertexbufferhandle)|Check if dynamic vertex buffer handle is valid|
-|[isValidHandle(DynamicIndexBufferHandle)](./Function.md#func-isvalidhandledynamicindexbufferhandle)|Check if dynamic index buffer handle is valid|
-|[isValidHandle(ShaderHandle)](./Function.md#func-isvalidhandleshaderhandle)|Check if shader handle is valid|
-|[isValidHandle(IndirectBufferHandle)](./Function.md#func-isvalidhandleindirectbufferhandle)|Check if indirect buffer handle is valid|
-|[isValidHandle(OcclusionQueryHandle)](./Function.md#func-isvalidhandleocclusionqueryhandle)|Check if occlusion query handle is valid|
+|[Handle](./Class/Handle.md#class-handle)|bgfx type factory - unified construction entry for Box-wrapped types|
 
 ### Type Alias
 |  Name   | Describe  |
@@ -69,14 +46,15 @@
 |[ProgramHandle](./Type%20Alias.md#type-programhandle)|Program handle (linked vertex + fragment shader)|
 |[RenderFrame](./Type%20Alias.md#type-renderframe)|Render frame type (Render / Submit)|
 |[RendererType](./Type%20Alias.md#type-renderertype)|Renderer type (Direct3D11 / Vulkan / OpenGLES / Metal / Noop ...)|
-|[Resolution](./Type%20Alias.md#type-resolution)|Backbuffer resolution and reset parameters|
 |[ShaderHandle](./Type%20Alias.md#type-shaderhandle)|Shader handle|
 |[StatsPtr](./Type%20Alias.md#type-statsptr)|Renderer statistics pointer (returned by getStats)|
 |[Stats](./Type%20Alias.md#type-stats)|Renderer statistics|
+|[SwapChain](./Type%20Alias.md#type-swapchain)|Swap chain descriptor (native window backbuffer, replaces Resolution in new bgfx)|
 |[TextureFormat](./Type%20Alias.md#type-textureformat)|Texture format (RGBA8 / RGBA16F / D24 / D24S8 ...)|
 |[TextureHandle](./Type%20Alias.md#type-texturehandle)|Texture handle|
 |[TextureInfoPtr](./Type%20Alias.md#type-textureinfoptr)|Texture info pointer (passed to createTexture / calcTextureSize)|
 |[TextureInfo](./Type%20Alias.md#type-textureinfo)|Texture info (format / width / height / numMips etc.)|
+|[TextureRegion](./Type%20Alias.md#type-textureregion)|Texture region descriptor (new bgfx read/blit region model)|
 |[TopologyConvert](./Type%20Alias.md#type-topologyconvert)|Topology convert type (TriListFlipWinding / TriStripToTriList ...)|
 |[TopologySort](./Type%20Alias.md#type-topologysort)|Topology sort type (DirectionFrontToBackMin / DistanceBackToFrontAvg ...)|
 |[Topology](./Type%20Alias.md#type-topology)|Backend capability enum (GPU model name)|
@@ -104,29 +82,12 @@
 |[BGFX_API_VERSION](./Variables%20&%20constants.md#let-bgfx_api_version)|bgfx API version number|
 |[BGFX_INVALID_HANDLE_IDX](./Variables%20&%20constants.md#let-bgfx_invalid_handle_idx)|bgfx handle invalid index value|
 |[BUFFER_ALLOW_RESIZE](./Variables%20&%20constants.md#let-buffer_allow_resize)|Allow dynamic buffer resize|
-|[BUFFER_COMPUTE_FORMAT_16X1](./Variables%20&%20constants.md#let-buffer_compute_format_16x1)|Compute buffer format: 16bit × 1|
-|[BUFFER_COMPUTE_FORMAT_16X2](./Variables%20&%20constants.md#let-buffer_compute_format_16x2)|Compute buffer format: 16bit × 2|
-|[BUFFER_COMPUTE_FORMAT_16X4](./Variables%20&%20constants.md#let-buffer_compute_format_16x4)|Compute buffer format: 16bit × 4|
-|[BUFFER_COMPUTE_FORMAT_32X1](./Variables%20&%20constants.md#let-buffer_compute_format_32x1)|Compute buffer format: 32bit × 1|
-|[BUFFER_COMPUTE_FORMAT_32X2](./Variables%20&%20constants.md#let-buffer_compute_format_32x2)|Compute buffer format: 32bit × 2|
-|[BUFFER_COMPUTE_FORMAT_32X4](./Variables%20&%20constants.md#let-buffer_compute_format_32x4)|Compute buffer format: 32bit × 4|
-|[BUFFER_COMPUTE_FORMAT_8X1](./Variables%20&%20constants.md#let-buffer_compute_format_8x1)|Compute buffer format: 8bit × 1|
-|[BUFFER_COMPUTE_FORMAT_8X2](./Variables%20&%20constants.md#let-buffer_compute_format_8x2)|Compute buffer format: 8bit × 2|
-|[BUFFER_COMPUTE_FORMAT_8X4](./Variables%20&%20constants.md#let-buffer_compute_format_8x4)|Compute buffer format: 8bit × 4|
-|[BUFFER_COMPUTE_FORMAT_MASK](./Variables%20&%20constants.md#let-buffer_compute_format_mask)|Compute buffer format bit mask|
-|[BUFFER_COMPUTE_FORMAT_SHIFT](./Variables%20&%20constants.md#let-buffer_compute_format_shift)|Compute buffer format bit offset|
 |[BUFFER_COMPUTE_READ](./Variables%20&%20constants.md#let-buffer_compute_read)|Compute buffer readable|
 |[BUFFER_COMPUTE_READ_WRITE](./Variables%20&%20constants.md#let-buffer_compute_read_write)|Compute buffer read-write|
-|[BUFFER_COMPUTE_TYPE_FLOAT](./Variables%20&%20constants.md#let-buffer_compute_type_float)|Compute buffer type: Float|
-|[BUFFER_COMPUTE_TYPE_INT](./Variables%20&%20constants.md#let-buffer_compute_type_int)|Compute buffer type: Int|
-|[BUFFER_COMPUTE_TYPE_MASK](./Variables%20&%20constants.md#let-buffer_compute_type_mask)|Compute buffer type bit mask|
-|[BUFFER_COMPUTE_TYPE_SHIFT](./Variables%20&%20constants.md#let-buffer_compute_type_shift)|Compute buffer type bit offset|
-|[BUFFER_COMPUTE_TYPE_UINT](./Variables%20&%20constants.md#let-buffer_compute_type_uint)|Compute buffer type: UInt|
 |[BUFFER_COMPUTE_WRITE](./Variables%20&%20constants.md#let-buffer_compute_write)|Compute buffer writable|
 |[BUFFER_DRAW_INDIRECT](./Variables%20&%20constants.md#let-buffer_draw_indirect)|Draw indirectbuffer|
 |[BUFFER_INDEX32](./Variables%20&%20constants.md#let-buffer_index32)|32bit indexbuffer|
 |[BUFFER_NONE](./Variables%20&%20constants.md#let-buffer_none)|No special flags|
-|[CAPS_ALPHA_TO_COVERAGE](./Variables%20&%20constants.md#let-caps_alpha_to_coverage)|Alpha to coverage support|
 |[CAPS_BLEND_INDEPENDENT](./Variables%20&%20constants.md#let-caps_blend_independent)|Independentblendsupport|
 |[CAPS_COMPUTE](./Variables%20&%20constants.md#let-caps_compute)|Computeshadersupport|
 |[CAPS_CONSERVATIVE_RASTER](./Variables%20&%20constants.md#let-caps_conservative_raster)|Conservative rasterization support|
@@ -149,31 +110,18 @@
 |[CAPS_FORMAT_TEXTURE_MSAA](./Variables%20&%20constants.md#let-caps_format_texture_msaa)|MSAA texturesupport|
 |[CAPS_FORMAT_TEXTURE_NONE](./Variables%20&%20constants.md#let-caps_format_texture_none)|Format not supported|
 |[CAPS_FORMAT_TEXTURE_VERTEX](./Variables%20&%20constants.md#let-caps_format_texture_vertex)|Vertexbuffertexturesupport|
-|[CAPS_FRAGMENT_DEPTH](./Variables%20&%20constants.md#let-caps_fragment_depth)|Fragmentdepthsupport|
 |[CAPS_FRAGMENT_ORDERING](./Variables%20&%20constants.md#let-caps_fragment_ordering)|Fragment orderingsupport|
 |[CAPS_GRAPHICS_DEBUGGER](./Variables%20&%20constants.md#let-caps_graphics_debugger)|Graphics debugger support|
 |[CAPS_HDR10](./Variables%20&%20constants.md#let-caps_hdr10)|HDR10 support|
-|[CAPS_HIDPI](./Variables%20&%20constants.md#let-caps_hidpi)|HiDPI support|
 |[CAPS_IMAGE_RW](./Variables%20&%20constants.md#let-caps_image_rw)|Image read-writesupport|
 |[CAPS_INDEX32](./Variables%20&%20constants.md#let-caps_index32)|32-bit indexsupport|
-|[CAPS_INSTANCING](./Variables%20&%20constants.md#let-caps_instancing)|Instancingsupport|
-|[CAPS_OCCLUSION_QUERY](./Variables%20&%20constants.md#let-caps_occlusion_query)|Occlusion querysupport|
 |[CAPS_PRIMITIVE_ID](./Variables%20&%20constants.md#let-caps_primitive_id)|Primitive ID support|
 |[CAPS_RENDERER_MULTITHREADED](./Variables%20&%20constants.md#let-caps_renderer_multithreaded)|Multi-threaded renderer support|
 |[CAPS_SWAP_CHAIN](./Variables%20&%20constants.md#let-caps_swap_chain)|Swap chain support|
-|[CAPS_TEXTURE_2D_ARRAY](./Variables%20&%20constants.md#let-caps_texture_2d_array)|2D texture array support|
-|[CAPS_TEXTURE_3D](./Variables%20&%20constants.md#let-caps_texture_3d)|3D texturesupport|
-|[CAPS_TEXTURE_BLIT](./Variables%20&%20constants.md#let-caps_texture_blit)|Texture blit support|
-|[CAPS_TEXTURE_COMPARE_ALL](./Variables%20&%20constants.md#let-caps_texture_compare_all)|Texture depth comparison support (all)|
-|[CAPS_TEXTURE_COMPARE_LEQUAL](./Variables%20&%20constants.md#let-caps_texture_compare_lequal)|Texture depth comparison support (LEQUAL)|
-|[CAPS_TEXTURE_COMPARE_RESERVED](./Variables%20&%20constants.md#let-caps_texture_compare_reserved)|Texture depth comparison reserved bit|
 |[CAPS_TEXTURE_CUBE_ARRAY](./Variables%20&%20constants.md#let-caps_texture_cube_array)|Cube texture array support|
 |[CAPS_TEXTURE_DIRECT_ACCESS](./Variables%20&%20constants.md#let-caps_texture_direct_access)|Texture direct access support|
-|[CAPS_TEXTURE_READ_BACK](./Variables%20&%20constants.md#let-caps_texture_read_back)|Texture readback support|
 |[CAPS_TRANSPARENT_BACKBUFFER](./Variables%20&%20constants.md#let-caps_transparent_backbuffer)|Transparent backbuffer support|
-|[CAPS_VERTEX_ATTRIB_HALF](./Variables%20&%20constants.md#let-caps_vertex_attrib_half)|Vertex attribute Half-float support|
 |[CAPS_VERTEX_ATTRIB_UINT10](./Variables%20&%20constants.md#let-caps_vertex_attrib_uint10)|Vertex attribute UInt10 support|
-|[CAPS_VERTEX_ID](./Variables%20&%20constants.md#let-caps_vertex_id)|Vertex ID support|
 |[CAPS_VIEWPORT_LAYER_ARRAY](./Variables%20&%20constants.md#let-caps_viewport_layer_array)|Viewport layer array support|
 |[CLEAR_COLOR](./Variables%20&%20constants.md#let-clear_color)|Clear color|
 |[CLEAR_DEPTH](./Variables%20&%20constants.md#let-clear_depth)|Clear depth|
@@ -360,7 +308,6 @@
 |[STATE_WRITE_RGB](./Variables%20&%20constants.md#let-state_write_rgb)|Write RGB channel|
 |[STATE_WRITE_R](./Variables%20&%20constants.md#let-state_write_r)|Write R channel|
 |[STATE_WRITE_Z](./Variables%20&%20constants.md#let-state_write_z)|Write Z（depth）channel|
-|[STENCIL_DEFAULT](./Variables%20&%20constants.md#let-stencil_default)|defaultstencil|
 |[STENCIL_FUNC_REF_MASK](./Variables%20&%20constants.md#let-stencil_func_ref_mask)|Stencil function reference value bit mask|
 |[STENCIL_FUNC_REF_SHIFT](./Variables%20&%20constants.md#let-stencil_func_ref_shift)|Stencil function reference value bit offset|
 |[STENCIL_FUNC_RMASK_MASK](./Variables%20&%20constants.md#let-stencil_func_rmask_mask)|stencilfunctionmaskbit mask|

@@ -23,8 +23,8 @@ import three.rendering.cameras.*
 import three.scene.entity.*
 import three.scene.objects.*
 import three.rendering.lights.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -148,7 +148,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_lightprobe：LightProbe SH3 球谐辐照度验证 ===")
     println("")
 

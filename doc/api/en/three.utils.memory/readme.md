@@ -23,3 +23,8 @@
 |[SharedPtr<T> where T <: CType](./Class/SharedPtr.md#class-sharedptr-t-where-t-ctype)|Reference-counted shared smart pointer|
 |[UniquePtr<T> where T <: CType](./Class/UniquePtr.md#class-uniqueptr-t-where-t-ctype)|Exclusive-ownership smart pointer|
 
+### Type Alias
+|  Name   | Describe  |
+|  ----  | ----  |
+|[VoidPtr](./Type%20Alias.md#type-voidptr)|void* pointer wrapper|
+

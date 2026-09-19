@@ -172,7 +172,7 @@ public class SavePass <: Pass {
             case Some(_) => ()
         }
         if(let Some(prog) <- this._prog){
-            if (!isValidHandle(prog)) { return }
+            if (!Handle.isValid(prog)) { return }
             let viewId = SavePass._viewId
             let w = UInt16(this._width)
             let h = UInt16(this._height)

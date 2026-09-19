@@ -68,7 +68,8 @@ import three.core.math.*
 import three.physics.interfaces.*
 import jolt4cj.jolt.*
 import std.collection.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] IPhysicsBackend 的 JoltPhysics 后端实现
@@ -220,7 +221,7 @@ public class JoltBackend <: IPhysicsBackend {
         // 1. 全局初始化（进程内只调用一次）
         if (!JoltBackend._globalInited) {
             if (JPH_Init_cj() == 0) {
-                Logger.error(["JoltBackend", "JPH_Init_cj 失败"])
+                @LogError(["JoltBackend", "JPH_Init_cj 失败"])
                 return false
             }
             JoltBackend._globalInited = true
@@ -238,7 +239,7 @@ public class JoltBackend <: IPhysicsBackend {
         this._jobSystem = JPH_JobSystemThreadPool_Create_cj(cfg)
         unsafe { LibC.free(cfg) }
         if (this._jobSystem.isNull()) {
-            Logger.error(["JoltBackend", "创建作业系统失败"])
+            @LogError(["JoltBackend", "创建作业系统失败"])
             return false
         }
 
@@ -284,7 +285,7 @@ public class JoltBackend <: IPhysicsBackend {
         this._system = JPH_PhysicsSystem_Create_cj(settings)
         unsafe { LibC.free(settings) }
         if (this._system.isNull()) {
-            Logger.error(["JoltBackend", "创建物理系统失败"])
+            @LogError(["JoltBackend", "创建物理系统失败"])
             this._cleanupHandles()
             return false
         }
@@ -580,7 +581,7 @@ public class JoltBackend <: IPhysicsBackend {
         // 1. 创建形状
         let shape = this._createShape(desc.shape)
         if (shape.isNull()) {
-            Logger.error(["JoltBackend", "创建形状失败"])
+            @LogError(["JoltBackend", "创建形状失败"])
             return PhysicsBodyHandle.INVALID
         }
 
@@ -610,7 +611,7 @@ public class JoltBackend <: IPhysicsBackend {
             LibC.free(rot)
         }
         if (bcs.isNull()) {
-            Logger.error(["JoltBackend", "创建 BodyCreationSettings 失败"])
+            @LogError(["JoltBackend", "创建 BodyCreationSettings 失败"])
             JPH_Shape_Destroy_cj(shape)
             return PhysicsBodyHandle.INVALID
         }
@@ -629,7 +630,7 @@ public class JoltBackend <: IPhysicsBackend {
         JPH_BodyCreationSettings_Destroy_cj(bcs)
 
         if (bodyID == 0 || bodyID == 0xFFFFFFFF) {
-            Logger.error(["JoltBackend", "CreateAndAddBody 失败"])
+            @LogError(["JoltBackend", "CreateAndAddBody 失败"])
             JPH_Shape_Destroy_cj(shape)
             return PhysicsBodyHandle.INVALID
         }
@@ -2025,7 +2026,7 @@ public class JoltBackend <: IPhysicsBackend {
             }
         }
         if (isGear && (isStatic(bodyA) || isStatic(bodyB))) {
-            Logger.error(["JoltBackend", "Gear 约束不允许连接静态刚体（Jolt 原生限制），创建失败"])
+            @LogError(["JoltBackend", "Gear 约束不允许连接静态刚体（Jolt 原生限制），创建失败"])
             return PhysicsConstraintHandle.INVALID
         }
         // 约束对之间禁用碰撞（否则摆杆/支柱等连接体互相卡住）。
@@ -2043,7 +2044,7 @@ public class JoltBackend <: IPhysicsBackend {
         }
         let c = this._createJoltConstraint(desc, bodyA, bodyB)
         if (c.isNull()) {
-            Logger.error(["JoltBackend", "创建约束失败"])
+            @LogError(["JoltBackend", "创建约束失败"])
             return PhysicsConstraintHandle.INVALID
         }
         // 加入世界并缓存

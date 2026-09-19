@@ -58,7 +58,8 @@ import three.rendering.bgfx.*
 import three.rendering.types.*
 import three.core.thread.*
 import three.utils.memory.intToCPointer
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.utils.memory.PtrArray
@@ -330,15 +331,15 @@ public class ThreeRenderer <: Renderer & IRenderer {
         initParams.`type` = DEFAULT_RENDERER_TYPE
         initParams.vendorId = bgfx.PCI_ID_NONE
         initParams.deviceId = bgfx.PCI_ID_NONE
-        initParams.resolution.width = UInt32(physicalW); initParams.resolution.height = UInt32(physicalH)
-        initParams.resolution.reset = 0x00000080u32
-        initParams.resolution.numBackBuffers = 2
-        initParams.resolution.maxFrameLatency = 2
-        initParams.resolution.debugTextScale = 1
+        // 新版 bgfx：主窗口交换链经 Init.swapChain 传入（nwh 从 platformData 移入 swapChain）
+        initParams.swapChain.width = UInt32(physicalW); initParams.swapChain.height = UInt32(physicalH)
+        initParams.reset = 0x00000080u32
+        initParams.swapChain.numBackBuffers = 2
+        initParams.swapChain.maxFrameLatency = 2
         initParams.debug = false
         initParams.profile = false
-        Logger.debug(["API", "setting nwh via intToCPointer, hwnd=" + hwnd.toString()])
-        initParams.platformData.nwh = intToCPointer(hwnd)
+        @LogDebug(["API", "setting nwh via intToCPointer, hwnd=" + hwnd.toString()])
+        initParams.swapChain.nwh = intToCPointer(hwnd)
         unsafe { initPtr.write(initParams) }
         var ok = bgfx.bgfx_init_cj(initPtr)
         if (!ok && initParams.`type` != 0u32) {
@@ -1092,7 +1093,15 @@ public class ThreeRenderer <: Renderer & IRenderer {
         let resultBox: Box<UInt32> = Box(0u32)
         let dataRef = data
         _execBgfx({ =>
-            resultBox.value = bgfx.bgfx_read_texture_cj(tex.value, unsafe { CPointer<Unit>(dataRef.data()) }, mip)
+            // 新版 bgfx：bgfx_read_texture 以 TextureRegion 描述源区域（mip=0、区域取整图）
+            let regionHolder = AutoFreePtr<bgfx.TextureRegion>(unsafe { LibC.malloc<bgfx.TextureRegion>() })
+            let region = regionHolder.get()
+            bgfx.bgfx_texture_region_init_cj(region, tex.value, 0u16, 0u16, 0u16, 0u16)
+            var regionVal = unsafe { region.read() }
+            regionVal.mip = mip
+            unsafe { region.write(regionVal) }
+            resultBox.value = bgfx.bgfx_read_texture_cj(region, unsafe { CPointer<Unit>(dataRef.data()) })
+            regionHolder.dispose()
         })
         return resultBox.value
     }
@@ -1123,7 +1132,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
  * @param[en] capture Whether to capture screenshot (default false)
  */
     public func present(capture!: Bool = false): Unit {
-        _execBgfx({ => bgfx.bgfx_frame_cj(capture) })
+        _execBgfx({ => bgfx.bgfx_frame_cj(flags: if (capture) { bgfx.FRAME_DEBUG_CAPTURE } else { bgfx.FRAME_NONE }) })
     }
 
     // ========================================================================
@@ -2008,10 +2017,10 @@ public class ThreeRenderer <: Renderer & IRenderer {
 
 /**
  * @brief[zh-cn] 由原生窗口句柄创建 frame buffer（离屏窗口渲染）。
- * @explain[zh-cn] 由原生窗口句柄创建 frame buffer，用于离屏窗口渲染。
+ * @explain[zh-cn] 新版 bgfx 以 SwapChain 描述符取代 bgfx_create_frame_buffer_from_nwh。
  *
  * @brief[en] Create Frame buffer from native window handle (offscreen window rendering)
- * @explain[en] Create frame buffer from native window handle, used for offscreen window rendering.
+ * @explain[en] New bgfx replaces bgfx_create_frame_buffer_from_nwh with a SwapChain descriptor.
  */
     public func createFrameBufferFromNwh(
         nwh: CPointer<Unit>,
@@ -2020,7 +2029,18 @@ public class ThreeRenderer <: Renderer & IRenderer {
     ): FrameBufferHandle {
         let resultBox: Box<FrameBufferHandle> = Box(INVALID_FRAME_BUFFER_HANDLE)
         _execBgfx({ =>
-            resultBox.value = Box(bgfx.bgfx_create_frame_buffer_from_nwh_cj(nwh, width, height, format, depthFormat))
+            let descHolder = AutoFreePtr<bgfx.SwapChain>(unsafe { LibC.malloc<bgfx.SwapChain>() })
+            let desc = descHolder.get()
+            unsafe { desc.write(bgfx.SwapChain()) }
+            var sc = unsafe { desc.read() }
+            sc.nwh = nwh
+            sc.width = UInt32(width)
+            sc.height = UInt32(height)
+            sc.formatColor = format
+            sc.formatDepthStencil = depthFormat
+            unsafe { desc.write(sc) }
+            resultBox.value = Box(bgfx.bgfx_create_frame_buffer_from_swap_chain_cj(desc))
+            descHolder.dispose()
         })
         return resultBox.value
     }
@@ -2092,7 +2112,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         tex: TextureHandle, access: UInt32,
         layer: UInt16, numLayers: UInt16, mip: UInt16, resolve: UInt8
     ): Unit {
-        _execBgfx({ => bgfx.bgfx_attachment_init_cj(attachment, tex.value, access, layer, numLayers, mip, resolve) })
+        _execBgfx({ => bgfx.bgfx_attachment_init_cj(attachment, tex.value, access, layer, numLayers, mip, flags: resolve) })
     }
 
     // ========================================================================
@@ -2634,24 +2654,26 @@ public class ThreeRenderer <: Renderer & IRenderer {
 
 /**
  * @brief[zh-cn] 重置后备缓冲（分辨率/标志/格式）。
- * @explain[zh-cn] 重置后备缓冲，支持设置分辨率、标志位和纹理格式。
+ * @explain[zh-cn] 新版 bgfx 的 bgfx_reset 以 SwapChain 描述符传入尺寸/格式，
+ * 尺寸写入 swapChain 副本后重置。
  *
  * @brief[en] Reset backbuffer (resolution/flags/format)
- * @explain[en] Reset backbuffer with resolution, flags and texture format.
+ * @explain[en] New bgfx bgfx_reset takes a SwapChain descriptor for size/format;
+ * size is written into the swap chain copy before reset.
  */
     public func reset(width: UInt32, height: UInt32, flags: UInt32, format: UInt32): Unit {
-        _execBgfx({ => bgfx.bgfx_reset_cj(width, height, flags, format) })
-    }
-
-/**
- * @brief[zh-cn] 设置平台数据（初始化前调用，如离屏平台句柄）。
- * @explain[zh-cn] 设置平台数据，用于离屏渲染等平台集成场景。
- *
- * @brief[en] Set platform data (call before init, e.g. offscreen platform handle)
- * @explain[en] Set platform data, used for offscreen rendering and platform integration.
- */
-    public func setPlatformData(data: PlatformDataPtr): Unit {
-        _execBgfx({ => bgfx.bgfx_set_platform_data_cj(data.value) })
+        _execBgfx({ =>
+            let descHolder = AutoFreePtr<bgfx.SwapChain>(unsafe { LibC.malloc<bgfx.SwapChain>() })
+            let desc = descHolder.get()
+            unsafe { desc.write(bgfx.SwapChain()) }
+            var sc = unsafe { desc.read() }
+            sc.width = width
+            sc.height = height
+            sc.formatColor = format
+            unsafe { desc.write(sc) }
+            bgfx.bgfx_reset_cj(flags, desc)
+            descHolder.dispose()
+        })
     }
 
 /**
@@ -2778,40 +2800,6 @@ public class ThreeRenderer <: Renderer & IRenderer {
     public func getDirectAccessPtr(tex: TextureHandle): UnitPtr {
         let resultBox: Box<UnitPtr> = Box(Box(CPointer<Unit>()))
         _execBgfx({ => resultBox.value = Box(bgfx.bgfx_get_direct_access_ptr_cj(tex.value)) })
-        return resultBox.value
-    }
-
-/**
- * @brief[zh-cn] 覆盖纹理内部存储（尺寸/格式改变，用于外部导入纹理）。
- * @explain[zh-cn] 覆盖纹理内部存储，用于尺寸/格式改变或外部导入纹理。
- *
- * @brief[en] Override texture internal storage (size/format change, for external texture import)
- * @explain[en] Override texture internal storage, used for size/format change or external texture import.
- */
-    public func overrideInternalTexture(
-        tex: TextureHandle,
-        width: UInt16, height: UInt16, numMips: UInt8,
-        format: UInt32, flags: UInt64
-    ): UIntNative {
-        let resultBox: Box<UIntNative> = Box(0)
-        _execBgfx({ =>
-            resultBox.value = bgfx.bgfx_override_internal_texture_cj(tex.value, width, height, numMips, format, flags)
-        })
-        return resultBox.value
-    }
-
-/**
- * @brief[zh-cn] 覆盖纹理内部存储（指针版，直接指定外部纹理指针）。
- * @explain[zh-cn] 覆盖纹理内部存储（指针版），直接指定外部纹理指针。
- *
- * @brief[en] Override texture internal storage (pointer version, directly specify external texture pointer)
- * @explain[en] Override texture internal storage (pointer version), directly specify external texture pointer.
- */
-    public func overrideInternalTexturePtr(tex: TextureHandle, ptr: UIntNative): UIntNative {
-        let resultBox: Box<UIntNative> = Box(0)
-        _execBgfx({ =>
-            resultBox.value = bgfx.bgfx_override_internal_texture_ptr_cj(tex.value, ptr)
-        })
         return resultBox.value
     }
 

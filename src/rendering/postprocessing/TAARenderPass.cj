@@ -142,7 +142,8 @@ import three.rendering.cameras.*
 import three.scene.scenegraph.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
 
@@ -291,7 +292,7 @@ public class TAARenderPass <: SSAARenderPass {
                 this._holdCreated = true
             case None => ()
         }
-        Logger.trace(["TAARenderPass", "setSize done ${width}x${height} holdFB.idx=${handleIdx(this._holdFB)}"])
+        @LogTrace(["TAARenderPass", "setSize done ${width}x${height} holdFB.idx=${Handle.idx(this._holdFB)}"])
     }
 
     /**
@@ -337,7 +338,7 @@ public class TAARenderPass <: SSAARenderPass {
         this._ensureCopyCompiled()
         match (this._copyProg) {
             case Some(copyProg) =>
-                if (!isValidHandle(copyProg)) { return }
+                if (!Handle.isValid(copyProg)) { return }
                 this._renderTAA(renderer, writeBuffer, readBuffer, deltaTime, copyProg)
             case None => ()
         }
@@ -366,10 +367,10 @@ public class TAARenderPass <: SSAARenderPass {
         let clearFlags: UInt16 = BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH  // CLEAR_COLOR | CLEAR_DEPTH
 
         // 确保 sampleRT（父类）与 holdRT 已创建（若 setSize 未调，首帧 lazy 创建）
-        if (!isValidHandle(this._sampleFB) || !this._holdCreated) {
+        if (!Handle.isValid(this._sampleFB) || !this._holdCreated) {
             this.setSize(Int64(rw), Int64(rh))
         }
-        if (!isValidHandle(this._sampleFB) || !this._holdCreated) { return }
+        if (!Handle.isValid(this._sampleFB) || !this._holdCreated) { return }
 
         // jitterOffsets = _JitterVectors[5]（32 样本，TAA 固定）
         let jitterOffsets = TAA_JITTER_VECTORS[5]
@@ -597,7 +598,7 @@ public class TAARenderPass <: SSAARenderPass {
             case Some(sp) =>
                 sp.compileBgfx()
                 this._copyProg = Some(Box(sp.programHandle))
-            case None => Logger.warn(["TAARenderPass", "shader copy not found"])
+            case None => @LogWarn(["TAARenderPass", "shader copy not found"])
         }
     }
 }

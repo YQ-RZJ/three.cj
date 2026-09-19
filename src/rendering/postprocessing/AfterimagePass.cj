@@ -71,7 +71,8 @@ import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
 import three.utils.memory.AutoFreePtr
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 
 /**
@@ -199,7 +200,7 @@ public class AfterimagePass <: Pass {
         let h = UInt16(this._height)
         let colorFlags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
 
-        Logger.trace(["afterimage", "createRTs: " + w.toString() + "x" + h.toString()])
+        @LogTrace(["afterimage", "createRTs: " + w.toString() + "x" + h.toString()])
 
         // comp RT
         match (this._renderer) {
@@ -223,8 +224,8 @@ public class AfterimagePass <: Pass {
                 this._oldCleared = false
             case None => ()
         }
-        Logger.trace(["afterimage", "RTs created: compFB.idx=" + handleIdx(this._compFB).toString() +
-                      " oldFB.idx=" + handleIdx(this._oldFB).toString()])
+        @LogTrace(["afterimage", "RTs created: compFB.idx=" + Handle.idx(this._compFB).toString() +
+                      " oldFB.idx=" + Handle.idx(this._oldFB).toString()])
     }
 
     /**
@@ -242,19 +243,19 @@ public class AfterimagePass <: Pass {
     private func _destroyRTs(): Unit {
         match (this._renderer) {
             case Some(renderer) =>
-                if (isValidHandle(this._compFB)) {
+                if (Handle.isValid(this._compFB)) {
                     renderer.destroyFrameBuffer(this._compFB)
                     this._compFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                if (isValidHandle(this._compTex)) {
+                if (Handle.isValid(this._compTex)) {
                     renderer.destroyTexture(this._compTex)
                     this._compTex = INVALID_TEXTURE_HANDLE
                 }
-                if (isValidHandle(this._oldFB)) {
+                if (Handle.isValid(this._oldFB)) {
                     renderer.destroyFrameBuffer(this._oldFB)
                     this._oldFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                if (isValidHandle(this._oldTex)) {
+                if (Handle.isValid(this._oldTex)) {
                     renderer.destroyTexture(this._oldTex)
                     this._oldTex = INVALID_TEXTURE_HANDLE
                 }
@@ -277,7 +278,7 @@ public class AfterimagePass <: Pass {
         // clear color=0（黑色）+ 不清深度
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
         this._oldCleared = true
-        Logger.trace(["afterimage", "old RT cleared (first frame)"])
+        @LogTrace(["afterimage", "old RT cleared (first frame)"])
     }
 
     /**
@@ -290,12 +291,12 @@ public class AfterimagePass <: Pass {
                     sp.compileBgfx()
                     this._afterimageProg = Some(Box(sp.programHandle))
                     this._afterimageCompiled = true
-                    Logger.trace(["afterimage", "afterimage shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["afterimage", "afterimage shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._afterimageProg
             case None =>
-                Logger.trace(["afterimage", "afterimage shader not registered"])
+                @LogTrace(["afterimage", "afterimage shader not registered"])
                 return None
         }
     }
@@ -310,12 +311,12 @@ public class AfterimagePass <: Pass {
                     sp.compileBgfx()
                     this._copyProg = Some(Box(sp.programHandle))
                     this._copyCompiled = true
-                    Logger.trace(["afterimage", "copy shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["afterimage", "copy shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._copyProg
             case None =>
-                Logger.trace(["afterimage", "copy shader not registered"])
+                @LogTrace(["afterimage", "copy shader not registered"])
                 return None
         }
     }
@@ -339,7 +340,7 @@ public class AfterimagePass <: Pass {
 
         match (this._compileAfterimage()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) { return }
+                if (!Handle.isValid(prog)) { return }
 
                 let uniforms = BgfxUniforms()
 
@@ -360,7 +361,7 @@ public class AfterimagePass <: Pass {
 
                 this.submitQuad(viewId, prog)
 
-                Logger.trace(["afterimage", "comp pass: view=" + viewId.toString() +
+                @LogTrace(["afterimage", "comp pass: view=" + viewId.toString() +
                               " damp=" + this.damp.toString()])
             case None => ()
         }
@@ -390,7 +391,7 @@ public class AfterimagePass <: Pass {
 
         match (this._compileCopy()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) { return }
+                if (!Handle.isValid(prog)) { return }
 
                 let uniforms = BgfxUniforms()
 
@@ -406,7 +407,7 @@ public class AfterimagePass <: Pass {
 
                 this.submitQuad(viewId, prog)
 
-                Logger.trace(["afterimage", "copy pass: view=" + viewId.toString() +
+                @LogTrace(["afterimage", "copy pass: view=" + viewId.toString() +
                               " renderToScreen=" + this.renderToScreen.toString()])
             case None => ()
         }
@@ -441,7 +442,7 @@ public class AfterimagePass <: Pass {
             this.setSize(this._width, this._height)
         }
         if (!this._rtsCreated) { return }
-        if (!isValidHandle(this._compFB) || !isValidHandle(this._oldFB)) { return }
+        if (!Handle.isValid(this._compFB) || !Handle.isValid(this._oldFB)) { return }
 
         // 首帧前清 old RT（避免 tOld 初始为垃圾数据）
         this._clearOldRT(renderer)
@@ -461,8 +462,8 @@ public class AfterimagePass <: Pass {
         this._oldTex = this._compTex
         this._compTex = tmpTex
 
-        Logger.trace(["afterimage", "swap done: oldFB.idx=" + handleIdx(this._oldFB).toString() +
-                      " compFB.idx=" + handleIdx(this._compFB).toString()])
+        @LogTrace(["afterimage", "swap done: oldFB.idx=" + Handle.idx(this._oldFB).toString() +
+                      " compFB.idx=" + Handle.idx(this._compFB).toString()])
     }
 
     /**
@@ -477,6 +478,6 @@ public class AfterimagePass <: Pass {
         this._destroyRTs()
         // shader program 由 PostProcessingShaders 全局管理，不在此 dispose
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
-        Logger.trace(["afterimage", "disposed"])
+        @LogTrace(["afterimage", "disposed"])
     }
 }

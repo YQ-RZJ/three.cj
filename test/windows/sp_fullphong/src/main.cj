@@ -24,8 +24,8 @@ import three.scene.entity.*
 import three.scene.objects.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -154,7 +154,6 @@ public class TestWindow <: WindowEngine {
 
 main(): Int64 {
     // 调试：开启 Debug 日志
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_fullphong：debug mode 9 - 基线 full phong（与 mode 0 等价） ===")
     println("")
 

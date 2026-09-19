@@ -33,7 +33,8 @@ package three.resource.loader
 
 import three.utils.constants.*
 import three.rendering.textures.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 import bgfx4cj.bimg.*
 import std.collection.*
@@ -78,7 +79,7 @@ public class PVRLoader <: CompressedTextureLoader {
         if (buffer.size < 4) { return texData }
         let version = UInt32(buffer[0]) | (UInt32(buffer[1]) << 8) | (UInt32(buffer[2]) << 16) | (UInt32(buffer[3]) << 24)
         if (version != 0x03525650u32) {
-            Logger.debug(["PVRLoader", "invalid version"])
+            @LogDebug(["PVRLoader", "invalid version"])
             return texData
         }
 
@@ -92,7 +93,7 @@ public class PVRLoader <: CompressedTextureLoader {
         let ic = bimg_image_parse_pvr3_cj(allocator, unsafe { CPointer<Unit>(dataPtr) }, UInt32(buffer.size), CPointer<BimgError>())
         dataPtrHolder.dispose()
         if (ic.isNull()) {
-            Logger.debug(["PVRLoader", "parse_pvr3 failed"])
+            @LogDebug(["PVRLoader", "parse_pvr3 failed"])
             return texData
         }
 

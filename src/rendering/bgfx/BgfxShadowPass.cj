@@ -49,7 +49,8 @@ import three.rendering.cameras.*
 import three.scene.entity.Mesh
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
@@ -156,7 +157,7 @@ public class BgfxShadowPass {
      */
     public func renderShadowMap(light: DirectionalLight, scene: Scene): Unit {
         let shadowSize = Int64(light.shadow.mapSize.x)
-        Logger.trace(["shadow", "renderShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
+        @LogTrace(["shadow", "renderShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
         let lightId = Int64(light.id)
         // VSM 类型：需要 RG16F mean/variance 纹理链（D32 深度 → blur → RG16F final），
         // 与 PCF/BASIC 的 D24 深度纹理不同（对照参考版 ThreeRenderer.renderShadowMap + BgfxShadowMap.createShadowMap VSM 分支）
@@ -214,12 +215,12 @@ public class BgfxShadowPass {
                 unsafe { finalHolder.get().write(0, finalTex) }
                 slot.vsmFinalFrameBuffer = bgfx_create_frame_buffer_from_handles_cj(1u8, finalHolder.get(), false)
                 finalHolder.dispose()
-                Logger.trace(["shadow", "dir created VSM chain D32=${depthTex.idx} RG16F pass=${passTex.idx} final=${finalTex.idx} size=${shadowSize}"])
+                @LogTrace(["shadow", "dir created VSM chain D32=${depthTex.idx} RG16F pass=${passTex.idx} final=${finalTex.idx} size=${shadowSize}"])
             } else {
-                // PCF/BASIC 模式：D24 深度纹理（比较采样器）
+                // PCF/BASIC 模式：D24S8 深度纹理（比较采样器；D3D11 下 D24 无 DSV 不能作深度附件）
                 let depthTex = bgfx_create_texture_2d_cj(
                     UInt16(shadowSize), UInt16(shadowSize), false, 1u16,
-                    TextureFormat.D24.value(),
+                    TextureFormat.D24S8.value(),
                     TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_COMPARE_LEQUAL) |
                         UInt64(SAMPLER_U_CLAMP) | UInt64(SAMPLER_V_CLAMP),
                     CPointer<Memory>())
@@ -228,7 +229,7 @@ public class BgfxShadowPass {
                 unsafe { handlesHolder.get().write(0, depthTex) }
                 slot.frameBuffer = bgfx_create_frame_buffer_from_handles_cj(1u8, handlesHolder.get(), true)
                 handlesHolder.dispose()
-                Logger.trace(["shadow", "dir created shadowFB(D24) idx=${slot.frameBuffer.idx} tex=${depthTex.idx} size=${shadowSize}"])
+                @LogTrace(["shadow", "dir created shadowFB(D24S8) idx=${slot.frameBuffer.idx} tex=${depthTex.idx} size=${shadowSize}"])
             }
         }
 
@@ -269,7 +270,7 @@ public class BgfxShadowPass {
         let shadowViewId = slot.baseViewId
         let fb = slot.frameBuffer
         let shadowCamera = light.shadow.camera
-        Logger.trace(["shadow", "_renderShadowDepth ENTER shadowViewId=${shadowViewId} fb.idx=${fb.idx} shadowSize=${shadowSize}"])
+        @LogTrace(["shadow", "_renderShadowDepth ENTER shadowViewId=${shadowViewId} fb.idx=${fb.idx} shadowSize=${shadowSize}"])
 
         bgfx_set_view_rect_cj(shadowViewId, 0u16, 0u16, UInt16(shadowSize), UInt16(shadowSize))
         bgfx_set_view_frame_buffer_cj(shadowViewId, fb)
@@ -308,25 +309,25 @@ public class BgfxShadowPass {
 
         // 确保 depth shader 已编译
         let depthProgOpt = ShaderLibs.get("depth")
-        Logger.trace(["shadow", "_renderShadowDepth depthProgOpt=${match (depthProgOpt) { case Some(_) => "Some" case None => "None" }}"])
+        @LogTrace(["shadow", "_renderShadowDepth depthProgOpt=${match (depthProgOpt) { case Some(_) => "Some" case None => "None" }}"])
         match (depthProgOpt) {
             case Some(depthSp) =>
                 if (depthSp.programHandle.idx == 65535u16) {
                     depthSp.compileBgfx()
                 }
                 let depthProg = depthSp.programHandle
-                Logger.trace(["shadow", "_renderShadowDepth depthProg.idx=${depthProg.idx}"])
-                if (depthProg.idx == 65535u16) { Logger.trace(["shadow", "_renderShadowDepth SKIP: depthProg compile failed"]); return }
+                @LogTrace(["shadow", "_renderShadowDepth depthProg.idx=${depthProg.idx}"])
+                if (depthProg.idx == 65535u16) { @LogTrace(["shadow", "_renderShadowDepth SKIP: depthProg compile failed"]); return }
 
                 // 遍历场景几何体 submit（简化：复用 _collectRenderObjects 的几何体收集逻辑）
                 let renderObjects = ArrayList<RenderObject>()
                 this._collectShadowCasters(scene, renderObjects)
-                Logger.trace(["shadow", "_renderShadowDepth casters.size=${renderObjects.size}"])
+                @LogTrace(["shadow", "_renderShadowDepth casters.size=${renderObjects.size}"])
                 let layout = backend._getOrCreateLayout()
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = backend._createVB(ro.geometry)
-                    if (vb.idx == 65535u16) { Logger.trace(["shadow", "_renderShadowDepth caster SKIP: vb invalid geom=${ro.mesh.name}"]); continue }
+                    if (vb.idx == 65535u16) { @LogTrace(["shadow", "_renderShadowDepth caster SKIP: vb invalid geom=${ro.mesh.name}"]); continue }
                     let posAttrOpt = ro.geometry.getAttribute("position")
                     match (posAttrOpt) {
                         case Some(posAttr) =>
@@ -345,8 +346,8 @@ public class BgfxShadowPass {
                         case None => ()
                     }
                 }
-                Logger.trace(["shadow", "_renderShadowDepth done submitCnt=${submitCnt}"])
-            case None => Logger.trace(["shadow", "_renderShadowDepth SKIP: depth shader not registered"])
+                @LogTrace(["shadow", "_renderShadowDepth done submitCnt=${submitCnt}"])
+            case None => @LogTrace(["shadow", "_renderShadowDepth SKIP: depth shader not registered"])
         }
     }
 
@@ -363,25 +364,25 @@ public class BgfxShadowPass {
         let blurViewId = UInt16(UInt16(slot.baseViewId) + 1u16)
         let w = UInt16(slot.size)
         let h = UInt16(slot.size)
-        Logger.trace(["shadow", "_vsmBlurPass ENTER blurViewId=${blurViewId} size=${slot.size}"])
+        @LogTrace(["shadow", "_vsmBlurPass ENTER blurViewId=${blurViewId} size=${slot.size}"])
 
         let vsmOpt = ShaderLibs.get("vsm")
         match (vsmOpt) {
-            case None => Logger.trace(["shadow", "_vsmBlurPass SKIP: vsm shader not registered"]); return
+            case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm shader not registered"]); return
             case Some(vsmSp) =>
                 // 垂直变体（无 HORIZONTAL_PASS）
                 if (vsmSp.programHandle.idx == 65535u16) {
                     vsmSp.compileBgfx()
                 }
                 let vProg = vsmSp.programHandle
-                if (vProg.idx == 65535u16) { Logger.trace(["shadow", "_vsmBlurPass SKIP: vsm vertical compile failed"]); return }
+                if (vProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm vertical compile failed"]); return }
                 // 水平变体（HORIZONTAL_PASS=1）
                 let hVariant = ShaderProgram.createVariant("vsm_h", vsmSp)
                 let defStrings = ArrayList<String>()
                 defStrings.add("HORIZONTAL_PASS=1")
                 hVariant.compileBgfx(extraDefines: defStrings.toArray())
                 let hProg = hVariant.programHandle
-                if (hProg.idx == 65535u16) { Logger.trace(["shadow", "_vsmBlurPass SKIP: vsm horizontal compile failed"]); return }
+                if (hProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm horizontal compile failed"]); return }
 
                 // 全屏四边形 VB（与 vsmVaryingDef 对齐：position + texcoord0）
                 backend.blitQuad.ensureBlitVB()
@@ -412,7 +413,7 @@ public class BgfxShadowPass {
                                         bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
                                         bgfx_set_state_cj(blurState, 0x00000000u32)
                                         bgfx_submit_cj(blurViewId, vProg, 0u32, 0xFFu8)
-                                        Logger.trace(["shadow", "_vsmBlurPass vertical submit done"])
+                                        @LogTrace(["shadow", "_vsmBlurPass vertical submit done"])
 
                                         // ── ② 水平 blur：vsmPassTexture → vsmFinalFrameBuffer ──
                                         bgfx_set_view_frame_buffer_cj(blurViewId, slot.vsmFinalFrameBuffer)
@@ -421,12 +422,12 @@ public class BgfxShadowPass {
                                         // resolution/radius 不变（同一帧 blur 参数固定）
                                         bgfx_set_state_cj(blurState, 0x00000000u32)
                                         bgfx_submit_cj(blurViewId, hProg, 0u32, 0xFFu8)
-                                        Logger.trace(["shadow", "_vsmBlurPass horizontal submit done"])
-                                    case None => Logger.trace(["shadow", "_vsmBlurPass SKIP: blitLayout None"])
+                                        @LogTrace(["shadow", "_vsmBlurPass horizontal submit done"])
+                                    case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: blitLayout None"])
                                 }
-                            case None => Logger.trace(["shadow", "_vsmBlurPass SKIP: blitIB None"])
+                            case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: blitIB None"])
                         }
-                    case None => Logger.trace(["shadow", "_vsmBlurPass SKIP: blitVB None"])
+                    case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: blitVB None"])
                 }
         }
     }
@@ -446,7 +447,7 @@ public class BgfxShadowPass {
      */
     public func renderSpotShadowMap(light: SpotLight, scene: Scene): Unit {
         let shadowSize = Int64(light.shadow.mapSize.x)
-        Logger.trace(["shadow", "renderSpotShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
+        @LogTrace(["shadow", "renderSpotShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
         let lightId = Int64(light.id)
 
         var slot = match (this._shadowResources.get(lightId)) {
@@ -470,7 +471,7 @@ public class BgfxShadowPass {
         if (slot.texture.idx == 65535u16) {
             let depthTex = bgfx_create_texture_2d_cj(
                 UInt16(shadowSize), UInt16(shadowSize), false, 1u16,
-                TextureFormat.D24.value(),
+                TextureFormat.D24S8.value(),
                 TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_COMPARE_LEQUAL) |
                     UInt64(SAMPLER_U_CLAMP) | UInt64(SAMPLER_V_CLAMP),
                 CPointer<Memory>())
@@ -479,7 +480,7 @@ public class BgfxShadowPass {
             unsafe { handlesHolder.get().write(0, depthTex) }
             slot.frameBuffer = bgfx_create_frame_buffer_from_handles_cj(1u8, handlesHolder.get(), true)
             handlesHolder.dispose()
-            Logger.trace(["shadow", "spot created shadowFB(D24) idx=${slot.frameBuffer.idx} size=${shadowSize}"])
+            @LogTrace(["shadow", "spot created shadowFB(D24S8) idx=${slot.frameBuffer.idx} size=${shadowSize}"])
         }
 
         slot.baseViewId = this._allocShadowViewId()
@@ -522,7 +523,7 @@ public class BgfxShadowPass {
         let shadowViewId = slot.baseViewId
         let fb = slot.frameBuffer
         let shadowCamera = light.shadow.camera
-        Logger.trace(["shadow", "_renderSpotShadowDepth ENTER shadowViewId=${shadowViewId} fb.idx=${fb.idx} shadowSize=${shadowSize}"])
+        @LogTrace(["shadow", "_renderSpotShadowDepth ENTER shadowViewId=${shadowViewId} fb.idx=${fb.idx} shadowSize=${shadowSize}"])
 
         bgfx_set_view_rect_cj(shadowViewId, 0u16, 0u16, UInt16(shadowSize), UInt16(shadowSize))
         bgfx_set_view_frame_buffer_cj(shadowViewId, fb)
@@ -581,7 +582,7 @@ public class BgfxShadowPass {
                         case None => ()
                     }
                 }
-                Logger.trace(["shadow", "_renderSpotShadowDepth done submitCnt=${submitCnt}"])
+                @LogTrace(["shadow", "_renderSpotShadowDepth done submitCnt=${submitCnt}"])
             case None => ()
         }
     }
@@ -601,7 +602,7 @@ public class BgfxShadowPass {
      */
     public func renderPointShadowMap(light: PointLight, scene: Scene): Unit {
         let shadowSize = Int64(light.shadow.mapSize.x)
-        Logger.trace(["shadow", "renderPointShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
+        @LogTrace(["shadow", "renderPointShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
         let lightId = Int64(light.id)
 
         var slot = match (this._shadowResources.get(lightId)) {
@@ -638,15 +639,15 @@ public class BgfxShadowPass {
             for (faceIdx in 0..6) {
                 let atHolder = AutoFreePtr<Attachment>(unsafe { LibC.malloc<Attachment>(count: 1i64) })
                 let at = atHolder.get()
-                bgfx_attachment_init_cj(at, cubeTex, 0u32, UInt16(faceIdx), 1u16, 0u16, 0u8)
+                bgfx_attachment_init_cj(at, cubeTex, 0u32, UInt16(faceIdx), 1u16, 0u16, flags: ATTACHMENT_NONE)
                 let faceFb = bgfx_create_frame_buffer_from_attachment_cj(1u8, at, false)
                 atHolder.dispose()
                 slot.faceFrameBuffers.add(faceFb)
-                Logger.trace(["shadow", "point cube face ${faceIdx} fb.idx=${faceFb.idx}"])
+                @LogTrace(["shadow", "point cube face ${faceIdx} fb.idx=${faceFb.idx}"])
             }
             // frameBuffer 保留为第 0 个 face 的 fb（兼容性占位；实际按 faceFrameBuffers 索引）
             slot.frameBuffer = slot.faceFrameBuffers[0]
-            Logger.trace(["shadow", "point created cube shadowFB(D24S8) tex.idx=${cubeTex.idx} size=${shadowSize}"])
+            @LogTrace(["shadow", "point created cube shadowFB(D24S8) tex.idx=${cubeTex.idx} size=${shadowSize}"])
         }
 
         // cube 阴影占 6 个连续 view ID
@@ -688,7 +689,7 @@ public class BgfxShadowPass {
         let shadowSize = slot.size
         let baseViewId = slot.baseViewId
         let lightPos = slot.lightPos
-        Logger.trace(["shadow", "_renderPointShadowDepth ENTER baseViewId=${baseViewId} lightPos=${lightPos.x},${lightPos.y},${lightPos.z}"])
+        @LogTrace(["shadow", "_renderPointShadowDepth ENTER baseViewId=${baseViewId} lightPos=${lightPos.x},${lightPos.y},${lightPos.z}"])
 
         let faceDirs: Array<Vector3> = [
             Vector3(1.0, 0.0, 0.0),    // face 0: +X
@@ -725,7 +726,7 @@ public class BgfxShadowPass {
         for (faceIdx in 0..6) {
             let faceViewId = UInt16(UInt16(baseViewId) + UInt16(faceIdx))
             let fb = slot.faceFrameBuffers[faceIdx]
-            Logger.trace(["shadow", "_renderPointShadowDepth face ${faceIdx} viewId=${faceViewId} fb.idx=${fb.idx}"])
+            @LogTrace(["shadow", "_renderPointShadowDepth face ${faceIdx} viewId=${faceViewId} fb.idx=${fb.idx}"])
 
             bgfx_set_view_rect_cj(faceViewId, 0u16, 0u16, UInt16(shadowSize), UInt16(shadowSize))
             bgfx_set_view_frame_buffer_cj(faceViewId, fb)
@@ -748,7 +749,7 @@ public class BgfxShadowPass {
             // 投影：fov=90 透视（左手系，与 view 匹配）
             let shadowCamera = PerspectiveCamera(fov: 90.0, aspect: 1.0, near: slot.near, far: slot.far)
             shadowCamera.updateProjectionMatrix()
-            Logger.trace(["shadow", "_renderPointShadowDepth face ${faceIdx} camPos=${lightPos.x},${lightPos.y},${lightPos.z} dir=${dir.x},${dir.y},${dir.z}"])
+            @LogTrace(["shadow", "_renderPointShadowDepth face ${faceIdx} camPos=${lightPos.x},${lightPos.y},${lightPos.z} dir=${dir.x},${dir.y},${dir.z}"])
 
             let lightView = viewMtx
             let lightProj = shadowCamera.projectionMatrix
@@ -794,11 +795,11 @@ public class BgfxShadowPass {
                             case None => ()
                         }
                     }
-                    Logger.trace(["shadow", "_renderPointShadowDepth face ${faceIdx} done submitCnt=${submitCnt}"])
+                    @LogTrace(["shadow", "_renderPointShadowDepth face ${faceIdx} done submitCnt=${submitCnt}"])
                 case None => ()
             }
         }
-        Logger.trace(["shadow", "_renderPointShadowDepth ALL 6 faces done"])
+        @LogTrace(["shadow", "_renderPointShadowDepth ALL 6 faces done"])
     }
 
     // ===== 阴影辅助方法 =====
@@ -891,8 +892,8 @@ public class BgfxShadowPass {
                         // Mesh.material 字段类型是 Material（非 Option<Material>），直接用
                         let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
                         renderObjects.add(ro)
-                        Logger.trace(["shadow", "_collectShadowCasters ADD caster name=${mesh.name}"])
-                    case None => Logger.trace(["shadow", "_collectShadowCasters cast FAILED kind=${child.kind}"])
+                        @LogTrace(["shadow", "_collectShadowCasters ADD caster name=${mesh.name}"])
+                    case None => @LogTrace(["shadow", "_collectShadowCasters cast FAILED kind=${child.kind}"])
                 }
             }
         }
@@ -1046,7 +1047,7 @@ public class BgfxShadowPass {
             // 绑定 cube 纹理本身（不是 face framebuffer 的 get_texture 结果）
             let pointSampler = uniforms.createUniform("pointShadowMap", UniformType.Sampler.value(), numPoint)
             for (i in 0..pointSlots.size) {
-                Logger.trace(["shadow", "bindShadowUniforms POINT[${i}] cubeTex.idx=${pointSlots[i].texture.idx} stage=${pointStageBase + i}"])
+                @LogTrace(["shadow", "bindShadowUniforms POINT[${i}] cubeTex.idx=${pointSlots[i].texture.idx} stage=${pointStageBase + i}"])
                 bgfx_set_texture_cj(UInt8(UInt32(pointStageBase) + UInt32(i)), pointSampler.value, pointSlots[i].texture, cmpFlags)
             }
 

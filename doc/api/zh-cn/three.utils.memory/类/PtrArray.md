@@ -37,18 +37,6 @@ public func get(index: Int64): T
 
 - 元素值
 
-### func init\(Int64\)
-```cj
-public init(size: Int64)
-```
-构造指定长度的空数组（内存清零）
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|size|Int64|元素个数|
-
 ### func init\(Array<T>\)
 ```cj
 public init(values: Array < T >)
@@ -60,6 +48,31 @@ public init(values: Array < T >)
 |名称|类型|描述|
 |---|---|---|
 |values|Array<T>|源数据|
+
+### func init\(CPointer<T>,Int64\)
+```cj
+public init(borrow: CPointer < T >, size!: Int64 = 1)
+```
+借用外部连续内存（不持有、不释放）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|borrow|CPointer<T>|外部连续内存指针（如 ImGui 存储区）|
+|size|Int64|元素个数（默认 1）|
+
+### func init\(Int64\)
+```cj
+public init(size: Int64)
+```
+构造指定长度的空数组（内存清零）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|size|Int64|元素个数|
 
 ### func set\(Int64,T\)
 ```cj

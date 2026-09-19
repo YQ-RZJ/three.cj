@@ -179,7 +179,7 @@ public class OutputPass <: Pass {
         }
         match (this._prog) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) { return }
+                if (!Handle.isValid(prog)) { return }
                 let viewId = OutputPass._viewId
                 let w = UInt16(renderer.width)
                 let h = UInt16(renderer.height)

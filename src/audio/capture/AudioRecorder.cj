@@ -63,7 +63,8 @@ import openalsoft4cj.alc.*
 import openalsoft4cj.al.*
 
 import three.audio.device.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 麦克风音频捕获器，封装 ALC capture 扩展
@@ -214,7 +215,7 @@ public class AudioRecorder {
             unsafe { LibC.free(devName) }
 
             if (dev.isNull()) {
-                Logger.error(["AudioRecorder", "无法打开捕获设备"])
+                @LogError(["AudioRecorder", "无法打开捕获设备"])
                 okBox[0] = false
                 return
             }

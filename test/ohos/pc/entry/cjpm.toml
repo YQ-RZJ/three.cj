@@ -10,6 +10,7 @@
   link-option = ""
   name = "ohos_app_cangjie_entry"
   output-type = "dynamic"
+  override-compile-option = ""
   src-dir = "./src/main/cangjie"
   target-dir = ""
   version = "1.0.0"
@@ -29,14 +30,14 @@
 
 [target.aarch64-linux-ohos]
   compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/aarch64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
-  link-option = "-L ${EXTEDN_LIBS_PATH_OHOS_ARM64} ${EXTEDN_LINK_OPTION_OHOS_ARM64} --whole-archive -l:librequirecj_napi.a --no-whole-archive -l:libc++_static.a -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -l:libnative_window.so" # requireCJLib 桥接库（--whole-archive 强制链接 constructor，注册 requireCJLib NAPI 模块；link-option 直接传给 ld.lld，不能用 -Wl, 前缀）
+  link-option = "-L ${EXTEDN_LIBS_PATH_OHOS_ARM64} ${EXTEDN_LINK_OPTION_OHOS_ARM64} --whole-archive -l:librequirecj_napi.a --no-whole-archive  -l:libc++_static.a -l:libtracyc.a -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -ldeviceinfo_ndk.z -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -lOpenSLES -l:libnative_window.so" # requireCJLib 桥接库（--whole-archive 强制链接 constructor，注册 requireCJLib NAPI 模块；link-option 直接传给 ld.lld，不能用 -Wl, 前缀）
 [target.aarch64-linux-ohos.bin-dependencies]
   path-option = ["${AARCH64_LIBS}", "${AARCH64_MACRO_LIBS}", "${AARCH64_KIT_LIBS}"]
   package-option = {}
 
 [target.x86_64-linux-ohos]
   compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/x86_64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
-  link-option = "-L ${EXTEDN_LIBS_PATH_OHOS_X64} ${EXTEDN_LINK_OPTION_OHOS_X64} --whole-archive -l:librequirecj_napi.a --no-whole-archive -l:libc++_static.a -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -l:libnative_window.so"
+  link-option = "-L ${EXTEDN_LIBS_PATH_OHOS_X64} ${EXTEDN_LINK_OPTION_OHOS_X64} --whole-archive -l:librequirecj_napi.a --no-whole-archive -l:libc++_static.a -l:libtracyc.a -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -ldeviceinfo_ndk.z -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -lOpenSLES -l:libnative_window.so"
 [target.x86_64-linux-ohos.bin-dependencies]
   path-option = ["${X86_64_OHOS_LIBS}", "${X86_64_MACRO_LIBS}", "${X86_64_KIT_LIBS}"]
 

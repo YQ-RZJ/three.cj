@@ -23,8 +23,8 @@ import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.SavePass
 import three.rendering.postprocessing.ShaderPass
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -141,7 +141,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== savepass：SavePass 缓冲快照后处理 ===")
     println("")
 

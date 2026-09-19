@@ -26,8 +26,8 @@ import three.rendering.cameras.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.SSRPass
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.scene.objects.*
 
 /**
@@ -374,7 +374,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(args: Array<String>): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     // --capture：自动模式第 45 帧抓取 SSR 全部中间 RT（含反射 RT/反射深度 RT）并退出
     for (a in args) {
         if (a == "--capture") {

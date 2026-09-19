@@ -518,9 +518,9 @@ Texture blit destination
 
 ### let TEXTURE\_FORMAT\_DEPTH
 ```cj
-public static let TEXTURE_FORMAT_DEPTH: UInt32 = bgfx.TextureFormat.D24.value()
+public static let TEXTURE_FORMAT_DEPTH: UInt32 = bgfx.TextureFormat.D24S8.value()
 ```
-Depth texture format
+深度附件（创建出的 FB 为 INVALID）；D24S8 在各后端均可渲染、可比较采样。
 
 ### let TEXTURE\_FORMAT\_DEPTH\_STENCIL
 ```cj

@@ -47,7 +47,8 @@ import three.physics.interfaces.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // =============================================================================
 // PhysicsVehicleWheelDesc 车轮描述

@@ -109,7 +109,8 @@ import std.sync.{ AtomicBool, AtomicInt64 }
 import std.time.*
 import sdl4cj.sdl.*
 import three.core.thread.{ Mutex, Condition, SThread }
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // =============================================================================
 // 轻量分发事件（分发器 → 窗口队列）
@@ -325,7 +326,7 @@ internal class SDLDispatcher {
         if (!initOk) {
             // SDL3 错误为线程局部：必须在本线程（SThread）内读取才有效
             let err = unsafe { if (SDL_GetError_cj().isNull()) { "?" } else { SDL_GetError_cj().toString() } }
-            Logger.error(["SDL_Init_cj FAILED (VIDEO|EVENTS|GAMEPAD): " + err])
+            @LogError(["SDL_Init_cj FAILED (VIDEO|EVENTS|GAMEPAD): " + err])
         }
         // 标记就绪（ensureStarted 等待此信号）
         _sdlMtx.lock()
@@ -829,7 +830,7 @@ public open class WindowEngine {
             if (win.isNull()) {
                 // SDL3 错误为线程局部：必须在本线程（SDL SThread）内读取才有效
                 let err = unsafe { if (SDL_GetError_cj().isNull()) { "?" } else { SDL_GetError_cj().toString() } }
-                Logger.error(["SDL_CreateWindow_cj FAILED (" + w.toString() + "x" + h.toString() + "): " + err])
+                @LogError(["SDL_CreateWindow_cj FAILED (" + w.toString() + "x" + h.toString() + "): " + err])
             }
             if (!win.isNull()) {
                 // 应用非 flags 属性（透明度 / 最小最大尺寸）
@@ -981,10 +982,10 @@ public open class WindowEngine {
                 if (!ctx.initialized) {
                     match (this._execBgfx) {
                         case Some(execFn) =>
-                            Logger.info(["WindowEngine._windowLoop: initializing Gui context"])
+                            @LogInfo(["WindowEngine._windowLoop: initializing Gui context"])
                             ctx.initialize(this, execFn)
-                            Logger.info(["WindowEngine._windowLoop: Gui context initialized"])
-                        case None => Logger.warn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
+                            @LogInfo(["WindowEngine._windowLoop: Gui context initialized"])
+                        case None => @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
                     }
                 }
             case None => ()
@@ -1026,7 +1027,7 @@ public open class WindowEngine {
                 if (let Some(f) <- this._bindOnFrame) { f(dt) } else { this.onFrame(dt) }
             } catch (e: Exception) {
                 frameFailed = true
-                Logger.error(["WindowEngine._windowLoop: onFrame 抛出异常: ${e.message}; 请求关闭窗口"])
+                @LogError(["WindowEngine._windowLoop: onFrame 抛出异常: ${e.message}; 请求关闭窗口"])
             }
             if (frameFailed) {
                 this.requestClose()
@@ -1044,7 +1045,7 @@ public open class WindowEngine {
                                     ctx.render(vw, vh)
                                 })
                             case None =>
-                                Logger.warn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
+                                @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
                         }
                     }
                 case None => ()

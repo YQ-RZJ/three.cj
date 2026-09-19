@@ -9,7 +9,11 @@ Text display widget
 ```cj
 public override func draw(): Bool
 ```
+Renders the text
 
+Return: 
+
+- Always false (text has no interaction)
 
 ### func getText\(\)
 ```cj
@@ -21,13 +25,13 @@ Returns the display text
 ```cj
 public init(text!: String)
 ```
-
+Constructs a text display widget
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|text|String||
+|text|String|The text to display|
 
 ### func setText\(String\)
 ```cj

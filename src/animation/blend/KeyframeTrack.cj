@@ -38,7 +38,8 @@ package three.animation.blend
 import three.core.math.Interpolant
 import three.core.math.interpolants.*
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.animation.interfaces.IKeyframeTrack
 import std.collection.*
 import std.math.*
@@ -307,7 +308,7 @@ public open class KeyframeTrack <: IKeyframeTrack {
             if (interpolation != this.DefaultInterpolation) {
                 return this.setInterpolation(this.DefaultInterpolation)
             }
-            Logger.warn(["KeyframeTrack:", "unsupported interpolation for " + this.ValueTypeName + " keyframe track named " + this.name])
+            @LogWarn(["KeyframeTrack:", "unsupported interpolation for " + this.ValueTypeName + " keyframe track named " + this.name])
         }
         return this
     }
@@ -432,7 +433,7 @@ public open class KeyframeTrack <: IKeyframeTrack {
         var valid = true
         let valueSize = this.getValueSize()
         if (Float64(valueSize) - floor(Float64(valueSize)) != 0.0) {
-            Logger.error(["KeyframeTrack: Invalid value size in track."])
+            @LogError(["KeyframeTrack: Invalid value size in track."])
             valid = false
         }
 
@@ -441,7 +442,7 @@ public open class KeyframeTrack <: IKeyframeTrack {
         let nKeys = times.size
 
         if (nKeys == 0) {
-            Logger.error(["KeyframeTrack: Track is empty."])
+            @LogError(["KeyframeTrack: Track is empty."])
             valid = false
         }
 
@@ -449,12 +450,12 @@ public open class KeyframeTrack <: IKeyframeTrack {
         for (i in 0..nKeys) {
             let currTime = times[i]
             if (currTime.isNaN()) {
-                Logger.error(["KeyframeTrack: Time is not a valid number.", i.toString(), currTime.toString()])
+                @LogError(["KeyframeTrack: Time is not a valid number.", i.toString(), currTime.toString()])
                 valid = false
                 break
             }
             if (prevTime.isSome() && prevTime.getOrThrow() > currTime) {
-                Logger.error(["KeyframeTrack: Out of order keys.", i.toString(), currTime.toString(), prevTime.getOrThrow().toString()])
+                @LogError(["KeyframeTrack: Out of order keys.", i.toString(), currTime.toString(), prevTime.getOrThrow().toString()])
                 valid = false
                 break
             }
@@ -463,7 +464,7 @@ public open class KeyframeTrack <: IKeyframeTrack {
 
         for (i in 0..values.size) {
             if (values[i].isNaN()) {
-                Logger.error(["KeyframeTrack: Value is not a valid number.", i.toString(), values[i].toString()])
+                @LogError(["KeyframeTrack: Value is not a valid number.", i.toString(), values[i].toString()])
                 valid = false
                 break
             }

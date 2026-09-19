@@ -38,8 +38,7 @@ import three.rendering.buffer.*
 import three.rendering.materials.*
 import three.rendering.lights.*
 import three.rendering.helpers.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.memory.PtrArray
 import three.window.ui.*
 
 // ===== 全局状态 =====
@@ -144,8 +143,8 @@ public class ImGuiWindow <: WindowEngine {
         UiWindow.setNextWindowPos(dw * 0.5f32, dh * 0.5f32, pivotX: 0.5f32, pivotY: 0.5f32)
         UiWindow.setNextWindowSize(dw * 0.85f32, dh * 0.85f32)
 
-        let sliderPtr = unsafe { CPointer<Float32>(LibC.malloc<Float32>()) }
-        unsafe { sliderPtr.write(this.sliderVal) }
+        let sliderArr = PtrArray<Float32>(1)
+        sliderArr.set(0, this.sliderVal)
         let counterPtr = unsafe { CPointer<Int32>(LibC.malloc<Int32>()) }
         unsafe { counterPtr.write(this.counter) }
 
@@ -162,8 +161,8 @@ public class ImGuiWindow <: WindowEngine {
 
             // --- 交互控件 ---
             UiSeparatorText(label: "Controls")
-            UiSliderFloat(label: "Slider", value: sliderPtr, min: 0.0f32, max: 1.0f32, format: "%.3f").draw()
-            this.sliderVal = unsafe { sliderPtr.read() }
+            UiSliderFloat(label: "Slider", value: sliderArr, min: 0.0f32, max: 1.0f32, format: "%.3f").draw()
+            this.sliderVal = sliderArr.get(0)
             UiProgressBar(fraction: this.sliderVal).draw()
 
             if (UiButton(label: "Click Me").draw()) { this.counter++ }
@@ -202,7 +201,6 @@ public class ImGuiWindow <: WindowEngine {
             UiText(text: "Frames rendered: " + UiStyle.getFrameCount().toString()).draw()
         })
 
-        unsafe { LibC.free(sliderPtr) }
         unsafe { LibC.free(counterPtr) }
 
         // 每 100 帧打印状态
@@ -223,7 +221,6 @@ public func startThreeRender(context: Option<UIAbilityContext>): Bool {
     if (g_renderRunning.load()) {
         return true
     }
-    Logger.setLevel(LogLevel.Trace)
     let win = ImGuiWindow()
     // 注册输入提供者
     win.addInputProvider(MouseProvider())

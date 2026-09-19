@@ -43,7 +43,8 @@ import three.scene.scenegraph.*
 import three.rendering.lights.*
 import three.rendering.cameras.*
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
@@ -398,7 +399,7 @@ internal class BgfxLightBinder {
         }
         bgfx_set_uniform_cj(uShCoeffs.value, unsafe { CPointer<Unit>(shMem.data()) }, 9u16)
 
-        Logger.trace(["setLightUniforms",
+        @LogTrace(["setLightUniforms",
             "dir=${dirLights.size} pt=${pointLights.size} sp=${spotLights.size} hemi=${hemiLights.size} amb=${ambientLights.size} probe=${lightProbes.size}"])
     }
 }

@@ -32,7 +32,7 @@
  *   // 或通过 draw() 闭包自动管理：
  *   UiWindow("Demo").draw({ =>
  *       UiText("Hello")
- *       UiButton("Click").onClick({ => Logger.info(["UiWindow", "clicked"]) })
+ *       UiButton("Click").onClick({ => @LogInfo(["UiWindow", "clicked"]) })
  *   })
  *
  * @file[en] UiWindow.cj — ImGui Window Component
@@ -43,6 +43,7 @@ package three.window.ui
 
 import std.core.*
 import imgui4cj.imgui.*
+import three.utils.memory.PtrArray
 
 /**
  * @brief[zh-cn] ImGui 窗口组件
@@ -57,7 +58,7 @@ public class UiWindow {
     /// 窗口标志（ImGuiWindowFlags）
     private var _flags: Int32
     /// 是否打开（用于带关闭按钮的窗口）
-    private var _open: Option<CPointer<Int32>> = None
+    private var _open: Option<PtrArray<Int32>> = None
     /// 打开状态值（栈上分配）
     private var _openValue: Int32 = 1
 
@@ -86,7 +87,7 @@ public class UiWindow {
      * @param[en] open Pointer to open state
      * @param[en] flags Window flags
      */
-    public init(title!: String, open!: CPointer<Int32>, flags!: Int32 = 0) {
+    public init(title!: String, open!: PtrArray<Int32>, flags!: Int32 = 0) {
         this._title = title
         this._flags = flags
         this._open = Some(open)
@@ -102,7 +103,7 @@ public class UiWindow {
     public func begin(): Bool {
         ensureCurrentContext()
         match (this._open) {
-            case Some(p) => return ImGui_Begin_cj(this._title, p, this._flags)
+            case Some(p) => return ImGui_Begin_cj(this._title, p.data(), this._flags)
             case None => return ImGui_Begin_cj(this._title, CPointer<Int32>(), this._flags)
         }
     }
@@ -161,9 +162,9 @@ public class UiWindow {
      * @return[en] Window instance
      */
     public static func createWithClose(title: String, flags!: Int32 = 0): UiWindow {
-        let openPtr = unsafe { LibC.malloc<Int32>() }
-        unsafe { openPtr.write(1) }
-        return UiWindow(title: title, open: openPtr, flags: flags)
+        let openArr = PtrArray<Int32>(1)
+        openArr.set(0, 1)
+        return UiWindow(title: title, open: openArr, flags: flags)
     }
 
     // ===== 窗口定位（Begin 前调用） =====
@@ -390,26 +391,34 @@ public class UiWindow {
     public static func getScrollMaxY(): Float32 { return igGetScrollMaxY_cj() }
     /**
      * @brief[zh-cn] 设置滚动 X
+     * @param[zh-cn] scrollX 滚动 X 偏移
      *
      * @brief[en] Sets the scroll X
+     * @param[en] scrollX Scroll X offset
      */
     public static func setScrollX(scrollX: Float32): Unit { igSetScrollX_Float_cj(scrollX) }
     /**
      * @brief[zh-cn] 设置滚动 Y
+     * @param[zh-cn] scrollY 滚动 Y 偏移
      *
      * @brief[en] Sets the scroll Y
+     * @param[en] scrollY Scroll Y offset
      */
     public static func setScrollY(scrollY: Float32): Unit { igSetScrollY_Float_cj(scrollY) }
     /**
      * @brief[zh-cn] 将当前滚动位置居中到当前光标 Y
+     * @param[zh-cn] centerYRatio 光标在视口内的垂直比例（默认 0.5）
      *
      * @brief[en] Centers the scroll position at the current cursor Y
+     * @param[en] centerYRatio Vertical ratio of the cursor within the viewport (default 0.5)
      */
     public static func setScrollHereY(centerYRatio!: Float32 = 0.5f32): Unit { igSetScrollHereY_cj(centerYRatio) }
     /**
      * @brief[zh-cn] 将当前滚动位置居中到当前光标 X
+     * @param[zh-cn] centerXRatio 光标在视口内的水平比例（默认 0.5）
      *
      * @brief[en] Centers the scroll position at the current cursor X
+     * @param[en] centerXRatio Horizontal ratio of the cursor within the viewport (default 0.5)
      */
     public static func setScrollHereX(centerXRatio!: Float32 = 0.5f32): Unit { igSetScrollHereX_cj(centerXRatio) }
 }

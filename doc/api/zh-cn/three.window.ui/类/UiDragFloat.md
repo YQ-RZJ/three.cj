@@ -9,28 +9,36 @@ public class UiDragFloat <: UiWidget
 ```cj
 public override func draw(): Bool
 ```
+渲染浮点拖拽控件
 
+返回: 
+
+- 本次值是否发生变化
 
 ### func getValue\(\)
 ```cj
 public func getValue(): Float32
 ```
+获取当前值
 
+返回: 
 
-### func init\(String,CPointer<Float32>,Float32,Float32,Float32,String\)
+- 拖拽当前值
+
+### func init\(String,PtrArray<Float32>,Float32,Float32,Float32,String\)
 ```cj
-public init(label!: String, value!: CPointer < Float32 >, speed!: Float32 = 1.0, min!: Float32 = 0.0, max!: Float32 = 0.0, format!: String = "%.3f")
+public init(label!: String, value!: PtrArray < Float32 >, speed!: Float32 = 1.0, min!: Float32 = 0.0, max!: Float32 = 0.0, format!: String = "%.3f")
 ```
-
+构造浮点拖拽控件
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|label|String||
-|value|CPointer<Float32>||
-|speed|Float32||
-|min|Float32||
-|max|Float32||
-|format|String||
+|label|String|标签文本|
+|value|PtrArray<Float32>|值缓冲（PtrArray<Float32> 单元素，随拖拽更新）|
+|speed|Float32|拖拽速度（默认 1.0）|
+|min|Float32|最小值（默认 0.0）|
+|max|Float32|最大值（默认 0.0 表示不限制）|
+|format|String|数值显示格式（默认 "%.3f"）|
 

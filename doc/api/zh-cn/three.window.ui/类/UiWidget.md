@@ -25,17 +25,17 @@ public func getId(): String
 ```cj
 public init()
 ```
-
+构造不带 ID 的控件
 
 ### func init\(String\)
 ```cj
 public init(id!: String)
 ```
-
+构造带 ID 的控件
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|id|String||
+|id|String|控件 ID（用于 ImGui PushID/PopID 命名空间隔离）|
 

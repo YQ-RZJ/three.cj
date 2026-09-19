@@ -50,7 +50,8 @@ import three.scene.entity.*
 import bgfx4cj.bimg.*
 import fastjson.*
 import fastjson.stream.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 
 /**
@@ -519,8 +520,9 @@ public class GltfLoader <: Loader {
         unsafe {
             for (i in 0..bvByteLength) { (dataPtr + i).write(imgBytes[i]) }
         }
-        // 解析并解码图像到 RGBA8 格式 (67 = RGBA8)
-        let dstFormat: UInt32 = 67u32
+        // 解析并解码图像到 RGBA8 格式（bimg 的 TextureFormat 枚举与 bgfx 对齐，RGBA8=74；
+        // 注意旧版 bimg 的 67 在新版中是 RG32F，不可再用魔法数字）
+        let dstFormat: UInt32 = TextureFormat.RGBA8.value()
         let ic = bimg_image_parse_decode_cj(allocator, unsafe { CPointer<Unit>(dataPtr) }, UInt32(bvByteLength), dstFormat, CPointer<BimgError>())
         dataPtrHolder.dispose()
         if (ic.isNull()) {
@@ -531,7 +533,7 @@ public class GltfLoader <: Loader {
         let imgHeight = bimg_ic_get_height_cj(ic)
         let imgData = bimg_ic_get_data_cj(ic)
         let imgSize = bimg_ic_get_size_cj(ic)
-        Logger.debug(["tex", "loaded: idx=${texIdx} w=${imgWidth.toString()} h=${imgHeight.toString()} size=${imgSize.toString()}"])
+        @LogDebug(["tex", "loaded: idx=${texIdx} w=${imgWidth.toString()} h=${imgHeight.toString()} size=${imgSize.toString()}"])
         if (imgWidth == 0u32 || imgHeight == 0u32 || imgSize == 0u32) {
             bimg_image_free_cj(ic)
             return None

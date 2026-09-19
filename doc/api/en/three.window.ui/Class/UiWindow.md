@@ -158,9 +158,9 @@ Parameter:
 |title|String|Window title|
 |flags|Int32|Window flags (default 0)|
 
-### func init\(String,CPointer<Int32>,Int32\)
+### func init\(String,PtrArray<Int32>,Int32\)
 ```cj
-public init(title!: String, open!: CPointer < Int32 >, flags!: Int32 = 0)
+public init(title!: String, open!: PtrArray < Int32 >, flags!: Int32 = 0)
 ```
 Constructs a window with a close button
 
@@ -169,7 +169,7 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |title|String|Window title|
-|open|CPointer<Int32>|Pointer to open state|
+|open|PtrArray<Int32>|Pointer to open state|
 |flags|Int32|Window flags|
 
 ### func isWindowAppearing\(\)
@@ -308,7 +308,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|centerXRatio|Float32||
+|centerXRatio|Float32|Horizontal ratio of the cursor within the viewport (default 0.5)|
 
 ### func setScrollHereY\(Float32\)
 ```cj
@@ -320,7 +320,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|centerYRatio|Float32||
+|centerYRatio|Float32|Vertical ratio of the cursor within the viewport (default 0.5)|
 
 ### func setScrollX\(Float32\)
 ```cj
@@ -332,7 +332,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|scrollX|Float32||
+|scrollX|Float32|Scroll X offset|
 
 ### func setScrollY\(Float32\)
 ```cj
@@ -344,5 +344,5 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|scrollY|Float32||
+|scrollY|Float32|Scroll Y offset|
 

@@ -23,8 +23,8 @@ import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
 import three.rendering.lights.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -186,7 +186,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== boxshow：开放盒子 / 多色球 / 点光源 / 阴影 ===")
     println("")
 

@@ -51,7 +51,8 @@ import three.rendering.lights.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.intToCPointer
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.scene.entity.Mesh
 import three.scene.entity.Line
 import three.scene.entity.Points
@@ -397,7 +398,7 @@ public class BgfxBackend <: Backend {
         // 1. 初始化着色器库
         ShaderLibs.initialize()
 
-        // 2. 创建并配置 bgfx Init 结构
+        // 2. 创建并配置 bgfx Init 结构（新版 bgfx：主窗口交换链经 Init.swapChain 传入）
         let initPtrHolder = AutoFreePtr<Init>(unsafe { LibC.malloc<Init>() })
         let initPtr = initPtrHolder.get()
         unsafe { initPtr.write(Init()) }
@@ -406,17 +407,17 @@ public class BgfxBackend <: Backend {
         initParams.`type` = 0u32  // 0 = bgfx自动检测渲染器类型
         initParams.vendorId = PCI_ID_NONE
         initParams.deviceId = PCI_ID_NONE
-        initParams.resolution.width = UInt32(1280)
-        initParams.resolution.height = UInt32(720)
-        initParams.resolution.reset = 0x00000080u32
-        initParams.resolution.numBackBuffers = 2
-        initParams.resolution.maxFrameLatency = 2
-        initParams.resolution.debugTextScale = 1
+        initParams.swapChain.width = UInt32(1280)
+        initParams.swapChain.height = UInt32(720)
+        initParams.reset = 0x00000080u32  // RESET_VSYNC
+        initParams.swapChain.numBackBuffers = 2
+        initParams.swapChain.maxFrameLatency = 2
         initParams.debug = false
         initParams.profile = false
-        // 设置平台窗口句柄（backend.hwnd 字段，替代原 parameters["hwnd"]）
+        // 设置平台窗口句柄（backend.hwnd 字段，替代原 parameters["hwnd"]；
+        // 新版 bgfx 的 nwh 从 platformData 移入 swapChain）
         match (this.hwnd) {
-            case Some(hwndVal) => initParams.platformData.nwh = intToCPointer(hwndVal)
+            case Some(hwndVal) => initParams.swapChain.nwh = intToCPointer(hwndVal)
             case None => ()
         }
         unsafe { initPtr.write(initParams) }
@@ -495,7 +496,7 @@ public class BgfxBackend <: Backend {
 
         // 设置清除色（从 ThreeRenderer.clearColor 经 backend.parameters 传入，避免循环依赖）
         let clearColor = this._getClearColorFromParams()
-        Logger.trace(["clear", "beginRender viewId=${viewId} clearColor=${clearColor} rect=(${x},${y},${w},${h})"])
+        @LogTrace(["clear", "beginRender viewId=${viewId} clearColor=${clearColor} rect=(${x},${y},${w},${h})"])
         bgfx_set_view_clear_cj(viewId, CLEAR_COLOR | CLEAR_DEPTH, clearColor, 1.0f32, 0)
 
         // 设置 view transform（从 renderContext 读取，_render 中已填充相机矩阵）
@@ -642,12 +643,12 @@ public class BgfxBackend <: Backend {
         let geom = renderObject.geometry
         let mat = renderObject.material
         let meshName = renderObject.mesh.name
-        Logger.trace(["draw", "ENTER obj=${meshName} matKind=${mat.kind} geomId=${geom.uuid.hashCode()} side=${mat.side}"])
+        @LogTrace(["draw", "ENTER obj=${meshName} matKind=${mat.kind} geomId=${geom.uuid.hashCode()} side=${mat.side}"])
 
         // 1. 创建顶点缓冲
         let vb = this._createVB(geom)
         if (vb.idx == 65535u16) {
-            Logger.warn(["draw", "VB INVALID obj=${meshName}"])
+            @LogWarn(["draw", "VB INVALID obj=${meshName}"])
             return
         }
         let layout = this._getOrCreateLayout()
@@ -658,7 +659,7 @@ public class BgfxBackend <: Backend {
         mtxMem.writeFloats(mtxArr, 16)
         let mtxData = mtxMem.data()
         bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxData) }, 1u16)
-        Logger.trace(["draw", "obj=${meshName} worldMtx[0]=${mtxArr[0]} [5]=${mtxArr[5]} [10]=${mtxArr[10]} [12]=${mtxArr[12]} [13]=${mtxArr[13]} [14]=${mtxArr[14]}"])
+        @LogTrace(["draw", "obj=${meshName} worldMtx[0]=${mtxArr[0]} [5]=${mtxArr[5]} [10]=${mtxArr[10]} [12]=${mtxArr[12]} [13]=${mtxArr[13]} [14]=${mtxArr[14]}"])
 
         // 3. set u_normalMatrix（模型矩阵左上 3x3，用于法线变换）
         // 对照原始有效实现 draw() 行 892-911
@@ -745,7 +746,7 @@ public class BgfxBackend <: Backend {
 
         // 8. 获取程序句柄 — 从材质量编译 shader program
         let prog = this._getOrCreateProgram(mat)
-        Logger.trace(["drawRenderObject", "obj=${meshName} prog.idx=${prog.idx}"])
+        @LogTrace(["drawRenderObject", "obj=${meshName} prog.idx=${prog.idx}"])
         if (prog.idx != 65535u16) {
             // 用实际 view id（renderObject.context.viewId）而非硬编码 0：
             // RenderPass 渲 readBuffer 用 view 0，GroundReflector 渲反射场景
@@ -760,9 +761,9 @@ public class BgfxBackend <: Backend {
             // 内存 → 线条放射状/三角形平面/时立方体时乱线，且随渲染顺序变化而闪烁。
             // 每个 draw 均已完整重设 transform/VB/IB/state/uniform，DISCARD_ALL 安全。
             bgfx_submit_cj(renderObject.context.viewId, prog, 0u32, 0xFFu8)
-            Logger.trace(["drawRenderObject", "obj=${meshName} submit OK"])
+            @LogTrace(["drawRenderObject", "obj=${meshName} submit OK"])
         } else {
-            Logger.debug(["drawRenderObject", "obj=${meshName} prog 无效, 跳过 submit"])
+            @LogDebug(["drawRenderObject", "obj=${meshName} prog 无效, 跳过 submit"])
         }
     }
 
@@ -783,7 +784,7 @@ public class BgfxBackend <: Backend {
         let uColor = this.uniforms.createUniform("u_color", UniformType.Vec4.value())
         let colorMem = BgfxMemory(16u32)
         colorMem.writeFloats([mat.color.r, mat.color.g, mat.color.b, mat.opacity], 4)
-        Logger.trace(["color", "u_color r=${mat.color.r.toString()} g=${mat.color.g.toString()} b=${mat.color.b.toString()} opacity=${mat.opacity.toString()}"])
+        @LogTrace(["color", "u_color r=${mat.color.r.toString()} g=${mat.color.g.toString()} b=${mat.color.b.toString()} opacity=${mat.opacity.toString()}"])
         bgfx_set_uniform_cj(uColor.value, unsafe { CPointer<Unit>(colorMem.data()) }, 1u16)
 
         // diffuse：meshbasic/meshphong/meshphysical 等 ShaderLib 片段均声明 `uniform vec3 diffuse`，
@@ -794,7 +795,7 @@ public class BgfxBackend <: Backend {
         let diffuseMem = BgfxMemory(16u32)
         diffuseMem.writeFloats([mat.color.r, mat.color.g, mat.color.b, 0.0], 4)
         bgfx_set_uniform_cj(uDiffuse.value, unsafe { CPointer<Unit>(diffuseMem.data()) }, 1u16)
-        Logger.trace(["diffuse-bind", "kind=${mat.kind} uDiffuse.idx= rgb=(${mat.color.r},${mat.color.g},${mat.color.b})"])
+        @LogTrace(["diffuse-bind", "kind=${mat.kind} uDiffuse.idx= rgb=(${mat.color.r},${mat.color.g},${mat.color.b})"])
 
         // u_opacity：chunk 系统读 u_opacity.x 作为 diffuseColor.a
         let uOpacity = this.uniforms.createUniform("u_opacity", UniformType.Vec4.value())
@@ -1011,13 +1012,13 @@ public class BgfxBackend <: Backend {
                     }
             }
             if (handle.idx == 65535u16) {
-                Logger.warn(["bindTex", "sampler=${samplerName} tex=${tex.uuid} handle INVALID, skip"])
+                @LogWarn(["bindTex", "sampler=${samplerName} tex=${tex.uuid} handle INVALID, skip"])
                 continue
             }
             // 2. 创建 sampler uniform（按 shader 中声明的名字）并绑定到 stage
             let sampler = this.uniforms.createUniform(samplerName, UniformType.Sampler.value())
             bgfx_set_texture_cj(stage, sampler.value, handle, 0u32)
-            Logger.trace(["bindTex", "sampler=${samplerName} stage=${stage.toString()} tex=${tex.uuid} w=${tex.width.toString()} h=${tex.height.toString()}"])
+            @LogTrace(["bindTex", "sampler=${samplerName} stage=${stage.toString()} tex=${tex.uuid} w=${tex.width.toString()} h=${tex.height.toString()}"])
             // 3. 设置对应 mat3 transform uniform（默认单位矩阵）
             // uv_vertex chunk：vMetalnessMapUv = mul( metalnessMapTransform, vec3( METALNESSMAP_UV, 1 ) ).xy
             // 后端若不设置这些 mat3 uniform，bgfx 默认 0 矩阵 → UV=(0,0) → 所有表面采样贴图同一像素
@@ -1041,7 +1042,7 @@ public class BgfxBackend <: Backend {
                     0.0, 0.0, 1.0, 0.0
                 ], 12)
                 bgfx_set_uniform_cj(uTransform.value, unsafe { CPointer<Unit>(tMem.data()) }, 1u16)
-                Logger.trace(["bindTex", "transform=${transformName} handle.idx=${uTransform.value.idx}"])
+                @LogTrace(["bindTex", "transform=${transformName} handle.idx=${uTransform.value.idx}"])
             }
         }
     }
@@ -1062,7 +1063,7 @@ public class BgfxBackend <: Backend {
         let h = tex.height
         let img = tex.image
         if (w <= 0 || h <= 0 || img.size == 0) {
-            Logger.warn(["uploadTex", "tex=${tex.uuid} empty data w=${w.toString()} h=${h.toString()}"])
+            @LogWarn(["uploadTex", "tex=${tex.uuid} empty data w=${w.toString()} h=${h.toString()}"])
             return TextureHandle(65535u16)
         }
         // 拷贝 RGBA8 字节到 bgfx 内存
@@ -1070,8 +1071,8 @@ public class BgfxBackend <: Backend {
         mem.writeUInt8(img, Int64(img.size))
         let memPtr = mem.get()
         // RGBA8 = TextureFormat.RGBA8 = 67
-        let handle = bgfx_create_texture_2d_cj(UInt16(w), UInt16(h), false, 1u16, 67u32, 0u64, memPtr)
-        Logger.debug(["uploadTex", "tex=${tex.uuid} w=${w.toString()} h=${h.toString()} size=${img.size.toString()} handle.idx=${handle.idx.toString()}"])
+        let handle = bgfx_create_texture_2d_cj(UInt16(w), UInt16(h), false, 1u16, TextureFormat.RGBA8.value(), 0u64, memPtr)
+        @LogDebug(["uploadTex", "tex=${tex.uuid} w=${w.toString()} h=${h.toString()} size=${img.size.toString()} handle.idx=${handle.idx.toString()}"])
         return handle
     }
 
@@ -1132,25 +1133,25 @@ public class BgfxBackend <: Backend {
                         let key = "custom_" + sm.uuid
                         match (this._customProgCache.get(key)) {
                             case Some(prog) =>
-                                Logger.debug(["program", "ShaderMaterial cache HIT key=${key} prog.idx=${prog.idx}"])
+                                @LogDebug(["program", "ShaderMaterial cache HIT key=${key} prog.idx=${prog.idx}"])
                                 return prog
                             case None => ()
                         }
-                        Logger.debug(["program", "compiling custom shader key=${key} vsLen=${sm.vertexShader.size} fsLen=${sm.fragmentShader.size}"])
+                        @LogDebug(["program", "compiling custom shader key=${key} vsLen=${sm.vertexShader.size} fsLen=${sm.fragmentShader.size}"])
                         let varyingDef = this._extractVaryingDef(sm.vertexShader)
-                        Logger.debug(["program", "varyingDef=${varyingDef}"])
+                        @LogDebug(["program", "varyingDef=${varyingDef}"])
                         let prog = ShaderProgram(key, sm.vertexShader, sm.fragmentShader, varyingDef: varyingDef)
                         prog.compileBgfx()
-                        Logger.debug(["program", "custom compile result key=${key} prog.idx=${prog.programHandle.idx}"])
+                        @LogDebug(["program", "custom compile result key=${key} prog.idx=${prog.programHandle.idx}"])
                         if (prog.programHandle.idx != 65535u16) {
                             this._customProgCache.add(key, prog.programHandle)
                             return prog.programHandle
                         }
-                        Logger.error(["program", "custom shader compile FAILED key=${key}"])
+                        @LogError(["program", "custom shader compile FAILED key=${key}"])
                         return ProgramHandle(65535u16)
                     } else {
                         // 空 shader 回退：不编译自定义程序，落入下方按 mat.kind 的基础 shader 分发
-                        Logger.debug(["program", "ShaderMaterial empty shader, fallback to basic kind=${sm.kind}"])
+                        @LogDebug(["program", "ShaderMaterial empty shader, fallback to basic kind=${sm.kind}"])
                     }
                 case None => ()
             }
@@ -1209,7 +1210,7 @@ public class BgfxBackend <: Backend {
             case Some(h) => return h
             case None => ()
         }
-        Logger.debug(["program", "compiling variant key=" + variantKey + " shaderName=" + shaderName + " texFlags=" + texFlagsPart])
+        @LogDebug(["program", "compiling variant key=" + variantKey + " shaderName=" + shaderName + " texFlags=" + texFlagsPart])
         match (ShaderLibs.get(shaderName)) {
             case Some(baseProg) =>
                 let variantProg = ShaderProgram.createVariant(variantKey, baseProg)
@@ -1226,13 +1227,13 @@ public class BgfxBackend <: Backend {
                 defines.dispose()
                 if (variantProg.programHandle.idx != 65535u16) {
                     this._variantProgCache.add(variantKey, variantProg.programHandle)
-                    Logger.debug(["program", "variant compiled OK key=" + variantKey + " idx=" + variantProg.programHandle.idx.toString()])
+                    @LogDebug(["program", "variant compiled OK key=" + variantKey + " idx=" + variantProg.programHandle.idx.toString()])
                     return variantProg.programHandle
                 }
-                Logger.error(["program", "variant compile FAILED key=" + variantKey])
+                @LogError(["program", "variant compile FAILED key=" + variantKey])
                 return ProgramHandle(65535u16)
             case None =>
-                Logger.error(["program", "base shader not found: " + shaderName])
+                @LogError(["program", "base shader not found: " + shaderName])
                 return ProgramHandle(65535u16)
         }
     }
@@ -1413,7 +1414,7 @@ public class BgfxBackend <: Backend {
         } else {
             result = result + "vec3 a_position : POSITION;\n"
         }
-        Logger.debug(["extractVaryingDef", "result=" + result])
+        @LogDebug(["extractVaryingDef", "result=" + result])
         return result
     }
 
@@ -1484,7 +1485,7 @@ public class BgfxBackend <: Backend {
                 let mem = BgfxMemory(UInt32(totalFloats * 4))
                 mem.writeFloats(data, totalFloats)
                 // 诊断：打印前 2 个顶点的 pos/uv，确认 a_texcoord0 数据已写入
-                Logger.debug(["vbDiag", "vc=${vc.toString()} v0.pos=(${data[0].toString()},${data[1].toString()},${data[2].toString()}) v0.uv=(${data[10].toString()},${data[11].toString()}) v1.uv=(${data[22].toString()},${data[23].toString()})"])
+                @LogDebug(["vbDiag", "vc=${vc.toString()} v0.pos=(${data[0].toString()},${data[1].toString()},${data[2].toString()}) v0.uv=(${data[10].toString()},${data[11].toString()}) v1.uv=(${data[22].toString()},${data[23].toString()})"])
                 let layout = this._getOrCreateLayoutPtr()
                 let handle = bgfx_create_vertex_buffer_cj(mem.get(), layout, 0u16)
                 this._vbCache.add(geomId, handle)
@@ -1508,12 +1509,12 @@ public class BgfxBackend <: Backend {
                 let count = idxAttr.count
                 if (count == 0) { return IndexBufferHandle(65535u16) }
                 // Three.js 索引存 Float64，需转为 UInt16 写入（2字节/索引）
-                Logger.debug(["createIB", "index count=" + count.toString()])
+                @LogDebug(["createIB", "index count=" + count.toString()])
                 let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
                 let mem = BgfxMemory(UInt32(count * 2))
                 mem.writeUInt16(idxData, count)
                 let handle = bgfx_create_index_buffer_cj(mem.get(), 0u16)
-                Logger.debug(["createIB", "handle.idx=" + handle.idx.toString()])
+                @LogDebug(["createIB", "handle.idx=" + handle.idx.toString()])
                 this._ibCache.add(geomId, handle)
                 return handle
             case None => return IndexBufferHandle(65535u16)
@@ -1574,7 +1575,7 @@ public class BgfxBackend <: Backend {
      */
     public override func finishRender(renderContext: IRenderContext): Unit {
         bgfx_touch_cj(renderContext.getViewId())
-        bgfx_frame_cj(false)
+        bgfx_frame_cj(flags: FRAME_NONE)
     }
 
     /**
@@ -1588,7 +1589,7 @@ public class BgfxBackend <: Backend {
      */
     public override func finishRender(renderContext: RenderContext): Unit {
         bgfx_touch_cj(renderContext.viewId)
-        bgfx_frame_cj(false)
+        bgfx_frame_cj(flags: FRAME_NONE)
     }
 
     // ===== 阴影预 pass 钩子 override（对照 Backend 基类 prepareShadowMap/bindShadowUniforms/blitShadowMap） =====
@@ -1618,7 +1619,7 @@ public class BgfxBackend <: Backend {
 
         // 收集场景中所有方向光 + 聚光灯 + 点光源（castShadow=true 的才参与阴影深度 pass）
         let (dirLights, pointLights, _, spotLights, _, _) = this.lightBinder.collectLights(scene)
-        Logger.trace(["shadow", "prepareShadowMap dirLights.size=${dirLights.size} spotLights.size=${spotLights.size} pointLights.size=${pointLights.size}"])
+        @LogTrace(["shadow", "prepareShadowMap dirLights.size=${dirLights.size} spotLights.size=${spotLights.size} pointLights.size=${pointLights.size}"])
         for (dl in dirLights) {
             if (dl.castShadow) {
                 this.shadowPass.renderShadowMap(dl, scene)
@@ -1634,7 +1635,7 @@ public class BgfxBackend <: Backend {
                 this.shadowPass.renderPointShadowMap(pl, scene)
             }
         }
-        Logger.trace(["shadow", "prepareShadowMap done"])
+        @LogTrace(["shadow", "prepareShadowMap done"])
     }
 
     /**
@@ -1667,9 +1668,9 @@ public class BgfxBackend <: Backend {
             }
         }
         match (blitSlot) {
-            case None => Logger.debug(["blit", "SKIP: no dir shadow slot"]); return
+            case None => @LogDebug(["blit", "SKIP: no dir shadow slot"]); return
             case Some(slot) =>
-                if (slot.frameBuffer.idx == 65535u16) { Logger.debug(["blit", "SKIP: shadowFB not created"]); return }
+                if (slot.frameBuffer.idx == 65535u16) { @LogDebug(["blit", "SKIP: shadowFB not created"]); return }
                 // 确保 shadowblit shader 已编译
                 let blitProgOpt = ShaderLibs.get("shadowblit")
                 match (blitProgOpt) {
@@ -1678,7 +1679,7 @@ public class BgfxBackend <: Backend {
                             blitSp.compileBgfx()
                         }
                         let blitProg = blitSp.programHandle
-                        if (blitProg.idx == 65535u16) { Logger.debug(["blit", "SKIP: shadowblit prog compile failed"]); return }
+                        if (blitProg.idx == 65535u16) { @LogDebug(["blit", "SKIP: shadowblit prog compile failed"]); return }
 
                         this.blitQuad.ensureBlitVB()
                         // 仓颉不支持多元素 tuple match，改为逐层解构
@@ -1691,7 +1692,7 @@ public class BgfxBackend <: Backend {
                                                 // 绑定阴影贴图纹理到 sampler stage 0（shadowblit shader 的 shadowBlitSampler）
                                                 // 关键：attachment 0 = color texture（RGBA8，depth shader 写 gl_FragCoord.z 到 color）
                                                 let shadowTex = bgfx_get_texture_cj(slot.frameBuffer, 0u8)
-                                                Logger.debug(["blit", "shadowTex idx=${shadowTex.idx} shadowFB idx=${slot.frameBuffer.idx}"])
+                                                @LogDebug(["blit", "shadowTex idx=${shadowTex.idx} shadowFB idx=${slot.frameBuffer.idx}"])
                                                 let blitSampler = this.uniforms.createUniform("shadowBlitSampler", UniformType.Sampler.value())
                                                 bgfx_set_texture_cj(SamplerStages.STAGE_SHADOW_BLIT, blitSampler.value, shadowTex, 0u32)
 
@@ -1701,14 +1702,14 @@ public class BgfxBackend <: Backend {
                                                 let blitState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A | BgfxConstants.FRONT_CCW
                                                 bgfx_set_state_cj(blitState, 0x00000000u32)
                                                 bgfx_submit_cj(mainViewId, blitProg, 0u32, 0xFFu8)
-                                                Logger.debug(["blit", "submit OK mainViewId=${mainViewId}"])
-                                            case None => Logger.debug(["blit", "SKIP: blitLayout None"])
+                                                @LogDebug(["blit", "submit OK mainViewId=${mainViewId}"])
+                                            case None => @LogDebug(["blit", "SKIP: blitLayout None"])
                                         }
-                                    case None => Logger.debug(["blit", "SKIP: blitIB None"])
+                                    case None => @LogDebug(["blit", "SKIP: blitIB None"])
                                 }
-                            case None => Logger.debug(["blit", "SKIP: blitVB None"])
+                            case None => @LogDebug(["blit", "SKIP: blitVB None"])
                         }
-                    case None => Logger.debug(["blit", "SKIP: shadowblit shader not registered"])
+                    case None => @LogDebug(["blit", "SKIP: shadowblit shader not registered"])
                 }
         }
     }
@@ -1732,7 +1733,7 @@ public class BgfxBackend <: Backend {
      * clear：无参数版本
      */
     public override func clear(): Unit {
-        bgfx_frame_cj(false)
+        bgfx_frame_cj(flags: FRAME_NONE)
     }
 
     // ===== 2.7 blit =====
@@ -1833,8 +1834,8 @@ public class BgfxBackend <: Backend {
      */
     internal func _setViewTransform(viewId: UInt16, view: Array<Float64>, proj: Array<Float64>): Unit {
         // bgfx4cj 统一左手系：view 和 proj 矩阵已按左手系生成，直接传递
-        Logger.trace(["viewTransform", "view[0]=" + view[0].toString() + " view[5]=" + view[5].toString() + " view[10]=" + view[10].toString()])
-        Logger.trace(["viewTransform", "proj[0]=" + proj[0].toString() + " proj[5]=" + proj[5].toString() + " proj[10]=" + proj[10].toString() + " proj[14]=" + proj[14].toString()])
+        @LogTrace(["viewTransform", "view[0]=" + view[0].toString() + " view[5]=" + view[5].toString() + " view[10]=" + view[10].toString()])
+        @LogTrace(["viewTransform", "proj[0]=" + proj[0].toString() + " proj[5]=" + proj[5].toString() + " proj[10]=" + proj[10].toString() + " proj[14]=" + proj[14].toString()])
         let viewMem = BgfxMemory(64u32)
         let projMem = BgfxMemory(64u32)
         viewMem.writeFloats(view, 16)
@@ -1879,7 +1880,7 @@ public class BgfxBackend <: Backend {
                 let h = dfgLutTex.height
                 let img = dfgLutTex.image
                 if (w <= 0 || h <= 0 || img.size == 0) {
-                    Logger.warn(["bindScene", "dfgLUT empty data w=${w.toString()} h=${h.toString()}"])
+                    @LogWarn(["bindScene", "dfgLUT empty data w=${w.toString()} h=${h.toString()}"])
                     return
                 }
                 let mem = BgfxMemory(UInt32(img.size))
@@ -1891,12 +1892,12 @@ public class BgfxBackend <: Backend {
                 newHandle
         }
         if (handle.idx == 65535u16) {
-            Logger.warn(["bindScene", "dfgLUT handle INVALID, skip"])
+            @LogWarn(["bindScene", "dfgLUT handle INVALID, skip"])
             return
         }
         let sampler = this.uniforms.createUniform("dfgLUT", UniformType.Sampler.value())
         bgfx_set_texture_cj(SamplerStages.STAGE_DFGLUT, sampler.value, handle, UInt32(lutFlags))
-        Logger.debug(["bindScene", "dfgLUT bound stage=${SamplerStages.STAGE_DFGLUT.toString()} w=${dfgLutTex.width.toString()} h=${dfgLutTex.height.toString()}"])
+        @LogDebug(["bindScene", "dfgLUT bound stage=${SamplerStages.STAGE_DFGLUT.toString()} w=${dfgLutTex.width.toString()} h=${dfgLutTex.height.toString()}"])
     }
 
     // ===== 阴影状态字段 + 全屏 blit 资源已迁出至 BgfxShadowPass / BgfxBlitQuad =====

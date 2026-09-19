@@ -46,7 +46,8 @@ import three.physics.interfaces.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // =============================================================================
 // PhysicsDebugLine / PhysicsDebugTriangle 调试图元
@@ -176,7 +177,7 @@ public class PhysicsDebugRenderer {
         this._procs = procs
         this._renderer = JPH_DebugRenderer_Create_cj(CPointer<Unit>())
         if (this._renderer.isNull()) {
-            Logger.error(["PhysicsDebugRenderer", "创建 Jolt DebugRenderer 失败"])
+            @LogError(["PhysicsDebugRenderer", "创建 Jolt DebugRenderer 失败"])
         }
     }
 

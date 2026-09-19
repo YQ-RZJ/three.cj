@@ -80,7 +80,8 @@ import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
 import three.utils.memory.AutoFreePtr
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 import std.collection.*
 import std.math.*
@@ -277,7 +278,7 @@ public class BloomPass <: Pass {
                 this._rtsCreated = true
             case None => ()
         }
-        Logger.trace(["BloomPass", "RTs created: ${this._width}x${this._height} rtX=${handleIdx(this._rtXTex)} rtY=${handleIdx(this._rtYTex)}"])
+        @LogTrace(["BloomPass", "RTs created: ${this._width}x${this._height} rtX=${Handle.idx(this._rtXTex)} rtY=${Handle.idx(this._rtYTex)}"])
     }
 
     /**
@@ -296,19 +297,19 @@ public class BloomPass <: Pass {
     private func _destroyRTs(): Unit {
         match (this._renderer) {
             case Some(renderer) =>
-                if (isValidHandle(this._rtXFB)) {
+                if (Handle.isValid(this._rtXFB)) {
                     renderer.destroyFrameBuffer(this._rtXFB)
                     this._rtXFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                if (isValidHandle(this._rtXTex)) {
+                if (Handle.isValid(this._rtXTex)) {
                     renderer.destroyTexture(this._rtXTex)
                     this._rtXTex = INVALID_TEXTURE_HANDLE
                 }
-                if (isValidHandle(this._rtYFB)) {
+                if (Handle.isValid(this._rtYFB)) {
                     renderer.destroyFrameBuffer(this._rtYFB)
                     this._rtYFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                if (isValidHandle(this._rtYTex)) {
+                if (Handle.isValid(this._rtYTex)) {
                     renderer.destroyTexture(this._rtYTex)
                     this._rtYTex = INVALID_TEXTURE_HANDLE
                 }
@@ -341,7 +342,7 @@ public class BloomPass <: Pass {
             this.setSize(this._width, this._height)
         }
         if (!this._rtsCreated) { return }
-        Logger.trace(["BloomPass", "render ENTER strength=${this.strength} kernelSize=${this.kernelSize} sigma=${this.sigma}"])
+        @LogTrace(["BloomPass", "render ENTER strength=${this.strength} kernelSize=${this.kernelSize} sigma=${this.sigma}"])
 
         // ===== 1. 水平卷积 pass（BLOOM_VIEW_ID_BASE+0）=====
         this._renderConvPass(renderer, 0u16, readBuffer, this._rtXFB, this._rtXTex, BloomPass.BLUR_X, 0.0)
@@ -382,14 +383,14 @@ public class BloomPass <: Pass {
         match (progOpt) {
             case Some(sp) =>
                 // 首次使用按 kernelSize 编译（KERNEL_SIZE_FLOAT / KERNEL_SIZE_INT 两个 define）
-                if (isValidHandle(Box(sp.programHandle))) {
+                if (Handle.isValid(Box(sp.programHandle))) {
                     let defSizeF = "KERNEL_SIZE_FLOAT=" + Float64(this.kernelSize).toString()
                     let defSizeI = "KERNEL_SIZE_INT=" + this.kernelSize.toString()
                     sp.compileBgfx(extraDefines: [defSizeF, defSizeI])
-                    Logger.trace(["BloomPass", "conv shader compiled: KERNEL_SIZE_FLOAT=${defSizeF} KERNEL_SIZE_INT=${defSizeI}"])
+                    @LogTrace(["BloomPass", "conv shader compiled: KERNEL_SIZE_FLOAT=${defSizeF} KERNEL_SIZE_INT=${defSizeI}"])
                 }
                 let prog = Box(sp.programHandle)
-                if (!isValidHandle(prog)) { return }
+                if (!Handle.isValid(prog)) { return }
 
                 let uniforms = BgfxUniforms()
                 // tDiffuse（输入纹理，水平=readBuffer / 垂直=renderTargetX）
@@ -413,7 +414,7 @@ public class BloomPass <: Pass {
                 kernMem.writeFloats(kernFloats, Int64(kernFloats.size))
                 this.setUniform(renderer, uKernel, kernMem, num: UInt16(this.kernelSize))
 
-                Logger.trace(["BloomPass", "conv pass view=${viewId} inc=(${incX}, ${incY}) kernel[0]=${this._kernel[0]} kernel[1]=${this._kernel[1]} outTex=${handleIdx(outTex)}"])
+                @LogTrace(["BloomPass", "conv pass view=${viewId} inc=(${incX}, ${incY}) kernel[0]=${this._kernel[0]} kernel[1]=${this._kernel[1]} outTex=${Handle.idx(outTex)}"])
                 this.submitQuad(viewId, prog)
             case None => ()
         }
@@ -439,11 +440,11 @@ public class BloomPass <: Pass {
         let progOpt = PostProcessingShaders.get("bloom_combine")
         match (progOpt) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
+                if (!Handle.isValid(Box(sp.programHandle))) {
                     sp.compileBgfx()
                 }
                 let prog = Box(sp.programHandle)
-                if (!isValidHandle(prog)) { return }
+                if (!Handle.isValid(prog)) { return }
 
                 let uniforms = BgfxUniforms()
                 // stage 0 = readBuffer 场景
@@ -461,7 +462,7 @@ public class BloomPass <: Pass {
                 sMem.writeFloats([this.strength, 0.0, 0.0, 0.0], 4)
                 this.setUniform(renderer, uStrength, sMem)
 
-                Logger.trace(["BloomPass", "combine view=${viewId} renderToScreen=${this.renderToScreen} strength=${this.strength} sceneTex=${handleIdx(sceneTex)} blurTex=${handleIdx(this._rtYTex)}"])
+                @LogTrace(["BloomPass", "combine view=${viewId} renderToScreen=${this.renderToScreen} strength=${this.strength} sceneTex=${Handle.idx(sceneTex)} blurTex=${Handle.idx(this._rtYTex)}"])
                 this.submitQuad(viewId, prog)
             case None => ()
         }

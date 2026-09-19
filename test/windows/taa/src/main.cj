@@ -26,8 +26,8 @@ import three.scene.scenegraph.*
 import three.rendering.cameras.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.TAARenderPass
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import three.scene.objects.*
 
@@ -160,7 +160,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== taa：时间抗锯齿（TAA，跨帧累加）===")
     println("")
 

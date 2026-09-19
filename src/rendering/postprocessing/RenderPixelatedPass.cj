@@ -107,7 +107,8 @@ import three.rendering.common.RenderObject
 import three.rendering.shaders.ShaderLibs
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.scene.scenegraph.Scene
 import three.rendering.cameras.Camera
 import three.scene.entity.Mesh
@@ -244,7 +245,7 @@ public class RenderPixelatedPass <: Pass {
         this.depthEdgeStrength = depthEdgeStrength
         // needsSwap=true（Pass 基类默认）
         this.needsSwap = true
-        Logger.trace(["pixelated", "RenderPixelatedPass constructed: pixelSize=" + pixelSize.toString() +
+        @LogTrace(["pixelated", "RenderPixelatedPass constructed: pixelSize=" + pixelSize.toString() +
                       " normalEdgeStrength=" + normalEdgeStrength.toString() +
                       " depthEdgeStrength=" + depthEdgeStrength.toString()])
     }
@@ -265,7 +266,7 @@ public class RenderPixelatedPass <: Pass {
             this._height = height
             this._renderWidth = Int64(width / this.pixelSize)
             this._renderHeight = Int64(height / this.pixelSize)
-            Logger.trace(["pixelated", "setSize: ${width}x${height} → render ${this._renderWidth}x${this._renderHeight}" +
+            @LogTrace(["pixelated", "setSize: ${width}x${height} → render ${this._renderWidth}x${this._renderHeight}" +
                           " (pixelSize=" + this.pixelSize.toString() + ")"])
         }
     }
@@ -278,7 +279,7 @@ public class RenderPixelatedPass <: Pass {
     public func setPixelSize(pixelSize: Int64): Unit {
         if (this.pixelSize != pixelSize) {
             this.pixelSize = pixelSize
-            Logger.trace(["pixelated", "setPixelSize: " + pixelSize.toString()])
+            @LogTrace(["pixelated", "setPixelSize: " + pixelSize.toString()])
         }
         // 无论是否变化都重算低分辨率尺寸（恒调 setSize 重建 RT）
         if (this._width > 0 && this._height > 0) {
@@ -293,9 +294,9 @@ public class RenderPixelatedPass <: Pass {
      */
     private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._renderWidth <= 0 || this._renderHeight <= 0) { return }
-        if (isValidHandle(this._beautyTex)) { return }
+        if (Handle.isValid(this._beautyTex)) { return }
 
-        Logger.trace(["pixelated", "_ensureRTs: creating low-res RTs ${this._renderWidth}x${this._renderHeight}"])
+        @LogTrace(["pixelated", "_ensureRTs: creating low-res RTs ${this._renderWidth}x${this._renderHeight}"])
 
         // beauty RT：RGBA16F（HalfFloatType）+ D24 depth attachment
         let beautyTex = renderer.createTexture2D(
@@ -306,12 +307,12 @@ public class RenderPixelatedPass <: Pass {
         this._beautyTex = beautyTex
         let beautyDepthTex = renderer.createTexture2D(
             UInt16(this._renderWidth), UInt16(this._renderHeight), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
             None)
         this._beautyDepthTex = beautyDepthTex
         this._beautyFB = this._createFBWithDepth(renderer, beautyTex, beautyDepthTex)
-        Logger.trace(["pixelated", "  beautyFB created: beautyTex=${handleIdx(beautyTex)} beautyDepthTex=${handleIdx(beautyDepthTex)}"])
+        @LogTrace(["pixelated", "  beautyFB created: beautyTex=${Handle.idx(beautyTex)} beautyDepthTex=${Handle.idx(beautyDepthTex)}"])
 
         // 深度 RT：RGBA32F（存 NDC 深度 gl_FragCoord.z）+ D24 depth attachment
         let depthTex = renderer.createTexture2D(
@@ -322,12 +323,12 @@ public class RenderPixelatedPass <: Pass {
         this._depthTex = depthTex
         let depthDepthTex = renderer.createTexture2D(
             UInt16(this._renderWidth), UInt16(this._renderHeight), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
             None)
         this._depthDepthTex = depthDepthTex
         this._depthFB = this._createFBWithDepth(renderer, depthTex, depthDepthTex)
-        Logger.trace(["pixelated", "  depthFB created: depthTex=${handleIdx(depthTex)} depthDepthTex=${handleIdx(depthDepthTex)}"])
+        @LogTrace(["pixelated", "  depthFB created: depthTex=${Handle.idx(depthTex)} depthDepthTex=${Handle.idx(depthDepthTex)}"])
 
         // 法线 RT：RGBA16F（0.5+0.5 编码 view 空间法线）+ D24 depth attachment
         let normalTex = renderer.createTexture2D(
@@ -338,12 +339,12 @@ public class RenderPixelatedPass <: Pass {
         this._normalTex = normalTex
         let normalDepthTex = renderer.createTexture2D(
             UInt16(this._renderWidth), UInt16(this._renderHeight), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
             None)
         this._normalDepthTex = normalDepthTex
         this._normalFB = this._createFBWithDepth(renderer, normalTex, normalDepthTex)
-        Logger.trace(["pixelated", "  normalFB created: normalTex=${handleIdx(normalTex)} normalDepthTex=${handleIdx(normalDepthTex)}"])
+        @LogTrace(["pixelated", "  normalFB created: normalTex=${Handle.idx(normalTex)} normalDepthTex=${Handle.idx(normalDepthTex)}"])
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
@@ -361,15 +362,15 @@ public class RenderPixelatedPass <: Pass {
                 let beautyTex = this._beautyTex; let beautyDepthTex = this._beautyDepthTex
                 let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
                 let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
-                if (isValidHandle(beautyFB)) { renderer.destroyFrameBuffer(beautyFB) }
-                if (isValidHandle(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (isValidHandle(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
-                if (isValidHandle(beautyTex)) { renderer.destroyTexture(beautyTex) }
-                if (isValidHandle(beautyDepthTex)) { renderer.destroyTexture(beautyDepthTex) }
-                if (isValidHandle(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (isValidHandle(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-                if (isValidHandle(normalTex)) { renderer.destroyTexture(normalTex) }
-                if (isValidHandle(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
+                if (Handle.isValid(beautyFB)) { renderer.destroyFrameBuffer(beautyFB) }
+                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+                if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
+                if (Handle.isValid(beautyTex)) { renderer.destroyTexture(beautyTex) }
+                if (Handle.isValid(beautyDepthTex)) { renderer.destroyTexture(beautyDepthTex) }
+                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+                if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
+                if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
                 this._beautyFB = INVALID_FRAME_BUFFER_HANDLE
                 this._depthFB = INVALID_FRAME_BUFFER_HANDLE
                 this._normalFB = INVALID_FRAME_BUFFER_HANDLE
@@ -548,12 +549,12 @@ public class RenderPixelatedPass <: Pass {
                     sp.compileBgfx()
                     this._pixelatedProg = Some(Box(sp.programHandle))
                     this._pixelatedCompiled = true
-                    Logger.trace(["pixelated", "pixelated shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["pixelated", "pixelated shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._pixelatedProg
             case None =>
-                Logger.trace(["pixelated", "pixelated shader not registered"])
+                @LogTrace(["pixelated", "pixelated shader not registered"])
                 return None
         }
     }
@@ -574,8 +575,8 @@ public class RenderPixelatedPass <: Pass {
 
         match (this._compileBeauty()) {
             case Some(beautyProg) =>
-                if (!isValidHandle(beautyProg)) {
-                    Logger.trace(["pixelated", "beauty pass: prog compile FAILED"])
+                if (!Handle.isValid(beautyProg)) {
+                    @LogTrace(["pixelated", "beauty pass: prog compile FAILED"])
                     return
                 }
                 let layout = this._getOrCreateLayout(renderer)
@@ -584,14 +585,14 @@ public class RenderPixelatedPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let renderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -601,8 +602,8 @@ public class RenderPixelatedPass <: Pass {
                     renderer.submit(viewId, beautyProg, depth: 0u32, blend: 0xFFu8)
                     submitCnt += 1
                 }
-                Logger.trace(["pixelated", "beauty pass done: prog=${handleIdx(beautyProg)}submitCnt=${submitCnt}"])
-            case None => Logger.trace(["pixelated", "beauty pass: shader NOT registered"])
+                @LogTrace(["pixelated", "beauty pass done: prog=${Handle.idx(beautyProg)}submitCnt=${submitCnt}"])
+            case None => @LogTrace(["pixelated", "beauty pass: shader NOT registered"])
         }
     }
 
@@ -617,12 +618,12 @@ public class RenderPixelatedPass <: Pass {
                     sp.compileBgfx()
                     this._beautyProg = Some(Box(sp.programHandle))
                     this._beautyCompiled = true
-                    Logger.trace(["pixelated", "beauty (normal) shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["pixelated", "beauty (normal) shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._beautyProg
             case None =>
-                Logger.trace(["pixelated", "beauty (normal) shader not registered in ShaderLibs"])
+                @LogTrace(["pixelated", "beauty (normal) shader not registered in ShaderLibs"])
                 return None
         }
     }
@@ -651,8 +652,8 @@ public class RenderPixelatedPass <: Pass {
                     this._depthCompiled = true
                 }
                 let depthProg = Box(depthSp.programHandle)
-                if (!isValidHandle(depthProg)) {
-                    Logger.trace(["pixelated", "depth pass: aodepth program compile FAILED"])
+                if (!Handle.isValid(depthProg)) {
+                    @LogTrace(["pixelated", "depth pass: aodepth program compile FAILED"])
                     return
                 }
                 let layout = this._getOrCreateLayout(renderer)
@@ -661,14 +662,14 @@ public class RenderPixelatedPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -678,8 +679,8 @@ public class RenderPixelatedPass <: Pass {
                     renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
                     submitCnt += 1
                 }
-                Logger.trace(["pixelated", "depth pass done: prog=${handleIdx(depthProg)} submitCnt=${submitCnt}"])
-            case None => Logger.trace(["pixelated", "depth pass: aodepth shader NOT registered"])
+                @LogTrace(["pixelated", "depth pass done: prog=${Handle.idx(depthProg)} submitCnt=${submitCnt}"])
+            case None => @LogTrace(["pixelated", "depth pass: aodepth shader NOT registered"])
         }
     }
 
@@ -702,8 +703,8 @@ public class RenderPixelatedPass <: Pass {
                     this._normalCompiled = true
                 }
                 let normalProg = Box(normalSp.programHandle)
-                if (!isValidHandle(normalProg)) {
-                    Logger.trace(["pixelated", "normal pass: prog compile FAILED"])
+                if (!Handle.isValid(normalProg)) {
+                    @LogTrace(["pixelated", "normal pass: prog compile FAILED"])
                     return
                 }
                 let layout = this._getOrCreateLayout(renderer)
@@ -714,7 +715,7 @@ public class RenderPixelatedPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let posAttrOpt = ro.geometry.getAttribute("position")
                     match (posAttrOpt) {
                         case Some(_) =>
@@ -741,7 +742,7 @@ public class RenderPixelatedPass <: Pass {
 
                             renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                             let ib = this._createIB(renderer, ro.geometry)
-                            if (isValidHandle(ib)) {
+                            if (Handle.isValid(ib)) {
                                 renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                             }
                             let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -753,8 +754,8 @@ public class RenderPixelatedPass <: Pass {
                         case None => ()
                     }
                 }
-                Logger.trace(["pixelated", "normal pass done: prog=${handleIdx(normalProg)} submitCnt=${submitCnt}"])
-            case None => Logger.trace(["pixelated", "normal pass: normal shader NOT registered in ShaderLibs"])
+                @LogTrace(["pixelated", "normal pass done: prog=${Handle.idx(normalProg)} submitCnt=${submitCnt}"])
+            case None => @LogTrace(["pixelated", "normal pass: normal shader NOT registered in ShaderLibs"])
         }
     }
 
@@ -782,8 +783,8 @@ public class RenderPixelatedPass <: Pass {
 
         match (this._compilePixelated()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["pixelated", "composite pass: pixelated program compile FAILED"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["pixelated", "composite pass: pixelated program compile FAILED"])
                     return
                 }
 
@@ -821,14 +822,14 @@ public class RenderPixelatedPass <: Pass {
                 // 全屏 quad submit（覆盖写 state）
                 this.submitQuad(viewId, prog)
 
-                Logger.trace(["pixelated", "composite pass: view=" + viewId.toString() +
+                @LogTrace(["pixelated", "composite pass: view=" + viewId.toString() +
                               " render=${this._renderWidth}x${this._renderHeight}" +
                               " full=${this._width}x${this._height}" +
                               " normalEdgeStrength=" + this.normalEdgeStrength.toString() +
                               " depthEdgeStrength=" + this.depthEdgeStrength.toString() +
-                              " beautyTex=${handleIdx(this._beautyTex)} depthTex=${handleIdx(this._depthTex)} normalTex=${handleIdx(this._normalTex)}"])
+                              " beautyTex=${Handle.idx(this._beautyTex)} depthTex=${Handle.idx(this._depthTex)} normalTex=${Handle.idx(this._normalTex)}"])
             case None =>
-                Logger.trace(["pixelated", "composite pass: pixelated shader compile failed, skip pass"])
+                @LogTrace(["pixelated", "composite pass: pixelated shader compile failed, skip pass"])
         }
     }
 
@@ -870,8 +871,8 @@ public class RenderPixelatedPass <: Pass {
             case Some(scene) => match (camOpt) {
                 case Some(camera) =>
                     this._ensureRTs(renderer)
-                    if (!isValidHandle(this._beautyFB)) {
-                        Logger.trace(["pixelated", "render: _ensureRTs failed, beautyFB invalid"])
+                    if (!Handle.isValid(this._beautyFB)) {
+                        @LogTrace(["pixelated", "render: _ensureRTs failed, beautyFB invalid"])
                         return
                     }
 
@@ -886,7 +887,7 @@ public class RenderPixelatedPass <: Pass {
                     // ===== 4. 合成 pass（view+3）=====
                     this._renderComposite(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 3u16))
 
-                    Logger.trace(["pixelated", "render done: pixelSize=" + this.pixelSize.toString() +
+                    @LogTrace(["pixelated", "render done: pixelSize=" + this.pixelSize.toString() +
                                   " render=${this._renderWidth}x${this._renderHeight}" +
                                   " full=${this._width}x${this._height}"])
                 case None => ()
@@ -913,6 +914,6 @@ public class RenderPixelatedPass <: Pass {
                 }
             case None => ()
         }
-        Logger.trace(["pixelated", "disposed"])
+        @LogTrace(["pixelated", "disposed"])
     }
 }

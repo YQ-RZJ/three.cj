@@ -41,7 +41,7 @@
  *         - NDC z ∈ [0,1]（near→0, far→1）
  *         - 场景色从 composer readBuffer 取（对齐 GTAO 使用 readBuffer 做 scene color 的范式）
  *         - 法线/深度 pass 自建场景几何体 VB/IB/layout（对齐 GTAOPass 自包含模式）
- *         日志：每个 pass 入口/出口均输出 Logger.debug，辅助渲染流程跟踪与纠错验证。
+ *         日志：每个 pass 入口/出口均输出 @LogDebug，辅助渲染流程跟踪与纠错验证。
  *
  * @file[en] SSRPass screen-space reflection (SSR) post-processing pass
  * @brief[en] Screen-space reflection (SSR) post-processing pass
@@ -63,7 +63,7 @@
  *         - NDC z ∈ [0,1] (near→0, far→1)
  *         - Scene color taken from the composer readBuffer (aligned with the GTAO readBuffer scene-color pattern)
  *         - Normal/depth passes build their own scene geometry VB/IB/layout (aligned with the GTAOPass self-contained pattern)
- *         Logging: Logger.debug at each pass entry/exit to assist render-flow tracing and debugging.
+ *         Logging: @LogDebug at each pass entry/exit to assist render-flow tracing and debugging.
  */
 package three.rendering.postprocessing
 
@@ -84,7 +84,8 @@ import three.scene.entity.Mesh
 import three.scene.entity.GroundReflector
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
@@ -257,7 +258,7 @@ public class SSRPass <: Pass {
             // 因此 MAX_STEP=1024 不会让实际循环次数激增（大多数像素 totalStep<100）。
             let rawMaxStep = Int64(sqrt(Float64(width * width + height * height)))
             this._maxStep = min(rawMaxStep, 1024i64)
-            Logger.trace(["ssr", "setSize=${width}x${height} rawMaxStep=${rawMaxStep} maxStep(capped)=${this._maxStep}"])
+            @LogTrace(["ssr", "setSize=${width}x${height} rawMaxStep=${rawMaxStep} maxStep(capped)=${this._maxStep}"])
         }
     }
 
@@ -265,10 +266,10 @@ public class SSRPass <: Pass {
 
     private func _ensureRTs(): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
-        if (isValidHandle(this._normalTex)) { return }
+        if (Handle.isValid(this._normalTex)) { return }
         match (this._renderer) {
             case Some(renderer) =>
-                Logger.trace(["ssr", "_ensureRTs: creating RTs ${this._width}x${this._height}"])
+                @LogTrace(["ssr", "_ensureRTs: creating RTs ${this._width}x${this._height}"])
 
                 // 法线 RT：RGBA16F + D24 depth attachment
                 let normalTex = renderer.createTexture2D(
@@ -279,12 +280,12 @@ public class SSRPass <: Pass {
                 this._normalTex = normalTex
                 let normalDepthTex = renderer.createTexture2D(
                     UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.D24.value(),
+                    TextureFormat.D24S8.value(),
                     BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
                     None)
                 this._normalDepthTex = normalDepthTex
                 this._normalFB = this._createFBWithDepth(renderer, normalTex, normalDepthTex)
-                Logger.trace(["ssr", "  normalFB created: normalTex=${handleIdx(normalTex)} normalDepthTex=${handleIdx(normalDepthTex)}"])
+                @LogTrace(["ssr", "  normalFB created: normalTex=${Handle.idx(normalTex)} normalDepthTex=${Handle.idx(normalDepthTex)}"])
 
                 // 深度 RT：RGBA32F（存 NDC 深度 gl_FragCoord.z）+ D24 depth attachment
                 let depthTex = renderer.createTexture2D(
@@ -295,12 +296,12 @@ public class SSRPass <: Pass {
                 this._depthTex = depthTex
                 let depthDepthTex = renderer.createTexture2D(
                     UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.D24.value(),
+                    TextureFormat.D24S8.value(),
                     BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
                     None)
                 this._depthDepthTex = depthDepthTex
                 this._depthFB = this._createFBWithDepth(renderer, depthTex, depthDepthTex)
-                Logger.trace(["ssr", "  depthFB created: depthTex=${handleIdx(depthTex)} depthDepthTex=${handleIdx(depthDepthTex)}"])
+                @LogTrace(["ssr", "  depthFB created: depthTex=${Handle.idx(depthTex)} depthDepthTex=${Handle.idx(depthDepthTex)}"])
 
                 // SSR 反射结果 RT：RGBA16F
                 let ssrTex = renderer.createTexture2D(
@@ -310,7 +311,7 @@ public class SSRPass <: Pass {
                     None)
                 this._ssrTex = ssrTex
                 this._ssrFB = this._createFB(renderer, ssrTex)
-                Logger.trace(["ssr", "  ssrFB created: ssrTex=${handleIdx(ssrTex)}"])
+                @LogTrace(["ssr", "  ssrFB created: ssrTex=${Handle.idx(ssrTex)}"])
 
                 // 模糊 RT 1：RGBA16F
                 let blurTex = renderer.createTexture2D(
@@ -320,7 +321,7 @@ public class SSRPass <: Pass {
                     None)
                 this._blurTex = blurTex
                 this._blurFB = this._createFB(renderer, blurTex)
-                Logger.trace(["ssr", "  blurFB created: blurTex=${handleIdx(blurTex)}"])
+                @LogTrace(["ssr", "  blurFB created: blurTex=${Handle.idx(blurTex)}"])
 
                 // 模糊 RT 2：RGBA16F
                 let blur2Tex = renderer.createTexture2D(
@@ -330,7 +331,7 @@ public class SSRPass <: Pass {
                     None)
                 this._blur2Tex = blur2Tex
                 this._blur2FB = this._createFB(renderer, blur2Tex)
-                Logger.trace(["ssr", "  blur2FB created: blur2Tex=${handleIdx(blur2Tex)}"])
+                @LogTrace(["ssr", "  blur2FB created: blur2Tex=${Handle.idx(blur2Tex)}"])
 
                 // 金属度 RT：RGBA16F（r=metalness），仅 selective 模式下创建参与渲染链
                 // 对应 metalnessRenderTarget（NearestFilter + HalfFloatType）
@@ -342,10 +343,10 @@ public class SSRPass <: Pass {
                         None)
                     this._metalnessTex = metalnessTex
                     this._metalnessFB = this._createFB(renderer, metalnessTex)
-                    Logger.trace(["ssr", "  metalnessFB created (selective): metalnessTex=${handleIdx(metalnessTex)}"])
+                    @LogTrace(["ssr", "  metalnessFB created (selective): metalnessTex=${Handle.idx(metalnessTex)}"])
                 }
 
-                Logger.trace(["ssr", "_ensureRTs done"])
+                @LogTrace(["ssr", "_ensureRTs done"])
             case None => ()
         }
     }
@@ -373,20 +374,20 @@ public class SSRPass <: Pass {
                 let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
                 let ssrTex = this._ssrTex; let blurTex = this._blurTex; let blur2Tex = this._blur2Tex
                 let metalnessTex = this._metalnessTex
-                if (isValidHandle(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
-                if (isValidHandle(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (isValidHandle(ssrFB)) { renderer.destroyFrameBuffer(ssrFB) }
-                if (isValidHandle(blurFB)) { renderer.destroyFrameBuffer(blurFB) }
-                if (isValidHandle(blur2FB)) { renderer.destroyFrameBuffer(blur2FB) }
-                if (isValidHandle(metalnessFB)) { renderer.destroyFrameBuffer(metalnessFB) }
-                if (isValidHandle(normalTex)) { renderer.destroyTexture(normalTex) }
-                if (isValidHandle(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
-                if (isValidHandle(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (isValidHandle(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-                if (isValidHandle(ssrTex)) { renderer.destroyTexture(ssrTex) }
-                if (isValidHandle(blurTex)) { renderer.destroyTexture(blurTex) }
-                if (isValidHandle(blur2Tex)) { renderer.destroyTexture(blur2Tex) }
-                if (isValidHandle(metalnessTex)) { renderer.destroyTexture(metalnessTex) }
+                if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
+                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+                if (Handle.isValid(ssrFB)) { renderer.destroyFrameBuffer(ssrFB) }
+                if (Handle.isValid(blurFB)) { renderer.destroyFrameBuffer(blurFB) }
+                if (Handle.isValid(blur2FB)) { renderer.destroyFrameBuffer(blur2FB) }
+                if (Handle.isValid(metalnessFB)) { renderer.destroyFrameBuffer(metalnessFB) }
+                if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
+                if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
+                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+                if (Handle.isValid(ssrTex)) { renderer.destroyTexture(ssrTex) }
+                if (Handle.isValid(blurTex)) { renderer.destroyTexture(blurTex) }
+                if (Handle.isValid(blur2Tex)) { renderer.destroyTexture(blur2Tex) }
+                if (Handle.isValid(metalnessTex)) { renderer.destroyTexture(metalnessTex) }
                 this._normalFB = INVALID_FRAME_BUFFER_HANDLE
                 this._normalTex = INVALID_TEXTURE_HANDLE
                 this._normalDepthTex = INVALID_TEXTURE_HANDLE
@@ -574,8 +575,8 @@ public class SSRPass <: Pass {
             case Some(scene) => match (camOpt) {
                 case Some(camera) =>
                     this._ensureRTs()
-                    if (!isValidHandle(this._normalFB)) {
-                        Logger.trace(["ssr", "render: _ensureRTs failed, normalFB invalid"])
+                    if (!Handle.isValid(this._normalFB)) {
+                        @LogTrace(["ssr", "render: _ensureRTs failed, normalFB invalid"])
                         return
                     }
 
@@ -583,15 +584,15 @@ public class SSRPass <: Pass {
                     let uniforms = this._uniforms
 
                     // ===== 注意：不再在渲染开始前"预编译所有 shader" =====
-                    //   各 _renderXXX 子方法内部已自带懒编译（!isValidHandle(programHandle) 时才编译）。
+                    //   各 _renderXXX 子方法内部已自带懒编译（!Handle.isValid(programHandle) 时才编译）。
                     //   预编译会导致第一帧同时分配 5 个 shader 的 String→Array<UInt8> 临时内存
-                    //   （+ Logger.debug 字符串拼接），瞬间 GC 压力过大触发仓颉 STW GC；
+                    //   （+ @LogDebug 字符串拼接），瞬间 GC 压力过大触发仓颉 STW GC；
                     //   主线程此时在 wndProc / DispatchMessageW 与渲染循环之间切换，
                     //   GC 的 TransitionAllMutatorsToGCPhase 可能因主线程卡在 FFI/C 栈帧
                     //   或 IME 内部消息上无法进入 safe-point → 崩溃（CJ_MRT_FlushGCInfo）。
                     //   改为懒编译：每个 shader 在首次真正需要时才编译，分散 GC 压力。
 
-                    Logger.trace(["ssr", "render: starting 6-pass chain, output=${this.output}"])
+                    @LogTrace(["ssr", "render: starting 6-pass chain, output=${this.output}"])
 
                     // ===== 0. 地面反射器协作（可选，render 开头 doRender）=====
                     //   渲反射贴图：computeVirtualCamera（镜像数学）→ 渲场景到反射 RT（view 0 语义
@@ -633,7 +634,7 @@ public class SSRPass <: Pass {
                     }
                     // ===== 7. 输出 pass（view+6）=====
                     this._renderOutput(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 6u16), uniforms)
-                    Logger.trace(["ssr", "render: 6-pass chain done"])
+                    @LogTrace(["ssr", "render: 6-pass chain done"])
                     // 链末恢复反射面可见（下一帧 RenderPass 渲 readBuffer 时地面显示反射贴图）
                     match (this.groundReflector) {
                         case Some(reflector) => reflector.visible = true
@@ -665,12 +666,12 @@ public class SSRPass <: Pass {
         let normalProgOpt = ShaderLibs.get("normal")
         match (normalProgOpt) {
             case Some(normalSp) =>
-                if (!isValidHandle(Box(normalSp.programHandle))) {
+                if (!Handle.isValid(Box(normalSp.programHandle))) {
                     normalSp.compileBgfx()
                 }
                 let normalProg = Box(normalSp.programHandle)
-                if (!isValidHandle(normalProg)) {
-                    Logger.trace(["ssr", "normal pass: prog compile FAILED"])
+                if (!Handle.isValid(normalProg)) {
+                    @LogTrace(["ssr", "normal pass: prog compile FAILED"])
                     return
                 }
 
@@ -683,7 +684,7 @@ public class SSRPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let posAttrOpt = ro.geometry.getAttribute("position")
                     match (posAttrOpt) {
                         case Some(_) =>
@@ -730,7 +731,7 @@ public class SSRPass <: Pass {
 
                             renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                             let ib = this._createIB(ro.geometry)
-                            if (isValidHandle(ib)) {
+                            if (Handle.isValid(ib)) {
                                 renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                             }
                             let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -742,8 +743,8 @@ public class SSRPass <: Pass {
                         case None => ()
                     }
                 }
-                Logger.trace(["ssr", "normal pass done: prog= submitCnt="])
-            case None => Logger.trace(["ssr", "normal pass: normal shader NOT registered in ShaderLibs"])
+                @LogTrace(["ssr", "normal pass done: prog= submitCnt="])
+            case None => @LogTrace(["ssr", "normal pass: normal shader NOT registered in ShaderLibs"])
         }
     }
 
@@ -761,12 +762,12 @@ public class SSRPass <: Pass {
         let depthProgOpt = PostProcessingShaders.get("aodepth")
         match (depthProgOpt) {
             case Some(depthSp) =>
-                if (!isValidHandle(Box(depthSp.programHandle))) {
+                if (!Handle.isValid(Box(depthSp.programHandle))) {
                     depthSp.compileBgfx()
                 }
                 let depthProg = Box(depthSp.programHandle)
-                if (!isValidHandle(depthProg)) {
-                    Logger.trace(["ssr", "depth pass: aodepth program compile FAILED"])
+                if (!Handle.isValid(depthProg)) {
+                    @LogTrace(["ssr", "depth pass: aodepth program compile FAILED"])
                     return
                 }
 
@@ -776,14 +777,14 @@ public class SSRPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -793,8 +794,8 @@ public class SSRPass <: Pass {
                     renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
                     submitCnt += 1
                 }
-                Logger.trace(["ssr", "depth pass done: prog= submitCnt="])
-            case None => Logger.trace(["ssr", "depth pass: aodepth shader NOT registered"])
+                @LogTrace(["ssr", "depth pass done: prog= submitCnt="])
+            case None => @LogTrace(["ssr", "depth pass: aodepth shader NOT registered"])
         }
     }
 
@@ -820,12 +821,12 @@ public class SSRPass <: Pass {
         let metalProgOpt = PostProcessingShaders.get("ssr_metalness")
         match (metalProgOpt) {
             case Some(metalSp) =>
-                if (!isValidHandle(Box(metalSp.programHandle))) {
+                if (!Handle.isValid(Box(metalSp.programHandle))) {
                     metalSp.compileBgfx()
                 }
                 let metalProg = Box(metalSp.programHandle)
-                if (!isValidHandle(metalProg)) {
-                    Logger.trace(["ssr", "metalness pass: ssr_metalness program compile FAILED"])
+                if (!Handle.isValid(metalProg)) {
+                    @LogTrace(["ssr", "metalness pass: ssr_metalness program compile FAILED"])
                     return
                 }
 
@@ -841,7 +842,7 @@ public class SSRPass <: Pass {
                 let uMetalness = uniforms.createUniform("u_metalness", UniformType.Vec4.value())
                 for (ro in renderObjects) {
                     let vb = this._createVB(ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let posAttrOpt = ro.geometry.getAttribute("position")
                     match (posAttrOpt) {
                         case Some(_) =>
@@ -867,7 +868,7 @@ public class SSRPass <: Pass {
 
                             renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                             let ib = this._createIB(ro.geometry)
-                            if (isValidHandle(ib)) {
+                            if (Handle.isValid(ib)) {
                                 renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                             }
                             let metalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -879,8 +880,8 @@ public class SSRPass <: Pass {
                         case None => ()
                     }
                 }
-                Logger.trace(["ssr", "metalness pass done: prog= submitCnt= onCnt=${onCnt}"])
-            case None => Logger.trace(["ssr", "metalness pass: ssr_metalness shader NOT registered"])
+                @LogTrace(["ssr", "metalness pass done: prog= submitCnt= onCnt=${onCnt}"])
+            case None => @LogTrace(["ssr", "metalness pass: ssr_metalness shader NOT registered"])
         }
     }
 
@@ -903,16 +904,16 @@ public class SSRPass <: Pass {
         match (ssrProgOpt) {
             case Some(ssrSp) =>
                 // 带 MAX_STEP + DISTANCE_ATTENUATION + FRESNEL defines 编译
-                if (!isValidHandle(Box(ssrSp.programHandle))) {
+                if (!Handle.isValid(Box(ssrSp.programHandle))) {
                     this._compileSSRShader(ssrSp)
                 }
                 let ssrProg = Box(ssrSp.programHandle)
-                if (!isValidHandle(ssrProg)) {
-                    Logger.trace(["ssr", "ssrCalc: prog compile FAILED"])
+                if (!Handle.isValid(ssrProg)) {
+                    @LogTrace(["ssr", "ssrCalc: prog compile FAILED"])
                     return
                 }
 
-                Logger.trace(["ssr", "ssrCalc STEP-1: create samplers (tDiffuse/tNormal/tDepth)"])
+                @LogTrace(["ssr", "ssrCalc STEP-1: create samplers (tDiffuse/tNormal/tDepth)"])
                 // 采样器：stage 0=场景色(readBuffer), 1=法线, 2=深度
                 let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
                 let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
@@ -927,7 +928,7 @@ public class SSRPass <: Pass {
                     this.bindTexture(renderer, 3u8, uMetalness, this._metalnessTex, 0u32)
                 }
 
-                Logger.trace(["ssr", "ssrCalc STEP-2: create uniform u_resolution/u_cameraNearFar"])
+                @LogTrace(["ssr", "ssrCalc STEP-2: create uniform u_resolution/u_cameraNearFar"])
                 // resolution
                 let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
                 let resMem = BgfxMemory(16u32)
@@ -940,7 +941,7 @@ public class SSRPass <: Pass {
                 nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
                 this.setUniform(renderer, uNearFar, nfMem)
 
-                Logger.trace(["ssr", "ssrCalc STEP-3: create uniform u_projMatrix/u_invProjMatrix"])
+                @LogTrace(["ssr", "ssrCalc STEP-3: create uniform u_projMatrix/u_invProjMatrix"])
                 // projection / inverse projection
                 let uProj = uniforms.createUniform("u_projMatrix", UniformType.Mat4.value())
                 let projMem = BgfxMemory(64u32)
@@ -953,7 +954,7 @@ public class SSRPass <: Pass {
                 invMem.writeFloats(invProj.elements, 16)
                 this.setUniform(renderer, uInvProj, invMem)
 
-                Logger.trace(["ssr", "ssrCalc STEP-4: create uniform u_ssrParams/u_debug"])
+                @LogTrace(["ssr", "ssrCalc STEP-4: create uniform u_ssrParams/u_debug"])
                 // ssrParams: x=opacity, y=maxDistance, z=thickness, w=cameraRange
                 let cameraRange = camera.far - camera.near
                 let uParams = uniforms.createUniform("u_ssrParams", UniformType.Vec4.value())
@@ -980,7 +981,7 @@ public class SSRPass <: Pass {
                 // 便于在出现伪影时回溯排查：左手系矩阵、深度范围、UV 翻转、Fresnel/Break 行为等。
                 let projElems = camera.projectionMatrix.elements
                 let invProjElems = invProj.elements
-                Logger.trace([
+                @LogTrace([
                     "ssr",
                     "ssrCalc params START --- view=${viewId} rt=${this._width}x${this._height} maxStep(define)=${this._maxStep}",
                     "  camera: near=${camera.near} far=${camera.far} range=${cameraRange} pos=(${camera.position.x}, ${camera.position.y}, ${camera.position.z})",
@@ -989,7 +990,7 @@ public class SSRPass <: Pass {
                     "m[0]=${projElems[0]} m[5]=${projElems[5]} m[10]=${projElems[10]} m[11]=${projElems[11]} m[14]=${projElems[14]} m[15]=${projElems[15]}",
                     "  invProjMatrix(key elems): " +
                     "m[0]=${invProjElems[0]} m[5]=${invProjElems[5]} m[10]=${invProjElems[10]} m[11]=${invProjElems[11]} m[14]=${invProjElems[14]} m[15]=${invProjElems[15]}",
-                    "  textures: sceneTex=${handleIdx(sceneTex)} normalTex=${handleIdx(this._normalTex)} depthTex=${handleIdx(this._depthTex)} ssrTex=${handleIdx(this._ssrTex)}",
+                    "  textures: sceneTex=${Handle.idx(sceneTex)} normalTex=${Handle.idx(this._normalTex)} depthTex=${Handle.idx(this._depthTex)} ssrTex=${Handle.idx(this._ssrTex)}",
                     "  shaderFix: fresnel-original (dot(incident,reflect)+1)/2; backface/distance check use break (not continue)",
                     "  texFix: all SSR RT textures use SAMPLER_MIN_POINT|SAMPLER_MAG_POINT (NearestFilter)",
                     "ssrCalc params END ---"
@@ -997,7 +998,7 @@ public class SSRPass <: Pass {
 
                 // 全屏四边形 submit
                 this.submitQuad(viewId, ssrProg)
-            case None => Logger.trace(["ssr", "ssrCalc: ssr shader NOT registered"])
+            case None => @LogTrace(["ssr", "ssrCalc: ssr shader NOT registered"])
         }
     }
 
@@ -1032,7 +1033,7 @@ public class SSRPass <: Pass {
         // 若 MAX_STEP 变了且已编译过，重置 programHandle 让 compileBgfxWithDefines 重编译
         // 注：ShaderProgram 暂未暴露 dispose 接口，这里直接把三个 handle 置为未初始化状态（65535u16），
         // 等价于强制重编译（compileBgfxWithDefines 内部每次都会完整重编译）。
-        if (this._compiledMaxStep > 0 && this._compiledMaxStep != ms && isValidHandle(Box(sp.programHandle))) {
+        if (this._compiledMaxStep > 0 && this._compiledMaxStep != ms && Handle.isValid(Box(sp.programHandle))) {
             sp.resetHandles()
         }
         this._compiledMaxStep = ms
@@ -1083,12 +1084,12 @@ public class SSRPass <: Pass {
         //         case Some(metalSp) => File.writeTo(dumpDir.join("ssr_metalness_fs.glsl"), metalSp.fragmentShaderBgfx.toArray())
         //         case None => ()
         //     }
-        //     Logger.trace(["ssr", "_compileSSRShader: shader source dumped to ${dumpDir.toString()}"])
+        //     @LogTrace(["ssr", "_compileSSRShader: shader source dumped to ${dumpDir.toString()}"])
         // } catch (e: Exception) {
-        //     Logger.trace(["ssr", "_compileSSRShader: dump failed: ${e.message}"])
+        //     @LogTrace(["ssr", "_compileSSRShader: dump failed: ${e.message}"])
         // }
 
-        Logger.trace(["ssr", "_compileSSRShader: defines=${definesList.size} maxStep(define)=${this._maxStep}"])
+        @LogTrace(["ssr", "_compileSSRShader: defines=${definesList.size} maxStep(define)=${this._maxStep}"])
     }
 
     /**
@@ -1109,8 +1110,8 @@ public class SSRPass <: Pass {
         // aodepth（GTAO/SAO 共用深度 shader，SSR 深度 pass 借用；零 varying 历史上多次崩溃）
         match (PostProcessingShaders.get("aodepth")) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
-                    Logger.trace(["ssr", "preCompile: compiling aodepth shader"])
+                if (!Handle.isValid(Box(sp.programHandle))) {
+                    @LogTrace(["ssr", "preCompile: compiling aodepth shader"])
                     sp.compileBgfx()
                 }
             case None => ()
@@ -1118,8 +1119,8 @@ public class SSRPass <: Pass {
         // ssr（带 defines）
         match (PostProcessingShaders.get("ssr")) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
-                    Logger.trace(["ssr", "preCompile: compiling ssr shader"])
+                if (!Handle.isValid(Box(sp.programHandle))) {
+                    @LogTrace(["ssr", "preCompile: compiling ssr shader"])
                     this._compileSSRShader(sp)
                 }
             case None => ()
@@ -1127,8 +1128,8 @@ public class SSRPass <: Pass {
         // ssrblur（无 defines）
         match (PostProcessingShaders.get("ssrblur")) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
-                    Logger.trace(["ssr", "preCompile: compiling ssrblur shader"])
+                if (!Handle.isValid(Box(sp.programHandle))) {
+                    @LogTrace(["ssr", "preCompile: compiling ssrblur shader"])
                     sp.compileBgfx()
                 }
             case None => ()
@@ -1136,8 +1137,8 @@ public class SSRPass <: Pass {
         // ssrdepth（无 defines）
         match (PostProcessingShaders.get("ssrdepth")) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
-                    Logger.trace(["ssr", "preCompile: compiling ssrdepth shader"])
+                if (!Handle.isValid(Box(sp.programHandle))) {
+                    @LogTrace(["ssr", "preCompile: compiling ssrdepth shader"])
                     sp.compileBgfx()
                 }
             case None => ()
@@ -1145,8 +1146,8 @@ public class SSRPass <: Pass {
         // ssrapply（无 defines）
         match (PostProcessingShaders.get("ssrapply")) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
-                    Logger.trace(["ssr", "preCompile: compiling ssrapply shader"])
+                if (!Handle.isValid(Box(sp.programHandle))) {
+                    @LogTrace(["ssr", "preCompile: compiling ssrapply shader"])
                     sp.compileBgfx()
                 }
             case None => ()
@@ -1154,13 +1155,13 @@ public class SSRPass <: Pass {
         // normal shader（法线 pass 用，来自 ShaderLibs）
         match (ShaderLibs.get("normal")) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
-                    Logger.trace(["ssr", "preCompile: compiling normal shader"])
+                if (!Handle.isValid(Box(sp.programHandle))) {
+                    @LogTrace(["ssr", "preCompile: compiling normal shader"])
                     sp.compileBgfx()
                 }
             case None => ()
         }
-        Logger.trace(["ssr", "preCompile: all shaders compiled"])
+        @LogTrace(["ssr", "preCompile: all shaders compiled"])
     }
 
     /**
@@ -1186,12 +1187,12 @@ public class SSRPass <: Pass {
         let blurProgOpt = PostProcessingShaders.get("ssrblur")
         match (blurProgOpt) {
             case Some(blurSp) =>
-                if (!isValidHandle(Box(blurSp.programHandle))) {
+                if (!Handle.isValid(Box(blurSp.programHandle))) {
                     blurSp.compileBgfx()
                 }
                 let blurProg = Box(blurSp.programHandle)
-                if (!isValidHandle(blurProg)) {
-                    Logger.trace(["ssr", "blur: prog compile FAILED"])
+                if (!Handle.isValid(blurProg)) {
+                    @LogTrace(["ssr", "blur: prog compile FAILED"])
                     return
                 }
 
@@ -1203,9 +1204,9 @@ public class SSRPass <: Pass {
                 resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
                 this.setUniform(renderer, uRes, resMem)
 
-                Logger.trace(["ssr", "blur: prog=${handleIdx(blurProg)} inputTex=${handleIdx(inputTex)}"])
+                @LogTrace(["ssr", "blur: prog=${Handle.idx(blurProg)} inputTex=${Handle.idx(inputTex)}"])
                 this.submitQuad(viewId, blurProg)
-            case None => Logger.trace(["ssr", "blur: ssrblur shader NOT registered"])
+            case None => @LogTrace(["ssr", "blur: ssrblur shader NOT registered"])
         }
     }
 
@@ -1239,12 +1240,12 @@ public class SSRPass <: Pass {
             let depthProgOpt = PostProcessingShaders.get("ssrdepth")
             match (depthProgOpt) {
                 case Some(depthSp) =>
-                    if (!isValidHandle(Box(depthSp.programHandle))) {
+                    if (!Handle.isValid(Box(depthSp.programHandle))) {
                         depthSp.compileBgfx()
                     }
                     let depthProg = Box(depthSp.programHandle)
-                    if (!isValidHandle(depthProg)) {
-                        Logger.trace(["ssr", "output depth: ssrdepth compile FAILED"])
+                    if (!Handle.isValid(depthProg)) {
+                        @LogTrace(["ssr", "output depth: ssrdepth compile FAILED"])
                         return
                     }
                     let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
@@ -1257,9 +1258,9 @@ public class SSRPass <: Pass {
                             this.setUniform(renderer, uNearFar, nfMem)
                         case None => ()
                     }
-                    Logger.trace(["ssr", "output depth: prog=${handleIdx(depthProg)}"])
+                    @LogTrace(["ssr", "output depth: prog=${Handle.idx(depthProg)}"])
                     this.submitQuad(viewId, depthProg)
-                case None => Logger.trace(["ssr", "output depth: ssrdepth shader NOT registered"])
+                case None => @LogTrace(["ssr", "output depth: ssrdepth shader NOT registered"])
             }
             return
         }
@@ -1269,12 +1270,12 @@ public class SSRPass <: Pass {
             let applyProgOpt = PostProcessingShaders.get("ssrapply")
             match (applyProgOpt) {
                 case Some(applySp) =>
-                    if (!isValidHandle(Box(applySp.programHandle))) {
+                    if (!Handle.isValid(Box(applySp.programHandle))) {
                         applySp.compileBgfx()
                     }
                     let applyProg = Box(applySp.programHandle)
-                    if (!isValidHandle(applyProg)) {
-                        Logger.trace(["ssr", "output default: ssrapply compile FAILED"])
+                    if (!Handle.isValid(applyProg)) {
+                        @LogTrace(["ssr", "output default: ssrapply compile FAILED"])
                         return
                     }
                     // tDiffuse = 场景色（readBuffer）
@@ -1288,9 +1289,9 @@ public class SSRPass <: Pass {
                     }
                     let uSSR = uniforms.createUniform("tSSR", UniformType.Sampler.value())
                     this.bindTexture(renderer, 1u8, uSSR, ssrSrcTex, 0u32)
-                    Logger.trace(["ssr", "output default: sceneTex=${handleIdx(sceneTex)}ssrSrcTex=${handleIdx(ssrSrcTex)}}lur=${this.blur}"])
+                    @LogTrace(["ssr", "output default: sceneTex=${Handle.idx(sceneTex)}ssrSrcTex=${Handle.idx(ssrSrcTex)}}lur=${this.blur}"])
                     this.submitQuad(viewId, applyProg)
-                case None => Logger.trace(["ssr", "output default: ssrapply shader NOT registered"])
+                case None => @LogTrace(["ssr", "output default: ssrapply shader NOT registered"])
             }
             return
         }
@@ -1340,12 +1341,12 @@ public class SSRPass <: Pass {
         let hitNormalsProgOpt = PostProcessingShaders.get("ssr_hitnormals")
         match (hitNormalsProgOpt) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
+                if (!Handle.isValid(Box(sp.programHandle))) {
                     sp.compileBgfx()
                 }
                 let prog = Box(sp.programHandle)
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["ssr", "hitnormals: prog compile FAILED"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["ssr", "hitnormals: prog compile FAILED"])
                     return
                 }
 
@@ -1379,9 +1380,9 @@ public class SSRPass <: Pass {
                     case None => ()
                 }
 
-                Logger.trace(["ssr", "hitnormals: prog=${handleIdx(prog)}"])
+                @LogTrace(["ssr", "hitnormals: prog=${Handle.idx(prog)}"])
                 this.submitQuad(viewId, prog)
-            case None => Logger.trace(["ssr", "hitnormals: ssr_hitnormals shader NOT registered"])
+            case None => @LogTrace(["ssr", "hitnormals: ssr_hitnormals shader NOT registered"])
         }
     }
 
@@ -1395,12 +1396,12 @@ public class SSRPass <: Pass {
         let copyProgOpt = PostProcessingShaders.get("copy")
         match (copyProgOpt) {
             case Some(copySp) =>
-                if (!isValidHandle(Box(copySp.programHandle))) {
+                if (!Handle.isValid(Box(copySp.programHandle))) {
                     copySp.compileBgfx()
                 }
                 let copyProg = Box(copySp.programHandle)
-                if (!isValidHandle(copyProg)) {
-                    Logger.trace(["ssr", "output copy: copy compile FAILED"])
+                if (!Handle.isValid(copyProg)) {
+                    @LogTrace(["ssr", "output copy: copy compile FAILED"])
                     return
                 }
                 let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
@@ -1409,9 +1410,9 @@ public class SSRPass <: Pass {
                 let oMem = BgfxMemory(16u32)
                 oMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
                 this.setUniform(renderer, uOpacity, oMem)
-                Logger.trace(["ssr", "output copy: srcTex=${handleIdx(srcTex)}"])
+                @LogTrace(["ssr", "output copy: srcTex=${Handle.idx(srcTex)}"])
                 this.submitQuad(viewId, copyProg)
-            case None => Logger.trace(["ssr", "output copy: copy shader NOT registered"])
+            case None => @LogTrace(["ssr", "output copy: copy shader NOT registered"])
         }
     }
 
@@ -1475,7 +1476,7 @@ public class SSRPass <: Pass {
     ): Unit {
         // 1+2. 镜像相机数学 + 朝向检测（false=反射面背向相机，跳过）
         if (!reflector.computeVirtualCamera(camera)) {
-            Logger.trace(["ssr", "groundReflector: facing away, skip reflection render"])
+            @LogTrace(["ssr", "groundReflector: facing away, skip reflection render"])
             return
         }
         // 3. 防自反射：临时隐藏反射面
@@ -1500,7 +1501,7 @@ public class SSRPass <: Pass {
         this.setRenderTarget(renderer, renderer.viewId, reflector.getReflectFB())
         this.setViewport(renderer, renderer.viewId, 0u16, 0u16, UInt16(texW), UInt16(texH))
         this.clearRenderTarget(renderer, renderer.viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
-        Logger.trace(["ssr", "groundReflector: rendering scene to reflect RT (${texW}x${texH}) view=${renderer.viewId}"])
+        @LogTrace(["ssr", "groundReflector: rendering scene to reflect RT (${texW}x${texH}) view=${renderer.viewId}"])
         renderer.render(scene, reflector.virtualCamera)
         renderer.viewId = savedViewId
 
@@ -1511,7 +1512,7 @@ public class SSRPass <: Pass {
 
         // 6. 恢复反射面可见
         reflector.visible = wasVisible
-        Logger.trace(["ssr", "groundReflector: done, reflectTex=${handleIdx(reflector.getRenderTarget())}"])
+        @LogTrace(["ssr", "groundReflector: done, reflectTex=${Handle.idx(reflector.getRenderTarget())}"])
     }
 
     /**
@@ -1539,12 +1540,12 @@ public class SSRPass <: Pass {
 
         match (PostProcessingShaders.get("aodepth")) {
             case Some(depthSp) =>
-                if (!isValidHandle(Box(depthSp.programHandle))) {
+                if (!Handle.isValid(Box(depthSp.programHandle))) {
                     depthSp.compileBgfx()
                 }
                 let depthProg = Box(depthSp.programHandle)
-                if (!isValidHandle(depthProg)) {
-                    Logger.trace(["ssr", "reflectorDepth: aodepth compile FAILED"])
+                if (!Handle.isValid(depthProg)) {
+                    @LogTrace(["ssr", "reflectorDepth: aodepth compile FAILED"])
                     return
                 }
                 let layout = this._getOrCreateLayout(renderer)
@@ -1553,14 +1554,14 @@ public class SSRPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -1570,8 +1571,8 @@ public class SSRPass <: Pass {
                     renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
                     submitCnt += 1
                 }
-                Logger.trace(["ssr", "reflectorDepth done: prog= submitCnt="])
-            case None => Logger.trace(["ssr", "reflectorDepth: aodepth NOT registered"])
+                @LogTrace(["ssr", "reflectorDepth done: prog= submitCnt="])
+            case None => @LogTrace(["ssr", "reflectorDepth: aodepth NOT registered"])
         }
     }
 

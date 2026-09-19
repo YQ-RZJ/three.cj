@@ -21,8 +21,8 @@ import three.scene.scenegraph.*
 import three.rendering.cameras.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.physics.world.PhysicsWorld
 import three.audio.device.AudioContext
 import std.collection.*
@@ -102,7 +102,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Warn)
     println("=== test_helpers：helpers 计算断言 + 视觉渲染 ===")
     println("")
 

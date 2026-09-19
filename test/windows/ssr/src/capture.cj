@@ -154,7 +154,7 @@ func _issueCapture(renderer: ThreeRenderer, ssrPass: SSRPass, composer: EffectCo
     }
 
     for (e in g_capEntries) {
-        if (!isValidHandle(e.src)) {
+        if (!Handle.isValid(e.src)) {
             println("[capture] 警告：${e.name} 源纹理无效，跳过")
             continue
         }
@@ -164,13 +164,13 @@ func _issueCapture(renderer: ThreeRenderer, ssrPass: SSRPass, composer: EffectCo
 
     // 逐个走 renderer 高阶 API（内部各自 _execBgfx 序列化，避免嵌套 execBgfx 死锁）
     for (e in g_capEntries) {
-        if (!isValidHandle(e.src) || e.data.size() == 0) { continue }
+        if (!Handle.isValid(e.src) || e.data.size() == 0) { continue }
         e.rb = renderer.createTexture2D(
             UInt16(w), UInt16(h), false, 1u16, e.fmt,
             UInt64(BgfxConstants.TEXTURE_READ_BACK), None)
         renderer.blitTexture(250u16, e.rb, e.src, UInt16(w), UInt16(h))
         let readyFrame = renderer.readTexture(e.rb, e.data, mip: 0u8)
-        println("[capture] 回读已发起: ${e.name} rb=${handleIdx(e.rb)} readyFrame=${readyFrame}")
+        println("[capture] 回读已发起: ${e.name} rb=${Handle.idx(e.rb)} readyFrame=${readyFrame}")
     }
     println("[capture] ${g_capEntries.size} 个 RT 回读已提交（scene/normal/depth/ssr/blur2/...），等待帧推进...")
 }
@@ -212,7 +212,7 @@ func _dumpAndCleanup(renderer: ThreeRenderer): Unit {
     }
     // 销毁 readback 纹理（经 renderer 高阶 API 序列化）
     for (e in g_capEntries) {
-        if (isValidHandle(e.rb)) {
+        if (Handle.isValid(e.rb)) {
             renderer.destroyTexture(e.rb)
             e.rb = INVALID_TEXTURE_HANDLE
         }

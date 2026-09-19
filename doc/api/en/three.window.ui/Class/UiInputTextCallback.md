@@ -30,17 +30,17 @@ public func hasSelection(): Bool
 ```
 Whether there is selected text
 
-### func init\(CPointer<Unit>\)
+### func init\(VoidPtr\)
 ```cj
-public init(dataPtr: CPointer < Unit >)
+public init(dataPtr: VoidPtr)
 ```
-
+Constructs a wrapper with the underlying callback data pointer
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|dataPtr|CPointer<Unit>||
+|dataPtr|VoidPtr|Underlying ImGuiInputTextCallbackData pointer|
 
 ### func insertChars\(Int32,String\)
 ```cj
@@ -78,5 +78,5 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |start|Int32|Start position|
-|end_|Int32||
+|end_|Int32|End position|
 

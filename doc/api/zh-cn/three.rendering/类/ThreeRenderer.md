@@ -1621,36 +1621,6 @@ public func makeRef(data: PtrArray < UInt8 >): BgfxMemory
 
 - bgfx Memory 引用指针
 
-### func overrideInternalTexturePtr\(TextureHandle,UIntNative\)
-```cj
-public func overrideInternalTexturePtr(tex: TextureHandle, ptr: UIntNative): UIntNative
-```
-覆盖纹理内部存储（指针版，直接指定外部纹理指针）。
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|tex|TextureHandle||
-|ptr|UIntNative||
-
-### func overrideInternalTexture\(TextureHandle,UInt16,UInt16,UInt8,UInt32,UInt64\)
-```cj
-public func overrideInternalTexture(tex: TextureHandle, width: UInt16, height: UInt16, numMips: UInt8, format: UInt32, flags: UInt64): UIntNative
-```
-覆盖纹理内部存储（尺寸/格式改变，用于外部导入纹理）。
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|tex|TextureHandle||
-|width|UInt16||
-|height|UInt16||
-|numMips|UInt8||
-|format|UInt32||
-|flags|UInt64||
-
 ### func present\(Bool\)
 ```cj
 public func present(capture!: Bool = false): Unit
@@ -2066,18 +2036,6 @@ public func setPaletteColor(index: UInt8, rgba: PtrArray < Float32 >): Unit
 |---|---|---|
 |index|UInt8|调色板索引（0..15）rgba 4 个 float 指针（r,g,b,a）|
 |rgba|PtrArray<Float32>||
-
-### func setPlatformData\(PlatformDataPtr\)
-```cj
-public func setPlatformData(data: PlatformDataPtr): Unit
-```
-设置平台数据（初始化前调用，如离屏平台句柄）。
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|data|PlatformDataPtr||
 
 ### func setRenderTarget\(IRenderTarget,Int64,Int64\)
 ```cj

@@ -67,7 +67,8 @@ import three.rendering.bgfx.BgfxUniforms
 import three.rendering.shaders.ShaderLibs
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 import three.rendering.bgfx.BgfxAttributeDesc
 import std.collection.*
@@ -265,7 +266,7 @@ public class CubeTexturePass <: Pass {
                         sp.compileBgfx()
                         this._cubeProg = Some(Box(sp.programHandle))
                     case None =>
-                        Logger.trace(["CubeTexturePass", "cube_tex shader not registered in PostProcessingShaders"])
+                        @LogTrace(["CubeTexturePass", "cube_tex shader not registered in PostProcessingShaders"])
                         return
                 }
             case Some(_) => ()
@@ -273,8 +274,8 @@ public class CubeTexturePass <: Pass {
 
         match (this._cubeProg) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["CubeTexturePass", "cube program compile FAILED"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["CubeTexturePass", "cube program compile FAILED"])
                     return
                 }
                 let viewId = CubeTexturePass.CUBE_VIEW_ID
@@ -285,13 +286,13 @@ public class CubeTexturePass <: Pass {
                 // CubeTexture 在场景中已加载并上传到 bgfx cube 纹理句柄
                 // 这里经 renderer 的 CubeTexture→bgfx TextureHandle 桥接取句柄
                 let cubeTexHandleRaw = this._getCubeTextureHandle(renderer)
-                if (!isValidHandle(cubeTexHandleRaw)) {
-                    Logger.trace(["CubeTexturePass", "cubeTex bgfx handle invalid (CubeTexture not uploaded?)"])
+                if (!Handle.isValid(cubeTexHandleRaw)) {
+                    @LogTrace(["CubeTexturePass", "cubeTex bgfx handle invalid (CubeTexture not uploaded?)"])
                     return
                 }
                 // 调试日志用的 idx（UInt16 普通值）
-                let progIdx = handleIdx(prog)
-                let cubeTexIdx = handleIdx(cubeTexHandleRaw)
+                let progIdx = Handle.idx(prog)
+                let cubeTexIdx = Handle.idx(cubeTexHandleRaw)
 
                 // 计算相机 view/projection 矩阵
                 // cube shader 用 modelMatrix（=identity）→ vWorldDirection = position
@@ -311,7 +312,7 @@ public class CubeTexturePass <: Pass {
 
                 // 确保 cube mesh 资源已创建
                 this._ensureCubeMesh(renderer)
-                Logger.trace(["CubeTexturePass", "render: viewId=" + viewId.toString() + " prog=" + progIdx.toString() + " cubeTex=" + cubeTexIdx.toString() + " vb=" + (match (this._cubeVB) { case Some(v) => handleIdx(v).toString() case None => "-1" }) + " ib=" + (match (this._cubeIB) { case Some(v) => handleIdx(v).toString() case None => "-1" }) + " layout=" + (match (this._cubeLayout) { case Some(v) => handleIdx(v).toString() case None => "-1" })])
+                @LogTrace(["CubeTexturePass", "render: viewId=" + viewId.toString() + " prog=" + progIdx.toString() + " cubeTex=" + cubeTexIdx.toString() + " vb=" + (match (this._cubeVB) { case Some(v) => Handle.idx(v).toString() case None => "-1" }) + " ib=" + (match (this._cubeIB) { case Some(v) => Handle.idx(v).toString() case None => "-1" }) + " layout=" + (match (this._cubeLayout) { case Some(v) => Handle.idx(v).toString() case None => "-1" })])
 
                 // 设置 view 视口（Pass 基类高阶 API，内部走 renderer.execBgfx）
                 this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
@@ -400,7 +401,7 @@ public class CubeTexturePass <: Pass {
         }
         let imgs = this.cubeTex.images
         if (imgs.size < 6) {
-            Logger.trace(["CubeTexturePass", "cubeTex.images 不足 6 面（size=" + imgs.size.toString() + "），无法上传 cube 纹理"])
+            @LogTrace(["CubeTexturePass", "cubeTex.images 不足 6 面（size=" + imgs.size.toString() + "），无法上传 cube 纹理"])
             return INVALID_TEXTURE_HANDLE
         }
         // 每面 RGBA 数据（4 字节/像素），取第 0 面推导边长
@@ -437,12 +438,12 @@ public class CubeTexturePass <: Pass {
             flags,
             mem
         )
-        if (!isValidHandle(handle)) {
-            Logger.trace(["CubeTexturePass", "bgfx_create_texture_cube FAILED"])
+        if (!Handle.isValid(handle)) {
+            @LogTrace(["CubeTexturePass", "bgfx_create_texture_cube FAILED"])
             return handle
         }
         this._cubeTexHandleCache = Some(handle)
-        Logger.trace(["CubeTexturePass", "cube texture uploaded side=" + side.toString()])
+        @LogTrace(["CubeTexturePass", "cube texture uploaded side=" + side.toString()])
         return handle
     }
 

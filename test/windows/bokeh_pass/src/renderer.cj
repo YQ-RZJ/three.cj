@@ -43,7 +43,8 @@ import three.rendering.postprocessing.BokehPass
 import three.rendering.postprocessing.OutputPass
 import three.rendering.postprocessing.FullScreenQuad
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /// BokehPass 默认参数（R 键重置时回到此值）
 public let DEFAULT_FOCUS: Float64 = 6.0     // 焦点距离（世界单位）

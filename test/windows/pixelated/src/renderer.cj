@@ -42,7 +42,8 @@ import three.rendering.postprocessing.RenderPixelatedPass
 import three.rendering.postprocessing.OutputPass
 import three.rendering.postprocessing.FullScreenQuad
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /// RenderPixelatedPass 默认参数（R 键重置时回到此值）
 public let DEFAULT_PIXEL_SIZE: Int64 = 6

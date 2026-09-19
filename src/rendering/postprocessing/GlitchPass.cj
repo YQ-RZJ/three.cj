@@ -112,7 +112,8 @@ import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 import std.math.*
 
@@ -201,7 +202,7 @@ public class GlitchPass <: Pass {
         this.needsSwap = true
         // 初始化触发器（生成首个 _randX）
         this._generateTrigger()
-        Logger.trace(["glitch", "GlitchPass constructed: dtSize=" + dtSize.toString() +
+        @LogTrace(["glitch", "GlitchPass constructed: dtSize=" + dtSize.toString() +
                       " randX=" + _randX.toString()])
     }
 
@@ -219,8 +220,8 @@ public class GlitchPass <: Pass {
         this._renderer = Some(composer.renderer)
         this._heightMap = this._generateHeightmap(composer.renderer, this.dtSize)
         this._heightMapCreated = true
-        Logger.trace(["glitch", "heightMap created: handle.idx=" +
-                      handleIdx(this._heightMap).toString() +
+        @LogTrace(["glitch", "heightMap created: handle.idx=" +
+                      Handle.idx(this._heightMap).toString() +
                       " size=" + this.dtSize.toString()])
     }
 
@@ -230,7 +231,7 @@ public class GlitchPass <: Pass {
      */
     public override func setSize(width: Int64, height: Int64): Unit {
         // GlitchPass 无内部 RT，无需重建资源
-        Logger.trace(["glitch", "setSize: " + width.toString() + "x" + height.toString() +
+        @LogTrace(["glitch", "setSize: " + width.toString() + "x" + height.toString() +
                       " (no internal RT)"])
     }
 
@@ -244,12 +245,12 @@ public class GlitchPass <: Pass {
                     sp.compileBgfx()
                     this._glitchProg = Some(Box(sp.programHandle))
                     this._glitchCompiled = true
-                    Logger.trace(["glitch", "glitch shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["glitch", "glitch shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._glitchProg
             case None =>
-                Logger.trace(["glitch", "glitch shader not registered"])
+                @LogTrace(["glitch", "glitch shader not registered"])
                 return None
         }
     }
@@ -261,7 +262,7 @@ public class GlitchPass <: Pass {
         // randInt(120, 240)：[120, 240] 闭区间随机整数
         let range = 240 - 120 + 1
         this._randX = 120 + Int64(this._rand() * Float64(range))
-        Logger.trace(["glitch", "_generateTrigger: next glitch at frame +" +
+        @LogTrace(["glitch", "_generateTrigger: next glitch at frame +" +
                       this._randX.toString()])
     }
 
@@ -306,8 +307,8 @@ public class GlitchPass <: Pass {
         let tex = renderer.createTexture2D(size, size, false, 1u16,
                                              TextureFormat.RGBA8.value(),
                                              texFlags, Some(dataMem))
-        Logger.trace(["glitch", "_generateHeightmap: " + dtSize.toString() + "x" +
-                      dtSize.toString() + " tex.idx=" + handleIdx(tex).toString()])
+        @LogTrace(["glitch", "_generateHeightmap: " + dtSize.toString() + "x" +
+                      dtSize.toString() + " tex.idx=" + Handle.idx(tex).toString()])
         return tex
     }
 
@@ -360,8 +361,8 @@ public class GlitchPass <: Pass {
 
         match (this._compileGlitch()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["glitch", "glitch prog invalid, skip"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["glitch", "glitch prog invalid, skip"])
                     return
                 }
 
@@ -389,7 +390,7 @@ public class GlitchPass <: Pass {
                     distortionY = randFloat(0.0, 1.0)
                     this._curF = 0
                     this._generateTrigger()
-                    Logger.trace(["glitch", "TRIGGER frame: amount=" + amount.toString() +
+                    @LogTrace(["glitch", "TRIGGER frame: amount=" + amount.toString() +
                                   " angle=" + angle.toString() +
                                   " seedX=" + seedX.toString() +
                                   " seedY=" + seedY.toString() +
@@ -403,13 +404,13 @@ public class GlitchPass <: Pass {
                     distortionY = randFloat(0.0, 1.0)
                     seedX = randFloat(-0.3, 0.3)
                     seedY = randFloat(-0.3, 0.3)
-                    Logger.trace(["glitch", "weak glitch: amount=" + amount.toString() +
+                    @LogTrace(["glitch", "weak glitch: amount=" + amount.toString() +
                                   " curF=" + this._curF.toString() +
                                   " randX=" + this._randX.toString()])
                 } else if (!this.goWild) {
                     // 其余帧 + goWild=false：透传
                     byp = 1.0
-                    Logger.trace(["glitch", "bypass frame: curF=" + this._curF.toString() +
+                    @LogTrace(["glitch", "bypass frame: curF=" + this._curF.toString() +
                                   " randX=" + this._randX.toString()])
                 }
 
@@ -443,14 +444,14 @@ public class GlitchPass <: Pass {
                 // 全屏 quad submit（覆盖写 state）
                 this.submitQuad(viewId, prog)
 
-                Logger.trace(["glitch", "pass: view=" + viewId.toString() +
+                @LogTrace(["glitch", "pass: view=" + viewId.toString() +
                               " byp=" + byp.toString() +
                               " amount=" + amount.toString() +
                               " seed=" + seed.toString() +
                               " goWild=" + this.goWild.toString() +
                               " curF=" + this._curF.toString()])
             case None =>
-                Logger.trace(["glitch", "glitch shader compile failed, skip pass"])
+                @LogTrace(["glitch", "glitch shader compile failed, skip pass"])
         }
     }
 
@@ -508,8 +509,8 @@ public class GlitchPass <: Pass {
                 case None => ()
             }
             this._heightMapCreated = false
-            Logger.trace(["glitch", "heightMap texture destroyed"])
+            @LogTrace(["glitch", "heightMap texture destroyed"])
         }
-        Logger.trace(["glitch", "disposed"])
+        @LogTrace(["glitch", "disposed"])
     }
 }

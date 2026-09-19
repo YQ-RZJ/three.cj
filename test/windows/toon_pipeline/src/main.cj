@@ -35,8 +35,8 @@ import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
 import three.rendering.lights.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -183,7 +183,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(args: Array<String>): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== toon_pipeline：自定义卡通渲染管线测试 ===")
     println("")
     println("功能说明：")

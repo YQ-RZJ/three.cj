@@ -46,7 +46,8 @@ import three.core.event.*
 import three.rendering.materials.*
 import three.scene.scenegraph.*
 import std.collection.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] TSL 渲染管线
@@ -248,7 +249,7 @@ public open class RenderPipeline {
      * @brief[en] Deprecated async render method, use render() instead
      */
     public func renderAsync(): Unit {
-        Logger.warn(["RenderPipeline", "\"renderAsync()\" has been deprecated. Use \"render()\"."])
+        @LogWarn(["RenderPipeline", "\"renderAsync()\" has been deprecated. Use \"render()\"."])
         this.render()
     }
 }

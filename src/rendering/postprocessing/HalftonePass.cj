@@ -76,7 +76,8 @@ import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 
 /**
@@ -226,7 +227,7 @@ public class HalftonePass <: Pass {
         this.disable = disable
         // needsSwap=true（pass 后 composer 交换 buffer）
         this.needsSwap = true
-        Logger.trace(["halftone", "HalftonePass constructed: shape=" + shape.toString() +
+        @LogTrace(["halftone", "HalftonePass constructed: shape=" + shape.toString() +
                       " radius=" + radius.toString() +
                       " rotateR=" + rotateR.toString() +
                       " rotateG=" + rotateG.toString() +
@@ -247,7 +248,7 @@ public class HalftonePass <: Pass {
      */
     public override func setSize(width: Int64, height: Int64): Unit {
         // HalftonePass 无内部 RT，width/height 在 render() 时取自 renderer 尺寸同步到 uniform
-        Logger.trace(["halftone", "setSize: " + width.toString() + "x" + height.toString() +
+        @LogTrace(["halftone", "setSize: " + width.toString() + "x" + height.toString() +
                       " (width/height synced in render via renderer)"])
     }
 
@@ -261,12 +262,12 @@ public class HalftonePass <: Pass {
                     sp.compileBgfx()
                     this._halftoneProg = Some(Box(sp.programHandle))
                     this._halftoneCompiled = true
-                    Logger.trace(["halftone", "halftone shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["halftone", "halftone shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._halftoneProg
             case None =>
-                Logger.trace(["halftone", "halftone shader not registered"])
+                @LogTrace(["halftone", "halftone shader not registered"])
                 return None
         }
     }
@@ -333,24 +334,24 @@ public class HalftonePass <: Pass {
 
         match (this._compileHalftone()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["halftone", "halftone prog invalid, skip"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["halftone", "halftone prog invalid, skip"])
                     return
                 }
 
-                Logger.trace(["halftone", "render STEP-1: prog OK, about to create uniforms"])
+                @LogTrace(["halftone", "render STEP-1: prog OK, about to create uniforms"])
                 let uniforms = this._uniforms
 
                 // stage 0 = tDiffuse（readBuffer 的 color 0）
-                Logger.trace(["halftone", "render STEP-2: createUniform(tDiffuse)"])
+                @LogTrace(["halftone", "render STEP-2: createUniform(tDiffuse)"])
                 let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
                 let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
-                Logger.trace(["halftone", "render STEP-3: bindTexture tDiffuse"])
+                @LogTrace(["halftone", "render STEP-3: bindTexture tDiffuse"])
                 this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
 
                 // 12 个 uniforms（bgfx 最小单位 vec4，x=value）
                 // int/bool 用 Float64 传入，shader 内 u_shape.x == 1.0 视为 shape=1
-                Logger.trace(["halftone", "render STEP-4: 12x setUniformVec4"])
+                @LogTrace(["halftone", "render STEP-4: 12x setUniformVec4"])
                 this.setUniformVec4(renderer, uniforms, "u_shape",        Float64(this.shape))
                 this.setUniformVec4(renderer, uniforms, "u_radius",       this.radius)
                 this.setUniformVec4(renderer, uniforms, "u_rotateR",      this.rotateR)
@@ -366,11 +367,11 @@ public class HalftonePass <: Pass {
                 this.setUniformVec4(renderer, uniforms, "u_disable",     if (this.disable) { 1.0 } else { 0.0 })
 
                 // 全屏 quad submit（覆盖写 state）
-                Logger.trace(["halftone", "render STEP-5: submitQuad"])
+                @LogTrace(["halftone", "render STEP-5: submitQuad"])
                 this.submitQuad(viewId, prog)
-                Logger.trace(["halftone", "render DONE"])
+                @LogTrace(["halftone", "render DONE"])
 
-                Logger.trace(["halftone", "pass: view=" + viewId.toString() +
+                @LogTrace(["halftone", "pass: view=" + viewId.toString() +
                               " shape=" + this.shape.toString() +
                               " radius=" + this.radius.toString() +
                               " rotateR=" + this.rotateR.toString() +
@@ -384,7 +385,7 @@ public class HalftonePass <: Pass {
                               " tSize=" + renderer.width.toString() + "x" +
                               renderer.height.toString()])
             case None =>
-                Logger.trace(["halftone", "halftone shader compile failed, skip pass"])
+                @LogTrace(["halftone", "halftone shader compile failed, skip pass"])
         }
     }
 
@@ -397,6 +398,6 @@ public class HalftonePass <: Pass {
      *         here; the full-screen quad is managed as a singleton by EffectComposer.
      */
     public override func dispose(): Unit {
-        Logger.trace(["halftone", "disposed"])
+        @LogTrace(["halftone", "disposed"])
     }
 }

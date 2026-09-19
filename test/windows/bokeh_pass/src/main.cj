@@ -43,8 +43,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.BokehPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -230,15 +230,15 @@ public class TestWindow <: WindowEngine {
             case Some(p) =>
                 if (p.focus != g_focus) {
                     p.focus = g_focus
-                    Logger.debug(["bokeh", "focus synced: " + g_focus.toString()])
+                    @LogDebug(["bokeh", "focus synced: " + g_focus.toString()])
                 }
                 if (p.aperture != g_aperture) {
                     p.aperture = g_aperture
-                    Logger.debug(["bokeh", "aperture synced: " + g_aperture.toString()])
+                    @LogDebug(["bokeh", "aperture synced: " + g_aperture.toString()])
                 }
                 if (p.maxblur != g_maxblur) {
                     p.maxblur = g_maxblur
-                    Logger.debug(["bokeh", "maxblur synced: " + g_maxblur.toString()])
+                    @LogDebug(["bokeh", "maxblur synced: " + g_maxblur.toString()])
                 }
 
                 // R 键重置：参数回到默认值
@@ -306,7 +306,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== bokeh_pass：BokehPass 景深散景后处理 ===")
     println("")
 

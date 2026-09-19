@@ -41,7 +41,8 @@ import std.collection.*
 import three.rendering.interfaces.IShaderProgram
 import bgfx4cj.bgfx.*
 import bgfx4cj.shaderc.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.core.thread.bgfxCallMtx
@@ -289,7 +290,7 @@ public class ShaderProgram <: IShaderProgram {
         defines: CPointer<CPointer<UInt8>>,
         numDefines: UInt32
     ): ShaderHandle {
-        Logger.debug(["shader", "${label} source length: " + shaderSource.size.toString()])
+        @LogDebug(["shader", "${label} source length: " + shaderSource.size.toString()])
 
         // 源码字符串 → C 字节数组（null-terminated）
         let srcBytes = shaderSource.toArray()
@@ -315,7 +316,7 @@ public class ShaderProgram <: IShaderProgram {
         let resultPtrHolder = AutoFreePtr<ScResult>(unsafe { LibC.malloc<ScResult>() })
         let resultPtr = resultPtrHolder.get()
 
-        Logger.debug(["shader", "${label} about to compile: srcSize=" + srcBytes.size.toString() + " varyingSize=" + varyingDefSize.toString() + " numDefines=" + numDefines.toString() + " shaderType=" + shaderType.value().toString()])
+        @LogDebug(["shader", "${label} about to compile: srcSize=" + srcBytes.size.toString() + " varyingSize=" + varyingDefSize.toString() + " numDefines=" + numDefines.toString() + " shaderType=" + shaderType.value().toString()])
 
         // 通过 ShaderCompiler 的大栈线程编译，避免 glslang/glsl-optimizer 栈溢出
         let job = ShaderCompileJob(
@@ -327,14 +328,14 @@ public class ShaderProgram <: IShaderProgram {
         job.waitFor()
         let ret = job.compileResult
 
-        Logger.debug(["shader", "compile ${label}: ret=" + ret.toString()])
+        @LogDebug(["shader", "compile ${label}: ret=" + ret.toString()])
 
         var handle = ShaderHandle(65535u16)
 
         if (ret == 0) {
             let resultVal = unsafe { resultPtr.read() }
-            Logger.debug(["shader", "${label} compiled: size=" + resultVal.size.toString()])
-            Logger.debug(["shader", "about to call bgfx_create_shader_cj(${label}) ..."])
+            @LogDebug(["shader", "${label} compiled: size=" + resultVal.size.toString()])
+            @LogDebug(["shader", "about to call bgfx_create_shader_cj(${label}) ..."])
             let memBuf = BgfxMemory(CPointer<Unit>(resultVal.data), UInt32(resultVal.size))
             bgfxCallMtx.lock()
             try {
@@ -342,10 +343,10 @@ public class ShaderProgram <: IShaderProgram {
             } finally {
                 bgfxCallMtx.unlock()
             }
-            Logger.debug(["shader", "bgfx_create_shader_cj(${label}) done: handle=" + handle.idx.toString()])
+            @LogDebug(["shader", "bgfx_create_shader_cj(${label}) done: handle=" + handle.idx.toString()])
             sc_result_free_cj(resultPtr)
         } else {
-            Logger.error(["shader", "${label} compilation FAILED: ret=" + ret.toString()])
+            @LogError(["shader", "${label} compilation FAILED: ret=" + ret.toString()])
             let errResult = unsafe { resultPtr.read() }
             if (errResult.message.isNotNull()) {
                 let msgBytes = ArrayList<UInt8>()
@@ -357,7 +358,7 @@ public class ShaderProgram <: IShaderProgram {
                     i += 1
                 }
                 let msg = String(Array<Rune>(msgBytes.size, { idx => Rune(Int32(msgBytes[idx])) }))
-                Logger.error(["shader", "${label} error: " + msg])
+                @LogError(["shader", "${label} error: " + msg])
             }
         }
 
@@ -451,7 +452,7 @@ public class ShaderProgram <: IShaderProgram {
         // 诊断：打印编译 defines，确认 USE_UV/USE_MAP 传入
         var defsDiag = ""
         for (d in extraDefines) { defsDiag += d + ";" }
-        Logger.debug(["defsDiag", "numDefines=${totalDefines.toString()} defs=${defsDiag}"])
+        @LogDebug(["defsDiag", "numDefines=${totalDefines.toString()} defs=${defsDiag}"])
         let definesArrHolder = AutoFreePtr<CPointer<UInt8>>(unsafe { LibC.malloc<CPointer<UInt8>>(count: Int64(totalDefines)) })
         let definesArr = definesArrHolder.get()
         unsafe { definesArr.write(CPointer<UInt8>(langDefinePtr)) }
@@ -472,12 +473,12 @@ public class ShaderProgram <: IShaderProgram {
         // VS 诊断：打印源码预览和 UV 赋值链路
         let vsSrc = this.vertexShaderBgfx
         let vsDebug = if (vsSrc.size > 100) { vsSrc[0..100] } else { vsSrc }
-        Logger.debug(["shader", "VS source preview: " + vsDebug.replace("\n", "\\n")])
+        @LogDebug(["shader", "VS source preview: " + vsDebug.replace("\n", "\\n")])
         let vsLinesDiag = vsSrc.split("\n")
         for (li in 0..vsLinesDiag.size) {
             let vline = vsLinesDiag[li]
             if (vline.contains("v_mapUv") || vline.contains("vUv") || vline.contains("MAP_UV") || vline.contains("uv_vertex") || vline.contains("a_texcoord0")) {
-                Logger.debug(["vs-dbg", "L${li.toString()}: ${vline}"])
+                @LogDebug(["vs-dbg", "L${li.toString()}: ${vline}"])
             }
         }
 
@@ -487,7 +488,7 @@ public class ShaderProgram <: IShaderProgram {
         for (li in 0..fsLines.size) {
             let line = fsLines[li]
             if (line.contains("u_lightDir") || line.contains("NUM_DIR_LIGHTS") || line.contains("RE_Direct") || line.contains("directionalLight") || line.contains("unroll") || line.contains("v_normal") || line.contains("geometryNormal") || line.contains("texture2D") || line.contains("SAMPLER2D") || line.contains("vMapUv") || line.contains("USE_MAP")) {
-                Logger.debug(["fs-dbg", "L${li.toString()}: ${line}"])
+                @LogDebug(["fs-dbg", "L${li.toString()}: ${line}"])
             }
         }
 
@@ -551,24 +552,24 @@ public class ShaderProgram <: IShaderProgram {
         // 处理 VS 编译结果
         if (vsJob.compileResult == 0) {
             let vsResultVal = unsafe { vsResultPtr.read() }
-            Logger.debug(["shader", "VS compiled: size=" + vsResultVal.size.toString()])
+            @LogDebug(["shader", "VS compiled: size=" + vsResultVal.size.toString()])
             let vsMemBuf = BgfxMemory(CPointer<Unit>(vsResultVal.data), UInt32(vsResultVal.size))
             this.vshHandle = bgfx_create_shader_cj(vsMemBuf.get())
-            Logger.debug(["shader", "VS bgfx handle: " + this.vshHandle.idx.toString()])
+            @LogDebug(["shader", "VS bgfx handle: " + this.vshHandle.idx.toString()])
             sc_result_free_cj(vsResultPtr)
         } else {
-            Logger.error(["shader", "VS compilation FAILED: ret=" + vsJob.compileResult.toString()])
+            @LogError(["shader", "VS compilation FAILED: ret=" + vsJob.compileResult.toString()])
         }
         // 处理 FS 编译结果
         if (fsJob.compileResult == 0) {
             let fsResultVal = unsafe { fsResultPtr.read() }
-            Logger.debug(["shader", "FS compiled: size=" + fsResultVal.size.toString()])
+            @LogDebug(["shader", "FS compiled: size=" + fsResultVal.size.toString()])
             let fsMemBuf = BgfxMemory(CPointer<Unit>(fsResultVal.data), UInt32(fsResultVal.size))
             this.fshHandle = bgfx_create_shader_cj(fsMemBuf.get())
-            Logger.debug(["shader", "FS bgfx handle: " + this.fshHandle.idx.toString()])
+            @LogDebug(["shader", "FS bgfx handle: " + this.fshHandle.idx.toString()])
             sc_result_free_cj(fsResultPtr)
         } else {
-            Logger.error(["shader", "FS compilation FAILED: ret=" + fsJob.compileResult.toString()])
+            @LogError(["shader", "FS compilation FAILED: ret=" + fsJob.compileResult.toString()])
         }
 
         // 统一释放本函数分配的全部内存（AutoFreePtr.dispose 即时释放，
@@ -583,16 +584,16 @@ public class ShaderProgram <: IShaderProgram {
 
         // 创建 bgfx program
         if (this.vshHandle.idx != 65535u16 && this.fshHandle.idx != 65535u16) {
-            Logger.debug(["shader", "about to call bgfx_create_program_cj ..."])
+            @LogDebug(["shader", "about to call bgfx_create_program_cj ..."])
             bgfxCallMtx.lock()
             try {
                 this.programHandle = bgfx_create_program_cj(this.vshHandle, this.fshHandle, true)
             } finally {
                 bgfxCallMtx.unlock()
             }
-            Logger.debug(["shader", "Program created: idx=" + this.programHandle.idx.toString()])
+            @LogDebug(["shader", "Program created: idx=" + this.programHandle.idx.toString()])
         } else {
-            Logger.error(["shader", "Program creation SKIPPED: vs=" + this.vshHandle.idx.toString() + " fs=" + this.fshHandle.idx.toString()])
+            @LogError(["shader", "Program creation SKIPPED: vs=" + this.vshHandle.idx.toString() + " fs=" + this.fshHandle.idx.toString()])
         }
     }
 }

@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-0.0.375-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-0.1.0-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-Cross--Platform-lightgrey" style="display: inline-block;" />
@@ -13,7 +13,7 @@
 
 ## Introduction
 
-**three.cj** is a 3D engine runtime implemented in the [Cangjie programming language](https://cangjie-lang.cn/). It provides a full suite of 3D rendering capabilities including Scene Graph, Entities (Mesh/Points/Line/Sprite, etc.), Materials, Lights, Cameras, Geometry, Shaders, and Post-processing. It also integrates subsystems for Audio (OpenAL), Physics (Jolt), Scripting (LuaJIT), Networking (OpenSSL), Window/Input (SDL3), and User Interface (IMGUI), covering common needs for 3D application and game development.
+**three.cj** is a 3D engine runtime implemented in the [Cangjie programming language](https://cangjie-lang.cn/). It provides a full suite of 3D rendering capabilities including Scene Graph, Entities (Mesh/Points/Line/Sprite, etc.), Materials, Lights, Cameras, Geometry, Shaders, and Post-processing. It also integrates subsystems for Audio (OpenAL), Physics (Jolt), Scripting (LuaJIT), Networking (OpenSSL), Window/Input (SDL3), User Interface (IMGUI), and Profiling (Tracy, with zero-intrusion compile-time macros), covering common needs for 3D application and game development.
 
 > **Note** three.cj is the first fully-featured game engine runtime for the Cangjie language. It offers strong extensibility and customization capabilities, but building complex games directly on top of it involves significant effort. The author recommends wrapping it into a higher-level framework or editor first — or leveraging AI engineering capabilities — before undertaking complex game projects.
 
@@ -40,6 +40,8 @@ This project is actively maintained. Follow [Bilibili UID:3546853029185667](http
 - **Scripting System** — Based on LuaJIT, with bidirectional Cangjie-Lua binding and script hot-reloading
 - **Window & Input Engine** — Cross-platform window engine v2 based on SDL3 (lifecycle callbacks + per-window independent event pump), with keyboard/mouse/touch/gamepad input providers
 - **GUI Subsystem** — Immediate-mode UI based on ImGui (imgui4cj) (`three.window.ui`): enabled with a single call to `WindowEngine.useGui()`, with SDL3 event bridging and the bgfx rendering backend wired up automatically (both routed to their corresponding system threads); provides 30+ widgets (windows/buttons/input fields/sliders/trees/list boxes/color pickers, etc.) plus layout/menus/tabs/tables/popups/drag-drop/font/style themes/custom draw-list capabilities
+- **Profiling Subsystem** — Real-time profiling based on Tracy (tracy4cj) (`three.profiler`): CPU zones, frame marks, plots, messages, memory events, GPU timing domains, lock contention, fibers, and call-stack sampling; scope classes (ProfZone/ProfGpuZone/ProfLockZone/FiberScope) implement the `Resource` interface for direct use with try-with-resources; facade classes carry the `Prof` prefix (ProfZone/ProfFrame/ProfPlot/ProfMessage/ProfFiber/ProfMemory, etc.) so they never clash with same-named macros — `import three.profiler.*` and `import three.profiler.macros.*` can coexist
+- **Zero-Intrusion Macros in Release Builds** — Both the logging (`three.utils.log` macro package) and profiling (`three.profiler.macros` macro package) read their environment variables **at compile time (macro expansion) and bake the result into the binary**: with `THREE_LOG_LEVEL=off` and `THREE_PROFILER=off` in a release build (both off by default), every call site — including argument evaluation and string interpolation — generates no instructions, producing binaries identical to hand-written un-instrumented code; when a link matches, macros expand into try{}finally{} wrappers that close correctly on both the exception and return paths
 - **Multi-DPI / High Pixel Density Support** — Based on SDL3's `SDL_WINDOW_HIGH_PIXEL_DENSITY`; `WindowEngine` provides `getPixelRatio` / `getDrawableSize`, `Renderer` separates logical and physical sizes, and post-processing RTs scale automatically by DPR
 - **ECS Framework** — Built-in Entity-Component-System with macro-assisted component/entity/system definitions and runtime registration
 - **Frame Dispatcher** — Forced queue + priority queue, trimmed by time budget to prevent single-frame timeout
@@ -54,6 +56,7 @@ This project is actively maintained. Follow [Bilibili UID:3546853029185667](http
 | `three.core` | Core infrastructure (math, data structures, events, frame dispatch, threads, time) | `src/core/` |
 | `three.network` | Networking module (HTTP / Socket) | `src/network/` |
 | `three.physics` | Physics system (Jolt: world/rigid bodies/characters/constraints/binding/heightfield/soft bodies/vehicles/ragdolls/debug rendering) | `src/physics/` |
+| `three.profiler` | Profiling subsystem (Tracy: zones/frame marks/plots/messages/memory/GPU timing/locks/fibers/sampling, plus auto-instrumentation macros) | `src/profiler/` |
 | `three.rendering` | Rendering system (bgfx backend, cameras, geometry, materials, lights, post-processing, shaders) | `src/rendering/` |
 | `three.resource` | Asset loading & caching (model/texture/animation loaders, serialization) | `src/resource/` |
 | `three.scene` | Scene management (scene graph, entities, ECS, Object3D, raycasting) | `src/scene/` |
@@ -75,9 +78,6 @@ three/
 │   └── materials/          # Project materials (test-case project notes, etc.)
 ├── libs/                   # Native library directory (static libs for per-platform test linking, incl. exclude.rsp and symbols_elf.map)
 ├── scripts/                # Helper scripts (see scripts/README.md)
-│   ├── gen_exclude_rsp.py  # Generate cross-platform link symbol controls: exclude.rsp (Windows) / symbols_elf.map (Linux/OHOS)
-│   ├── check_so_deps.py    # Recursively check .so dependency chains (OHOS/Linux troubleshooting)
-│   └── generate_structure.py # Generate directory listing/tree
 ├── src/                    # Cangjie engine source (main body of this README)
 │   ├── animation/          # Animation system
 │   │   ├── blend/          # Animation blending & action scheduling (AnimationMixer/Action/KeyframeTrack/PropertyBinding)
@@ -117,6 +117,8 @@ three/
 │   │   ├── softbody/       # Soft bodies/cloth (SoftBody)
 │   │   ├── vehicle/        # Vehicle (wheels/suspension/engine/differential)
 │   │   └── world/          # Physics world facade (PhysicsWorld, independent physics thread)
+│   ├── profiler/           # Profiling subsystem (Tracy)
+│   │   └── macros/         # Auto-instrumentation macros (@Zone/@Plot/@Message/..., gated by THREE_PROFILER)
 │   ├── rendering/          # Rendering system (bgfx)
 │   │   ├── bgfx/           # bgfx backend implementation (BgfxBackend/materials/lights/shadows/render state/shader cache)
 │   │   ├── bgfxxr/         # XR extension (XR controllers/depth perception/manager)
@@ -158,14 +160,12 @@ three/
 │   │   ├── log/            # Logging (Logger, 5-level severity)
 │   │   ├── memory/         # Memory utilities (pointer arrays/memory conversion)
 │   │   └── pool/           # Object pool (ObjectPool/PoolManager)
-│   ├── window/             # Window & input engine (WindowEngine v2 + input providers)
-│   │   └── ui/             # GUI subsystem (ImGui widgets/layout/menus/tabs/tables/popups/drag-drop/fonts/styles/draw lists)
-│   └── main.cj             # Engine program entry point
-├── test/                   # Test projects
-│   ├── general/            # General feature tests (math/data structures/ECS/network/serialization/encoding...)
-│   ├── ohos/               # HarmonyOS test projects (audio/base/gui/pc/physics)
-│   └── windows/            # Windows test cases (boxshow/geometries/materials/helpers/post-processing/glTF/physics/gui...)
-├── cjpm.toml               # Project configuration
+│   └── window/             # Window & input engine (WindowEngine v2 + input providers)
+│       └── ui/             # GUI subsystem (ImGui widgets/layout/menus/tabs/tables/popups/drag-drop/fonts/styles/draw lists)
+└── test/                   # Test projects
+    ├── general/            # General feature tests (math/data structures/ECS/network/serialization/encoding...)
+    ├── ohos/               # HarmonyOS test projects (audio/base/gui/pc/physics)
+    └── windows/            # Windows test cases (boxshow/geometries/materials/helpers/post-processing/glTF/physics/gui...)
 ```
 
 ## Requirements
@@ -182,9 +182,12 @@ three/
 | fastjson | — | JSON serialization (git dependency) |
 | sdl4cj | — | SDL3 window/input wrapper (git dependency) |
 | imgui4cj | — | ImGui immediate-mode UI wrapper (git dependency) |
+| tracy4cj | — | Tracy real-time profiler wrapper (git dependency) |
 | DevEco NDK / OHOS SDK | — | Required for HarmonyOS platform builds |
 
 > Dependencies are automatically pulled via git dependencies defined in `cjpm.toml`; static library files required by the project should be placed in the `libs/` directory as needed.
+>
+> The source repositories for the underlying dependency libraries of three.cj are located at: [three.cj-cxx (github)](https://github.com/YQ-RZJ/three.cj-cxx) ([three.cj-cxx (gitcode)](https://atomgit.com/yq24w/three.cj-cxx))
 
 ## Build & Usage
 
@@ -208,17 +211,87 @@ cjpm build
 > `python scripts/gen_exclude_rsp.py` to regenerate both files at once
 > (see [scripts/README.md](./scripts/README.md)).
 
-### Helper Scripts
+### Build Configuration
 
-The `scripts/` directory provides project helper scripts (Python 3.9+, standard library only):
+#### THREE_LOG_LEVEL
 
-| Script | Description |
-|--------|-------------|
-| `gen_exclude_rsp.py` | Scans build archives and auto-generates cross-platform link symbol controls: `libs/exclude.rsp` for Windows and `libs/symbols_elf.map` for Linux/OHOS (refresh after dependency add/remove/upgrade or C library rebuilds; `--dry-run` for statistics only) |
-| `check_so_deps.py` | Recursively analyzes the `DT_NEEDED` dependency chain of `.so` files and outputs Markdown, marking missing/system/circular dependencies; for OHOS HAP / Linux `.so` load troubleshooting |
-| `generate_structure.py` | Generates a file checklist (`--mode 1`) or tree-style listing (`--mode 2`) of a directory as Markdown |
+Engine logging goes through the `three.utils.log` macro package
+(`@LogTrace/@LogDebug/@LogInfo/@LogWarn/@LogError/@LogWarnOnce`) and code is generated
+**at compile time** based on the log level: below the configured level, call sites (including
+argument evaluation and string interpolation) emit no instructions at all, so release builds
+carry zero logging overhead.
 
-See [scripts/README.md](./scripts/README.md) for full parameters and examples.
+The level is driven by the `THREE_LOG_LEVEL` environment variable of the compile process —
+the macro package reads it while cjc expands the macros (i.e. while your code is being
+compiled) and freezes the level. Default is `off` (unset or unrecognized values are treated
+as `off`; an unrecognized value prints a hint at compile time):
+
+```bash
+# Windows (cmd)
+set THREE_LOG_LEVEL=info
+
+# Windows (PowerShell)
+$env:THREE_LOG_LEVEL = "info"
+
+# Linux / macOS
+export THREE_LOG_LEVEL=info
+```
+
+Available levels (more verbose toward the right): `off < error < warn < info < debug < trace`.
+
+**Overriding in sub-projects**: a sub-project can override the default level by setting the
+same environment variable when building, e.g. enabling debug logs during development:
+
+```bash
+THREE_LOG_LEVEL=debug cjpm build
+```
+
+> Note: the level is read at macro expansion time (compile time) and baked into the binary;
+> it is independent of the runtime environment — setting `THREE_LOG_LEVEL` when running the
+> binary has no effect. After changing the level, run `cjpm clean` for a full rebuild so all
+> call sites are re-expanded under the new level.
+
+#### THREE_PROFILER
+
+The profiling macro package (`three.profiler.macros`:
+`@Zone/@FrameMark/@FrameStart/@FrameEnd/@Plot/@PlotI64/@Message/@Fiber/@MemAlloc/@MemFree/@GpuZone/@LockTrack`)
+generates profiling code **at compile time** based on links: call sites whose link does not
+match emit no instructions at all, so release builds carry zero profiling overhead.
+
+A link is decided by the `THREE_PROFILER` environment variable of the compile process — the
+macro package reads it while cjc expands the macros and freezes it. Default is `off` (unset
+or unrecognized values are treated as `off`):
+
+```bash
+# Windows (cmd)
+set THREE_PROFILER=three.render
+
+# Windows (PowerShell)
+$env:THREE_PROFILER = "three.render"
+
+# Linux / macOS
+export THREE_PROFILER=three.render
+```
+
+Value rules (**segment-level prefix matching**, split on `.`; the macro attribute is the
+link, e.g. `@Zone[three.render.shadow]`):
+
+| Value | Effect |
+|-------|--------|
+| `off` / unset | Everything zero-intrusion (default) |
+| `all` / `on` / `full` | Everything instrumented |
+| `three` | All links starting with `three.` are instrumented |
+| `three.render` | Links prefixed with the `three.render` segment (`three.render.shadow` matches, `three.renderer` does not) |
+| `three.render,three.test` | Comma-separated multi-link; any match instruments |
+
+The runtime facade (direct API calls in the `three.profiler` package such as `ProfZone`/`ProfFrame`/
+`ProfPlot`) is unaffected by this environment variable — calling it always instruments. Profiling
+data is viewed in the Tracy GUI (provided by the tracy4cj repository); sampling and GUI
+connection are controlled by `three.profiler.Sampling` / `ProfilerState`.
+
+> Note: like `THREE_LOG_LEVEL`, links are read at macro expansion time (compile time) and
+> baked into the binary; they are independent of the runtime environment. After changing,
+> run `cjpm clean` for a full rebuild.
 
 ### Run Test Cases
 
@@ -305,8 +378,9 @@ This project is open-sourced under the [MIT](./LICENSE) license.
 | SDL3 (window/input) | https://github.com/libsdl-org/SDL | zlib |
 | OpenSSL | https://github.com/openssl/openssl | Apache-2.0 |
 | imgui | https://github.com/ocornut/imgui | MIT |
+| Tracy Profiler (profiling) | https://github.com/wolfpld/tracy | BSD 3-Clause |
 
-> The above native libraries are integrated through their respective Cangjie wrapper projects (`bgfx4cj` / `openalsoft4cj` / `jolt4cj` / `luajit4cj` / `sdl4cj` / `httpclient4cj`/`imgui4cj`; the wrapper layer is MIT-licensed). Additionally, bgfx's toolchain (shaderc/geometryc, etc.) and third-party libraries (glslang, miniz, tinyexr, etc.) each have their own independent licenses. Please refer to the LICENSE files in the respective project source directories before use.
+> The above native libraries are integrated through their respective Cangjie wrapper projects (`bgfx4cj` / `openalsoft4cj` / `jolt4cj` / `luajit4cj` / `sdl4cj` / `httpclient4cj`/`imgui4cj`/`tracy4cj`; the wrapper layer is MIT-licensed). Additionally, bgfx's toolchain (shaderc/geometryc, etc.) and third-party libraries (glslang, miniz, tinyexr, etc.) each have their own independent licenses. Please refer to the LICENSE files in the respective project source directories before use.
 
 ## Contributing
 

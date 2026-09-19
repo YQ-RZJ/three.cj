@@ -1621,36 +1621,6 @@ Return:
 
 - bgfx Memory reference pointer
 
-### func overrideInternalTexturePtr\(TextureHandle,UIntNative\)
-```cj
-public func overrideInternalTexturePtr(tex: TextureHandle, ptr: UIntNative): UIntNative
-```
-Override texture internal storage (pointer version, directly specify external texture pointer)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|tex|TextureHandle||
-|ptr|UIntNative||
-
-### func overrideInternalTexture\(TextureHandle,UInt16,UInt16,UInt8,UInt32,UInt64\)
-```cj
-public func overrideInternalTexture(tex: TextureHandle, width: UInt16, height: UInt16, numMips: UInt8, format: UInt32, flags: UInt64): UIntNative
-```
-Override texture internal storage (size/format change, for external texture import)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|tex|TextureHandle||
-|width|UInt16||
-|height|UInt16||
-|numMips|UInt8||
-|format|UInt32||
-|flags|UInt64||
-
 ### func present\(Bool\)
 ```cj
 public func present(capture!: Bool = false): Unit
@@ -2066,18 +2036,6 @@ Parameter:
 |---|---|---|
 |index|UInt8|Palette index (0..15)rgba 4 float pointer (r,g,b,a)|
 |rgba|PtrArray<Float32>||
-
-### func setPlatformData\(PlatformDataPtr\)
-```cj
-public func setPlatformData(data: PlatformDataPtr): Unit
-```
-Set platform data (call before init, e.g. offscreen platform handle)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|data|PlatformDataPtr||
 
 ### func setRenderTarget\(IRenderTarget,Int64,Int64\)
 ```cj

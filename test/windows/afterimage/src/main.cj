@@ -41,8 +41,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.AfterimagePass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -204,7 +204,7 @@ public class TestWindow <: WindowEngine {
             case Some(p) =>
                 if (p.damp != g_damp) {
                     p.damp = g_damp
-                    Logger.debug(["afterimage", "damp synced: " + g_damp.toString()])
+                    @LogDebug(["afterimage", "damp synced: " + g_damp.toString()])
                 }
                 // R 键重置：销毁并重建 afterimage pass 的 old RT
                 if (g_resetAfterimage) {
@@ -259,7 +259,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== afterimage：AfterimagePass 残影后处理 ===")
     println("")
 

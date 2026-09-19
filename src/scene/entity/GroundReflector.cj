@@ -76,7 +76,8 @@ import three.rendering.geometry.BufferGeometry
 import three.rendering.materials.ReflectorMaterial
 import three.utils.memory.AutoFreePtr
 import three.resource.bgfx.ResourceOps
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.cameras.Camera
 import three.rendering.cameras.PerspectiveCamera
 import three.core.math.Color
@@ -223,7 +224,7 @@ public class GroundReflector <: Mesh {
                 case None => ()
             }
         }
-        Logger.debug(["reflector", "GroundReflector constructed: tex=${textureWidth}x${textureHeight}" +
+        @LogDebug(["reflector", "GroundReflector constructed: tex=${textureWidth}x${textureHeight}" +
                       " color=(${color.r},${color.g},${color.b}) useDepthTexture=${useDepthTexture}"])
     }
 
@@ -232,7 +233,7 @@ public class GroundReflector <: Mesh {
      */
     public func ensureRTs(): Unit {
         if (this._rtCreated) { return }
-        Logger.debug(["reflector", "ensureRTs: creating reflect RT ${this._textureWidth}x${this._textureHeight}"])
+        @LogDebug(["reflector", "ensureRTs: creating reflect RT ${this._textureWidth}x${this._textureHeight}"])
         // 经 ResourceOps 封装创建/销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
         let resOps = ResourceOps()
 
@@ -244,12 +245,12 @@ public class GroundReflector <: Mesh {
         this._reflectTex = reflectTex
         let reflectDepth = resOps.createTexture2D(
             UInt16(this._textureWidth), UInt16(this._textureHeight), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             bgfx.TEXTURE_RT | UInt64(bgfx.SAMPLER_U_CLAMP) | UInt64(bgfx.SAMPLER_V_CLAMP) | UInt64(bgfx.SAMPLER_MIN_POINT) | UInt64(bgfx.SAMPLER_MAG_POINT),
             None)
         this._reflectDepthTex = reflectDepth
         this._reflectFB = this._createFBWithDepth(resOps, reflectTex, reflectDepth)
-        Logger.debug(["reflector", "  reflectFB created: tex=${handleIdx(reflectTex)} depth=${handleIdx(reflectDepth)}"])
+        @LogDebug(["reflector", "  reflectFB created: tex=${Handle.idx(reflectTex)} depth=${Handle.idx(reflectDepth)}"])
 
         if (this.useDepthTexture) {
             // 反射深度 RT：RGBA32F（存 NDC 深度 gl_FragCoord.z）+ D24
@@ -261,12 +262,12 @@ public class GroundReflector <: Mesh {
             this._reflectDepthRT = depthRT
             let depthRTDepth = resOps.createTexture2D(
                 UInt16(this._textureWidth), UInt16(this._textureHeight), false, 1u16,
-                TextureFormat.D24.value(),
+                TextureFormat.D24S8.value(),
                 bgfx.TEXTURE_RT | UInt64(bgfx.SAMPLER_U_CLAMP) | UInt64(bgfx.SAMPLER_V_CLAMP) | UInt64(bgfx.SAMPLER_MIN_POINT) | UInt64(bgfx.SAMPLER_MAG_POINT),
                 None)
             this._reflectDepthRTDepth = depthRTDepth
             this._reflectDepthFB = this._createFBWithDepth(resOps, depthRT, depthRTDepth)
-            Logger.debug(["reflector", "  reflectDepthFB created: tex=${handleIdx(depthRT)} depth=${handleIdx(depthRTDepth)}"])
+            @LogDebug(["reflector", "  reflectDepthFB created: tex=${Handle.idx(depthRT)} depth=${Handle.idx(depthRTDepth)}"])
         }
 
         // 同步材质纹理句柄（对照 JS: material.uniforms.tDiffuse.value = renderTarget.texture）
@@ -309,8 +310,8 @@ public class GroundReflector <: Mesh {
      */
     public func computeVirtualCamera(camera: Camera): Bool {
         this.ensureRTs()
-        if (!isValidHandle(this._reflectFB)) {
-            Logger.debug(["reflector", "computeVirtualCamera: reflectFB invalid"])
+        if (!Handle.isValid(this._reflectFB)) {
+            @LogDebug(["reflector", "computeVirtualCamera: reflectFB invalid"])
             return false
         }
 
@@ -329,7 +330,7 @@ public class GroundReflector <: Mesh {
 
         let view = Vector3().subVectors(reflectorWorldPosition, cameraWorldPosition)
         if (view.dot(normal) > 0.0) {
-            Logger.debug(["reflector", "computeVirtualCamera: reflector facing away, skip"])
+            @LogDebug(["reflector", "computeVirtualCamera: reflector facing away, skip"])
             return false
         }
 
@@ -418,8 +419,8 @@ public class GroundReflector <: Mesh {
             }
         }
 
-        Logger.debug(["reflector", "computeVirtualCamera done: fresnelCoe=${this.fresnelCoe.toString()}" +
-                      " tex=${handleIdx(this._reflectTex)} useDepthTexture=${this.useDepthTexture}"])
+        @LogDebug(["reflector", "computeVirtualCamera done: fresnelCoe=${this.fresnelCoe.toString()}" +
+                      " tex=${Handle.idx(this._reflectTex)} useDepthTexture=${this.useDepthTexture}"])
         return true
     }
 
@@ -469,12 +470,12 @@ public class GroundReflector <: Mesh {
     public func dispose(): Unit {
         // 经 ResourceOps 封装销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
         let resOps = ResourceOps()
-        if (isValidHandle(this._reflectFB)) { resOps.destroyFrameBuffer(this._reflectFB) }
-        if (isValidHandle(this._reflectTex)) { resOps.destroyTexture(this._reflectTex) }
-        if (isValidHandle(this._reflectDepthTex)) { resOps.destroyTexture(this._reflectDepthTex) }
-        if (isValidHandle(this._reflectDepthFB)) { resOps.destroyFrameBuffer(this._reflectDepthFB) }
-        if (isValidHandle(this._reflectDepthRT)) { resOps.destroyTexture(this._reflectDepthRT) }
-        if (isValidHandle(this._reflectDepthRTDepth)) { resOps.destroyTexture(this._reflectDepthRTDepth) }
+        if (Handle.isValid(this._reflectFB)) { resOps.destroyFrameBuffer(this._reflectFB) }
+        if (Handle.isValid(this._reflectTex)) { resOps.destroyTexture(this._reflectTex) }
+        if (Handle.isValid(this._reflectDepthTex)) { resOps.destroyTexture(this._reflectDepthTex) }
+        if (Handle.isValid(this._reflectDepthFB)) { resOps.destroyFrameBuffer(this._reflectDepthFB) }
+        if (Handle.isValid(this._reflectDepthRT)) { resOps.destroyTexture(this._reflectDepthRT) }
+        if (Handle.isValid(this._reflectDepthRTDepth)) { resOps.destroyTexture(this._reflectDepthRTDepth) }
         this._reflectFB = INVALID_FRAME_BUFFER_HANDLE
         this._reflectTex = INVALID_TEXTURE_HANDLE
         this._reflectDepthTex = INVALID_TEXTURE_HANDLE
@@ -482,6 +483,6 @@ public class GroundReflector <: Mesh {
         this._reflectDepthRT = INVALID_TEXTURE_HANDLE
         this._reflectDepthRTDepth = INVALID_TEXTURE_HANDLE
         this._rtCreated = false
-        Logger.debug(["reflector", "disposed"])
+        @LogDebug(["reflector", "disposed"])
     }
 }

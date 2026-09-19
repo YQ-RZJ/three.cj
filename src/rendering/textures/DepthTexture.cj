@@ -30,7 +30,8 @@
  * @explain[en] Depth texture: texture storing depth information, used for shadow maps, depth pre-pass, screen-space reflections, etc. Defaults format=DepthFormat, generateMipmaps=false, flipY=false, unpackAlignment=1, magFilter=NearestFilter, minFilter=NearestFilter, type=UnsignedIntType. Constructor validates type must be one of UnsignedShortType/UnsignedIntType/FloatType, format must be one of DepthFormat/DepthStencilFormat. 
  */
 package three.rendering.textures
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.constants.*
 import std.collection.*
 
@@ -64,7 +65,7 @@ public open class DepthTexture <: Texture {
     public init(width: Int64, height: Int64, `type`!: Int64 = UnsignedIntType) {
         super(image: Array<UInt8>(), width: width, height: height, format: DepthFormat, `type`: `type`, magFilter: NearestFilter, minFilter: NearestFilter)
         if (`type` != UnsignedShortType && `type` != UnsignedIntType && `type` != FloatType) {
-            Logger.warn(["DepthTexture", "WARNING: unsupported type, expected UnsignedShortType/UnsignedIntType/FloatType"])
+            @LogWarn(["DepthTexture", "WARNING: unsupported type, expected UnsignedShortType/UnsignedIntType/FloatType"])
         }
         this.kind = "DepthTexture"
         this.generateMipmaps = false

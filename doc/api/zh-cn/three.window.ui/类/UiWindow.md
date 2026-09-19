@@ -158,9 +158,9 @@ public init(title!: String, flags!: Int32 = 0)
 |title|String|窗口标题|
 |flags|Int32|窗口标志（默认 0）|
 
-### func init\(String,CPointer<Int32>,Int32\)
+### func init\(String,PtrArray<Int32>,Int32\)
 ```cj
-public init(title!: String, open!: CPointer < Int32 >, flags!: Int32 = 0)
+public init(title!: String, open!: PtrArray < Int32 >, flags!: Int32 = 0)
 ```
 构造带关闭按钮的窗口
 
@@ -169,7 +169,7 @@ public init(title!: String, open!: CPointer < Int32 >, flags!: Int32 = 0)
 |名称|类型|描述|
 |---|---|---|
 |title|String|窗口标题|
-|open|CPointer<Int32>|打开状态指针|
+|open|PtrArray<Int32>|打开状态指针|
 |flags|Int32|窗口标志|
 
 ### func isWindowAppearing\(\)
@@ -308,7 +308,7 @@ public static func setScrollHereX(centerXRatio!: Float32 = 0.5f32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|centerXRatio|Float32||
+|centerXRatio|Float32|光标在视口内的水平比例（默认 0.5）|
 
 ### func setScrollHereY\(Float32\)
 ```cj
@@ -320,7 +320,7 @@ public static func setScrollHereY(centerYRatio!: Float32 = 0.5f32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|centerYRatio|Float32||
+|centerYRatio|Float32|光标在视口内的垂直比例（默认 0.5）|
 
 ### func setScrollX\(Float32\)
 ```cj
@@ -332,7 +332,7 @@ public static func setScrollX(scrollX: Float32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|scrollX|Float32||
+|scrollX|Float32|滚动 X 偏移|
 
 ### func setScrollY\(Float32\)
 ```cj
@@ -344,5 +344,5 @@ public static func setScrollY(scrollY: Float32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|scrollY|Float32||
+|scrollY|Float32|滚动 Y 偏移|
 

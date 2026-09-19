@@ -23,8 +23,8 @@ import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -139,7 +139,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== outputpass：OutputPass 色调映射 + sRGB 后处理 ===")
     println("")
 

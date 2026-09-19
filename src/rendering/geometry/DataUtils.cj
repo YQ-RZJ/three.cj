@@ -36,7 +36,8 @@
 package three.rendering.geometry
 
 import std.math.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 
 /**
@@ -62,7 +63,7 @@ public func toHalfFloat(`val`: Float64): UInt16 {
     if (`val` == -Float64.Inf) { return 0xFC00u16 }
     let absVal = abs(`val`)
     if (absVal > 65504.0) {
-        Logger.warn(["DataUtils.toHalfFloat()", "Value out of range."])
+        @LogWarn(["DataUtils.toHalfFloat()", "Value out of range."])
         return if (`val` > 0.0) { 0x7C00u16 } else { 0xFC00u16 }
     }
     if (absVal < 0.00006103515625) { return if (`val` > 0.0) { 0x0000u16 } else { 0x8000u16 } }

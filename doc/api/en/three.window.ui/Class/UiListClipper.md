@@ -3,7 +3,7 @@
 ```cj
 public class UiListClipper
 ```
-=============================================================================
+Virtual list clipper for high-performance large lists (draws only visible items)
 
 ### func begin\(Int32,Float32\)
 ```cj
@@ -22,7 +22,7 @@ Parameter:
 ```cj
 public func destroy(): Unit
 ```
-
+Destroys the clipper and releases underlying resources
 
 ### func end\(\)
 ```cj
@@ -36,17 +36,25 @@ public func getDisplayEnd(): Int32
 ```
 Gets the current batch end index
 
+Return: 
+
+- The current batch end index
+
 ### func getDisplayStart\(\)
 ```cj
 public func getDisplayStart(): Int32
 ```
 Gets the current batch start index
 
+Return: 
+
+- The current batch start index
+
 ### func init\(\)
 ```cj
 public init()
 ```
-
+Constructs a virtual list clipper
 
 ### func step\(\)
 ```cj

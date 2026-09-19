@@ -9,11 +9,15 @@ Menu separator widget
 ```cj
 public override func draw(): Bool
 ```
+Draws the menu separator
 
+Return: 
+
+- Whether interaction occurred (always false in this implementation)
 
 ### func init\(\)
 ```cj
 public init()
 ```
-
+Constructs a menu separator
 

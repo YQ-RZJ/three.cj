@@ -235,24 +235,3 @@ Parameter:
 |data|PtrArray<UInt8>||
 |index|UInt32||
 
-### func weldVertices\(PtrArray<UInt8>,VertexLayoutPtr,PtrArray<UInt8>,UInt32,Bool,Float32\)
-```cj
-public func weldVertices(output: PtrArray < UInt8 >, layout: VertexLayoutPtr, data: PtrArray < UInt8 >, num: UInt32, index32: Bool, epsilon: Float32): UInt32
-```
-Weld vertices (deduplicate by epsilon, return welded vertex count)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|output|PtrArray<UInt8>|Output welded datalayout Vertex layout pointerdata Source data buffernum Number of verticesindex32 Whether to use 32-bit indicesepsilon Weld epsilon threshold|
-|layout|VertexLayoutPtr||
-|data|PtrArray<UInt8>||
-|num|UInt32||
-|index32|Bool||
-|epsilon|Float32||
-
-Return: 
-
-- Welded vertex count
-

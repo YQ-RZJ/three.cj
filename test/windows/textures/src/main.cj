@@ -19,8 +19,8 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
 import three.rendering.textures.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -154,7 +154,6 @@ public class TestWindow <: WindowEngine {
 
 main(): Int64 {
     // 临时开启 Debug 日志，抓取 variant/纹理绑定详情
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_textures：纹理功能验证（PNG 加载 + DataTexture） ===")
     println("")
 

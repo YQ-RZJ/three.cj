@@ -19,7 +19,7 @@ DPI scale factor
 
 ### func getHandle\(\)
 ```cj
-public func getHandle(): CPointer < Unit >
+public func getHandle(): VoidPtr
 ```
 Gets the underlying ImGuiViewport pointer
 
@@ -64,16 +64,4 @@ Work area position (excludes system bars etc.)
 public func getWorkSize():(Float32, Float32)
 ```
 Work area size
-
-### func init\(CPointer<Unit>\)
-```cj
-public init(vpPtr: CPointer < Unit >)
-```
-
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|vpPtr|CPointer<Unit>||
 

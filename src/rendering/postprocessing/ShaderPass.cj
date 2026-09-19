@@ -172,7 +172,7 @@ public open class ShaderPass <: Pass {
         }
         match (this._prog) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) { return }
+                if (!Handle.isValid(prog)) { return }
                 let viewId = this._viewId
                 let rt = this.renderToScreen
                 let w = UInt16(renderer.width)

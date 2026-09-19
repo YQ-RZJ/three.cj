@@ -46,7 +46,8 @@ import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * 卡通描边后处理 pass。
@@ -195,17 +196,17 @@ public class ToonOutlinePass {
         }
         let fshHandle = renderer.createShader(fsMem)
 
-        Logger.debug(["ToonOutline", "VS compile result idx=${vshHandle.value.idx}"])
-        Logger.debug(["ToonOutline", "FS compile result idx=${fshHandle.value.idx}"])
+        @LogDebug(["ToonOutline", "VS compile result idx=${vshHandle.value.idx}"])
+        @LogDebug(["ToonOutline", "FS compile result idx=${fshHandle.value.idx}"])
 
         // 链接 program
         let prog = renderer.createProgram(vshHandle, fshHandle, true)
-        Logger.debug(["ToonOutline", "Program link result idx=${prog.value.idx}"])
-        if (isValidHandle(prog)) {
+        @LogDebug(["ToonOutline", "Program link result idx=${prog.value.idx}"])
+        if (Handle.isValid(prog)) {
             this._edgeProg = Some(prog)
             this._shaderCompiled = true
         } else {
-            Logger.error(["ToonOutline", "ToonEdge shader 编译失败"])
+            @LogError(["ToonOutline", "ToonEdge shader 编译失败"])
         }
 
         // 创建 uniform 句柄（缓存复用）
@@ -400,7 +401,7 @@ public class ToonOutlinePass {
             case None => ()
         }
 
-        Logger.debug(["ToonOutline", "render done (Sobel edge detection)"])
+        @LogDebug(["ToonOutline", "render done (Sobel edge detection)"])
     }
 
     /**

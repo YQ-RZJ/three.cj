@@ -130,7 +130,7 @@ public class ThreeRenderTarget <: IRenderTarget {
      * @brief[en] Destroys the framebuffer and releases GPU resources
      */
     public func dispose(): Unit {
-        if (isValidHandle(this.frameBuffer)) {
+        if (Handle.isValid(this.frameBuffer)) {
             bgfxCallMtx.lock()
             try {
                 bgfx.bgfx_destroy_frame_buffer_cj(this.frameBuffer.value)

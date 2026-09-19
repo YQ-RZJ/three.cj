@@ -9,13 +9,11 @@ public class UiInputText <: UiWidget
 ```cj
 public override func draw(): Bool
 ```
+渲染文本输入框
 
+返回: 
 
-### func getBufPtr\(\)
-```cj
-public func getBufPtr(): CPointer < Int8 >
-```
-获取缓冲区指针（高级用法）
+- 本次输入内容是否发生变化
 
 ### func getText\(\)
 ```cj

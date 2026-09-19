@@ -56,7 +56,8 @@ import three.scene.scenegraph.*
 import three.rendering.cameras.*
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 
 /**

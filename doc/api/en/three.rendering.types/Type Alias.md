@@ -215,12 +215,6 @@ public type RendererType = bgfx.RendererType
 ```
 Renderer type (Direct3D11 / Vulkan / OpenGLES / Metal / Noop ...)
 
-## type Resolution
-```cj
-public type Resolution = Box < bgfx.Resolution >
-```
-Backbuffer resolution and reset parameters
-
 ## type ShaderHandle
 ```cj
 public type ShaderHandle = Box < bgfx.ShaderHandle >
@@ -238,6 +232,12 @@ Renderer statistics pointer (returned by getStats)
 public type Stats = Box < bgfx.Stats >
 ```
 Renderer statistics
+
+## type SwapChain
+```cj
+public type SwapChain = Box < bgfx.SwapChain >
+```
+Swap chain descriptor (native window backbuffer, replaces Resolution in new bgfx)
 
 ## type TextureFormat
 ```cj
@@ -262,6 +262,12 @@ Texture info pointer (passed to createTexture / calcTextureSize)
 public type TextureInfo = Box < bgfx.TextureInfo >
 ```
 Texture info (format / width / height / numMips etc.)
+
+## type TextureRegion
+```cj
+public type TextureRegion = Box < bgfx.TextureRegion >
+```
+Texture region descriptor (new bgfx read/blit region model)
 
 ## type TopologyConvert
 ```cj

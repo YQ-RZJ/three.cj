@@ -38,6 +38,18 @@ import three.rendering.geometry.*
 import three.rendering.buffer.*
 import three.rendering.materials.*
 import std.convert.RadixConvertible
+import ohos.hilog.*
+import three.utils.log.Logger
+
+// 历史同款域与标签
+let HILOG_DOMAIN: UInt32 = 0x0001
+let HILOG_TAG: String = "ThreeRender"
+
+// Logger 注入的打印函数：(type, message) -> hilog
+// 统一走 Hilog.info + "%{public}s"：hdc shell hilog 过滤 TAG 即可看到全部级别
+func hilogPrint(`type`: String, msg: String): Unit {
+    Hilog.info(HILOG_DOMAIN, HILOG_TAG, "%{public}s", ["[${`type`}] ${msg}"])
+}
 
 // ===== 全局状态 =====
 // WindowEngine 实例：startThreeRender 中创建并绑定 XComponent，
@@ -255,6 +267,8 @@ public class ThreeWindow <: WindowEngine {
 // context：ArkTS 传入的 UIAbilityContext（base 无音频，仅保留统一接口，未使用）
 
 public func startThreeRender(context: Option<UIAbilityContext>): Bool {
+    Logger.setConsoleFunction(Some(hilogPrint))
+
     if (g_renderRunning.load()) {
         return true
     }

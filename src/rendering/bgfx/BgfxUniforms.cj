@@ -37,7 +37,8 @@ import bgfx4cj.bx.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.rendering.types.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.core.thread.bgfxCallMtx
 
 /**
@@ -132,7 +133,7 @@ public class BgfxUniforms {
                 case Some(info) =>
                     return info.handle
                 case None =>
-                    Logger.debug(["uniforms", "createUniform CREATE: name=" + name + " type=" + uniformType.toString() + " num=" + num.toString()])
+                    @LogDebug(["uniforms", "createUniform CREATE: name=" + name + " type=" + uniformType.toString() + " num=" + num.toString()])
                     let cName = unsafe { LibC.mallocCString(name) }
                     let cNameHolder = AutoFreePtr<UInt8>(unsafe { cName.getChars() })
                     let handle = bgfx.bgfx_create_uniform_cj(cName, uniformType, num)
@@ -273,7 +274,7 @@ public class BgfxUniforms {
         bgfxCallMtx.lock()
         try {
             for ((_, info) in uniforms) {
-                if (isValidHandle(info.handle)) {
+                if (Handle.isValid(info.handle)) {
                     bgfx.bgfx_destroy_uniform_cj(info.handle.value)
                 }
             }

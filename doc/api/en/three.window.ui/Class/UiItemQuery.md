@@ -105,7 +105,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|mouseButton|Int32||
+|mouseButton|Int32|Mouse button (0=left, 1=right, 2=middle, default 0)|
 
 Return: 
 
@@ -161,7 +161,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|flags|Int32||
+|flags|Int32|ImGui hovered flags (default 0)|
 
 Return: 
 
@@ -203,7 +203,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|intID|Int32||
+|intID|Int32|The integer ID to push|
 
 ### func pushID\(String\)
 ```cj
@@ -215,7 +215,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|strID|String||
+|strID|String|The string ID to push|
 
 ### func setItemDefaultFocus\(\)
 ```cj

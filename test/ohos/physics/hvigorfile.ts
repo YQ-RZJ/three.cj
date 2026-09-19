@@ -35,7 +35,36 @@ let mingwLibs = (() => {
 process.env.EXTEDN_LIBS_PATH_OHOS_ARM64 = `${libsPath}`
 process.env.EXTEDN_LINK_OPTION_OHOS_ARM64 = `-L ${libsPath}/arm64-v8a`
 process.env.EXTEDN_LIBS_PATH_WIN_X64 = `${threeLibsPath}`
-process.env.EXTEDN_LINK_OPTION_WIN_X64 = `-L ${mingwLibs}`
+// cjpm 会把该变量原样插值进 cjpm.toml 的 TOML 双引号字符串：
+// - 直接嵌 "" 会终止 TOML 字符串 → Invalid toml config；
+// - 裸路径遇空格被 ld.lld 拆词。
+// 解法：经 PowerShell FSO 取完整 8.3 短路径（无空格无引号，两端通吃）。
+// FSO 逐组件返回短名（PROGRA~1 / MINGW-~1 等），对已短化的组件保持不变。
+let mingwLibsShort = (() => {
+  if (!mingwLibs || !mingwLibs.includes(' ')) { return mingwLibs }
+  const fs = require('node:fs')
+  const os = require('node:os')
+  const cp = require('node:child_process')
+  try {
+    const ps = [
+      'param([string]$P)',
+      '$fso = New-Object -ComObject Scripting.FileSystemObject',
+      'Write-Output $fso.GetFolder($P).ShortPath',
+    ].join('\n')
+    const script = path.join(os.tmpdir(), `mingw-shortpath-${Date.now()}.ps1`)
+    fs.writeFileSync(script, ps)
+    try {
+      const out = cp.execFileSync('powershell.exe', [
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, '-P', mingwLibs,
+      ]).toString().trim()
+      if (out && !out.includes(' ')) { return out }
+    } finally {
+      fs.rmSync(script, { force: true })
+    }
+  } catch (_) { /* fallthrough */ }
+  return mingwLibs
+})()
+process.env.EXTEDN_LINK_OPTION_WIN_X64 = `-L ${mingwLibsShort}`
 
 export default {
   system: appTasks, /* Built-in plugin of Hvigor. It cannot be modified. */

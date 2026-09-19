@@ -31,7 +31,8 @@ package three.rendering.shaders
 
 import std.collection.*
 import three.core.thread.{ Mutex, Condition, SThread }
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import bgfx4cj.shaderc.{ sc_compile_cj, ScOptions, ScResult }
 
 // =============================================================================
@@ -227,7 +228,7 @@ public class ShaderCompiler {
     public static func start(stackSize!: Int64 = DEFAULT_STACK_SIZE): Unit {
         if (_running) { return }
         _running = true
-        Logger.info(["ShaderCompiler", "Starting worker, stack=${stackSize.toString()}"])
+        @LogInfo(["ShaderCompiler", "Starting worker, stack=${stackSize.toString()}"])
         _worker = SThread({ => _workerLoop() }, "shader-compiler", stackSize)
     }
 
@@ -248,7 +249,7 @@ public class ShaderCompiler {
         _mutex.unlock()
         // 等待 worker 线程结束
         _worker.join()
-        Logger.info(["ShaderCompiler", "Stopped. Total: ${_totalCompleted.toString()}/${_totalSubmitted.toString()}, errors: ${_totalErrors.toString()}"])
+        @LogInfo(["ShaderCompiler", "Stopped. Total: ${_totalCompleted.toString()}/${_totalSubmitted.toString()}, errors: ${_totalErrors.toString()}"])
     }
 
     /**
@@ -347,7 +348,7 @@ public class ShaderCompiler {
      * Waits on a Condition with no busy polling; exits when _running=false.
      */
     private static func _workerLoop(): Unit {
-        Logger.debug(["ShaderCompiler", "Worker started"])
+        @LogDebug(["ShaderCompiler", "Worker started"])
         while (_running) {
             var jobOpt: Option<ShaderCompileJob> = Option<ShaderCompileJob>.None
             _mutex.lock()
@@ -365,7 +366,7 @@ public class ShaderCompiler {
 
             match (jobOpt) {
                 case Some(job) =>
-                    Logger.debug(["ShaderCompiler", "Compiling ${job.label} ..."])
+                    @LogDebug(["ShaderCompiler", "Compiling ${job.label} ..."])
                     let ret = sc_compile_cj(
                         job.varyingPtr, job.varyingSize,
                         job.srcPtr, job.srcSize,
@@ -377,15 +378,21 @@ public class ShaderCompiler {
                     _totalCompleted += 1
                     if (ret != 0) {
                         _totalErrors += 1
-                        Logger.error(["ShaderCompiler", "${job.label} failed: ${ret.toString()}"])
+                        var errMsg = "(no message)"
+                        let msgPtr = unsafe { job.resultPtr.read() }.message
+                        if (!msgPtr.isNull()) {
+                            let s = unsafe { CString(msgPtr) }.toString()
+                            if (!s.isEmpty()) { errMsg = s }
+                        }
+                        @LogError(["ShaderCompiler", "${job.label} failed: ${ret.toString()} ${errMsg}"])
                     }
                     _mutex.unlock()
 
                     job.signalDone()
-                    Logger.debug(["ShaderCompiler", "${job.label} done, ret=${ret.toString()}"])
+                    @LogDebug(["ShaderCompiler", "${job.label} done, ret=${ret.toString()}"])
                 case None => ()
             }
         }
-        Logger.debug(["ShaderCompiler", "Worker stopped"])
+        @LogDebug(["ShaderCompiler", "Worker stopped"])
     }
 }

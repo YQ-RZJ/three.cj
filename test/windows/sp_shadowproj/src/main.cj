@@ -21,8 +21,8 @@ import three.scene.entity.*
 import three.scene.objects.*
 import three.rendering.lights.*
 import three.rendering.materials.ShadowProjMaterial
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -169,7 +169,6 @@ public class TestWindow <: WindowEngine {
 
 main(): Int64 {
     // 调试：开启 Debug 日志
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_shadowproj：debug mode 7 - shadowMatrix 投影 UV 可视化 ===")
     println("")
 

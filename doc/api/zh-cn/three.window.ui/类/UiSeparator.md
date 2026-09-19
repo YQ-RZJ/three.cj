@@ -9,11 +9,15 @@ public class UiSeparator <: UiWidget
 ```cj
 public override func draw(): Bool
 ```
+渲染分隔线
 
+返回: 
+
+- 恒为 false（无交互）
 
 ### func init\(\)
 ```cj
 public init()
 ```
-
+构造分隔线控件
 

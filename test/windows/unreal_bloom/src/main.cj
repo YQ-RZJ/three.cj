@@ -26,8 +26,8 @@ import three.rendering.lights.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.UnrealBloomPass
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -191,7 +191,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== bloom：发亮球 / Bloom 后处理 ===")
     println("")
 

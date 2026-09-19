@@ -105,7 +105,8 @@ import three.rendering.types.*
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -405,14 +406,14 @@ public open class MaskPass <: Pass {
             case Some(sp) =>
                 sp.compileBgfx()
                 let p = Box(sp.programHandle)
-                if (!isValidHandle(p)) {
-                    Logger.trace(["MaskPass", "outline_white compile FAILED"])
+                if (!Handle.isValid(p)) {
+                    @LogTrace(["MaskPass", "outline_white compile FAILED"])
                     return None
                 }
                 this._prog = Some(p)
                 return Some(p)
             case None =>
-                Logger.trace(["MaskPass", "outline_white shader NOT REGISTERED"])
+                @LogTrace(["MaskPass", "outline_white shader NOT REGISTERED"])
                 return None
         }
     }
@@ -443,18 +444,18 @@ public open class MaskPass <: Pass {
         var submitCnt: Int64 = 0
         for (ro in renderObjects) {
             let vb = this._createVB(renderer, ro.geometry)
-            if (!isValidHandle(vb)) { continue }
+            if (!Handle.isValid(vb)) { continue }
             let mtxArr = ro.worldMatrix.elements
             let mtxMem = BgfxMemory(64u32)
             mtxMem.writeFloats(mtxArr, 16)
             renderer.setTransform(mtxMem, num: 1u16)
             renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
             let ib = this._createIB(renderer, ro.geometry)
-            if (isValidHandle(ib)) {
+            if (Handle.isValid(ib)) {
                 renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
             }
             // 写 stencil：FUNC_ALWAYS + OP_PASS_REPLACE + REF=writeValue
-            Logger.trace(["MaskPass", "write stencilState=" + stencilState.toString()])
+            @LogTrace(["MaskPass", "write stencilState=" + stencilState.toString()])
             this.setStencil(renderer, stencilState, stencilState)
             // state：只写深度 + stencil（不写 RGB/A！）—— 遮罩标记不改变 readBuffer 颜色，
             // 后续受 mask 影响的 pass 采样 readBuffer 仍是原场景。
@@ -470,7 +471,7 @@ public open class MaskPass <: Pass {
                 case None => ()
             }
         }
-        Logger.trace(["MaskPass", "_submitSceneToStencil view=" + viewId.toString() + " submitCnt=" + submitCnt.toString()])
+        @LogTrace(["MaskPass", "_submitSceneToStencil view=" + viewId.toString() + " submitCnt=" + submitCnt.toString()])
     }
 
     /**
@@ -492,7 +493,7 @@ public open class MaskPass <: Pass {
         let writeValue: UInt32 = if (this.inverse) { 0u32 } else { 1u32 }
         let clearValue: UInt32 = if (this.inverse) { 1u32 } else { 0u32 }
         let stencilState = this._encodeStencilState(writeValue)
-        Logger.trace(["MaskPass", "render ENTER writeValue=" + writeValue.toString() + " clearValue=" + clearValue.toString() + " inverse=" + this.inverse.toString()])
+        @LogTrace(["MaskPass", "render ENTER writeValue=" + writeValue.toString() + " clearValue=" + clearValue.toString() + " inverse=" + this.inverse.toString()])
 
         // readBuffer 侧打 stencil 标记（view +0）
         this._submitSceneToStencil(renderer, MaskPass.MASK_VIEW_ID_BASE, readBuffer, stencilState, clearValue)
@@ -502,7 +503,7 @@ public open class MaskPass <: Pass {
         // BUGFIX：不再调 renderer.render(scene, camera) —— 其内部 finishRender 触发
         // bgfx_frame（双缓冲交换），在 composer 链中间触发 frame 会破坏帧序，
         // 导致屏幕出现扫描线/闪烁（mask 测试实测）。改直接 submit 后帧序稳定。
-        Logger.trace(["MaskPass", "render done (stencil marked on readBuffer + writeBuffer)"])
+        @LogTrace(["MaskPass", "render done (stencil marked on readBuffer + writeBuffer)"])
     }
 
     /**
@@ -571,6 +572,6 @@ public class ClearMaskPass <: Pass {
     ): Unit {
         // 重置 stencil 状态到 disabled（FUNC_ALWAYS + op KEEP = 不写 stencil）
         this.setStencil(renderer, 0u32, 0u32)
-        Logger.trace(["ClearMaskPass", "stencil state reset (disabled)"])
+        @LogTrace(["ClearMaskPass", "stencil state reset (disabled)"])
     }
 }

@@ -40,7 +40,8 @@ package three.rendering.lights
 import three.rendering.cameras.*
 import three.core.math.*
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -99,11 +100,11 @@ public class SpotLightShadow <: LightShadow {
      * @param[en] light The SpotLight instance for which the shadow is being rendered
      */
     public func updateMatrices(light: Light): Unit {
-        Logger.debug(["SpotLightShadow", "updateMatrices ENTER"])
+        @LogDebug(["SpotLightShadow", "updateMatrices ENTER"])
         let camera = this.camera
         match (camera) {
             case pc: PerspectiveCamera =>
-                Logger.debug(["SpotLightShadow", "pc.fov=${pc.fov} pc.aspect=${pc.aspect} pc.far=${pc.far}"])
+                @LogDebug(["SpotLightShadow", "pc.fov=${pc.fov} pc.aspect=${pc.aspect} pc.far=${pc.far}"])
                 
                 let angle = match (light) {
                     case sl: SpotLight => sl.angle
@@ -117,25 +118,25 @@ public class SpotLightShadow <: LightShadow {
                     case sl: SpotLight => if (sl.distance != 0.0) { sl.distance } else { pc.far }
                     case _ => pc.far
                 }
-                Logger.debug(["SpotLightShadow", "fov=${fov} asp=${asp} far=${far} focus=${this.focus}"])
+                @LogDebug(["SpotLightShadow", "fov=${fov} asp=${asp} far=${far} focus=${this.focus}"])
                 // 仅当参数变化时触发 updateProjectionMatrix（避免每帧不必要计算）
                 if (fov != pc.fov || asp != pc.aspect || far != pc.far) {
-                    Logger.debug(["SpotLightShadow", "params changed, updating projection"])
+                    @LogDebug(["SpotLightShadow", "params changed, updating projection"])
                     pc.fov = fov
                     pc.aspect = asp
                     pc.far = far
-                    Logger.debug(["SpotLightShadow", "BEFORE updateProjectionMatrix"])
+                    @LogDebug(["SpotLightShadow", "BEFORE updateProjectionMatrix"])
                     pc.updateProjectionMatrix()
-                    Logger.debug(["SpotLightShadow", "AFTER updateProjectionMatrix"])
+                    @LogDebug(["SpotLightShadow", "AFTER updateProjectionMatrix"])
                 } else {
-                    Logger.debug(["SpotLightShadow", "params unchanged, skip"])
+                    @LogDebug(["SpotLightShadow", "params unchanged, skip"])
                 }
             case _ => ()
         }
-        Logger.debug(["SpotLightShadow", "BEFORE super.updateMatrices"])
+        @LogDebug(["SpotLightShadow", "BEFORE super.updateMatrices"])
         // 调用父类 updateMatrices（设置相机位置、目标、计算 shadowMatrix）
         super.updateMatrices(light)
-        Logger.debug(["SpotLightShadow", "AFTER super.updateMatrices"])
+        @LogDebug(["SpotLightShadow", "AFTER super.updateMatrices"])
     }
 
     /**

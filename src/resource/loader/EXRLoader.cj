@@ -34,7 +34,8 @@ package three.resource.loader
 import three.utils.constants.*
 import three.rendering.textures.*
 import three.rendering.geometry.DataUtils
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 import bgfx4cj.tinyexr.*
 import std.collection.*
@@ -96,7 +97,7 @@ public class EXRLoader <: DataTextureLoader {
         
         let magic = UInt32(buffer[0]) | (UInt32(buffer[1]) << 8) | (UInt32(buffer[2]) << 16) | (UInt32(buffer[3]) << 24)
         if (magic != 0x013f2a76u32) {
-            Logger.debug(["EXRLoader", "invalid magic"])
+            @LogDebug(["EXRLoader", "invalid magic"])
             return texData
         }
 

@@ -34,7 +34,8 @@ package three.rendering.bgfx
 import bgfx4cj.bgfx.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -111,7 +112,7 @@ internal class BgfxBlitQuad {
         let idxBgfxMem = BgfxMemory(CPointer<Unit>(idxPtr), UInt32(idxBytes.size))
         this._blitIB = Some(bgfx_create_index_buffer_cj(idxBgfxMem.get(), 0u16))
         idxPtrHolder.dispose()
-        Logger.debug(["blit", "created blitVB + blitIB"])
+        @LogDebug(["blit", "created blitVB + blitIB"])
     }
 
     /**

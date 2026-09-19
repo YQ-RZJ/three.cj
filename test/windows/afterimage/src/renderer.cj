@@ -41,7 +41,8 @@ import three.rendering.postprocessing.AfterimagePass
 import three.rendering.postprocessing.OutputPass
 import three.rendering.postprocessing.FullScreenQuad
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /// 创建场景：相机 + 灯光 + 地板 + 旋转立方体 + 多色球
 public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera, ArrayList<Mesh>) {

@@ -11,6 +11,10 @@ public static func calcItemWidth(): Float32
 ```
 Calculates the current item width
 
+Return: 
+
+- Current item width
+
 ### func calcTextSize\(String,Bool,Float32\)
 ```cj
 public static func calcTextSize(text: String, hideTextAfterDoubleHash!: Bool = true, wrapWidth!: Float32 = - 1.0f32):(Float32, Float32)
@@ -45,10 +49,14 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|r|UInt32||
-|g|UInt32||
-|b|UInt32||
-|a|UInt32||
+|r|UInt32|Red component (0~255)|
+|g|UInt32|Green component (0~255)|
+|b|UInt32|Blue component (0~255)|
+|a|UInt32|Alpha component (0~255)|
+
+Return: 
+
+- Packed ImU32 color value
 
 ### func dark\(\)
 ```cj
@@ -62,6 +70,10 @@ public static func getClipboardText(): String
 ```
 Gets clipboard text
 
+Return: 
+
+- Clipboard text content
+
 ### func getColorName\(Int32\)
 ```cj
 public func getColorName(idx: Int32): String
@@ -74,6 +86,10 @@ Parameter:
 |---|---|---|
 |idx|Int32|Color index|
 
+Return: 
+
+- Color name string
+
 ### func getColorVec4\(Int32\)
 ```cj
 public static func getColorVec4(idx: Int32): ImVec4
@@ -84,7 +100,11 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|idx|Int32||
+|idx|Int32|Color index (ImGuiCol enum value)|
+
+Return: 
+
+- Color value (RGBA, components in [0, 1])
 
 ### func getColor\(Int32\)
 ```cj
@@ -112,6 +132,16 @@ Return:
 
 - (width, height) in pixels
 
+### func getFontGlobalScale\(\)
+```cj
+public static func getFontGlobalScale(): Float32
+```
+Gets the main font scale (Style.FontScaleMain)
+
+Return: 
+
+- Scale factor
+
 ### func getFontSize\(\)
 ```cj
 public func getFontSize(): Float32
@@ -124,13 +154,13 @@ Return:
 
 ### func getFont\(\)
 ```cj
-public func getFont(): CPointer < Unit >
+public func getFont(): UiFont
 ```
 Returns the current font
 
 Return: 
 
-- Current font pointer
+- Current font object
 
 ### func getFrameCount\(\)
 ```cj
@@ -138,27 +168,29 @@ public static func getFrameCount(): Int32
 ```
 Gets the ImGui frame count
 
+Return: 
+
+- Number of rendered frames
+
 ### func getScale\(\)
 ```cj
 public static func getScale(): Float32
 ```
 Gets the current global scale factor
 
-### func getStyle\(\)
-```cj
-public func getStyle(): CPointer < Unit >
-```
-Returns the style object pointer
-
 Return: 
 
-- Style object pointer
+- Current global scale factor
 
 ### func getTime\(\)
 ```cj
 public static func getTime(): Float64
 ```
 Gets the ImGui running time (seconds)
+
+Return: 
+
+- Seconds elapsed since ImGui initialization
 
 ### func hsvToRGB\(Float32,Float32,Float32\)
 ```cj
@@ -170,9 +202,13 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|h|Float32||
-|s|Float32||
-|v|Float32||
+|h|Float32|Hue (0~360)|
+|s|Float32|Saturation (0~1)|
+|v|Float32|Value (0~1)|
+
+Return: 
+
+- (r, g, b) RGB components
 
 ### func light\(\)
 ```cj
@@ -278,9 +314,9 @@ Parameter:
 |idx|Int32|Color index (ImGuiCol enum value)|
 |color|Color|Color (RGB components in [0, 1], alpha defaults to 1.0)|
 
-### func pushFont\(CPointer<Unit>,Float32\)
+### func pushFont\(UiFont,Float32\)
 ```cj
-public func pushFont(font: CPointer < Unit >, fontSizeBaseUnscaled!: Float32 = 0.0): Unit
+public func pushFont(font: UiFont, fontSizeBaseUnscaled!: Float32 = 0.0): Unit
 ```
 Pushes a font
 
@@ -288,7 +324,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|font|CPointer<Unit>|Font pointer|
+|font|UiFont|Font object|
 |fontSizeBaseUnscaled|Float32|Base font size|
 
 ### func pushItemFlag\(Int32,Bool\)
@@ -314,7 +350,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|itemWidth|Float32||
+|itemWidth|Float32|Item width|
 
 ### func pushTextWrapPos\(Float32\)
 ```cj
@@ -326,7 +362,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|wrapPosX|Float32||
+|wrapPosX|Float32|Wrap position X, defaults to 0.0 (window right edge)|
 
 ### func pushVarFloat\(Int32,Float32\)
 ```cj
@@ -364,9 +400,13 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|r|Float32||
-|g|Float32||
-|b|Float32||
+|r|Float32|Red component (0~1)|
+|g|Float32|Green component (0~1)|
+|b|Float32|Blue component (0~1)|
+
+Return: 
+
+- (h, s, v) HSV components
 
 ### func saveIniToMemory\(\)
 ```cj
@@ -412,13 +452,13 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|text|String||
+|text|String|Text to write to the clipboard|
 
 ### func setFontGlobalScale\(Float32\)
 ```cj
 public static func setFontGlobalScale(scale: Float32): Unit
 ```
-Sets the global font scale (IO.FontGlobalScale)
+Sets the main font scale (Style.FontScaleMain)
 
 Parameter: 
 
@@ -438,9 +478,9 @@ Parameter:
 |---|---|---|
 |label|String|Label text|
 
-### func showStyleEditor\(CPointer<Unit>\)
+### func showStyleEditor\(VoidPtr\)
 ```cj
-public func showStyleEditor(ref!: CPointer < Unit >= CPointer < Unit >()): Unit
+public func showStyleEditor(ref!: VoidPtr = Box(CPointer < Unit >())): Unit
 ```
 Shows the style editor
 
@@ -448,7 +488,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|ref|CPointer<Unit>|Style reference (null = edit global style)|
+|ref|VoidPtr|Style reference (null = edit global style)|
 
 ### func showStyleSelector\(String\)
 ```cj
@@ -482,7 +522,11 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|col|UInt32||
+|col|UInt32|Packed ImU32 color value|
+
+Return: 
+
+- ImVec4 color value (RGBA, components in [0, 1])
 
 ### func vec4ToU32\(ImVec4\)
 ```cj
@@ -494,5 +538,9 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|col|ImVec4||
+|col|ImVec4|ImVec4 color value (RGBA, components in [0, 1])|
+
+Return: 
+
+- Packed ImU32 color value
 

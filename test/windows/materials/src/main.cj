@@ -22,8 +22,8 @@ import three.scene.scenegraph.*
 import three.rendering.cameras.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -187,7 +187,6 @@ public class TestWindow <: WindowEngine {
 
 main(): Int64 {
     // 临时开启 Debug 日志，抓取 matcap/toon shader 编译错误详情
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_materials：材质渲染验证（多圈材质球） ===")
     println("")
 

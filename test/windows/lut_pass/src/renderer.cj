@@ -38,7 +38,8 @@ import three.rendering.cameras.*
 import three.rendering.lights.*
 import three.rendering.ThreeRenderer
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 import three.rendering.bgfx.BgfxConstants
 
@@ -155,8 +156,8 @@ public func createLutTexture(renderer: ThreeRenderer, lutType: Int64): TextureHa
         TextureFormat.RGBA8.value(),
         UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_W_CLAMP),
         Some(mem))
-    Logger.debug(["lut", "createLutTexture: type=" + lutType.toString() +
-                  " size=" + size.toString() + " tex.idx=" + handleIdx(tex).toString()])
+    @LogDebug(["lut", "createLutTexture: type=" + lutType.toString() +
+                  " size=" + size.toString() + " tex.idx=" + Handle.idx(tex).toString()])
     return tex
 }
 

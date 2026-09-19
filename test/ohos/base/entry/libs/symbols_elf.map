@@ -9,4 +9,5 @@
     _C*luajit4cj*;
     _C*openalsoft4cj*;
     _C*sdl4cj*;
+    _C*tracy4cj*;
 };

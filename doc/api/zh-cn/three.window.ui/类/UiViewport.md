@@ -19,7 +19,7 @@ DPI 缩放因子
 
 ### func getHandle\(\)
 ```cj
-public func getHandle(): CPointer < Unit >
+public func getHandle(): VoidPtr
 ```
 获取底层 ImGuiViewport 指针
 
@@ -64,16 +64,4 @@ public func getWorkPos():(Float32, Float32)
 public func getWorkSize():(Float32, Float32)
 ```
 工作区尺寸
-
-### func init\(CPointer<Unit>\)
-```cj
-public init(vpPtr: CPointer < Unit >)
-```
-
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|vpPtr|CPointer<Unit>||
 

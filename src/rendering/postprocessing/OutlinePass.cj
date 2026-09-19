@@ -95,7 +95,8 @@ import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.shaders.ShaderLibs
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 import std.collection.*
 import std.math.*
@@ -308,12 +309,12 @@ public class OutlinePass <: Pass {
                 // 再渲选中物体（深度测试 LESS），被非选中物体遮挡的选中部分深度测试失败 → 不写 mask，
                 // 描边被遮挡处不显示（prepareMask 的 depthTexture 比较语义）。
                 this._maskTex = renderer.createTexture2D(w, h, false, 1u16, rtFmt, colorFlags, None)
-                this._maskDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24.value(), colorFlags, None)
+                this._maskDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), colorFlags, None)
                 this._maskFB = this._createFBWithDepth(renderer, this._maskTex, this._maskDepthTex)
 
                 // depth RT（全分辨率，color + depth attachment）
                 this._depthTex = renderer.createTexture2D(w, h, false, 1u16, rtFmt, colorFlags, None)
-                this._depthDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24.value(), colorFlags, None)
+                this._depthDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), colorFlags, None)
                 this._depthFB = this._createFBWithDepth(renderer, this._depthTex, this._depthDepthTex)
 
                 // maskDown RT（半分辨率）
@@ -337,7 +338,7 @@ public class OutlinePass <: Pass {
                 this._edge2FB = this._createFB(renderer, this._edge2Tex)
 
                 this._rtsCreated = true
-                Logger.trace(["OutlinePass", "_createRTs done: mask/depth/maskDown/blur1/blur2/edge1/edge2"])
+                @LogTrace(["OutlinePass", "_createRTs done: mask/depth/maskDown/blur1/blur2/edge1/edge2"])
             case None => ()
         }
     }
@@ -514,7 +515,7 @@ public class OutlinePass <: Pass {
         this._renderer = Some(renderer)
         // 无选中物体则跳过
         if (this.selectedObjects.size == 0) {
-            Logger.trace(["OutlinePass", "render: no selectedObjects, skip"])
+            @LogTrace(["OutlinePass", "render: no selectedObjects, skip"])
             return
         }
         // 确保 RT 已创建
@@ -582,7 +583,7 @@ public class OutlinePass <: Pass {
         // ===== 7. overlayMaterial 把 edge1/edge2/mask/pattern 加性叠加到 readBuffer =====
         this._renderOverlay(renderer, writeBuffer, readBuffer)
 
-        Logger.trace(["OutlinePass", "render done (7-pass chain)"])
+        @LogTrace(["OutlinePass", "render done (7-pass chain)"])
     }
 
     /**
@@ -799,13 +800,13 @@ public class OutlinePass <: Pass {
                     case Some(sp) =>
                         sp.compileBgfx()
                         this._whiteProg = Some(Box(sp.programHandle))
-                    case None => Logger.trace(["OutlinePass", "outline_white shader NOT REGISTERED"]); return
+                    case None => @LogTrace(["OutlinePass", "outline_white shader NOT REGISTERED"]); return
                 }
             case Some(_) => ()
         }
         match (this._whiteProg) {
             case Some(progRaw) =>
-                if (!isValidHandle(progRaw)) { return }
+                if (!Handle.isValid(progRaw)) { return }
                 let prog = progRaw
                 // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear / 变换
                 this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
@@ -822,14 +823,14 @@ public class OutlinePass <: Pass {
                     // depth pass 只渲非选中物体
                     if (this._isSelected(ro.mesh)) { continue }
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.elements
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let state: UInt64 = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -839,10 +840,10 @@ public class OutlinePass <: Pass {
                     renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
                     submitCnt += 1
                 }
-                Logger.trace(["OutlinePass", "_renderSceneToDepth submitCnt=" + submitCnt.toString()])
+                @LogTrace(["OutlinePass", "_renderSceneToDepth submitCnt=" + submitCnt.toString()])
             case None => ()
         }
-        Logger.trace(["OutlinePass", "_renderSceneToDepth done"])
+        @LogTrace(["OutlinePass", "_renderSceneToDepth done"])
     }
 
     /**
@@ -866,13 +867,13 @@ public class OutlinePass <: Pass {
                     case Some(sp) =>
                         sp.compileBgfx()
                         this._whiteProg = Some(Box(sp.programHandle))
-                    case None => Logger.trace(["OutlinePass", "outline_white shader NOT REGISTERED"]); return
+                    case None => @LogTrace(["OutlinePass", "outline_white shader NOT REGISTERED"]); return
                 }
             case Some(_) => ()
         }
         match (this._whiteProg) {
             case Some(progRaw) =>
-                if (!isValidHandle(progRaw)) { return }
+                if (!Handle.isValid(progRaw)) { return }
                 let prog = progRaw
                 // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear / 变换
                 this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
@@ -892,14 +893,14 @@ public class OutlinePass <: Pass {
                 for (ro in renderObjects) {
                     if (this._isSelected(ro.mesh)) { continue }
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.elements
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     renderer.setState(depthOnlyState, rgba: 0x00000000u32)
@@ -912,14 +913,14 @@ public class OutlinePass <: Pass {
                 for (ro in renderObjects) {
                     if (!this._isSelected(ro.mesh)) { continue }
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.elements
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     // 深度测试 LESS：被非选中物体（第一步已写深度）遮挡的选中片元测试失败 → mask 不写
@@ -930,10 +931,10 @@ public class OutlinePass <: Pass {
                     renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
                     submitCnt += 1
                 }
-                Logger.trace(["OutlinePass", "_renderSceneToMask depthSubmitCnt=" + depthSubmitCnt.toString() + " maskSubmitCnt=" + submitCnt.toString()])
+                @LogTrace(["OutlinePass", "_renderSceneToMask depthSubmitCnt=" + depthSubmitCnt.toString() + " maskSubmitCnt=" + submitCnt.toString()])
             case None => ()
         }
-        Logger.trace(["OutlinePass", "_renderSceneToMask done"])
+        @LogTrace(["OutlinePass", "_renderSceneToMask done"])
     }
 
     /**
@@ -944,11 +945,11 @@ public class OutlinePass <: Pass {
     private func _renderDownsample(renderer: ThreeRenderer): Unit {
         match (PostProcessingShaders.get("outline_copy")) {
             case Some(sp) =>
-                if (!isValidHandle(Box(sp.programHandle))) {
+                if (!Handle.isValid(Box(sp.programHandle))) {
                     sp.compileBgfx()
                 }
                 let progRaw = Box(sp.programHandle)
-                if (!isValidHandle(progRaw)) { Logger.trace(["OutlinePass", "outline_copy prog compile failed"]); return }
+                if (!Handle.isValid(progRaw)) { @LogTrace(["OutlinePass", "outline_copy prog compile failed"]); return }
                 let prog = progRaw
                 let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 7u16)
                 let dw = UInt16(this._downW)
@@ -966,7 +967,7 @@ public class OutlinePass <: Pass {
                 opMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
                 this.setUniform(renderer, uOpacity, opMem)
                 this.submitQuad(viewId, prog)
-            case None => Logger.trace(["OutlinePass", "outline_copy shader NOT REGISTERED"])
+            case None => @LogTrace(["OutlinePass", "outline_copy shader NOT REGISTERED"])
         }
     }
 
@@ -980,7 +981,7 @@ public class OutlinePass <: Pass {
         }
         match (this._edgeDetectionProg) {
             case Some(progRaw) =>
-                if (!isValidHandle(progRaw)) { return }
+                if (!Handle.isValid(progRaw)) { return }
                 let prog = progRaw
                 let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 8u16)
                 let dw = UInt16(this._downW)
@@ -1026,7 +1027,7 @@ public class OutlinePass <: Pass {
         }
         match (this._separableBlurProg) {
             case Some(progRaw) =>
-                if (!isValidHandle(progRaw)) { return }
+                if (!Handle.isValid(progRaw)) { return }
                 let prog = progRaw
                 let baseView = OutlinePass.OUTLINE_VIEW_ID_BASE
                 let dw = UInt16(this._downW)
@@ -1084,7 +1085,7 @@ public class OutlinePass <: Pass {
         }
         match (this._separableBlurProg) {
             case Some(progRaw) =>
-                if (!isValidHandle(progRaw)) { return }
+                if (!Handle.isValid(progRaw)) { return }
                 let prog = progRaw
                 let baseView = OutlinePass.OUTLINE_VIEW_ID_BASE
                 let qw = UInt16(this._quarterW)
@@ -1139,7 +1140,7 @@ public class OutlinePass <: Pass {
         }
         match (this._overlayProg) {
             case Some(progRaw) =>
-                if (!isValidHandle(progRaw)) { return }
+                if (!Handle.isValid(progRaw)) { return }
                 let prog = progRaw
                 let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 12u16)
                 let w = UInt16(renderer.width)
@@ -1196,7 +1197,7 @@ public class OutlinePass <: Pass {
                     case Some(sp) =>
                         sp.compileBgfx()
                         this._depthProg = Some(Box(sp.programHandle))
-                    case None => Logger.trace(["OutlinePass", "outline_depth shader NOT REGISTERED"])
+                    case None => @LogTrace(["OutlinePass", "outline_depth shader NOT REGISTERED"])
                 }
             case Some(_) => ()
         }
@@ -1207,7 +1208,7 @@ public class OutlinePass <: Pass {
                     case Some(sp) =>
                         sp.compileBgfx()
                         this._prepareMaskProg = Some(Box(sp.programHandle))
-                    case None => Logger.trace(["OutlinePass", "outline_prepare_mask shader NOT REGISTERED"])
+                    case None => @LogTrace(["OutlinePass", "outline_prepare_mask shader NOT REGISTERED"])
                 }
             case Some(_) => ()
         }
@@ -1218,7 +1219,7 @@ public class OutlinePass <: Pass {
                     case Some(sp) =>
                         sp.compileBgfx()
                         this._edgeDetectionProg = Some(Box(sp.programHandle))
-                    case None => Logger.trace(["OutlinePass", "outline_edge_detection shader NOT REGISTERED"])
+                    case None => @LogTrace(["OutlinePass", "outline_edge_detection shader NOT REGISTERED"])
                 }
             case Some(_) => ()
         }
@@ -1229,7 +1230,7 @@ public class OutlinePass <: Pass {
                     case Some(sp) =>
                         sp.compileBgfx()
                         this._separableBlurProg = Some(Box(sp.programHandle))
-                    case None => Logger.trace(["OutlinePass", "outline_separable_blur shader NOT REGISTERED"])
+                    case None => @LogTrace(["OutlinePass", "outline_separable_blur shader NOT REGISTERED"])
                 }
             case Some(_) => ()
         }
@@ -1240,7 +1241,7 @@ public class OutlinePass <: Pass {
                     case Some(sp) =>
                         sp.compileBgfx()
                         this._overlayProg = Some(Box(sp.programHandle))
-                    case None => Logger.trace(["OutlinePass", "outline_overlay shader NOT REGISTERED"])
+                    case None => @LogTrace(["OutlinePass", "outline_overlay shader NOT REGISTERED"])
                 }
             case Some(_) => ()
         }

@@ -60,7 +60,8 @@ import openalsoft4cj.alc.*
 import openalsoft4cj.al.*
 import std.collection.*
 import three.core.thread.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 音频上下文单例，管理 OpenAL 设备和上下文 + 专用音频线程
@@ -324,14 +325,14 @@ public class AudioContext {
             unsafe { LibC.free(devName) }
 
             if (this._device.isNull()) {
-                Logger.error(["AudioContext", "无法打开默认音频设备"])
+                @LogError(["AudioContext", "无法打开默认音频设备"])
                 return
             }
 
             // 创建上下文
             this._context = alcCreateContext_cj(this._device, CPointer<Int32>())
             if (this._context.isNull()) {
-                Logger.error(["AudioContext", "无法创建上下文"])
+                @LogError(["AudioContext", "无法创建上下文"])
                 alcCloseDevice_cj(this._device)
                 this._device = CPointer<Unit>()
                 return

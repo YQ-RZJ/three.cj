@@ -17,72 +17,6 @@ public let BUFFER_ALLOW_RESIZE: UInt16 = bgfx.BUFFER_ALLOW_RESIZE
 ```
 Allow dynamic buffer resize
 
-## let BUFFER\_COMPUTE\_FORMAT\_16X1
-```cj
-public let BUFFER_COMPUTE_FORMAT_16X1: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_16X1
-```
-Compute buffer format: 16bit × 1
-
-## let BUFFER\_COMPUTE\_FORMAT\_16X2
-```cj
-public let BUFFER_COMPUTE_FORMAT_16X2: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_16X2
-```
-Compute buffer format: 16bit × 2
-
-## let BUFFER\_COMPUTE\_FORMAT\_16X4
-```cj
-public let BUFFER_COMPUTE_FORMAT_16X4: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_16X4
-```
-Compute buffer format: 16bit × 4
-
-## let BUFFER\_COMPUTE\_FORMAT\_32X1
-```cj
-public let BUFFER_COMPUTE_FORMAT_32X1: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_32X1
-```
-Compute buffer format: 32bit × 1
-
-## let BUFFER\_COMPUTE\_FORMAT\_32X2
-```cj
-public let BUFFER_COMPUTE_FORMAT_32X2: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_32X2
-```
-Compute buffer format: 32bit × 2
-
-## let BUFFER\_COMPUTE\_FORMAT\_32X4
-```cj
-public let BUFFER_COMPUTE_FORMAT_32X4: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_32X4
-```
-Compute buffer format: 32bit × 4
-
-## let BUFFER\_COMPUTE\_FORMAT\_8X1
-```cj
-public let BUFFER_COMPUTE_FORMAT_8X1: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_8X1
-```
-Compute buffer format: 8bit × 1
-
-## let BUFFER\_COMPUTE\_FORMAT\_8X2
-```cj
-public let BUFFER_COMPUTE_FORMAT_8X2: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_8X2
-```
-Compute buffer format: 8bit × 2
-
-## let BUFFER\_COMPUTE\_FORMAT\_8X4
-```cj
-public let BUFFER_COMPUTE_FORMAT_8X4: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_8X4
-```
-Compute buffer format: 8bit × 4
-
-## let BUFFER\_COMPUTE\_FORMAT\_MASK
-```cj
-public let BUFFER_COMPUTE_FORMAT_MASK: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_MASK
-```
-Compute buffer format bit mask
-
-## let BUFFER\_COMPUTE\_FORMAT\_SHIFT
-```cj
-public let BUFFER_COMPUTE_FORMAT_SHIFT: UInt16 = bgfx.BUFFER_COMPUTE_FORMAT_SHIFT
-```
-Compute buffer format bit offset
-
 ## let BUFFER\_COMPUTE\_READ
 ```cj
 public let BUFFER_COMPUTE_READ: UInt16 = bgfx.BUFFER_COMPUTE_READ
@@ -94,36 +28,6 @@ Compute buffer readable
 public let BUFFER_COMPUTE_READ_WRITE: UInt16 = bgfx.BUFFER_COMPUTE_READ_WRITE
 ```
 Compute buffer read-write
-
-## let BUFFER\_COMPUTE\_TYPE\_FLOAT
-```cj
-public let BUFFER_COMPUTE_TYPE_FLOAT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_FLOAT
-```
-Compute buffer type: Float
-
-## let BUFFER\_COMPUTE\_TYPE\_INT
-```cj
-public let BUFFER_COMPUTE_TYPE_INT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_INT
-```
-Compute buffer type: Int
-
-## let BUFFER\_COMPUTE\_TYPE\_MASK
-```cj
-public let BUFFER_COMPUTE_TYPE_MASK: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_MASK
-```
-Compute buffer type bit mask
-
-## let BUFFER\_COMPUTE\_TYPE\_SHIFT
-```cj
-public let BUFFER_COMPUTE_TYPE_SHIFT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_SHIFT
-```
-Compute buffer type bit offset
-
-## let BUFFER\_COMPUTE\_TYPE\_UINT
-```cj
-public let BUFFER_COMPUTE_TYPE_UINT: UInt16 = bgfx.BUFFER_COMPUTE_TYPE_UINT
-```
-Compute buffer type: UInt
 
 ## let BUFFER\_COMPUTE\_WRITE
 ```cj
@@ -148,12 +52,6 @@ public let BUFFER_INDEX32: UInt16 = bgfx.BUFFER_INDEX32
 public let BUFFER_NONE: UInt16 = bgfx.BUFFER_NONE
 ```
 No special flags
-
-## let CAPS\_ALPHA\_TO\_COVERAGE
-```cj
-public let CAPS_ALPHA_TO_COVERAGE: UInt64 = bgfx.CAPS_ALPHA_TO_COVERAGE
-```
-Alpha to coverage support
 
 ## let CAPS\_BLEND\_INDEPENDENT
 ```cj
@@ -287,12 +185,6 @@ public let CAPS_FORMAT_TEXTURE_VERTEX: UInt32 = bgfx.CAPS_FORMAT_TEXTURE_VERTEX
 ```
 Vertexbuffertexturesupport
 
-## let CAPS\_FRAGMENT\_DEPTH
-```cj
-public let CAPS_FRAGMENT_DEPTH: UInt64 = bgfx.CAPS_FRAGMENT_DEPTH
-```
-Fragmentdepthsupport
-
 ## let CAPS\_FRAGMENT\_ORDERING
 ```cj
 public let CAPS_FRAGMENT_ORDERING: UInt64 = bgfx.CAPS_FRAGMENT_ORDERING
@@ -311,12 +203,6 @@ public let CAPS_HDR10: UInt64 = bgfx.CAPS_HDR10
 ```
 HDR10 support
 
-## let CAPS\_HIDPI
-```cj
-public let CAPS_HIDPI: UInt64 = bgfx.CAPS_HIDPI
-```
-HiDPI support
-
 ## let CAPS\_IMAGE\_RW
 ```cj
 public let CAPS_IMAGE_RW: UInt64 = bgfx.CAPS_IMAGE_RW
@@ -328,18 +214,6 @@ Image read-writesupport
 public let CAPS_INDEX32: UInt64 = bgfx.CAPS_INDEX32
 ```
 32-bit indexsupport
-
-## let CAPS\_INSTANCING
-```cj
-public let CAPS_INSTANCING: UInt64 = bgfx.CAPS_INSTANCING
-```
-Instancingsupport
-
-## let CAPS\_OCCLUSION\_QUERY
-```cj
-public let CAPS_OCCLUSION_QUERY: UInt64 = bgfx.CAPS_OCCLUSION_QUERY
-```
-Occlusion querysupport
 
 ## let CAPS\_PRIMITIVE\_ID
 ```cj
@@ -359,42 +233,6 @@ public let CAPS_SWAP_CHAIN: UInt64 = bgfx.CAPS_SWAP_CHAIN
 ```
 Swap chain support
 
-## let CAPS\_TEXTURE\_2D\_ARRAY
-```cj
-public let CAPS_TEXTURE_2D_ARRAY: UInt64 = bgfx.CAPS_TEXTURE_2D_ARRAY
-```
-2D texture array support
-
-## let CAPS\_TEXTURE\_3D
-```cj
-public let CAPS_TEXTURE_3D: UInt64 = bgfx.CAPS_TEXTURE_3D
-```
-3D texturesupport
-
-## let CAPS\_TEXTURE\_BLIT
-```cj
-public let CAPS_TEXTURE_BLIT: UInt64 = bgfx.CAPS_TEXTURE_BLIT
-```
-Texture blit support
-
-## let CAPS\_TEXTURE\_COMPARE\_ALL
-```cj
-public let CAPS_TEXTURE_COMPARE_ALL: UInt64 = bgfx.CAPS_TEXTURE_COMPARE_ALL
-```
-Texture depth comparison support (all)
-
-## let CAPS\_TEXTURE\_COMPARE\_LEQUAL
-```cj
-public let CAPS_TEXTURE_COMPARE_LEQUAL: UInt64 = bgfx.CAPS_TEXTURE_COMPARE_LEQUAL
-```
-Texture depth comparison support (LEQUAL)
-
-## let CAPS\_TEXTURE\_COMPARE\_RESERVED
-```cj
-public let CAPS_TEXTURE_COMPARE_RESERVED: UInt64 = bgfx.CAPS_TEXTURE_COMPARE_RESERVED
-```
-Texture depth comparison reserved bit
-
 ## let CAPS\_TEXTURE\_CUBE\_ARRAY
 ```cj
 public let CAPS_TEXTURE_CUBE_ARRAY: UInt64 = bgfx.CAPS_TEXTURE_CUBE_ARRAY
@@ -407,35 +245,17 @@ public let CAPS_TEXTURE_DIRECT_ACCESS: UInt64 = bgfx.CAPS_TEXTURE_DIRECT_ACCESS
 ```
 Texture direct access support
 
-## let CAPS\_TEXTURE\_READ\_BACK
-```cj
-public let CAPS_TEXTURE_READ_BACK: UInt64 = bgfx.CAPS_TEXTURE_READ_BACK
-```
-Texture readback support
-
 ## let CAPS\_TRANSPARENT\_BACKBUFFER
 ```cj
 public let CAPS_TRANSPARENT_BACKBUFFER: UInt64 = bgfx.CAPS_TRANSPARENT_BACKBUFFER
 ```
 Transparent backbuffer support
 
-## let CAPS\_VERTEX\_ATTRIB\_HALF
-```cj
-public let CAPS_VERTEX_ATTRIB_HALF: UInt64 = bgfx.CAPS_VERTEX_ATTRIB_HALF
-```
-Vertex attribute Half-float support
-
 ## let CAPS\_VERTEX\_ATTRIB\_UINT10
 ```cj
 public let CAPS_VERTEX_ATTRIB_UINT10: UInt64 = bgfx.CAPS_VERTEX_ATTRIB_UINT10
 ```
 Vertex attribute UInt10 support
-
-## let CAPS\_VERTEX\_ID
-```cj
-public let CAPS_VERTEX_ID: UInt64 = bgfx.CAPS_VERTEX_ID
-```
-Vertex ID support
 
 ## let CAPS\_VIEWPORT\_LAYER\_ARRAY
 ```cj
@@ -1552,12 +1372,6 @@ Write R channel
 public let STATE_WRITE_Z: UInt64 = bgfx.STATE_WRITE_Z
 ```
 Write Z（depth）channel
-
-## let STENCIL\_DEFAULT
-```cj
-public let STENCIL_DEFAULT: UInt32 = bgfx.STENCIL_DEFAULT
-```
-defaultstencil
 
 ## let STENCIL\_FUNC\_REF\_MASK
 ```cj

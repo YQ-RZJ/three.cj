@@ -80,7 +80,8 @@ import openalsoft4cj.miniaudio.*
 
 import three.audio.device.*
 import three.audio.listener.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 流式音频，继承 Audio
@@ -234,7 +235,7 @@ public open class StreamingAudio <: Audio {
             this._decoder = unsafe { LibC.malloc<UInt8>(count: 1024) }
             let result = ma_decoder_init_file_cj(pathCs, CPointer<Unit>(), CPointer<Unit>(this._decoder))
             if (result != MaResult.Success.value()) {
-                Logger.error(["StreamingAudio", "解码器初始化失败: ${filePath}, 错误码=${result.toString()}"])
+                @LogError(["StreamingAudio", "解码器初始化失败: ${filePath}, 错误码=${result.toString()}"])
                 unsafe { LibC.free(this._decoder) }
                 this._decoder = CPointer<UInt8>()
                 return
@@ -539,7 +540,7 @@ public open class StreamingAudio <: Audio {
             let result = ma_decoder_init_file_cj(pathCs, CPointer<Unit>(), CPointer<Unit>(decoder))
             unsafe { LibC.free(pathCs) }
             if (result != MaResult.Success.value()) {
-                Logger.error(["StreamingAudio", "解码器重置失败: ${filePath}"])
+                @LogError(["StreamingAudio", "解码器重置失败: ${filePath}"])
                 this._decoderInitialized = false
             }
         })

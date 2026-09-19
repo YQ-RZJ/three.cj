@@ -29,8 +29,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.LUTPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 import std.collection.*
 
@@ -215,16 +215,16 @@ public class TestWindow <: WindowEngine {
             case Some(lutPass) =>
                 if (lutPass.intensity != g_intensity) {
                     lutPass.intensity = g_intensity
-                    Logger.debug(["lut", "intensity synced: " + g_intensity.toString()])
+                    @LogDebug(["lut", "intensity synced: " + g_intensity.toString()])
                 }
                 // LUT 类型切换：g_lutTextures 下标 = lutType-1
                 let lutIdx = g_lutType - 1
                 if (lutIdx >= 0 && lutIdx < g_lutTextures.size) {
                     let curLut = g_lutTextures[Int64(lutIdx)]
-                    if (handleIdx(lutPass.lut) != handleIdx(curLut)) {
+                    if (Handle.idx(lutPass.lut) != Handle.idx(curLut)) {
                         lutPass.lut = curLut
-                        Logger.debug(["lut", "lut switched: type=" + g_lutType.toString() +
-                                      " tex.idx=" + handleIdx(curLut).toString()])
+                        @LogDebug(["lut", "lut switched: type=" + g_lutType.toString() +
+                                      " tex.idx=" + Handle.idx(curLut).toString()])
                     }
                 }
 
@@ -294,7 +294,7 @@ public class TestWindow <: WindowEngine {
         }
         // 释放 3D LUT 纹理（本测试项目创建，负责销毁）
         for (t in g_lutTextures) {
-            if (isValidHandle(t)) { this.renderer.destroyTexture(t) }
+            if (Handle.isValid(t)) { this.renderer.destroyTexture(t) }
         }
         this.renderer.shutdown()
         println("  ThreeRenderer 已关闭")
@@ -303,7 +303,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== lut_pass：LUTPass 3D 查找表颜色分级 ===")
     println("")
 

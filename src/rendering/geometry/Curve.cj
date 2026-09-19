@@ -38,7 +38,8 @@
 package three.rendering.geometry
 
 import three.core.math.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
 
@@ -103,7 +104,7 @@ public open class Curve {
      * Return the curve point at the given interpolation factor t
      */
     public open func getPoint(t: Float64): Vector3 {
-        Logger.warn(["Curve", "Warning, getPoint() not implemented!"])
+        @LogWarn(["Curve", "Warning, getPoint() not implemented!"])
         return Vector3()
     }
 

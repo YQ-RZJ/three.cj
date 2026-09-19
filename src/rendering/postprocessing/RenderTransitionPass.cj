@@ -108,7 +108,8 @@ import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.scene.scenegraph.Scene
 import three.rendering.cameras.Camera
 
@@ -221,7 +222,7 @@ public class RenderTransitionPass <: Pass {
         this.cameraB = Some(cameraB)
         // needsSwap=true（Pass 基类默认）
         this.needsSwap = true
-        Logger.trace(["transition", "RenderTransitionPass constructed: sceneA=" + sceneA.name +
+        @LogTrace(["transition", "RenderTransitionPass constructed: sceneA=" + sceneA.name +
                       " sceneB=" + sceneB.name])
     }
 
@@ -232,7 +233,7 @@ public class RenderTransitionPass <: Pass {
      */
     public func setTransition(value: Float64): Unit {
         this.mixRatio = value
-        Logger.trace(["transition", "setTransition: " + value.toString()])
+        @LogTrace(["transition", "setTransition: " + value.toString()])
     }
 
     /**
@@ -242,7 +243,7 @@ public class RenderTransitionPass <: Pass {
      */
     public func useTexture(value: Bool): Unit {
         this.useMixTexture = value
-        Logger.trace(["transition", "useTexture: " + value.toString()])
+        @LogTrace(["transition", "useTexture: " + value.toString()])
     }
 
     /**
@@ -252,7 +253,7 @@ public class RenderTransitionPass <: Pass {
      */
     public func setTexture(value: TextureHandle): Unit {
         this.tMixTexture = value
-        Logger.trace(["transition", "setTexture: tex.idx=" + handleIdx(value).toString()])
+        @LogTrace(["transition", "setTexture: tex.idx=" + Handle.idx(value).toString()])
     }
 
     /**
@@ -262,7 +263,7 @@ public class RenderTransitionPass <: Pass {
      */
     public func setTextureThreshold(value: Float64): Unit {
         this.threshold = value
-        Logger.trace(["transition", "setTextureThreshold: " + value.toString()])
+        @LogTrace(["transition", "setTextureThreshold: " + value.toString()])
     }
 
     /**
@@ -277,7 +278,7 @@ public class RenderTransitionPass <: Pass {
             this._destroyRTs()
             this._width = width
             this._height = height
-            Logger.trace(["transition", "setSize: " + width.toString() + "x" + height.toString() +
+            @LogTrace(["transition", "setSize: " + width.toString() + "x" + height.toString() +
                           " (RTs will be recreated on next render)"])
         }
     }
@@ -289,9 +290,9 @@ public class RenderTransitionPass <: Pass {
      */
     private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
-        if (isValidHandle(this._renderTargetATex)) { return }
+        if (Handle.isValid(this._renderTargetATex)) { return }
 
-        Logger.trace(["transition", "_ensureRTs: creating RTs ${this._width}x${this._height}"])
+        @LogTrace(["transition", "_ensureRTs: creating RTs ${this._width}x${this._height}"])
 
         // 场景 A RT：RGBA16F + D24
         let texA = renderer.createTexture2D(
@@ -302,12 +303,12 @@ public class RenderTransitionPass <: Pass {
         this._renderTargetATex = texA
         let depthA = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
             None)
         this._renderTargetADepthTex = depthA
         this._renderTargetAFB = this._createFBWithDepth(renderer, texA, depthA)
-        Logger.trace(["transition", "  RT_A created: tex=${handleIdx(texA)} depth=${handleIdx(depthA)}"])
+        @LogTrace(["transition", "  RT_A created: tex=${Handle.idx(texA)} depth=${Handle.idx(depthA)}"])
 
         // 场景 B RT：RGBA16F + D24
         let texB = renderer.createTexture2D(
@@ -318,12 +319,12 @@ public class RenderTransitionPass <: Pass {
         this._renderTargetBTex = texB
         let depthB = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
             None)
         this._renderTargetBDepthTex = depthB
         this._renderTargetBFB = this._createFBWithDepth(renderer, texB, depthB)
-        Logger.trace(["transition", "  RT_B created: tex=${handleIdx(texB)} depth=${handleIdx(depthB)}"])
+        @LogTrace(["transition", "  RT_B created: tex=${Handle.idx(texB)} depth=${Handle.idx(depthB)}"])
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
@@ -340,12 +341,12 @@ public class RenderTransitionPass <: Pass {
                 let fbA = this._renderTargetAFB; let fbB = this._renderTargetBFB
                 let texA = this._renderTargetATex; let depthA = this._renderTargetADepthTex
                 let texB = this._renderTargetBTex; let depthB = this._renderTargetBDepthTex
-                if (isValidHandle(fbA)) { renderer.destroyFrameBuffer(fbA) }
-                if (isValidHandle(fbB)) { renderer.destroyFrameBuffer(fbB) }
-                if (isValidHandle(texA)) { renderer.destroyTexture(texA) }
-                if (isValidHandle(depthA)) { renderer.destroyTexture(depthA) }
-                if (isValidHandle(texB)) { renderer.destroyTexture(texB) }
-                if (isValidHandle(depthB)) { renderer.destroyTexture(depthB) }
+                if (Handle.isValid(fbA)) { renderer.destroyFrameBuffer(fbA) }
+                if (Handle.isValid(fbB)) { renderer.destroyFrameBuffer(fbB) }
+                if (Handle.isValid(texA)) { renderer.destroyTexture(texA) }
+                if (Handle.isValid(depthA)) { renderer.destroyTexture(depthA) }
+                if (Handle.isValid(texB)) { renderer.destroyTexture(texB) }
+                if (Handle.isValid(depthB)) { renderer.destroyTexture(depthB) }
                 this._renderTargetAFB = INVALID_FRAME_BUFFER_HANDLE
                 this._renderTargetBFB = INVALID_FRAME_BUFFER_HANDLE
                 this._renderTargetATex = INVALID_TEXTURE_HANDLE
@@ -368,12 +369,12 @@ public class RenderTransitionPass <: Pass {
                     sp.compileBgfx()
                     this._transitionProg = Some(Box(sp.programHandle))
                     this._transitionCompiled = true
-                    Logger.trace(["transition", "transition shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["transition", "transition shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._transitionProg
             case None =>
-                Logger.trace(["transition", "transition shader not registered"])
+                @LogTrace(["transition", "transition shader not registered"])
                 return None
         }
     }
@@ -419,9 +420,9 @@ public class RenderTransitionPass <: Pass {
                     case Some(sB) => match (camBOpt) {
                         case Some(cB) =>
                             this._ensureRTs(renderer)
-                            if (!isValidHandle(this._renderTargetAFB) ||
-                                !isValidHandle(this._renderTargetBFB)) {
-                                Logger.trace(["transition", "render: _ensureRTs failed, RT invalid"])
+                            if (!Handle.isValid(this._renderTargetAFB) ||
+                                !Handle.isValid(this._renderTargetBFB)) {
+                                @LogTrace(["transition", "render: _ensureRTs failed, RT invalid"])
                                 return
                             }
 
@@ -436,10 +437,10 @@ public class RenderTransitionPass <: Pass {
                             // ===== 3. 合成 pass（view+2）=====
                             this._renderComposite(renderer, writeBuffer, UInt16(UInt16(baseView) + 2u16))
 
-                            Logger.trace(["transition", "render done: mixRatio=" + this.mixRatio.toString() +
+                            @LogTrace(["transition", "render done: mixRatio=" + this.mixRatio.toString() +
                                           " threshold=" + this.threshold.toString() +
                                           " useTexture=" + this.useMixTexture.toString() +
-                                          " RT_A=${handleIdx(this._renderTargetAFB)} RT_B=${handleIdx(this._renderTargetBFB)}"])
+                                          " RT_A=${Handle.idx(this._renderTargetAFB)} RT_B=${Handle.idx(this._renderTargetBFB)}"])
                         case None => ()
                     }
                     case None => ()
@@ -482,8 +483,8 @@ public class RenderTransitionPass <: Pass {
         // 是两次独立的 execBgfx 调用（不嵌套，无死锁）。
         // 场景渲染的 view 由 renderer 内部使用 renderer.viewId；为把场景画到本 pass 的 view，
         // 直接调用 renderer.render 前先确认 view 帧缓冲已就绪（bgfx 按 view id 升序执行）。
-        Logger.trace(["transition", "  renderSceneTo: view=" + viewId.toString() +
-                      " scene=" + scene.name + " fb=${handleIdx(fb)}"])
+        @LogTrace(["transition", "  renderSceneTo: view=" + viewId.toString() +
+                      " scene=" + scene.name + " fb=${Handle.idx(fb)}"])
         renderer.render(scene, camera)
     }
 
@@ -510,8 +511,8 @@ public class RenderTransitionPass <: Pass {
 
         match (this._compileTransition()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["transition", "composite pass: transition program compile FAILED"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["transition", "composite pass: transition program compile FAILED"])
                     return
                 }
 
@@ -525,7 +526,7 @@ public class RenderTransitionPass <: Pass {
                 this.bindTexture(renderer, 1u8, uDiffuse2, this._renderTargetBTex, 0u32)
                 // stage 2 = tMixTexture（过渡纹理；无效时绑场景 A 纹理占位，shader 用 useTexture=0 分支）
                 let uMixTex = uniforms.createUniform("tMixTexture", UniformType.Sampler.value())
-                let mixTex = if (isValidHandle(this.tMixTexture)) { this.tMixTexture } else { this._renderTargetATex }
+                let mixTex = if (Handle.isValid(this.tMixTexture)) { this.tMixTexture } else { this._renderTargetATex }
                 this.bindTexture(renderer, 2u8, uMixTex, mixTex, 0u32)
 
                 // mixRatio / threshold / useTexture（vec4.x=值）
@@ -536,14 +537,14 @@ public class RenderTransitionPass <: Pass {
                 // 全屏 quad submit（覆盖写 state）
                 this.submitQuad(viewId, prog)
 
-                Logger.trace(["transition", "composite pass: view=" + viewId.toString() +
+                @LogTrace(["transition", "composite pass: view=" + viewId.toString() +
                               " mixRatio=" + this.mixRatio.toString() +
                               " threshold=" + this.threshold.toString() +
                               " useTexture=" + this.useMixTexture.toString() +
-                              " mixTexIdx=" + handleIdx(mixTex).toString() +
-                              " RT_A=${handleIdx(this._renderTargetATex)} RT_B=${handleIdx(this._renderTargetBTex)}"])
+                              " mixTexIdx=" + Handle.idx(mixTex).toString() +
+                              " RT_A=${Handle.idx(this._renderTargetATex)} RT_B=${Handle.idx(this._renderTargetBTex)}"])
             case None =>
-                Logger.trace(["transition", "composite pass: transition shader compile failed, skip pass"])
+                @LogTrace(["transition", "composite pass: transition shader compile failed, skip pass"])
         }
     }
 
@@ -569,6 +570,6 @@ public class RenderTransitionPass <: Pass {
      */
     public override func dispose(): Unit {
         this._destroyRTs()
-        Logger.trace(["transition", "disposed"])
+        @LogTrace(["transition", "disposed"])
     }
 }

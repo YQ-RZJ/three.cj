@@ -30,8 +30,8 @@ import three.rendering.postprocessing.MaskPass
 import three.rendering.postprocessing.ClearMaskPass
 import three.rendering.postprocessing.ShaderPass
 import three.rendering.postprocessing.OutputPass
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -167,7 +167,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== mask：MaskPass+ClearMaskPass 遮罩控制 ===")
     println("")
 

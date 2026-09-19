@@ -246,7 +246,7 @@ public open class Backend {
      * @param[en] renderContext Render context
      */
     public open func finishRender(renderContext: IRenderContext): Unit {
-        bgfx_frame_cj(false)
+        bgfx_frame_cj(flags: FRAME_NONE)
     }
 
     /**
@@ -504,7 +504,7 @@ public open class Backend {
      * @param[en] renderContext Render context
      */
     public open func finishRender(renderContext: RenderContext): Unit {
-        bgfx_frame_cj(false)
+        bgfx_frame_cj(flags: FRAME_NONE)
     }
 
     /**
@@ -534,7 +534,7 @@ public open class Backend {
      * @brief[en] clear no-argument version (legacy compatibility)
      */
     public open func clear(): Unit {
-        bgfx_frame_cj(false)
+        bgfx_frame_cj(flags: FRAME_NONE)
     }
 
     /**

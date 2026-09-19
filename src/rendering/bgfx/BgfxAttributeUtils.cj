@@ -328,31 +328,6 @@ public class BgfxAttributeUtils {
     }
 
     /**
-     * @brief[zh-cn] 顶点焊接（按 epsilon 去重，返回焊接后顶点数）
-     * @explain[zh-cn] 对照 JS: BufferGeometryUtils.mergeVertices
-     * @param[zh-cn] output 输出焊接后数据
-     * layout 顶点布局指针
-     * data 源数据缓冲
-     * num 顶点数
-     * index32 是否使用 32 位索引
-     * epsilon 焊接阈值
-     * @return[zh-cn] 焊接后顶点数
-     *
-     * @brief[en] Weld vertices (deduplicate by epsilon, return welded vertex count)
-     * @explain[en] Mirrors JS: BufferGeometryUtils.mergeVertices
-     * @param[en] output Output welded data
-     * layout Vertex layout pointer
-     * data Source data buffer
-     * num Number of vertices
-     * index32 Whether to use 32-bit indices
-     * epsilon Weld epsilon threshold
-     * @return[en] Welded vertex count
-     */
-    public func weldVertices(output: PtrArray<UInt8>, layout: VertexLayoutPtr, data: PtrArray<UInt8>, num: UInt32, index32: Bool, epsilon: Float32): UInt32 {
-        return bgfx_weld_vertices_cj(unsafe { CPointer<Unit>(output.data()) }, layout.value, unsafe { CPointer<Unit>(data.data()) }, num, index32, epsilon)
-    }
-
-    /**
      * @brief[zh-cn] 拓扑转换（返回转换后索引数）
      * @explain[zh-cn] 对照 JS: BufferGeometryUtils 的拓扑转换工具
      * @param[zh-cn] conversion 转换类型

@@ -3,17 +3,17 @@
 ```cj
 public class UiFontBaked
 ```
-Baked font data wrapper
+Baked font data (safe type)
 
 ### func clearOutputData\(\)
 ```cj
 public func clearOutputData(): Unit
 ```
-Clears output data
+Clears the output data
 
 ### func findGlyphNoFallback\(UInt16\)
 ```cj
-public func findGlyphNoFallback(codepoint: UInt16): CPointer < Unit >
+public func findGlyphNoFallback(codepoint: UInt16): UiFontGlyph
 ```
 Finds a glyph (no fallback)
 
@@ -21,53 +21,53 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|codepoint|UInt16|Unicode codepoint (UInt16)|
+|codepoint|UInt16|Unicode code point|
 
 Return: 
 
-- ImFontGlyph pointer (null if not found)
+- UiFontGlyph object; may be invalid when not found
 
 ### func findGlyph\(UInt16\)
 ```cj
-public func findGlyph(codepoint: UInt16): CPointer < Unit >
+public func findGlyph(codepoint: UInt16): UiFontGlyph
 ```
-Finds a glyph
+Finds a glyph (with default fallback)
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|codepoint|UInt16|Unicode codepoint|
+|codepoint|UInt16|Unicode code point|
 
 Return: 
 
-- ImFontGlyph pointer
+- UiFontGlyph object; falls back to the default glyph when not found
 
 ### func getCharAdvance\(UInt16\)
 ```cj
 public func getCharAdvance(codepoint: UInt16): Float32
 ```
-Gets character advance width
+Gets the character advance width (pixels)
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|codepoint|UInt16|Unicode codepoint (UInt16)|
+|codepoint|UInt16|Unicode code point|
 
 Return: 
 
-- Advance width in pixels
+- Advance width; 0 if invalid
 
-### func init\(CPointer<Unit>\)
+### func init\(VoidPtr\)
 ```cj
-public init(ptr: CPointer < Unit >)
+public init(ptr: VoidPtr)
 ```
-
+Constructs from a raw ImFontBaked pointer
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|ptr|CPointer<Unit>||
+|ptr|VoidPtr|Raw ImFontBaked pointer|
 

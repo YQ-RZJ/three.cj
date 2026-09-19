@@ -30,8 +30,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.HalftonePass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -237,23 +237,23 @@ public class TestWindow <: WindowEngine {
             case Some(halftonePass) =>
                 if (halftonePass.shape != g_shape) {
                     halftonePass.shape = g_shape
-                    Logger.debug(["halftone", "shape synced: " + g_shape.toString()])
+                    @LogDebug(["halftone", "shape synced: " + g_shape.toString()])
                 }
                 if (halftonePass.radius != g_radius) {
                     halftonePass.radius = g_radius
-                    Logger.debug(["halftone", "radius synced: " + g_radius.toString()])
+                    @LogDebug(["halftone", "radius synced: " + g_radius.toString()])
                 }
                 if (halftonePass.blending != g_blending) {
                     halftonePass.blending = g_blending
-                    Logger.debug(["halftone", "blending synced: " + g_blending.toString()])
+                    @LogDebug(["halftone", "blending synced: " + g_blending.toString()])
                 }
                 if (halftonePass.greyscale != g_greyscale) {
                     halftonePass.greyscale = g_greyscale
-                    Logger.debug(["halftone", "greyscale synced: " + g_greyscale.toString()])
+                    @LogDebug(["halftone", "greyscale synced: " + g_greyscale.toString()])
                 }
                 if (halftonePass.disable != g_disable) {
                     halftonePass.disable = g_disable
-                    Logger.debug(["halftone", "disable synced: " + g_disable.toString()])
+                    @LogDebug(["halftone", "disable synced: " + g_disable.toString()])
                 }
 
                 // R 键重置：参数回到默认值
@@ -331,7 +331,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== halftone：HalftonePass RGB 半色调后处理 ===")
     println("")
 

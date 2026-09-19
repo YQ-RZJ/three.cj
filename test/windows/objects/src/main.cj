@@ -24,8 +24,8 @@ import three.scene.objects.*
 import three.rendering.materials.*
 import three.rendering.geometry.*
 import three.rendering.cameras.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -201,7 +201,6 @@ public class TestWindow <: WindowEngine {
 
 main(): Int64 {
     // 临时开启 Debug 日志，确认 LOD 子球是否被收集渲染
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_objects：对象功能验证（视锥剔除 + LOD + 多对象渲染） ===")
     println("")
 

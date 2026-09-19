@@ -9,20 +9,24 @@ public class UiButton <: UiWidget
 ```cj
 public override func draw(): Bool
 ```
+渲染按钮，点击时触发回调
 
+返回: 
+
+- 本次点击是否发生
 
 ### func init\(String,Vector2\)
 ```cj
 public init(label!: String, size!: Vector2 = Vector2(0.0, 0.0))
 ```
-
+构造按钮控件
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|label|String||
-|size|Vector2||
+|label|String|按钮标签文本|
+|size|Vector2|按钮尺寸（默认 (0,0) 表示自动计算）|
 
 ### func onClick\(\(\)\->Unit\)
 ```cj

@@ -51,7 +51,8 @@ import std.math.*
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 骨骼类，管理一组 Bone 及其逆矩阵
@@ -396,7 +397,7 @@ public class Skeleton <: IPropertyBindingRoot {
         for (i in 0..numJoints) {
             names += "${i}:${skelData.jointName(i)} "
         }
-        Logger.debug(["Skeleton", "sync-order ${names}"])
+        @LogDebug(["Skeleton", "sync-order ${names}"])
 
         // 休息姿势（SoA 布局，每个 SoaTransform 含 4 个关节）
         let restPoses = skelData.jointRestPoses()

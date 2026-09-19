@@ -34,7 +34,8 @@ package three.resource.loader
 import three.utils.constants.*
 import three.rendering.textures.*
 import three.rendering.geometry.DataUtils
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 import std.collection.*
 import std.convert.*
@@ -294,7 +295,7 @@ internal func _readLine(buffer: Array<UInt8>, start: Int64): Option<(String, Int
 }
 
 internal func LoggerWarn(msg: String): Unit {
-    Logger.warn([msg])
+    @LogWarn([msg])
 }
 
 // 按空白分割（HDR 头尺寸行用）

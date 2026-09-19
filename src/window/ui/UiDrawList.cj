@@ -40,6 +40,8 @@ package three.window.ui
 import std.core.*
 import imgui4cj.imgui.*
 import three.core.math.*
+import three.utils.memory.PtrArray
+import three.utils.memory.VoidPtr
 
 /**
  * @brief[zh-cn] ImGui DrawList 封装类
@@ -54,8 +56,15 @@ public class UiDrawList {
     /// 底层 ImDrawList 指针
     private var _dl: CPointer<Unit>
 
-    public init(dl!: CPointer<Unit>) {
-        this._dl = dl
+    /**
+     * @brief[zh-cn] 以底层 ImDrawList 指针构造
+     * @param[zh-cn] dl 底层 ImDrawList 指针
+     *
+     * @brief[en] Constructs from a raw ImDrawList pointer
+     * @param[en] dl Raw ImDrawList pointer
+     */
+    public init(dl!: VoidPtr) {
+        this._dl = dl.value
     }
 
     // ===== 静态获取方法 =====
@@ -68,7 +77,7 @@ public class UiDrawList {
      * @return[en] UiDrawList instance
      */
     public static func window(): UiDrawList {
-        return UiDrawList(dl: igGetWindowDrawList_cj())
+        return UiDrawList(dl: Box(igGetWindowDrawList_cj()))
     }
 
     /**
@@ -79,7 +88,7 @@ public class UiDrawList {
      * @return[en] UiDrawList instance
      */
     public static func background(): UiDrawList {
-        return UiDrawList(dl: igGetBackgroundDrawList_Nil_cj())
+        return UiDrawList(dl: Box(igGetBackgroundDrawList_Nil_cj()))
     }
 
     /**
@@ -90,7 +99,7 @@ public class UiDrawList {
      * @return[en] UiDrawList instance
      */
     public static func foreground(): UiDrawList {
-        return UiDrawList(dl: igGetForegroundDrawList_Nil_cj())
+        return UiDrawList(dl: Box(igGetForegroundDrawList_Nil_cj()))
     }
 
     // ===== 基础绘制 =====
@@ -117,10 +126,18 @@ public class UiDrawList {
      * @brief[zh-cn] 绘制矩形边框
      * @param[zh-cn] min 矩形最小点
      * @param[zh-cn] max 矩形最大点
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] rounding 圆角半径（0=直角）
+     * @param[zh-cn] thickness 线宽
+     * @param[zh-cn] flags ImDrawFlags 标志（默认 0）
      *
      * @brief[en] Draws a rectangle border
      * @param[en] min Rectangle minimum
      * @param[en] max Rectangle maximum
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] rounding Corner rounding radius (0 = sharp corners)
+     * @param[en] thickness Line width
+     * @param[en] flags ImDrawFlags (default 0)
      */
     public func addRect(min: Vector2, max: Vector2,
                         col: UInt32, rounding!: Float32 = 0.0,
@@ -132,10 +149,16 @@ public class UiDrawList {
      * @brief[zh-cn] 绘制填充矩形
      * @param[zh-cn] min 矩形最小点
      * @param[zh-cn] max 矩形最大点
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] rounding 圆角半径（0=直角）
+     * @param[zh-cn] flags ImDrawFlags 标志（默认 0）
      *
      * @brief[en] Draws a filled rectangle
      * @param[en] min Rectangle minimum
      * @param[en] max Rectangle maximum
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] rounding Corner rounding radius (0 = sharp corners)
+     * @param[en] flags ImDrawFlags (default 0)
      */
     public func addRectFilled(min: Vector2, max: Vector2,
                               col: UInt32, rounding!: Float32 = 0.0,
@@ -144,13 +167,21 @@ public class UiDrawList {
     }
 
     /**
-     * @brief[zh-cn] 绘制多色填充矩形
+     * @brief[zh-cn] 绘制多色填充矩形（四角各一色，顶点间线性插值）
      * @param[zh-cn] min 矩形最小点
      * @param[zh-cn] max 矩形最大点
+     * @param[zh-cn] colUprLeft 左上角颜色
+     * @param[zh-cn] colUprRight 右上角颜色
+     * @param[zh-cn] colBotRight 右下角颜色
+     * @param[zh-cn] colBotLeft 左下角颜色
      *
-     * @brief[en] Draws a multi-color filled rectangle
+     * @brief[en] Draws a multi-color filled rectangle (one color per corner, linearly interpolated)
      * @param[en] min Rectangle minimum
      * @param[en] max Rectangle maximum
+     * @param[en] colUprLeft Top-left color
+     * @param[en] colUprRight Top-right color
+     * @param[en] colBotRight Bottom-right color
+     * @param[en] colBotLeft Bottom-left color
      */
     public func addRectFilledMultiColor(min: Vector2, max: Vector2,
                                         colUprLeft: UInt32, colUprRight: UInt32,
@@ -164,11 +195,15 @@ public class UiDrawList {
      * @param[zh-cn] a 顶点 A
      * @param[zh-cn] b 顶点 B
      * @param[zh-cn] c 顶点 C
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Draws a triangle border
      * @param[en] a Vertex A
      * @param[en] b Vertex B
      * @param[en] c Vertex C
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] thickness Line width
      */
     public func addTriangle(a: Vector2, b: Vector2, c: Vector2,
                             col: UInt32, thickness!: Float32 = 1.0): Unit {
@@ -180,11 +215,13 @@ public class UiDrawList {
      * @param[zh-cn] a 顶点 A
      * @param[zh-cn] b 顶点 B
      * @param[zh-cn] c 顶点 C
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Draws a filled triangle
      * @param[en] a Vertex A
      * @param[en] b Vertex B
      * @param[en] c Vertex C
+     * @param[en] col Color (IM_COL32 format)
      */
     public func addTriangleFilled(a: Vector2, b: Vector2, c: Vector2, col: UInt32): Unit {
         ImDrawList_AddTriangleFilled_cj(this._dl, ImVec2(Float32(a.x), Float32(a.y)), ImVec2(Float32(b.x), Float32(b.y)), ImVec2(Float32(c.x), Float32(c.y)), col)
@@ -193,9 +230,17 @@ public class UiDrawList {
     /**
      * @brief[zh-cn] 绘制圆形边框
      * @param[zh-cn] center 圆心
+     * @param[zh-cn] radius 半径
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] numSegments 分段数（0=自动）
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Draws a circle border
      * @param[en] center Center point
+     * @param[en] radius Radius
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] numSegments Segment count (0 = auto)
+     * @param[en] thickness Line width
      */
     public func addCircle(center: Vector2, radius: Float32, col: UInt32,
                           numSegments!: Int32 = 0, thickness!: Float32 = 1.0): Unit {
@@ -205,9 +250,15 @@ public class UiDrawList {
     /**
      * @brief[zh-cn] 绘制填充圆形
      * @param[zh-cn] center 圆心
+     * @param[zh-cn] radius 半径
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
      * @brief[en] Draws a filled circle
      * @param[en] center Center point
+     * @param[en] radius Radius
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func addCircleFilled(center: Vector2, radius: Float32, col: UInt32,
                                 numSegments!: Int32 = 0): Unit {
@@ -218,10 +269,18 @@ public class UiDrawList {
      * @brief[zh-cn] 绘制椭圆边框
      * @param[zh-cn] center 椭圆中心
      * @param[zh-cn] radius 椭圆半径（x, y 两个方向）
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] rot 旋转角度（弧度）
+     * @param[zh-cn] numSegments 分段数（0=自动）
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Draws an ellipse border
      * @param[en] center Ellipse center
      * @param[en] radius Ellipse radius (x and y directions)
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] rot Rotation angle (radians)
+     * @param[en] numSegments Segment count (0 = auto)
+     * @param[en] thickness Line width
      */
     public func addEllipse(center: Vector2, radius: Vector2,
                            col: UInt32, rot!: Float32 = 0.0, numSegments!: Int32 = 0,
@@ -234,10 +293,16 @@ public class UiDrawList {
      * @brief[zh-cn] 绘制填充椭圆
      * @param[zh-cn] center 椭圆中心
      * @param[zh-cn] radius 椭圆半径（x, y 两个方向）
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] rot 旋转角度（弧度）
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
      * @brief[en] Draws a filled ellipse
      * @param[en] center Ellipse center
      * @param[en] radius Ellipse radius (x and y directions)
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] rot Rotation angle (radians)
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func addEllipseFilled(center: Vector2, radius: Vector2,
                                  col: UInt32, rot!: Float32 = 0.0, numSegments!: Int32 = 0): Unit {
@@ -250,9 +315,13 @@ public class UiDrawList {
     /**
      * @brief[zh-cn] 绘制文本
      * @param[zh-cn] pos 文本位置
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] text 文本内容
      *
      * @brief[en] Draws text
      * @param[en] pos Text position
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] text Text content
      */
     public func addText(pos: Vector2, col: UInt32, text: String): Unit {
         let cs = unsafe { LibC.mallocCString(text) }
@@ -268,12 +337,18 @@ public class UiDrawList {
      * @param[zh-cn] p2 控制点 2
      * @param[zh-cn] p3 控制点 3
      * @param[zh-cn] p4 控制点 4
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] thickness 线宽
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
      * @brief[en] Draws a cubic Bézier curve
      * @param[en] p1 Control point 1
      * @param[en] p2 Control point 2
      * @param[en] p3 Control point 3
      * @param[en] p4 Control point 4
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] thickness Line width
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func addBezierCubic(p1: Vector2, p2: Vector2, p3: Vector2, p4: Vector2,
                                col: UInt32, thickness!: Float32 = 1.0,
@@ -289,11 +364,17 @@ public class UiDrawList {
      * @param[zh-cn] p1 控制点 1
      * @param[zh-cn] p2 控制点 2
      * @param[zh-cn] p3 控制点 3
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] thickness 线宽
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
      * @brief[en] Draws a quadratic Bézier curve
      * @param[en] p1 Control point 1
      * @param[en] p2 Control point 2
      * @param[en] p3 Control point 3
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] thickness Line width
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func addBezierQuadratic(p1: Vector2, p2: Vector2, p3: Vector2,
                                    col: UInt32,
@@ -340,8 +421,14 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 路径描边
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] flags ImDrawFlags 标志（默认 0）
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Strokes the path
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] flags ImDrawFlags (default 0)
+     * @param[en] thickness Line width
      */
     public func pathStroke(col: UInt32, flags!: Int32 = 0, thickness!: Float32 = 1.0): Unit {
         ImDrawList_PathStroke_cj(this._dl, col, thickness, flags)
@@ -349,8 +436,10 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 路径填充（凸多边形）
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Fills the path (convex polygon)
+     * @param[en] col Color (IM_COL32 format)
      */
     public func pathFillConvex(col: UInt32): Unit {
         ImDrawList_PathFillConvex_cj(this._dl, col)
@@ -359,9 +448,17 @@ public class UiDrawList {
     /**
      * @brief[zh-cn] 路径圆弧
      * @param[zh-cn] center 圆弧中心
+     * @param[zh-cn] radius 半径
+     * @param[zh-cn] aMin 起始角（弧度）
+     * @param[zh-cn] aMax 结束角（弧度）
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
      * @brief[en] Draws a path arc
      * @param[en] center Arc center
+     * @param[en] radius Radius
+     * @param[en] aMin Start angle (radians)
+     * @param[en] aMax End angle (radians)
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func pathArcTo(center: Vector2, radius: Float32,
                           aMin: Float32, aMax: Float32, numSegments!: Int32 = 0): Unit {
@@ -372,10 +469,14 @@ public class UiDrawList {
      * @brief[zh-cn] 路径矩形
      * @param[zh-cn] min 矩形最小点
      * @param[zh-cn] max 矩形最大点
+     * @param[zh-cn] rounding 圆角半径（0=直角）
+     * @param[zh-cn] flags ImDrawFlags 标志（默认 0）
      *
      * @brief[en] Draws a path rectangle
      * @param[en] min Rectangle minimum
      * @param[en] max Rectangle maximum
+     * @param[en] rounding Corner rounding radius (0 = sharp corners)
+     * @param[en] flags ImDrawFlags (default 0)
      */
     public func pathRect(min: Vector2, max: Vector2,
                          rounding!: Float32 = 0.0, flags!: Int32 = 0): Unit {
@@ -388,10 +489,12 @@ public class UiDrawList {
      * @brief[zh-cn] 压入剪裁矩形
      * @param[zh-cn] min 矩形最小点
      * @param[zh-cn] max 矩形最大点
+     * @param[zh-cn] intersectWithCurrent 是否与当前剪裁区域求交集（默认 false=替换）
      *
      * @brief[en] Pushes a clip rectangle
      * @param[en] min Rectangle minimum
      * @param[en] max Rectangle maximum
+     * @param[en] intersectWithCurrent Whether to intersect with the current clip region (default false = replace)
      */
     public func pushClipRect(min: Vector2, max: Vector2,
                              intersectWithCurrent!: Bool = false): Unit {
@@ -438,10 +541,12 @@ public class UiDrawList {
      * @brief[zh-cn] 判断矩形是否可见
      * @param[zh-cn] min 矩形最小点
      * @param[zh-cn] max 矩形最大点
+     * @return[zh-cn] 可见返回 true
      *
      * @brief[en] Determine whether the rectangle is visible
      * @param[en] min Rectangle minimum
      * @param[en] max Rectangle maximum
+     * @return[en] true if visible
      */
     public func isRectVisible(min: Vector2, max: Vector2): Bool {
         return igIsRectVisible_Vec2_cj(ImVec2(Float32(min.x), Float32(min.y)), ImVec2(Float32(max.x), Float32(max.y))) != 0
@@ -452,8 +557,18 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 绘制水平线段
+     * @param[zh-cn] x1 起点 X
+     * @param[zh-cn] x2 终点 X
+     * @param[zh-cn] y 线段 Y 坐标
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Draws a horizontal line segment
+     * @param[en] x1 Start X
+     * @param[en] x2 End X
+     * @param[en] y Line Y coordinate
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] thickness Line width
      */
     public func addLineH(x1: Float32, x2: Float32, y: Float32, col: UInt32, thickness!: Float32 = 1.0): Unit {
         ImDrawList_AddLineH_cj(this._dl, x1, x2, y, col, thickness)
@@ -461,8 +576,18 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 绘制垂直线段
+     * @param[zh-cn] y1 起点 Y
+     * @param[zh-cn] y2 终点 Y
+     * @param[zh-cn] x 线段 X 坐标
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Draws a vertical line segment
+     * @param[en] y1 Start Y
+     * @param[en] y2 End Y
+     * @param[en] x Line X coordinate
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] thickness Line width
      */
     public func addLineV(y1: Float32, y2: Float32, x: Float32, col: UInt32, thickness!: Float32 = 1.0): Unit {
         ImDrawList_AddLineV_cj(this._dl, y1, y2, x, col, thickness)
@@ -473,8 +598,20 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 绘制四边形边框
+     * @param[zh-cn] a 顶点 A
+     * @param[zh-cn] b 顶点 B
+     * @param[zh-cn] c 顶点 C
+     * @param[zh-cn] d 顶点 D
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Draws a quad border
+     * @param[en] a Vertex A
+     * @param[en] b Vertex B
+     * @param[en] c Vertex C
+     * @param[en] d Vertex D
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] thickness Line width
      */
     public func addQuad(a: Vector2, b: Vector2, c: Vector2, d: Vector2, col: UInt32, thickness!: Float32 = 1.0): Unit {
         ImDrawList_AddQuad_cj(this._dl,
@@ -485,8 +622,18 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 绘制填充四边形
+     * @param[zh-cn] a 顶点 A
+     * @param[zh-cn] b 顶点 B
+     * @param[zh-cn] c 顶点 C
+     * @param[zh-cn] d 顶点 D
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Draws a filled quad
+     * @param[en] a Vertex A
+     * @param[en] b Vertex B
+     * @param[en] c Vertex C
+     * @param[en] d Vertex D
+     * @param[en] col Color (IM_COL32 format)
      */
     public func addQuadFilled(a: Vector2, b: Vector2, c: Vector2, d: Vector2, col: UInt32): Unit {
         ImDrawList_AddQuadFilled_cj(this._dl,
@@ -500,8 +647,18 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 绘制正多边形边框
+     * @param[zh-cn] center 中心点
+     * @param[zh-cn] radius 外接圆半径
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] numSides 边数
+     * @param[zh-cn] thickness 线宽
      *
      * @brief[en] Draws a regular polygon border
+     * @param[en] center Center point
+     * @param[en] radius Circumscribed circle radius
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] numSides Number of sides
+     * @param[en] thickness Line width
      */
     public func addNgon(center: Vector2, radius: Float32, col: UInt32, numSides: Int32, thickness!: Float32 = 1.0): Unit {
         ImDrawList_AddNgon_cj(this._dl, ImVec2(Float32(center.x), Float32(center.y)), radius, col, numSides, thickness)
@@ -509,8 +666,16 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 绘制填充正多边形
+     * @param[zh-cn] center 中心点
+     * @param[zh-cn] radius 外接圆半径
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
+     * @param[zh-cn] numSides 边数
      *
      * @brief[en] Draws a filled regular polygon
+     * @param[en] center Center point
+     * @param[en] radius Circumscribed circle radius
+     * @param[en] col Color (IM_COL32 format)
+     * @param[en] numSides Number of sides
      */
     public func addNgonFilled(center: Vector2, radius: Float32, col: UInt32, numSides: Int32): Unit {
         ImDrawList_AddNgonFilled_cj(this._dl, ImVec2(Float32(center.x), Float32(center.y)), radius, col, numSides)
@@ -536,10 +701,10 @@ public class UiDrawList {
      * @param[en] uvMax UV bottom-right (default 1,1)
      * @param[en] tintCol Tint color (default white=no tint)
      */
-    public func addImage(texRef: CPointer<Unit>, pMin: Vector2, pMax: Vector2,
+    public func addImage(texRef: VoidPtr, pMin: Vector2, pMax: Vector2,
                          uvMin!: ImVec2 = ImVec2(0.0, 0.0), uvMax!: ImVec2 = ImVec2(1.0, 1.0),
                          tintCol!: UInt32 = 0xFFFFFFFF): Unit {
-        ImDrawList_AddImage_cj(this._dl, texRef,
+        ImDrawList_AddImage_cj(this._dl, texRef.value,
             ImVec2(Float32(pMin.x), Float32(pMin.y)), ImVec2(Float32(pMax.x), Float32(pMax.y)),
             uvMin, uvMax, tintCol)
     }
@@ -548,16 +713,20 @@ public class UiDrawList {
      * @brief[zh-cn] 绘制四点映射图片
      * @param[zh-cn] texRef 纹理引用指针
      * @param[zh-cn] a,b,c,d 四个顶点
+     * @param[zh-cn] uvA~uvD 对应四个顶点的 UV（默认分别为 0,0 / 1,0 / 1,1 / 0,1）
+     * @param[zh-cn] tintCol 色调颜色（默认白色=不着色）
      *
      * @brief[en] Draws a quad-mapped image
      * @param[en] texRef Texture reference pointer
      * @param[en] a,b,c,d Four vertices
+     * @param[en] uvA~uvD UVs for the four vertices (defaults 0,0 / 1,0 / 1,1 / 0,1)
+     * @param[en] tintCol Tint color (default white = no tint)
      */
-    public func addImageQuad(texRef: CPointer<Unit>, a: Vector2, b: Vector2, c: Vector2, d: Vector2,
+    public func addImageQuad(texRef: VoidPtr, a: Vector2, b: Vector2, c: Vector2, d: Vector2,
                               uvA!: ImVec2 = ImVec2(0.0, 0.0), uvB!: ImVec2 = ImVec2(1.0, 0.0),
                               uvC!: ImVec2 = ImVec2(1.0, 1.0), uvD!: ImVec2 = ImVec2(0.0, 1.0),
                               tintCol!: UInt32 = 0xFFFFFFFF): Unit {
-        ImDrawList_AddImageQuad_cj(this._dl, texRef,
+        ImDrawList_AddImageQuad_cj(this._dl, texRef.value,
             ImVec2(Float32(a.x), Float32(a.y)), ImVec2(Float32(b.x), Float32(b.y)),
             ImVec2(Float32(c.x), Float32(c.y)), ImVec2(Float32(d.x), Float32(d.y)),
             uvA, uvB, uvC, uvD, tintCol)
@@ -569,17 +738,23 @@ public class UiDrawList {
      * @param[zh-cn] pMin 左上角
      * @param[zh-cn] pMax 右下角
      * @param[zh-cn] rounding 圆角半径
+     * @param[zh-cn] uvMin UV 左上角（默认 0,0）
+     * @param[zh-cn] uvMax UV 右下角（默认 1,1）
+     * @param[zh-cn] tintCol 色调颜色（默认白色=不着色）
      *
      * @brief[en] Draws a rounded image
      * @param[en] texRef Texture reference pointer
      * @param[en] pMin Top-left corner
      * @param[en] pMax Bottom-right corner
      * @param[en] rounding Corner rounding radius
+     * @param[en] uvMin UV top-left (default 0,0)
+     * @param[en] uvMax UV bottom-right (default 1,1)
+     * @param[en] tintCol Tint color (default white = no tint)
      */
-    public func addImageRounded(texRef: CPointer<Unit>, pMin: Vector2, pMax: Vector2,
+    public func addImageRounded(texRef: VoidPtr, pMin: Vector2, pMax: Vector2,
                                  rounding: Float32, uvMin!: ImVec2 = ImVec2(0.0, 0.0),
                                  uvMax!: ImVec2 = ImVec2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit {
-        ImDrawList_AddImageRounded_cj(this._dl, texRef,
+        ImDrawList_AddImageRounded_cj(this._dl, texRef.value,
             ImVec2(Float32(pMin.x), Float32(pMin.y)), ImVec2(Float32(pMax.x), Float32(pMax.y)),
             uvMin, uvMax, tintCol, rounding, 0)
     }
@@ -600,27 +775,38 @@ public class UiDrawList {
      * @param[en] thickness Line width
      * @param[en] flags ImDrawFlags
      */
-    public func addPolyline(points: CPointer<ImVec2>, numPoints: Int32, col: UInt32,
+    public func addPolyline(points: PtrArray<ImVec2>, col: UInt32,
                             thickness!: Float32 = 1.0, flags!: Int32 = 0): Unit {
-        ImDrawList_AddPolyline_cj(this._dl, points, numPoints, col, thickness, flags)
+        if (points.size() == 0) { return }
+        ImDrawList_AddPolyline_cj(this._dl, points.data(), Int32(points.size()), col, thickness, flags)
     }
 
     /**
      * @brief[zh-cn] 绘制凸多边形填充
+     * @param[zh-cn] points 顶点数组
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Draws a convex polygon fill
+     * @param[en] points Vertex array
+     * @param[en] col Color (IM_COL32 format)
      */
-    public func addConvexPolyFilled(points: CPointer<ImVec2>, numPoints: Int32, col: UInt32): Unit {
-        ImDrawList_AddConvexPolyFilled_cj(this._dl, points, numPoints, col)
+    public func addConvexPolyFilled(points: PtrArray<ImVec2>, col: UInt32): Unit {
+        if (points.size() == 0) { return }
+        ImDrawList_AddConvexPolyFilled_cj(this._dl, points.data(), Int32(points.size()), col)
     }
 
     /**
      * @brief[zh-cn] 绘制凹多边形填充
+     * @param[zh-cn] points 顶点数组
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Draws a concave polygon fill
+     * @param[en] points Vertex array
+     * @param[en] col Color (IM_COL32 format)
      */
-    public func addConcavePolyFilled(points: CPointer<ImVec2>, numPoints: Int32, col: UInt32): Unit {
-        ImDrawList_AddConcavePolyFilled_cj(this._dl, points, numPoints, col)
+    public func addConcavePolyFilled(points: PtrArray<ImVec2>, col: UInt32): Unit {
+        if (points.size() == 0) { return }
+        ImDrawList_AddConcavePolyFilled_cj(this._dl, points.data(), Int32(points.size()), col)
     }
 
     // ===== 路径扩展 =====
@@ -628,8 +814,10 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 路径画线到点（合并重复点）
+     * @param[zh-cn] p 目标点
      *
      * @brief[en] Path line to point (merges duplicates)
+     * @param[en] p Target point
      */
     public func pathLineToMergeDuplicate(p: Vector2): Unit {
         ImDrawList_PathLineToMergeDuplicate_cj(this._dl, ImVec2(Float32(p.x), Float32(p.y)))
@@ -637,8 +825,10 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 路径填充（凹多边形）
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Path fill (concave polygon)
+     * @param[en] col Color (IM_COL32 format)
      */
     public func pathFillConcave(col: UInt32): Unit {
         ImDrawList_PathFillConcave_cj(this._dl, col)
@@ -646,8 +836,20 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 路径椭圆弧
+     * @param[zh-cn] center 椭圆中心
+     * @param[zh-cn] radius 椭圆半径（x, y 两个方向）
+     * @param[zh-cn] rot 旋转角度（弧度）
+     * @param[zh-cn] aMin 起始角（弧度）
+     * @param[zh-cn] aMax 结束角（弧度）
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
      * @brief[en] Path elliptical arc
+     * @param[en] center Ellipse center
+     * @param[en] radius Ellipse radius (x and y directions)
+     * @param[en] rot Rotation angle (radians)
+     * @param[en] aMin Start angle (radians)
+     * @param[en] aMax End angle (radians)
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func pathEllipticalArcTo(center: Vector2, radius: Vector2, rot: Float32,
                                      aMin: Float32, aMax: Float32, numSegments!: Int32 = 0): Unit {
@@ -657,9 +859,17 @@ public class UiDrawList {
     }
 
     /**
-     * @brief[zh-cn] 路径三次贝塞尔曲线
+     * @brief[zh-cn] 路径三次贝塞尔曲线（从当前点开始）
+     * @param[zh-cn] p2 控制点 2
+     * @param[zh-cn] p3 控制点 3
+     * @param[zh-cn] p4 终点
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
-     * @brief[en] Path cubic Bézier curve
+     * @brief[en] Path cubic Bézier curve (starting from the current point)
+     * @param[en] p2 Control point 2
+     * @param[en] p3 Control point 3
+     * @param[en] p4 End point
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func pathBezierCubicCurveTo(p2: Vector2, p3: Vector2, p4: Vector2, numSegments!: Int32 = 0): Unit {
         ImDrawList_PathBezierCubicCurveTo_cj(this._dl,
@@ -670,9 +880,15 @@ public class UiDrawList {
     }
 
     /**
-     * @brief[zh-cn] 路径二次贝塞尔曲线
+     * @brief[zh-cn] 路径二次贝塞尔曲线（从当前点开始）
+     * @param[zh-cn] p2 控制点 2
+     * @param[zh-cn] p3 终点
+     * @param[zh-cn] numSegments 分段数（0=自动）
      *
-     * @brief[en] Path quadratic Bézier curve
+     * @brief[en] Path quadratic Bézier curve (starting from the current point)
+     * @param[en] p2 Control point 2
+     * @param[en] p3 End point
+     * @param[en] numSegments Segment count (0 = auto)
      */
     public func pathBezierQuadraticCurveTo(p2: Vector2, p3: Vector2, numSegments!: Int32 = 0): Unit {
         ImDrawList_PathBezierQuadraticCurveTo_cj(this._dl,
@@ -683,8 +899,16 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 快速路径圆弧（固定细分，更高效）
+     * @param[zh-cn] center 圆弧中心
+     * @param[zh-cn] radius 半径
+     * @param[zh-cn] aMinOf12 起始角（以 1/12 圆为单位）
+     * @param[zh-cn] aMaxOf12 结束角（以 1/12 圆为单位）
      *
      * @brief[en] Fast path arc (fixed subdivisions, more efficient)
+     * @param[en] center Arc center
+     * @param[en] radius Radius
+     * @param[en] aMinOf12 Start angle (in 1/12 circle units)
+     * @param[en] aMaxOf12 End angle (in 1/12 circle units)
      */
     public func pathArcToFast(center: Vector2, radius: Float32, aMinOf12: Int32, aMaxOf12: Int32): Unit {
         ImDrawList_PathArcToFast_cj(this._dl, ImVec2(Float32(center.x), Float32(center.y)), radius, aMinOf12, aMaxOf12)
@@ -729,11 +953,13 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 压入纹理
+     * @param[zh-cn] texRef 纹理引用指针
      *
      * @brief[en] Pushes a texture
+     * @param[en] texRef Texture reference pointer
      */
-    public func pushTexture(texRef: CPointer<Unit>): Unit {
-        ImDrawList_PushTexture_cj(this._dl, texRef)
+    public func pushTexture(texRef: VoidPtr): Unit {
+        ImDrawList_PushTexture_cj(this._dl, texRef.value)
     }
 
     /**
@@ -763,8 +989,12 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 取消预分配
+     * @param[zh-cn] vtxCount 顶点数
+     * @param[zh-cn] idxCount 索引数
      *
      * @brief[en] Un-reserves pre-allocated buffers
+     * @param[en] vtxCount Vertex count
+     * @param[en] idxCount Index count
      */
     public func primUnreserve(vtxCount: Int32, idxCount: Int32): Unit {
         ImDrawList_PrimUnreserve_cj(this._dl, idxCount, vtxCount)
@@ -774,10 +1004,12 @@ public class UiDrawList {
      * @brief[zh-cn] 添加原始矩形（无 UV 变换，最快）
      * @param[zh-cn] a 左上角
      * @param[zh-cn] c 右下角
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Adds a primitive rectangle (no UV transform, fastest)
      * @param[en] a Top-left corner
      * @param[en] c Bottom-right corner
+     * @param[en] col Color (IM_COL32 format)
      */
     public func primRect(a: Vector2, c: Vector2, col: UInt32): Unit {
         ImDrawList_PrimRect_cj(this._dl,
@@ -790,12 +1022,14 @@ public class UiDrawList {
      * @param[zh-cn] c 右下角
      * @param[zh-cn] uvA UV 左上
      * @param[zh-cn] uvC UV 右下
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Adds a primitive rectangle (with UV)
      * @param[en] a Top-left corner
      * @param[en] c Bottom-right corner
      * @param[en] uvA UV top-left
      * @param[en] uvC UV bottom-right
+     * @param[en] col Color (IM_COL32 format)
      */
     public func primRectUV(a: Vector2, c: Vector2, uvA: ImVec2, uvC: ImVec2, col: UInt32): Unit {
         ImDrawList_PrimRectUV_cj(this._dl,
@@ -805,12 +1039,26 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 添加原始四边形（带 UV）
-     * @param[zh-cn] a,b,c,d 四个顶点
-     * @param[zh-cn] uvA~uvD 对应 UV
+     * @param[zh-cn] a 顶点 A（左上）
+     * @param[zh-cn] b 顶点 B（右上）
+     * @param[zh-cn] c 顶点 C（右下）
+     * @param[zh-cn] d 顶点 D（左下）
+     * @param[zh-cn] uvA 顶点 A 的 UV
+     * @param[zh-cn] uvB 顶点 B 的 UV
+     * @param[zh-cn] uvC 顶点 C 的 UV
+     * @param[zh-cn] uvD 顶点 D 的 UV
+     * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Adds a primitive quad (with UV)
-     * @param[en] a,b,c,d Four vertices
-     * @param[en] uvA~uvD Corresponding UVs
+     * @param[en] a Vertex A (top-left)
+     * @param[en] b Vertex B (top-right)
+     * @param[en] c Vertex C (bottom-right)
+     * @param[en] d Vertex D (bottom-left)
+     * @param[en] uvA UV of vertex A
+     * @param[en] uvB UV of vertex B
+     * @param[en] uvC UV of vertex C
+     * @param[en] uvD UV of vertex D
+     * @param[en] col Color (IM_COL32 format)
      */
     public func primQuadUV(a: Vector2, b: Vector2, c: Vector2, d: Vector2,
                             uvA: ImVec2, uvB: ImVec2, uvC: ImVec2, uvD: ImVec2, col: UInt32): Unit {
@@ -825,10 +1073,12 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 克隆当前 DrawList 输出（绘制数据快照）
+     * @return[zh-cn] 克隆的绘制数据指针
      *
      * @brief[en] Clones the current DrawList output (drawing data snapshot)
+     * @return[en] Pointer to the cloned draw data
      */
-    public func cloneOutput(): CPointer<Unit> {
-        return ImDrawList_CloneOutput_cj(this._dl)
+    public func cloneOutput(): VoidPtr {
+        return Box(ImDrawList_CloneOutput_cj(this._dl))
     }
 }

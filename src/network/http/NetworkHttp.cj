@@ -36,8 +36,8 @@
  * let client = HttpClient(connectTimeoutMs: 3000, readTimeoutMs: 5000)
  * let resp = client.execute(HttpRequest.post(url: "https://...", json: "{\"a\":1}"))
  * // 异步回调
- * client.enqueue(req) { r -> Logger.info(["NetworkHttp", r.bodyString()]) }  // 成功
- * { e -> Logger.error(["NetworkHttp", "失败: " + e]) }    // 失败
+ * client.enqueue(req) { r -> @LogInfo(["NetworkHttp", r.bodyString()]) }  // 成功
+ * { e -> @LogError(["NetworkHttp", "失败: " + e]) }    // 失败
  *
  * @file[en] NetworkHttp  High-level HTTP client wrapper (three.network.http sub-package)
  * @brief[en] Provides three-style HTTP wrappers built on httpclient4cj
@@ -55,8 +55,8 @@
  * let client = HttpClient(connectTimeoutMs: 3000, readTimeoutMs: 5000)
  * let resp = client.execute(HttpRequest.post(url: "https://...", json: "{\"a\":1}"))
  * // asynchronous callback
- * client.enqueue(req) { r -> Logger.info(["NetworkHttp", r.bodyString()]) }  // success
- * { e -> Logger.error(["NetworkHttp", "failure: " + e]) }   // failure
+ * client.enqueue(req) { r -> @LogInfo(["NetworkHttp", r.bodyString()]) }  // success
+ * { e -> @LogError(["NetworkHttp", "failure: " + e]) }   // failure
  *
  * @see[zh-cn] https://gitcode.com/raozj/httpclient4cj
  *

@@ -49,7 +49,7 @@ import three.core.interfaces.*
  * FrameTaskMode.CONSUME,
  * 1,
  * { ctx =>
- * Logger.info(["FrameDispatch", "execute idx=${ctx.idx}, args=${ctx.args}"])
+ * @LogInfo(["FrameDispatch", "execute idx=${ctx.idx}, args=${ctx.args}"])
  * return true
  * },
  * params: params

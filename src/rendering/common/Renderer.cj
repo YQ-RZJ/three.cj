@@ -44,7 +44,8 @@ import three.rendering.materials.*
 import three.rendering.cameras.*
 import three.rendering.textures.*
 import std.collection.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 渲染器抽象基类
@@ -442,17 +443,17 @@ public open class Renderer {
 
         // 收集渲染对象
         this._collectRenderObjects(scene, renderList, camera)
-        Logger.trace(["_render", "frame=${this.info.frame} collected=${renderList.finish().size} overrideMaterial=${match (scene.overrideMaterial) { case Some(_) => "Some" case None => "None" }}"])
+        @LogTrace(["_render", "frame=${this.info.frame} collected=${renderList.finish().size} overrideMaterial=${match (scene.overrideMaterial) { case Some(_) => "Some" case None => "None" }}"])
 
         // 排序并获取渲染项
         let renderItems = renderList.finish()
-        Logger.trace(["_render", "frame=${this.info.frame} renderItems=${renderItems.size}"])
+        @LogTrace(["_render", "frame=${this.info.frame} renderItems=${renderItems.size}"])
 
         // 阴影深度预 pass（对照 Three.js WebGLShadowMap：在主渲染前生成阴影贴图）
         // 子类 backend override prepareShadowMap 实现具体阴影深度 pass；基类默认 no-op。
-        Logger.trace(["_render", "BEFORE prepareShadowMap frame=${this.info.frame}"])
+        @LogTrace(["_render", "BEFORE prepareShadowMap frame=${this.info.frame}"])
         this.backend.prepareShadowMap(scene)
-        Logger.trace(["_render", "AFTER prepareShadowMap frame=${this.info.frame}"])
+        @LogTrace(["_render", "AFTER prepareShadowMap frame=${this.info.frame}"])
 
         
         // 每只眼用各自 viewport（camera2.viewport）渲染一次 renderScene。

@@ -9,11 +9,15 @@ public class UiMenuSeparator <: UiWidget
 ```cj
 public override func draw(): Bool
 ```
+绘制菜单分隔线
 
+返回: 
+
+- 是否发生交互（当前实现恒返回 false）
 
 ### func init\(\)
 ```cj
 public init()
 ```
-
+构造菜单分隔线
 

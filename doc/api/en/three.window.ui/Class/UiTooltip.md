@@ -9,17 +9,21 @@ Tooltip widget (shown on hover)
 ```cj
 public override func draw(): Bool
 ```
+Shows the tooltip content on hover
 
+Return: 
+
+- Always false (no interaction)
 
 ### func init\(\(\)\->Unit\)
 ```cj
 public init(content!:() -> Unit)
 ```
-
+Constructs a tooltip widget
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|content|()->Unit||
+|content|()->Unit|Content closure shown on hover|
 

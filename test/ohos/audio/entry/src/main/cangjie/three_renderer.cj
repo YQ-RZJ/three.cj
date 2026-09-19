@@ -42,6 +42,19 @@ import three.audio.listener.*
 import three.audio.device.*
 import three.audio.source.*
 import three.resource.loader.AudioLoader
+import ohos.hilog.*
+import three.utils.log.Logger
+import three.utils.log.macros.*
+
+// base 项目同款日志域与标签（hdc shell hilog | grep AudioRender 过滤）
+let HILOG_DOMAIN: UInt32 = 0x0001
+let HILOG_TAG: String = "AudioRender"
+
+// Logger 注入的打印函数：(type, message) -> hilog
+// 统一走 Hilog.info + "%{public}s"：hdc shell hilog 过滤 TAG 即可看到全部级别
+func hilogPrint(`type`: String, msg: String): Unit {
+    Hilog.info(HILOG_DOMAIN, HILOG_TAG, "%{public}s", ["[${`type`}] ${msg}"])
+}
 
 // ===== 全局状态 =====
 // WindowEngine 实例：startThreeRender 中创建并绑定 XComponent，
@@ -247,32 +260,41 @@ public class ThreeWindow <: WindowEngine {
 
     // ===== 音频初始化：上下文 → 听者挂相机 → rawfile 加载 → 球体挂音源 =====
     func initAudio(): Unit {
+        @LogInfo("Audio", "initAudio: enter")
         // 1. 初始化音频上下文（全局单例）
         let audioCtx = AudioContext.context
         let audioOk = audioCtx.initialize()
-        if (!audioOk) {
+        if (audioOk) {
+            @LogInfo("Audio", "AudioContext.initialize: ok")
+        } else {
+            @LogError("Audio", "AudioContext.initialize: failed, no audio this session")
             return
         }
         // 2. 创建 AudioListener 并挂载到相机（听者）
         this.listener = AudioListener()
         this.camera.add(this.listener)
+        @LogInfo("Audio", "AudioListener attached to camera")
         // 3. 加载音频文件（rawfile 无真实文件系统路径：经 resourceManager 读字节 →
         //    写入沙箱 filesDir → AudioLoader.load 解码）
         this.sound = PositionalAudio(listener: this.listener)
         var soundOk = false
         match (this.audioContext) {
             case Some(ctx) =>
+                @LogInfo("Audio", "UIAbilityContext available, filesDir=${ctx.filesDir}")
                 try {
                     let rawBytes = ctx.resourceManager.getRawFileContent("sound.mp3")
+                    @LogInfo("Audio", "rawfile sound.mp3: ${rawBytes.size} bytes")
                     let destPath = ctx.filesDir + "/sound.mp3"
                     let file = FileIo.open(destPath, mode: OpenMode.READ_WRITE | OpenMode.CREATE | OpenMode.TRUNC)
                     // Array<UInt8> → Array<Byte>（FileIo.write 接受 Byte 数组，元素可由 UInt8 直接构造）
                     let bytes: Array<Byte> = Array<Byte>(rawBytes.size, { i => rawBytes[i] })
                     let written = FileIo.write(file.fd, bytes)
                     FileIo.close(file)
+                    @LogInfo("Audio", "sandbox write: ${written}/${rawBytes.size} bytes -> ${destPath}")
                     if (written == Int64(rawBytes.size)) {
                         let loader = AudioLoader()
                         let audioBuffer = loader.load(destPath)
+                        @LogInfo("Audio", "AudioLoader.load: buffer ok")
                         this.sound.setBuffer(audioBuffer)
                         this.sound.setLoop(true)
                         this.sound.setRefDistance(1.0)
@@ -281,18 +303,26 @@ public class ThreeWindow <: WindowEngine {
                         this.sound.setDistanceModel(2)  // inverseClamped
                         this.sound.setVolume(1.0)
                         soundOk = true
+                    } else {
+                        @LogError("Audio", "sandbox write incomplete, skip buffer setup")
                     }
                 } catch (e: Exception) {
                     // 音频加载失败：仅渲染，无声音输出
+                    @LogError("Audio", "initAudio exception: ${e.message}")
                 }
-            case None => ()  // 未获取 UIAbilityContext：跳过音频，仅渲染
+            case None =>  // 未获取 UIAbilityContext：跳过音频，仅渲染
+                @LogError("Audio", "audioContext is None: UIAbilityContext not passed from ArkTS, skip audio")
         }
         // 4. 将 PositionalAudio 挂载到球体（球体世界位置自动同步到音频源）
         this.mesh.add(this.sound)
         // 5. 开始播放（球体绕相机旋转，声音随距离变化）
         this.soundOk = soundOk
         if (soundOk) {
+            @LogInfo("Audio", "initAudio: soundOk=true, issuing play()")
             this.sound.play()
+            @LogInfo("Audio", "PositionalAudio.play() issued")
+        } else {
+            @LogError("Audio", "initAudio: soundOk=false, no playback")
         }
     }
 
@@ -354,6 +384,8 @@ public class ThreeWindow <: WindowEngine {
 // context：ArkTS 传入的 UIAbilityContext，用于读取 rawfile 音频（为 None 时仅渲染）。
 
 public func startThreeRender(context: Option<UIAbilityContext>): Bool {
+    Logger.setConsoleFunction(Some(hilogPrint))
+
     if (g_renderRunning.load()) {
         return true
     }

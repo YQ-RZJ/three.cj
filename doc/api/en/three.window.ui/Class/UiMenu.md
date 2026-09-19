@@ -9,19 +9,23 @@ Drop-down menu widget
 ```cj
 public override func draw(): Bool
 ```
+Draws the drop-down menu
 
+Return: 
+
+- Whether interaction occurred (always false in this implementation)
 
 ### func init\(String,Bool,\(\)\->Unit\)
 ```cj
 public init(label!: String, enabled!: Bool = true, content!:() -> Unit)
 ```
-
+Constructs a drop-down menu
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|label|String||
-|enabled|Bool||
-|content|()->Unit||
+|label|String|Menu label|
+|enabled|Bool|Whether enabled (default true)|
+|content|()->Unit|Child content drawing closure|
 

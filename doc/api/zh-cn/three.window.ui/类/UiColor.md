@@ -11,11 +11,19 @@ public func a(): Float32
 ```
 获取 A 分量
 
+返回: 
+
+- 透明度分量
+
 ### func b\(\)
 ```cj
 public func b(): Float32
 ```
 获取 B 分量
+
+返回: 
+
+- 蓝色分量
 
 ### func fromHSV\(Float32,Float32,Float32,Float32\)
 ```cj
@@ -27,10 +35,14 @@ public static func fromHSV(h: Float32, s: Float32, v: Float32, a!: Float32 = 1.0
 
 |名称|类型|描述|
 |---|---|---|
-|h|Float32||
-|s|Float32||
-|v|Float32||
-|a|Float32||
+|h|Float32|色相（0~360）|
+|s|Float32|饱和度（0~1）|
+|v|Float32|明度（0~1）|
+|a|Float32|透明度分量，默认 1.0|
+
+返回: 
+
+- 颜色对象
 
 ### func fromRGBA\(Float32,Float32,Float32,Float32\)
 ```cj
@@ -42,10 +54,14 @@ public static func fromRGBA(r: Float32, g: Float32, b: Float32, a: Float32): UiC
 
 |名称|类型|描述|
 |---|---|---|
-|r|Float32||
-|g|Float32||
-|b|Float32||
-|a|Float32||
+|r|Float32|红色分量|
+|g|Float32|绿色分量|
+|b|Float32|蓝色分量|
+|a|Float32|透明度分量|
+
+返回: 
+
+- 颜色对象
 
 ### func fromU32\(UInt32\)
 ```cj
@@ -57,7 +73,11 @@ public static func fromU32(col: UInt32): UiColor
 
 |名称|类型|描述|
 |---|---|---|
-|col|UInt32||
+|col|UInt32|ImU32 打包颜色值|
+
+返回: 
+
+- 颜色对象
 
 ### func g\(\)
 ```cj
@@ -65,29 +85,41 @@ public func g(): Float32
 ```
 获取 G 分量
 
+返回: 
+
+- 绿色分量
+
 ### func getVec4\(\)
 ```cj
 public func getVec4(): ImVec4
 ```
 获取底层 ImVec4
 
+返回: 
+
+- 底层 ImVec4 颜色值
+
 ### func init\(ImVec4\)
 ```cj
 public init(col: ImVec4)
 ```
-
+以 ImVec4 颜色值构造
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|col|ImVec4||
+|col|ImVec4|ImVec4 颜色值（RGBA，分量范围 [0, 1]）|
 
 ### func r\(\)
 ```cj
 public func r(): Float32
 ```
 获取 R 分量
+
+返回: 
+
+- 红色分量
 
 ### func setHSV\(Float32,Float32,Float32\)
 ```cj
@@ -99,13 +131,17 @@ public func setHSV(h: Float32, s: Float32, v: Float32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|h|Float32||
-|s|Float32||
-|v|Float32||
+|h|Float32|色相（0~360）|
+|s|Float32|饱和度（0~1）|
+|v|Float32|明度（0~1）|
 
 ### func toU32\(\)
 ```cj
 public func toU32(): UInt32
 ```
 转换为 ImU32
+
+返回: 
+
+- ImU32 打包颜色值
 

@@ -18,8 +18,8 @@ import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
 
@@ -136,7 +136,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Info)
     println("=== Skeletal Animation Test ===")
 
     let win = TestWindow()

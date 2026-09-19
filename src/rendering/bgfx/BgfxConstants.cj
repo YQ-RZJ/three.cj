@@ -534,7 +534,9 @@ public class BgfxConstants {
      *
      * @brief[en] Depth texture format
      */
-    public static let TEXTURE_FORMAT_DEPTH: UInt32 = bgfx.TextureFormat.D24.value()
+    // 统一使用 D24S8：新版 bgfx D3D11 后端中 D24 无 DSV 格式，不能作为 frame buffer
+    // 深度附件（创建出的 FB 为 INVALID）；D24S8 在各后端均可渲染、可比较采样。
+    public static let TEXTURE_FORMAT_DEPTH: UInt32 = bgfx.TextureFormat.D24S8.value()
     /**
      * @brief[zh-cn] 深度模板纹理格式
      *

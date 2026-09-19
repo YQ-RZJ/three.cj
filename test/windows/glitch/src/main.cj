@@ -30,8 +30,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.GlitchPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -189,7 +189,7 @@ public class TestWindow <: WindowEngine {
             case Some(glitchPass) =>
                 if (glitchPass.goWild != g_goWild) {
                     glitchPass.goWild = g_goWild
-                    Logger.debug(["glitch", "goWild synced: " + g_goWild.toString()])
+                    @LogDebug(["glitch", "goWild synced: " + g_goWild.toString()])
                 }
                 // R 键重置：清零 curF 并重新生成触发器
                 if (g_resetGlitch) {
@@ -251,7 +251,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== glitch：GlitchPass 数字故障后处理 ===")
     println("")
 

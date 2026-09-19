@@ -34,7 +34,8 @@ package three.rendering.bgfx
 import std.collection.*
 import bgfx4cj.bgfx.*
 import three.rendering.lights.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 
 /**
@@ -288,21 +289,21 @@ public class BgfxShadowMap {
      * @return[en] Shadow map information
      */
     public func getShadowMap(lightId: Int64, width: Int64, height: Int64, isCube!: Bool = false): ShadowMapInfo {
-        Logger.debug(["shadowMap", "getShadowMap lightId=${lightId} w=${width} h=${height} isCube=${isCube}"])
+        @LogDebug(["shadowMap", "getShadowMap lightId=${lightId} w=${width} h=${height} isCube=${isCube}"])
         match (shadowMaps.get(lightId)) {
             case Some(shadowMap) =>
-                Logger.debug(["shadowMap", "cache hit, w=${shadowMap.width} h=${shadowMap.height} type=${shadowMap.shadowType}"])
+                @LogDebug(["shadowMap", "cache hit, w=${shadowMap.width} h=${shadowMap.height} type=${shadowMap.shadowType}"])
                 // 如果尺寸或类型变化，需要重新创建
                 if (shadowMap.width != width || shadowMap.height != height ||
                     shadowMap.shadowType != this.shadowType || shadowMap.isCube != isCube) {
-                    Logger.debug(["shadowMap", "cache invalid, recreating"])
+                    @LogDebug(["shadowMap", "cache invalid, recreating"])
                     destroyShadowMap(lightId)
                     return createShadowMap(lightId, width, height, isCube)
                 }
-                Logger.debug(["shadowMap", "returning cached, fb.idx=${shadowMap.frameBuffer.idx}"])
+                @LogDebug(["shadowMap", "returning cached, fb.idx=${shadowMap.frameBuffer.idx}"])
                 return shadowMap
             case None =>
-                Logger.debug(["shadowMap", "cache miss, creating new"])
+                @LogDebug(["shadowMap", "cache miss, creating new"])
                 return createShadowMap(lightId, width, height, isCube)
         }
     }
@@ -325,7 +326,7 @@ public class BgfxShadowMap {
      * @return[en] Shadow map information
      */
     private func createShadowMap(lightId: Int64, width: Int64, height: Int64, isCube: Bool): ShadowMapInfo {
-        Logger.debug(["shadowMap", "createShadowMap ENTRY lightId=${lightId} w=${width} h=${height} isCube=${isCube} type=${this.shadowType}"])
+        @LogDebug(["shadowMap", "createShadowMap ENTRY lightId=${lightId} w=${width} h=${height} isCube=${isCube} type=${this.shadowType}"])
         let shadowMap = ShadowMapInfo()
         shadowMap.width = width
         shadowMap.height = height
@@ -385,7 +386,8 @@ public class BgfxShadowMap {
                 1u8, finalHandlesHolder.get(), false)
             finalHandlesHolder.dispose()
         } else {
-            // Basic/PCF 模式：D24/D24S8 深度纹理
+            // Basic/PCF 模式：D24S8 深度纹理（cube/2D 统一；新版 bgfx D3D11 下 D24 无 DSV，
+            // 作为深度附件创建 FB 会失败 → 方向光阴影整体消失）
             // PCF 模式下，HLSL 使用 sampler2DShadow 配合 LinearFilter（硬件 PCF）
             // Basic 模式下，HLSL 使用 sampler2D 配合 NearestFilter（直接深度比较）
             let depthTex: TextureHandle
@@ -398,7 +400,7 @@ public class BgfxShadowMap {
                     fmt, cubeFlags, CPointer<Memory>()
                 )
             } else {
-                let fmt = TextureFormat.D24.value()
+                let fmt = TextureFormat.D24S8.value()
                 // bgfx4cj: 必须加 SAMPLER_COMPARE_LEQUAL 启用硬件深度比较，否则 shadow2D 永远返回 0
                 let texFlags = TEXTURE_RT | UInt64(SAMPLER_COMPARE_LEQUAL) | UInt64(SAMPLER_U_CLAMP) | UInt64(SAMPLER_V_CLAMP)
                 depthTex = bgfx_create_texture_2d_cj(
@@ -415,9 +417,9 @@ public class BgfxShadowMap {
                     let atHolder = AutoFreePtr<Attachment>(unsafe { LibC.malloc<Attachment>(count: 1i64) })
                     let at = atHolder.get()
                     bgfx_attachment_init_cj(at, depthTex, 0u32 /*Write (BGFX_ACCESS_WRITE=0)*/,
-                        UInt16(faceIdx), 1u16, 0u16, 0u8)
+                        UInt16(faceIdx), 1u16, 0u16, flags: ATTACHMENT_NONE)
                     let faceFb = bgfx_create_frame_buffer_from_attachment_cj(1u8, at, false)
-                    Logger.debug(["shadowMap", "cube face ${faceIdx} fb.idx=${faceFb.idx}"])
+                    @LogDebug(["shadowMap", "cube face ${faceIdx} fb.idx=${faceFb.idx}"])
                     atHolder.dispose()
                     shadowMap.faceFrameBuffers.add(faceFb)
                 }
@@ -446,7 +448,7 @@ public class BgfxShadowMap {
      * @param[en] lightId Light ID
      */
     public func destroyShadowMap(lightId: Int64): Unit {
-        Logger.debug(["shadowMap", "destroyShadowMap lightId=${lightId}"])
+        @LogDebug(["shadowMap", "destroyShadowMap lightId=${lightId}"])
         match (shadowMaps.get(lightId)) {
             case Some(shadowMap) =>
                 // 清理 cube face framebuffers（每个 face 独立的 fb）

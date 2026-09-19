@@ -49,7 +49,8 @@ import std.collection.*
 import std.math.*
 import three.core.math.*
 import three.resource.loader.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] glTF → 离线骨骼/动画数据适配器（全部为静态方法）
@@ -89,10 +90,10 @@ public class GltfImportAdapter {
                 case Some(node) =>
                     GltfImportAdapter.applyNodeLocalTransform(node, joint)
                     if (i == 2 || i == 10 || i == 16) {
-                        Logger.debug(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} parent=${parentIdx} t=[${joint.localTranslation.x},${joint.localTranslation.y},${joint.localTranslation.z}]"])
+                        @LogDebug(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} parent=${parentIdx} t=[${joint.localTranslation.x},${joint.localTranslation.y},${joint.localTranslation.z}]"])
                     }
                 case None =>
-                    Logger.warn(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} getNode=None!"])
+                    @LogWarn(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} getNode=None!"])
             }
         }
 

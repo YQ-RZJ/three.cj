@@ -51,7 +51,8 @@ import three.core.math.*
 import three.rendering.buffer.*
 import three.rendering.interfaces.*
 import three.core.interfaces.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.core.interfaces.ILoadResult
 import std.math.*
 import std.collection.*
@@ -672,7 +673,7 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
                     positionAttribute.setXYZ(i, point.x, point.y, point.z)
                 }
                 if (points.size > positionAttribute.count) {
-                    Logger.warn(["BufferGeometry", "Buffer size too small for points data. Use .dispose() and create a new geometry."])
+                    @LogWarn(["BufferGeometry", "Buffer size too small for points data. Use .dispose() and create a new geometry."])
                 }
                 positionAttribute.markNeedsUpdate()
             }

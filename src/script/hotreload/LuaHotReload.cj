@@ -50,7 +50,8 @@ package three.script.hotreload
 import std.fs.{File, Path as FsPath}
 import std.collection.*
 import three.script.vm.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] Lua 脚本热更新器
@@ -219,7 +220,7 @@ public class LuaHotReload {
             ok = true
         } catch (e: LuaError) {
             // 脚本错误：保留旧脚本继续运行
-            Logger.error(["LuaHotReload", "脚本重新加载失败: " + e.message])
+            @LogError(["LuaHotReload", "脚本重新加载失败: " + e.message])
             ok = false
         } catch (_) {
             ok = false

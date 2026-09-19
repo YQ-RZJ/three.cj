@@ -57,7 +57,8 @@ import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 
 /**
@@ -128,7 +129,7 @@ public class FilmPass <: Pass {
      */
     public override func setSize(width: Int64, height: Int64): Unit {
         // FilmPass 无内部 RT，无需重建资源
-        Logger.trace(["film", "setSize: " + width.toString() + "x" + height.toString() +
+        @LogTrace(["film", "setSize: " + width.toString() + "x" + height.toString() +
                       " (no internal RT)"])
     }
 
@@ -142,12 +143,12 @@ public class FilmPass <: Pass {
                     sp.compileBgfx()
                     this._filmProg = Some(Box(sp.programHandle))
                     this._filmCompiled = true
-                    Logger.trace(["film", "film shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["film", "film shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._filmProg
             case None =>
-                Logger.trace(["film", "film shader not registered"])
+                @LogTrace(["film", "film shader not registered"])
                 return None
         }
     }
@@ -195,7 +196,7 @@ public class FilmPass <: Pass {
 
         match (this._compileFilm()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) { return }
+                if (!Handle.isValid(prog)) { return }
 
                 let uniforms = BgfxUniforms()
 
@@ -229,7 +230,7 @@ public class FilmPass <: Pass {
                 // 时间累加（驱动下一帧 rand 噪声动态变化）
                 this.time += deltaTime
 
-                Logger.trace(["film", "pass: view=" + viewId.toString() +
+                @LogTrace(["film", "pass: view=" + viewId.toString() +
                               " intensity=" + this.intensity.toString() +
                               " grayscale=" + this.grayscale.toString() +
                               " time=" + this.time.toString()])
@@ -246,6 +247,6 @@ public class FilmPass <: Pass {
      *         the full-screen quad is managed as a singleton by EffectComposer.
      */
     public override func dispose(): Unit {
-        Logger.trace(["film", "disposed"])
+        @LogTrace(["film", "disposed"])
     }
 }

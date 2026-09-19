@@ -44,6 +44,7 @@ import three.core.thread.{ Mutex, Condition, SThread }
 import imgui4cj.imgui.*
 import bgfx4cj.bgfx.*
 import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] UI 上下文——管理 ImGui 生命周期与渲染
@@ -141,20 +142,20 @@ public class UiContext {
      */
     internal func initialize(engine: WindowEngine, execBgfx: (() -> Unit) -> Unit) {
         if (this._initialized) { return }
-        Logger.info(["UiContext.initialize: start"])
+        @LogInfo(["UiContext.initialize: start"])
         this._engine = Some(engine)
         this._execBgfx = Some(execBgfx)
         // 创建 ImGui 上下文（泵线程）
-        Logger.info(["UiContext.initialize: creating ImGui context"])
+        @LogInfo(["UiContext.initialize: creating ImGui context"])
         this._ctx = ImGui_CreateContext_cj(CPointer<Unit>())
         if (this._ctx.isNull()) {
-            Logger.error(["UiContext.initialize: igCreateContext FAILED"])
+            @LogError(["UiContext.initialize: igCreateContext FAILED"])
             return
         }
         // 记录全局活跃上下文（供 SDL 线程事件转发）
         _currentCtx = this._ctx
         // 设置当前上下文到泵线程
-        Logger.info(["UiContext.initialize: set current context"])
+        @LogInfo(["UiContext.initialize: set current context"])
         ImGui_SetCurrentContext_cj(this._ctx)
         // 暗色主题（需当前上下文）
         igStyleColorsDark_cj(CPointer<Unit>())
@@ -163,31 +164,31 @@ public class UiContext {
         let win = engine.getSDLWindow()
 
         // SDL3 后端初始化：必须在 SDL 系统线程执行（SDL 视频子系统 API 约束）
-        Logger.info(["UiContext.initialize: init SDL3 backend (SDL thread)"])
+        @LogInfo(["UiContext.initialize: init SDL3 backend (SDL thread)"])
         let sdlOkBox = Box(false)
         SDLDispatcher.execSDL({ =>
             ImGui_SetCurrentContext_cj(ctxPtr)
             sdlOkBox.value = ImGui_ImplSDL3_InitForOther_cj(win)
         })
         if (!sdlOkBox.value) {
-            Logger.error(["UiContext.initialize: ImGui_ImplSDL3_InitForOther FAILED"])
+            @LogError(["UiContext.initialize: ImGui_ImplSDL3_InitForOther FAILED"])
         }
 
         // bgfx 后端初始化：必须在 bgfx 渲染线程执行（startingViewId=1，view 0 保留给场景）
-        Logger.info(["UiContext.initialize: init bgfx backend (bgfx thread)"])
+        @LogInfo(["UiContext.initialize: init bgfx backend (bgfx thread)"])
         let bgfxOkBox = Box(false)
         execBgfx({ =>
             ImGui_SetCurrentContext_cj(ctxPtr)
             bgfxOkBox.value = ImGui_Implbgfx_Init_cj(true, 1)
         })
         if (!bgfxOkBox.value) {
-            Logger.error(["UiContext.initialize: ImGui_Implbgfx_Init FAILED"])
+            @LogError(["UiContext.initialize: ImGui_Implbgfx_Init FAILED"])
         }
 
         // 恢复泵线程的当前上下文（spawn 可能在 execSDL/execBgfx 期间迁移）
         ImGui_SetCurrentContext_cj(this._ctx)
         this._initialized = true
-        Logger.info(["UiContext: initialized (ctx=ok)"])
+        @LogInfo(["UiContext: initialized (ctx=ok)"])
     }
 
     /**
@@ -225,7 +226,7 @@ public class UiContext {
         this._initialized = false
         this._engine = None
         this._execBgfx = None
-        Logger.info(["UiContext: shut down"])
+        @LogInfo(["UiContext: shut down"])
     }
 
     /**
@@ -260,7 +261,7 @@ public class UiContext {
     internal func newFrame(dt: Float64, width: Int32, height: Int32): Unit {
         if (!this._initialized) { return }
         if (this._inFrame) {
-            Logger.error(["UiContext.newFrame: already in NewFrame"])
+            @LogError(["UiContext.newFrame: already in NewFrame"])
             return
         }
         this._inFrame = true
@@ -290,7 +291,7 @@ public class UiContext {
     internal func render(viewW: Int32, viewH: Int32): Unit {
         if (!this._initialized) { return }
         if (!this._inFrame) {
-            Logger.error(["UiContext.render: called outside NewFrame/Render cycle"])
+            @LogError(["UiContext.render: called outside NewFrame/Render cycle"])
             return
         }
         // 在 bgfx 渲染线程上设置当前上下文（ImGui 上下文通过 TLS 存储）

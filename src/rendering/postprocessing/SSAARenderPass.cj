@@ -98,7 +98,8 @@ import three.rendering.cameras.*
 import three.scene.scenegraph.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
 
@@ -271,7 +272,7 @@ public open class SSAARenderPass <: Pass {
                 let rtFlags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
 
                 this._sampleTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA16F.value(), rtFlags, None)
-                this._sampleDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24.value(), rtFlags, None)
+                this._sampleDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), rtFlags, None)
 
                 let handles = Array<TextureHandle>(2, { i => if (i == 0) { this._sampleTex } else { this._sampleDepthTex } })
                 this._sampleFB = renderer.createFrameBuffer(2u8, handles, true)
@@ -279,7 +280,7 @@ public open class SSAARenderPass <: Pass {
                 this._rtsCreated = true
             case None => ()
         }
-        Logger.trace(["SSAARenderPass", "_createRTs done ${this._width}x${this._height} sampleFB.idx=${handleIdx(this._sampleFB)}"])
+        @LogTrace(["SSAARenderPass", "_createRTs done ${this._width}x${this._height} sampleFB.idx=${Handle.idx(this._sampleFB)}"])
     }
 
     /**
@@ -291,15 +292,15 @@ public open class SSAARenderPass <: Pass {
         }
         match (this._renderer) {
             case Some(renderer) =>
-                if (isValidHandle(this._sampleFB)) {
+                if (Handle.isValid(this._sampleFB)) {
                     renderer.destroyFrameBuffer(this._sampleFB)
                     this._sampleFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                if (isValidHandle(this._sampleTex)) {
+                if (Handle.isValid(this._sampleTex)) {
                     renderer.destroyTexture(this._sampleTex)
                     this._sampleTex = INVALID_TEXTURE_HANDLE
                 }
-                if (isValidHandle(this._sampleDepthTex)) {
+                if (Handle.isValid(this._sampleDepthTex)) {
                     renderer.destroyTexture(this._sampleDepthTex)
                     this._sampleDepthTex = INVALID_TEXTURE_HANDLE
                 }
@@ -333,7 +334,7 @@ public open class SSAARenderPass <: Pass {
         this._ensureCompiled()
         match (this._copyProg) {
             case Some(copyProg) =>
-                if (!isValidHandle(copyProg)) { return }
+                if (!Handle.isValid(copyProg)) { return }
                 this._renderSSAA(renderer, writeBuffer, copyProg)
             case None => ()
         }
@@ -507,7 +508,7 @@ public open class SSAARenderPass <: Pass {
             case Some(sp) =>
                 sp.compileBgfx()
                 this._copyProg = Some(Box(sp.programHandle))
-            case None => Logger.warn(["SSAARenderPass", "shader copy not found"])
+            case None => @LogWarn(["SSAARenderPass", "shader copy not found"])
         }
     }
 }

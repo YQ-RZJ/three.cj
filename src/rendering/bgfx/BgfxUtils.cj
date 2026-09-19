@@ -75,7 +75,8 @@ public class BgfxUtils {
         if (format == RGBFormat) { return Some(TextureFormat.RGB9E5F.value()) }
         if (format == RedFormat) { return Some(TextureFormat.R8.value()) }
         if (format == RGFormat) { return Some(TextureFormat.RG8.value()) }
-        if (format == DepthFormat) { return Some(TextureFormat.D24.value()) }
+        // D24S8 而非 D24：新版 bgfx D3D11 后端中 D24 无 DSV 格式，DepthFormat 纹理常作为 RT 深度附件
+        if (format == DepthFormat) { return Some(TextureFormat.D24S8.value()) }
         if (format == DepthStencilFormat) { return Some(TextureFormat.D24S8.value()) }
         if (format == AlphaFormat) { return Some(TextureFormat.A8.value()) }
         if (format == RedIntegerFormat) { return Some(TextureFormat.R32I.value()) }

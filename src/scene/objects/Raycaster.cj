@@ -34,7 +34,8 @@
 package three.scene.objects
 
 import three.core.math.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import std.sort.*
 
@@ -349,7 +350,7 @@ public class Raycaster {
             this.camera = Some(camera)
         } else {
             // 不支持的相机类型
-            Logger.warn(["Raycaster", "Unsupported camera type: " + camera.kind])
+            @LogWarn(["Raycaster", "Unsupported camera type: " + camera.kind])
         }
     }
 

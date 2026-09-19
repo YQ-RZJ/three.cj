@@ -102,7 +102,8 @@ import three.rendering.bgfx.BgfxUniforms
 import three.rendering.common.RenderObject
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.scene.scenegraph.Scene
 import three.rendering.cameras.Camera
 import three.scene.entity.Mesh
@@ -231,7 +232,7 @@ public class BokehPass <: Pass {
         this.maxblur = maxblur
         // needsSwap=true（pass 后 composer 交换 buffer）
         this.needsSwap = true
-        Logger.trace(["bokeh", "BokehPass constructed: focus=" + focus.toString() +
+        @LogTrace(["bokeh", "BokehPass constructed: focus=" + focus.toString() +
                       " aperture=" + aperture.toString() +
                       " maxblur=" + maxblur.toString() +
                       " cameraNear=" + camera.near.toString() +
@@ -252,7 +253,7 @@ public class BokehPass <: Pass {
             this._destroyRTs()
             this._width = width
             this._height = height
-            Logger.trace(["bokeh", "setSize: " + width.toString() + "x" + height.toString() +
+            @LogTrace(["bokeh", "setSize: " + width.toString() + "x" + height.toString() +
                           " (depth RT will be recreated on next render)"])
         }
     }
@@ -265,9 +266,9 @@ public class BokehPass <: Pass {
      */
     private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
-        if (isValidHandle(this._depthTex)) { return }
+        if (Handle.isValid(this._depthTex)) { return }
 
-        Logger.trace(["bokeh", "_ensureRTs: creating depth RT ${this._width}x${this._height}"])
+        @LogTrace(["bokeh", "_ensureRTs: creating depth RT ${this._width}x${this._height}"])
 
         let depthTex = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
@@ -277,12 +278,12 @@ public class BokehPass <: Pass {
         this._depthTex = depthTex
         let depthDepthTex = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
             None)
         this._depthDepthTex = depthDepthTex
         this._depthFB = this._createFBWithDepth(renderer, depthTex, depthDepthTex)
-        Logger.trace(["bokeh", "  depthFB created: depthTex=${handleIdx(depthTex)} depthDepthTex=${handleIdx(depthDepthTex)}"])
+        @LogTrace(["bokeh", "  depthFB created: depthTex=${Handle.idx(depthTex)} depthDepthTex=${Handle.idx(depthDepthTex)}"])
     }
 
     /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
@@ -299,9 +300,9 @@ public class BokehPass <: Pass {
         let depthDepthTex = this._depthDepthTex
         match (this._renderer) {
             case Some(renderer) =>
-                if (isValidHandle(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (isValidHandle(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (isValidHandle(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
             case None => ()
         }
         this._depthFB = INVALID_FRAME_BUFFER_HANDLE
@@ -475,12 +476,12 @@ public class BokehPass <: Pass {
                     sp.compileBgfx()
                     this._depthProg = Some(Box(sp.programHandle))
                     this._depthCompiled = true
-                    Logger.trace(["bokeh", "bokeh_depth shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["bokeh", "bokeh_depth shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._depthProg
             case None =>
-                Logger.trace(["bokeh", "bokeh_depth shader not registered"])
+                @LogTrace(["bokeh", "bokeh_depth shader not registered"])
                 return None
         }
     }
@@ -496,12 +497,12 @@ public class BokehPass <: Pass {
                     sp.compileBgfx()
                     this._bokehProg = Some(Box(sp.programHandle))
                     this._bokehCompiled = true
-                    Logger.trace(["bokeh", "bokeh shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["bokeh", "bokeh shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._bokehProg
             case None =>
-                Logger.trace(["bokeh", "bokeh shader not registered"])
+                @LogTrace(["bokeh", "bokeh shader not registered"])
                 return None
         }
     }
@@ -556,8 +557,8 @@ public class BokehPass <: Pass {
             case Some(scene) => match (camOpt) {
                 case Some(camera) =>
                     this._ensureRTs(renderer)
-                    if (!isValidHandle(this._depthFB)) {
-                        Logger.trace(["bokeh", "render: _ensureRTs failed, depthFB invalid"])
+                    if (!Handle.isValid(this._depthFB)) {
+                        @LogTrace(["bokeh", "render: _ensureRTs failed, depthFB invalid"])
                         return
                     }
 
@@ -571,10 +572,10 @@ public class BokehPass <: Pass {
                     this._renderBokeh(renderer, camera, readBuffer, writeBuffer,
                                       UInt16(UInt16(baseView) + 1u16))
 
-                    Logger.trace(["bokeh", "render done: focus=" + this.focus.toString() +
+                    @LogTrace(["bokeh", "render done: focus=" + this.focus.toString() +
                                   " aperture=" + this.aperture.toString() +
                                   " maxblur=" + this.maxblur.toString() +
-                                  " depthFB=${handleIdx(this._depthFB)} readBuffer=${handleIdx(readBuffer)}"])
+                                  " depthFB=${Handle.idx(this._depthFB)} readBuffer=${Handle.idx(readBuffer)}"])
                 case None => ()
             }
             case None => ()
@@ -594,8 +595,8 @@ public class BokehPass <: Pass {
 
         match (this._compileDepth()) {
             case Some(depthProg) =>
-                if (!isValidHandle(depthProg)) {
-                    Logger.trace(["bokeh", "depth pass: bokeh_depth program compile FAILED"])
+                if (!Handle.isValid(depthProg)) {
+                    @LogTrace(["bokeh", "depth pass: bokeh_depth program compile FAILED"])
                     return
                 }
 
@@ -605,14 +606,14 @@ public class BokehPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -622,8 +623,8 @@ public class BokehPass <: Pass {
                     renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
                     submitCnt += 1
                 }
-                Logger.trace(["bokeh", "depth pass done: prog=${handleIdx(depthProg)} submitCnt=${submitCnt}"])
-            case None => Logger.trace(["bokeh", "depth pass: bokeh_depth shader NOT registered"])
+                @LogTrace(["bokeh", "depth pass done: prog=${Handle.idx(depthProg)} submitCnt=${submitCnt}"])
+            case None => @LogTrace(["bokeh", "depth pass: bokeh_depth shader NOT registered"])
         }
     }
 
@@ -653,8 +654,8 @@ public class BokehPass <: Pass {
 
         match (this._compileBokeh()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["bokeh", "bokeh pass: bokeh program compile FAILED"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["bokeh", "bokeh pass: bokeh program compile FAILED"])
                     return
                 }
 
@@ -684,7 +685,7 @@ public class BokehPass <: Pass {
                 // 全屏 quad submit（覆盖写 state）
                 this.submitQuad(viewId, prog)
 
-                Logger.trace(["bokeh", "bokeh pass: view=" + viewId.toString() +
+                @LogTrace(["bokeh", "bokeh pass: view=" + viewId.toString() +
                               " focus=" + this.focus.toString() +
                               " aspect=" + aspect.toString() +
                               " aperture=" + this.aperture.toString() +
@@ -693,7 +694,7 @@ public class BokehPass <: Pass {
                               " farClip=" + camera.far.toString() +
                               " tSize=" + this._width.toString() + "x" + this._height.toString()])
             case None =>
-                Logger.trace(["bokeh", "bokeh pass: bokeh shader compile failed, skip pass"])
+                @LogTrace(["bokeh", "bokeh pass: bokeh shader compile failed, skip pass"])
         }
     }
 
@@ -715,6 +716,6 @@ public class BokehPass <: Pass {
                 }
             case None => ()
         }
-        Logger.trace(["bokeh", "disposed"])
+        @LogTrace(["bokeh", "disposed"])
     }
 }

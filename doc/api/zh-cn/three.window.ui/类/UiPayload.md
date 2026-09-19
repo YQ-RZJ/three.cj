@@ -17,17 +17,17 @@ public static func getCurrentPayload(): UiPayload
 ```
 获取当前活跃的拖放载荷（在 BeginDragDropTarget/EndDragDropTarget 内调用）
 
-### func init\(CPointer<Unit>\)
+### func init\(VoidPtr\)
 ```cj
-public init(payloadPtr: CPointer < Unit >)
+public init(payloadPtr: VoidPtr)
 ```
-
+使用底层载荷指针构造包装器
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|payloadPtr|CPointer<Unit>||
+|payloadPtr|VoidPtr|底层 ImGuiPayload 指针|
 
 ### func isDataType\(String\)
 ```cj

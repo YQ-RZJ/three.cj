@@ -37,7 +37,8 @@
  */
 package three.rendering.xr
 
-import bgfx4cj.bgfx.*
+import three.rendering.types.{ TextureHandle, Handle }
+import bgfx4cj.bgfx as bgfx
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -139,7 +140,7 @@ public class XRDepthSensing {
     private var _available: Bool = false
 
     public init() {
-        this._texture = TextureHandle()
+        this._texture = Box(bgfx.TextureHandle())
         this._mesh = None
     }
 
@@ -181,7 +182,7 @@ public class XRDepthSensing {
      * @return[en] Depth visualization mesh (lazily created on first call, cached subsequently)
      */
     public func getMesh(): Option<Mesh> {
-        if (_texture.idx != 0xFFFFu16) {
+        if (Handle.isValid(_texture)) {
             match (_mesh) {
                 case None =>
                     let uniforms = HashMap<String, Any>()
@@ -249,14 +250,14 @@ public class XRDepthSensing {
      * @brief[en] Dispose resources
      */
     public func dispose(): Unit {
-        if (_texture.idx != 0xFFFFu16) {
+        if (Handle.isValid(_texture)) {
             bgfxCallMtx.lock()
             try {
-                bgfx_destroy_texture_cj(_texture)
+                bgfx.bgfx_destroy_texture_cj(_texture.value)
             } finally {
                 bgfxCallMtx.unlock()
             }
-            _texture = TextureHandle()
+            _texture = Box(bgfx.TextureHandle())
         }
         _mesh = None
         _available = false

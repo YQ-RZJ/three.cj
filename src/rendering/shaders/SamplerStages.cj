@@ -64,7 +64,8 @@
  */
 package three.rendering.shaders
 
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 全局 sampler stage 分配器
@@ -260,10 +261,10 @@ public class SamplerStages {
     public static func validate(numDir!: Int64 = 0, numSpot!: Int64 = 0, numPoint!: Int64 = 0): Bool {
         let dynEnd = SamplerStages.dynamicShadowEnd(numDir, numSpot, numPoint)
         if (dynEnd > SamplerStages.STAGE_FIXED_BASE) {
-            Logger.error(["stage", "dynamic shadow segment [0, ${dynEnd}) overflows into fixed segment base=${SamplerStages.STAGE_FIXED_BASE} (numDir=${numDir} numSpot=${numSpot} numPoint=${numPoint})"])
+            @LogError(["stage", "dynamic shadow segment [0, ${dynEnd}) overflows into fixed segment base=${SamplerStages.STAGE_FIXED_BASE} (numDir=${numDir} numSpot=${numSpot} numPoint=${numPoint})"])
             return false
         }
-        Logger.debug(["stage", "stage allocation OK: dynamic shadow[0..${dynEnd}), fixed mat[${SamplerStages.STAGE_FIXED_BASE}..${SamplerStages.STAGE_ENV_MAP}), envMap=${SamplerStages.STAGE_ENV_MAP}, dfgLUT=${SamplerStages.STAGE_DFGLUT}"])
+        @LogDebug(["stage", "stage allocation OK: dynamic shadow[0..${dynEnd}), fixed mat[${SamplerStages.STAGE_FIXED_BASE}..${SamplerStages.STAGE_ENV_MAP}), envMap=${SamplerStages.STAGE_ENV_MAP}, dfgLUT=${SamplerStages.STAGE_DFGLUT}"])
         return true
     }
 }

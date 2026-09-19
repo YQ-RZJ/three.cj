@@ -19,7 +19,7 @@ public func clear(): Unit
 
 ### func getBoolRef\(UInt32,Bool\)
 ```cj
-public func getBoolRef(key: UInt32, defaultVal!: Bool = false): CPointer < Int32 >
+public func getBoolRef(key: UInt32, defaultVal!: Bool = false): PtrArray < Int32 >
 ```
 获取布尔引用
 
@@ -27,8 +27,12 @@ public func getBoolRef(key: UInt32, defaultVal!: Bool = false): CPointer < Int32
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|defaultVal|Bool||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|defaultVal|Bool|默认值，默认 false|
+
+返回: 
+
+- 指向存储位置的引用数组（修改引用值会自动持久化）
 
 ### func getBool\(UInt32,Bool\)
 ```cj
@@ -40,12 +44,16 @@ public func getBool(key: UInt32, defaultVal!: Bool = false): Bool
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|defaultVal|Bool||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|defaultVal|Bool|默认值，默认 false|
+
+返回: 
+
+- 存储值；不存在时返回默认值
 
 ### func getFloatRef\(UInt32,Float32\)
 ```cj
-public func getFloatRef(key: UInt32, defaultVal!: Float32 = 0.0f32): CPointer < Float32 >
+public func getFloatRef(key: UInt32, defaultVal!: Float32 = 0.0f32): PtrArray < Float32 >
 ```
 获取浮点引用
 
@@ -53,8 +61,12 @@ public func getFloatRef(key: UInt32, defaultVal!: Float32 = 0.0f32): CPointer < 
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|defaultVal|Float32||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|defaultVal|Float32|默认值，默认 0.0|
+
+返回: 
+
+- 指向存储位置的引用数组（修改引用值会自动持久化）
 
 ### func getFloat\(UInt32,Float32\)
 ```cj
@@ -66,12 +78,16 @@ public func getFloat(key: UInt32, defaultVal!: Float32 = 0.0f32): Float32
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|defaultVal|Float32||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|defaultVal|Float32|默认值，默认 0.0|
+
+返回: 
+
+- 存储值；不存在时返回默认值
 
 ### func getIntRef\(UInt32,Int32\)
 ```cj
-public func getIntRef(key: UInt32, defaultVal!: Int32 = 0): CPointer < Int32 >
+public func getIntRef(key: UInt32, defaultVal!: Int32 = 0): PtrArray < Int32 >
 ```
 获取整数引用（不存在则插入默认值）
 
@@ -79,8 +95,12 @@ public func getIntRef(key: UInt32, defaultVal!: Int32 = 0): CPointer < Int32 >
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|defaultVal|Int32||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|defaultVal|Int32|默认值，默认 0|
+
+返回: 
+
+- 指向存储位置的引用数组（修改引用值会自动持久化）
 
 ### func getInt\(UInt32,Int32\)
 ```cj
@@ -101,7 +121,7 @@ public func getInt(key: UInt32, defaultVal!: Int32 = 0): Int32
 
 ### func getVoidPtr\(UInt32\)
 ```cj
-public func getVoidPtr(key: UInt32): CPointer < Unit >
+public func getVoidPtr(key: UInt32): VoidPtr
 ```
 获取 void* 值
 
@@ -109,7 +129,11 @@ public func getVoidPtr(key: UInt32): CPointer < Unit >
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+
+返回: 
+
+- 存储的 void* 指针；不存在时返回空指针
 
 ### func getWindowStorage\(\)
 ```cj
@@ -117,17 +141,21 @@ public static func getWindowStorage(): UiStorage
 ```
 获取当前窗口的 ImGuiStorage
 
-### func init\(CPointer<Unit>\)
-```cj
-public init(storagePtr: CPointer < Unit >)
-```
+返回: 
 
+- 当前窗口关联的存储对象
+
+### func init\(VoidPtr\)
+```cj
+public init(storagePtr: VoidPtr)
+```
+以底层 ImGuiStorage 指针构造
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|storagePtr|CPointer<Unit>||
+|storagePtr|VoidPtr|底层 ImGuiStorage 指针封装|
 
 ### func setAllInt\(Int32\)
 ```cj
@@ -139,7 +167,7 @@ public func setAllInt(val: Int32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|val|Int32||
+|val|Int32|要设置的值|
 
 ### func setBool\(UInt32,Bool\)
 ```cj
@@ -151,8 +179,8 @@ public func setBool(key: UInt32, val: Bool): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|val|Bool||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|val|Bool|要存储的布尔值|
 
 ### func setFloat\(UInt32,Float32\)
 ```cj
@@ -164,8 +192,8 @@ public func setFloat(key: UInt32, val: Float32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|val|Float32||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|val|Float32|要存储的浮点值|
 
 ### func setInt\(UInt32,Int32\)
 ```cj
@@ -177,12 +205,12 @@ public func setInt(key: UInt32, val: Int32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|val|Int32||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|val|Int32|要存储的整数值|
 
-### func setVoidPtr\(UInt32,CPointer<Unit>\)
+### func setVoidPtr\(UInt32,VoidPtr\)
 ```cj
-public func setVoidPtr(key: UInt32, val: CPointer < Unit >): Unit
+public func setVoidPtr(key: UInt32, val: VoidPtr): Unit
 ```
 设置 void* 值
 
@@ -190,8 +218,8 @@ public func setVoidPtr(key: UInt32, val: CPointer < Unit >): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|key|UInt32||
-|val|CPointer<Unit>||
+|key|UInt32|数据键（ImGui 内部用 ID 哈希）|
+|val|VoidPtr|要存储的 void* 指针|
 
 ### func setWindowStorage\(UiStorage\)
 ```cj
@@ -203,5 +231,5 @@ public static func setWindowStorage(storage: UiStorage): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|storage|UiStorage||
+|storage|UiStorage|要设置的存储对象|
 

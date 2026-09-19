@@ -26,8 +26,9 @@ import three.rendering.geometry.*
 import three.rendering.cameras.*
 import three.rendering.lights.*
 import three.rendering.helpers.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
+import three.utils.memory.PtrArray
 import three.window.ui.*
 
 // =============================================================================
@@ -174,22 +175,21 @@ public class ImGuiWindow <: WindowEngine {
         this.renderer.render(this.scene, this.camera)
 
         // ImGui 控件（通过 three.window.ui 组件类）
-        let sliderPtr = unsafe { CPointer<Float32>(LibC.malloc<Float32>()) }
-        unsafe { sliderPtr.write(this.sliderVal) }
+        let sliderArr = PtrArray<Float32>(1)
+        sliderArr.set(0, this.sliderVal)
         let counterPtr = unsafe { CPointer<Int32>(LibC.malloc<Int32>()) }
         unsafe { counterPtr.write(this.counter) }
 
         UiWindow(title: "Gui Test").draw({ =>
             UiText(text: "Frame: " + this.frame.toString()).draw()
             UiText(text: "Hello from three.window.ui!").draw()
-            UiSliderFloat(label: "Value", value: sliderPtr, min: 0.0f32, max: 1.0f32, format: "%.3f").draw()
-            this.sliderVal = unsafe { sliderPtr.read() }
+            UiSliderFloat(label: "Value", value: sliderArr, min: 0.0f32, max: 1.0f32, format: "%.3f").draw()
+            this.sliderVal = sliderArr.get(0)
             UiButton(label: "Click Me").onClick({ => this.counter++ }).draw()
             UiSameLine().draw()
             UiText(text: "Counter: " + this.counter.toString()).draw()
         })
 
-        unsafe { LibC.free(sliderPtr) }
         unsafe { LibC.free(counterPtr) }
 
         // 每 100 帧打印状态
@@ -217,7 +217,6 @@ public class ImGuiWindow <: WindowEngine {
 // =============================================================================
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Trace)
     println("=== test_gui：ImGui 集成测试 ===")
     println("")
 

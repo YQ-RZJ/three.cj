@@ -9,11 +9,15 @@ Separator widget
 ```cj
 public override func draw(): Bool
 ```
+Renders the separator
 
+Return: 
+
+- Always false (no interaction)
 
 ### func init\(\)
 ```cj
 public init()
 ```
-
+Constructs a separator widget
 

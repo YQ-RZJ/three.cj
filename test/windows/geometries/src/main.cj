@@ -19,8 +19,8 @@ import three.rendering.cameras.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -139,7 +139,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Warn)
     println("=== test_geometries：所有几何体围一圈公转 + 相机自转 ===")
     println("")
 

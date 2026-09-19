@@ -46,6 +46,7 @@ package three.window.ui
 
 import std.core.*
 import imgui4cj.imgui.*
+import three.utils.memory.VoidPtr
 
 // =============================================================================
 // UiInputTextCallback — 输入文本回调数据
@@ -64,7 +65,14 @@ import imgui4cj.imgui.*
 public class UiInputTextCallback {
     private var _data: CPointer<Unit>
 
-    public init(dataPtr: CPointer<Unit>) { this._data = dataPtr }
+    /**
+     * @brief[zh-cn] 使用底层回调数据指针构造包装器
+     * @param[zh-cn] dataPtr 底层 ImGuiInputTextCallbackData 指针
+     *
+     * @brief[en] Constructs a wrapper with the underlying callback data pointer
+     * @param[en] dataPtr Underlying ImGuiInputTextCallbackData pointer
+     */
+    public init(dataPtr: VoidPtr) { this._data = dataPtr.value }
 
     /**
      * @brief[zh-cn] 底层指针是否有效
@@ -104,11 +112,11 @@ public class UiInputTextCallback {
     /**
      * @brief[zh-cn] 设置选区范围
      * @param[zh-cn] start 起始位置
-     * @param[zh-cn] end 结束位置
+     * @param[zh-cn] end_ 结束位置
      *
      * @brief[en] Sets the selection range
      * @param[en] start Start position
-     * @param[en] end End position
+     * @param[en] end_ End position
      */
     public func setSelection(start: Int32, end_ : Int32): Unit {
         if (!this._data.isNull()) { ImGuiInputTextCallbackData_SetSelection_cj(this._data, start, end_) }

@@ -18,8 +18,8 @@ import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
 
@@ -163,7 +163,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== three4cj glTF Loader 测试 ===")
     println("")
 

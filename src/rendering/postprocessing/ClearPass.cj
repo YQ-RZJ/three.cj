@@ -54,7 +54,8 @@ package three.rendering.postprocessing
 
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 import std.collection.*
 
@@ -126,7 +127,7 @@ public class ClearPass <: Pass {
         let alphaByte = UInt32(Int32(this.clearAlpha * 255.0)) & 0xFFu32
         let colWithAlpha = ((col & 0x00FFFFFFu32) << 8) | alphaByte
         let rt = this.renderToScreen
-        Logger.trace(["ClearPass", "render() ENTER viewId=" + viewId.toString() + " clearColor=" + col.toString() + " clearAlpha=" + this.clearAlpha.toString() + " colWithAlpha=" + colWithAlpha.toString() + " renderToScreen=" + rt.toString() + " readBuffer.idx=" + handleIdx(readBuffer).toString() + " writeBuffer.idx=" + handleIdx(writeBuffer).toString()])
+        @LogTrace(["ClearPass", "render() ENTER viewId=" + viewId.toString() + " clearColor=" + col.toString() + " clearAlpha=" + this.clearAlpha.toString() + " colWithAlpha=" + colWithAlpha.toString() + " renderToScreen=" + rt.toString() + " readBuffer.idx=" + Handle.idx(readBuffer).toString() + " writeBuffer.idx=" + Handle.idx(writeBuffer).toString()])
         // 关键：必须设置 view rect，否则 view 的 rect 是未定义值（bgfx View.Rect 默认构造未初始化），
         // clear 不会渲染到有效区域 → 全黑。对齐其他 pass 的范式。
         let vw = UInt16(renderer.width)
@@ -135,18 +136,18 @@ public class ClearPass <: Pass {
         // renderToScreen=true 时清屏幕（无效 FB handle = swap chain）
         if (rt) {
             this.setRenderTarget(renderer, viewId, INVALID_FRAME_BUFFER_HANDLE)
-            Logger.trace(["ClearPass", "set view frame buffer → swap chain (null FB)"])
+            @LogTrace(["ClearPass", "set view frame buffer → swap chain (null FB)"])
         } else {
             this.setRenderTarget(renderer, viewId, readBuffer)
-            Logger.trace(["ClearPass", "set view frame buffer → readBuffer idx=" + handleIdx(readBuffer).toString()])
+            @LogTrace(["ClearPass", "set view frame buffer → readBuffer idx=" + Handle.idx(readBuffer).toString()])
         }
         // CLEAR_COLOR | CLEAR_DEPTH，alpha 写颜色高字节
         let clearFlags: UInt16 = BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH  // CLEAR_COLOR | CLEAR_DEPTH
         this.clearRenderTarget(renderer, viewId, clearFlags, colWithAlpha, depth: 1.0f32, stencil: 0u8)
         // touch 触发本 view 的 clear（touch = empty primitive submit，进 frame 队列）
         this.touchView(renderer, viewId)
-        Logger.trace(["ClearPass", "touch done (view=" + viewId.toString() + ")"])
+        @LogTrace(["ClearPass", "touch done (view=" + viewId.toString() + ")"])
         // 不在此调 present：frame 统一由 EffectComposer.render 末尾触发
-        Logger.trace(["ClearPass", "bgfx_frame 由 EffectComposer.render 末尾统一触发"])
+        @LogTrace(["ClearPass", "bgfx_frame 由 EffectComposer.render 末尾统一触发"])
     }
 }

@@ -42,7 +42,8 @@ import three.rendering.postprocessing.DotScreenPass
 import three.rendering.postprocessing.OutputPass
 import three.rendering.postprocessing.FullScreenQuad
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /// DotScreenPass 默认参数（R 键重置时回到此值）
 public let DEFAULT_CENTER_X: Float64 = 0.5

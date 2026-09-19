@@ -128,8 +128,8 @@ public enum LogLevel {
 // Three.js 风格日志前缀
 private let LOG_PREFIX: String = "THREE."
 
-// 全局日志等级（默认 Info）
-private var _logLevel: LogLevel = LogLevel.Info
+// 全局日志等级（默认 Trace）
+private var _logLevel: LogLevel = LogLevel.Trace
 
 // 自定义控制台函数处理器（兼容原 setConsoleFunction 机制）
 private var _consoleFn: Option<(String, String) -> Unit> = None
@@ -314,6 +314,12 @@ public class Logger {
      * 构建日志消息字符串
      */
     private static func buildMsg(params: Array<String>): String {
+        // 空数组健壮化：宏展开 Logger.info([<elems>]) 在实参切分为空时
+        // （如三参宏缺参或元素全为空白），params[0] 会越界崩溃
+        //（IndexOutOfBoundsException，OHOS 实测）。退化为仅前缀。
+        if (params.size == 0) {
+            return LOG_PREFIX
+        }
         var msg = LOG_PREFIX + params[0]
         for (i in 1..params.size) {
             msg += " " + params[i]

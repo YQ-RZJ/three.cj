@@ -42,8 +42,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.DotScreenPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -222,11 +222,11 @@ public class TestWindow <: WindowEngine {
             case Some(p) =>
                 if (p.angle != g_angle) {
                     p.angle = g_angle
-                    Logger.debug(["dotscreen", "angle synced: " + g_angle.toString()])
+                    @LogDebug(["dotscreen", "angle synced: " + g_angle.toString()])
                 }
                 if (p.scale != g_scale) {
                     p.scale = g_scale
-                    Logger.debug(["dotscreen", "scale synced: " + g_scale.toString()])
+                    @LogDebug(["dotscreen", "scale synced: " + g_scale.toString()])
                 }
 
                 // R 键重置：参数回到默认值
@@ -295,7 +295,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== dotscreen：DotScreenPass 点阵屏后处理 ===")
     println("")
 

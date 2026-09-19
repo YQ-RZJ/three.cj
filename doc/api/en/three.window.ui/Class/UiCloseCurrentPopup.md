@@ -9,11 +9,15 @@ Close current popup widget
 ```cj
 public override func draw(): Bool
 ```
+Closes the currently open popup
 
+Return: 
+
+- Whether interaction occurred (always false in this implementation)
 
 ### func init\(\)
 ```cj
 public init()
 ```
-
+Constructs a close-current-popup widget
 

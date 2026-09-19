@@ -33,7 +33,7 @@ package three.rendering.textures
 
 import three.core.math.MathUtils
 import std.collection.*
-import bgfx4cj.bgfx.TextureHandle
+import three.rendering.types.TextureHandle
 
 /**
  * @brief[zh-cn] 外部纹理类
@@ -46,8 +46,12 @@ public open class ExternalTexture <: Texture {
 
     /**
      * @brief[zh-cn] 外部纹理缓冲引用（渲染器内部按平台具体解释）
+     * @explain[zh-cn] 类型为 three.rendering.types.TextureHandle（Box 包装），
+     * 外部无须依赖 bgfx4cj；用 INVALID_TEXTURE_HANDLE 表示无外部源。
 
      * @brief[en] External texture buffer reference (interpreted by platform in the renderer)
+     * @explain[en] Type is three.rendering.types.TextureHandle (Box-wrapped);
+     * external code need not depend on bgfx4cj; use INVALID_TEXTURE_HANDLE for no external source.
      */
     public var sourceTexture: Option<TextureHandle>
 

@@ -127,7 +127,7 @@ public class FrameTaskContext {
  * mode = FrameTaskMode.CONSUME,
  * priority = 1,
  * callback = { ctx =>
- * Logger.info(["FrameTask", "execute idx=${ctx.idx}, args=${ctx.args}"])
+ * @LogInfo(["FrameTask", "execute idx=${ctx.idx}, args=${ctx.args}"])
  * return true  // 继续执行
  * },
  * params = CircularQueue<Array<Any>>()

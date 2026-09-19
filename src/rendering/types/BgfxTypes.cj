@@ -57,15 +57,15 @@
  * external code only holds Box references, pointer operations are done internally
  * by renderer / utils.BgfxMemory.
  * - External code should not read `handle.value.idx` or hard-code `65535u16` to
- * check validity; use `isValidHandle(handle)` / `INVALID_XXX_HANDLE` constants,
- * or `handleIdx(handle)` (for debug logging only).
+ * check validity; use `Handle.isValid(handle)` / `INVALID_XXX_HANDLE` constants,
+ * or `Handle.idx(handle)` (for debug logging only).
  *
  * @C 结构体"要求，同时 Box 表达"存在值"，外部无须自行解包指针。
  * - `Memory`（含裸指针 data: CPointer<UInt8>）同样以 Box 包装重公开；
  * 外部只持有 Box 引用，指针操作由 renderer / utils.BgfxMemory 内部完成。
  * - 外部不应直接读 `handle.value.idx` 或硬编码 `65535u16` 判断有效性；
- * 统一改用 `isValidHandle(handle)` / `INVALID_XXX_HANDLE` 常量，
- * 或 `handleIdx(handle)`（仅用于日志调试输出）。
+ * 统一改用 `Handle.isValid(handle)` / `INVALID_XXX_HANDLE` 常量，
+ * 或 `Handle.idx(handle)`（仅用于日志调试输出）。
  *
  *
  *
@@ -207,11 +207,17 @@ public type InternalData = Box<bgfx.InternalData>
  */
 public type PlatformData = Box<bgfx.PlatformData>
 /**
- * @brief[zh-cn] 后缓冲分辨率与重置参数
+ * @brief[zh-cn] 交换链描述（原生窗口 backbuffer，新版 bgfx 取代 Resolution）
  *
- * @brief[en] Backbuffer resolution and reset parameters
+ * @brief[en] Swap chain descriptor (native window backbuffer, replaces Resolution in new bgfx)
  */
-public type Resolution = Box<bgfx.Resolution>
+public type SwapChain = Box<bgfx.SwapChain>
+/**
+ * @brief[zh-cn] 纹理区域描述符（新版 bgfx read/blit 区域模型）
+ *
+ * @brief[en] Texture region descriptor (new bgfx read/blit region model)
+ */
+public type TextureRegion = Box<bgfx.TextureRegion>
 /**
  * @brief[zh-cn] 可配置运行时限制参数
  *
@@ -312,10 +318,10 @@ public type Encoder = Box<bgfx.Encoder>
 // ===== 无效句柄常量（替代外部硬编码 65535u16） =====
 /**
  * @brief[zh-cn] bgfx 句柄无效索引值
- * @explain[zh-cn] 外部判断句柄有效性应使用 `isValidHandle(handle)`，不应直接读 `.value.idx` 或硬编码此值。
+ * @explain[zh-cn] 外部判断句柄有效性应使用 `Handle.isValid(handle)`，不应直接读 `.value.idx` 或硬编码此值。
  *
  * @brief[en] bgfx handle invalid index value
- * @explain[en] External code should use `isValidHandle(handle)` to check handle validity,
+ * @explain[en] External code should use `Handle.isValid(handle)` to check handle validity,
  * not directly read `.value.idx` or hard-code this value.
  */
 public let BGFX_INVALID_HANDLE_IDX: UInt16 = 0xFFFFu16
@@ -392,224 +398,6 @@ public let INVALID_INDIRECT_BUFFER_HANDLE: IndirectBufferHandle = Box(bgfx.Indir
  * @brief[en] Invalid occlusion query handle
  */
 public let INVALID_OCCLUSION_QUERY_HANDLE: OcclusionQueryHandle = Box(bgfx.OcclusionQueryHandle())
-
-// ===== 句柄有效性 / 索引高阶 API（替代外部 .idx / 65535u16 访问） =====
-
-/**
- * @brief[zh-cn] 取帧缓冲句柄内部 idx（仅用于日志调试输出；有效性判断请用 isValidHandle）
- *
- * @brief[en] Get frame buffer handle internal idx (for debug logging only; use isValidHandle for validity check)
- */
-public func handleIdx(handle: FrameBufferHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断帧缓冲句柄是否有效（idx != 0xFFFF）
- *
- * @brief[en] Check if frame buffer handle is valid (idx != 0xFFFF)
- */
-public func isValidHandle(handle: FrameBufferHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取纹理句柄 idx（日志用）
- *
- * @brief[en] Get texture handle idx (for logging)
- */
-public func handleIdx(handle: TextureHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断纹理句柄是否有效
- *
- * @brief[en] Check if texture handle is valid
- */
-public func isValidHandle(handle: TextureHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取程序句柄 idx（日志用）
- *
- * @brief[en] Get program handle idx (for logging)
- */
-public func handleIdx(handle: ProgramHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断程序句柄是否有效
- *
- * @brief[en] Check if program handle is valid
- */
-public func isValidHandle(handle: ProgramHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取 uniform 句柄 idx（日志用）
- *
- * @brief[en] Get uniform handle idx (for logging)
- */
-public func handleIdx(handle: UniformHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断 uniform 句柄是否有效
- *
- * @brief[en] Check if uniform handle is valid
- */
-public func isValidHandle(handle: UniformHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取静态顶点缓冲句柄 idx（日志用）
- *
- * @brief[en] Get static vertex buffer handle idx (for logging)
- */
-public func handleIdx(handle: VertexBufferHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断静态顶点缓冲句柄是否有效
- *
- * @brief[en] Check if static vertex buffer handle is valid
- */
-public func isValidHandle(handle: VertexBufferHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取静态索引缓冲句柄 idx（日志用）
- *
- * @brief[en] Get static index buffer handle idx (for logging)
- */
-public func handleIdx(handle: IndexBufferHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断静态索引缓冲句柄是否有效
- *
- * @brief[en] Check if static index buffer handle is valid
- */
-public func isValidHandle(handle: IndexBufferHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取顶点布局句柄 idx（日志用）
- *
- * @brief[en] Get vertex layout handle idx (for logging)
- */
-public func handleIdx(handle: VertexLayoutHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断顶点布局句柄是否有效
- *
- * @brief[en] Check if vertex layout handle is valid
- */
-public func isValidHandle(handle: VertexLayoutHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取动态顶点缓冲句柄 idx（日志用）
- *
- * @brief[en] Get dynamic vertex buffer handle idx (for logging)
- */
-public func handleIdx(handle: DynamicVertexBufferHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断动态顶点缓冲句柄是否有效
- *
- * @brief[en] Check if dynamic vertex buffer handle is valid
- */
-public func isValidHandle(handle: DynamicVertexBufferHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取动态索引缓冲句柄 idx（日志用）
- *
- * @brief[en] Get dynamic index buffer handle idx (for logging)
- */
-public func handleIdx(handle: DynamicIndexBufferHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断动态索引缓冲句柄是否有效
- *
- * @brief[en] Check if dynamic index buffer handle is valid
- */
-public func isValidHandle(handle: DynamicIndexBufferHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取着色器句柄 idx（日志用）
- *
- * @brief[en] Get shader handle idx (for logging)
- */
-public func handleIdx(handle: ShaderHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断着色器句柄是否有效
- *
- * @brief[en] Check if shader handle is valid
- */
-public func isValidHandle(handle: ShaderHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取间接绘制缓冲句柄 idx（日志用）
- *
- * @brief[en] Get indirect buffer handle idx (for logging)
- */
-public func handleIdx(handle: IndirectBufferHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断间接绘制缓冲句柄是否有效
- *
- * @brief[en] Check if indirect buffer handle is valid
- */
-public func isValidHandle(handle: IndirectBufferHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
-
-/**
- * @brief[zh-cn] 取遮挡查询句柄 idx（日志用）
- *
- * @brief[en] Get occlusion query handle idx (for logging)
- */
-public func handleIdx(handle: OcclusionQueryHandle): UInt16 {
-    return handle.value.idx
-}
-
-/**
- * @brief[zh-cn] 判断遮挡查询句柄是否有效
- *
- * @brief[en] Check if occlusion query handle is valid
- */
-public func isValidHandle(handle: OcclusionQueryHandle): Bool {
-    return handle.value.idx != BGFX_INVALID_HANDLE_IDX
-}
 
 // ===== 枚举重公开（enum 本身非 @C struct，type 别名直接重公开） =====
 /**
@@ -804,3 +592,448 @@ public type InstanceDataBufferPtr = Box<CPointer<bgfx.InstanceDataBuffer>>
  * @brief[en] Render encoder pointer (passed/returned by encoder* series)
  */
 public type EncoderPtr = Box<CPointer<bgfx.Encoder>>
+
+// ===== 类型工厂（统一构建入口） =====
+/**
+ * @brief[zh-cn] bgfx 类型工厂 —— 统一的 Box 包装类型构建入口
+ * @explain[zh-cn] 设计动机：Box 包装的 @C 结构体没有公开构造方法，外部构建时
+ * 需要"malloc → write 默认值 → init/ctor → 改字段 → write 回写"的固定序列，
+ * 各处手写散乱且易错（read() 返回不可变值、必须 var + write 回写）。
+ * 本工厂以静态重载方法集中封装全部构建序列，外部一行调用即可：
+ *   - 句柄类：texture(idx) / framebuffer(idx) ...
+ *   - Attachment：attachment(handle, ...)（内部 bgfx_attachment_init）
+ *   - TextureRegion：textureRegion(handle, ...)（内部 bgfx_texture_region_init）
+ *   - SwapChain：swapChain(...)（新版 bgfx 取代 Resolution 的 backbuffer 描述符）
+ *   - Init：initParams()（内部 bgfx_init_ctor 填充默认值）
+ * 内存管理：malloc 的结构体内存仅在工厂内部使用、填充完成后立即释放，
+ * 对外一律返回值/Box 引用（指针不出引擎）。
+ *
+ * @brief[en] bgfx type factory - unified construction entry for Box-wrapped types
+ * @explain[en] Motivation: Box-wrapped @C structs have no public constructors; building one
+ * requires the fixed sequence "malloc -> write default -> init/ctor -> mutate fields ->
+ * write back", hand-written everywhere and error-prone (read() returns an immutable value,
+ * must use var + write back). This factory centralizes all construction sequences into
+ * static overloads, one call each:
+ *   - Handles: texture(idx) / framebuffer(idx) ...
+ *   - Attachment: attachment(handle, ...) (bgfx_attachment_init inside)
+ *   - TextureRegion: textureRegion(handle, ...) (bgfx_texture_region_init inside)
+ *   - SwapChain: swapChain(...) (backbuffer descriptor replacing Resolution in new bgfx)
+ *   - Init: initParams() (bgfx_init_ctor inside to fill defaults)
+ * Memory: malloc-ed struct memory is used inside the factory only and freed right
+ * after filling; the factory always returns values / Box references externally
+ * (pointers never leave the engine).
+ *
+ * @package three.rendering.types
+ */
+public class Handle {
+    private init() {}
+
+    // ------------------------------------------------------------------
+    // ===== 0. 句柄 idx / 有效性查询（从包级函数收编） =====
+    // ------------------------------------------------------------------
+    /**
+     * @brief[zh-cn] 取FrameBufferHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get FrameBufferHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: FrameBufferHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断FrameBufferHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if FrameBufferHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: FrameBufferHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取TextureHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get TextureHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: TextureHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断TextureHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if TextureHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: TextureHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取ProgramHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get ProgramHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: ProgramHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断ProgramHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if ProgramHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: ProgramHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取UniformHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get UniformHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: UniformHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断UniformHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if UniformHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: UniformHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取VertexBufferHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get VertexBufferHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: VertexBufferHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断VertexBufferHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if VertexBufferHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: VertexBufferHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取IndexBufferHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get IndexBufferHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: IndexBufferHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断IndexBufferHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if IndexBufferHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: IndexBufferHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取VertexLayoutHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get VertexLayoutHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: VertexLayoutHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断VertexLayoutHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if VertexLayoutHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: VertexLayoutHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取DynamicVertexBufferHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get DynamicVertexBufferHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: DynamicVertexBufferHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断DynamicVertexBufferHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if DynamicVertexBufferHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: DynamicVertexBufferHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取DynamicIndexBufferHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get DynamicIndexBufferHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: DynamicIndexBufferHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断DynamicIndexBufferHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if DynamicIndexBufferHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: DynamicIndexBufferHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取ShaderHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get ShaderHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: ShaderHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断ShaderHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if ShaderHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: ShaderHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取IndirectBufferHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get IndirectBufferHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: IndirectBufferHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断IndirectBufferHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if IndirectBufferHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: IndirectBufferHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    /**
+     * @brief[zh-cn] 取OcclusionQueryHandle内部 idx（仅用于日志调试输出；有效性判断请用 isValid）
+     *
+     * @brief[en] Get OcclusionQueryHandle internal idx (for debug logging only; use isValid for validity check)
+     */
+    public static func idx(handle: OcclusionQueryHandle): UInt16 {
+        return handle.value.idx
+    }
+
+    /**
+     * @brief[zh-cn] 判断OcclusionQueryHandle是否有效（idx != 0xFFFF）
+     *
+     * @brief[en] Check if OcclusionQueryHandle is valid (idx != 0xFFFF)
+     */
+    public static func isValid(handle: OcclusionQueryHandle): Bool {
+        return handle.value.idx != BGFX_INVALID_HANDLE_IDX
+    }
+
+    // ------------------------------------------------------------------
+    // ===== 1. 句柄类构建 =====
+    // ------------------------------------------------------------------
+    /**
+     * @brief[zh-cn] 以 idx 构造纹理句柄
+     * @brief[en] Construct a texture handle from idx (Box-wrapped)
+     */
+    public static func texture(idx: UInt16): TextureHandle {
+        return Box(bgfx.TextureHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造帧缓冲句柄
+     * @brief[en] Construct a frame buffer handle from idx (Box-wrapped)
+     */
+    public static func framebuffer(idx: UInt16): FrameBufferHandle {
+        return Box(bgfx.FrameBufferHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造程序句柄
+     * @brief[en] Construct a program handle from idx (Box-wrapped)
+     */
+    public static func program(idx: UInt16): ProgramHandle {
+        return Box(bgfx.ProgramHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造 uniform 句柄
+     * @brief[en] Construct a uniform handle from idx (Box-wrapped)
+     */
+    public static func uniform(idx: UInt16): UniformHandle {
+        return Box(bgfx.UniformHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造静态顶点缓冲句柄
+     * @brief[en] Construct a vertex buffer handle from idx (Box-wrapped)
+     */
+    public static func vertexBuffer(idx: UInt16): VertexBufferHandle {
+        return Box(bgfx.VertexBufferHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造静态索引缓冲句柄
+     * @brief[en] Construct an index buffer handle from idx (Box-wrapped)
+     */
+    public static func indexBuffer(idx: UInt16): IndexBufferHandle {
+        return Box(bgfx.IndexBufferHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造顶点布局句柄
+     * @brief[en] Construct a vertex layout handle from idx (Box-wrapped)
+     */
+    public static func vertexLayout(idx: UInt16): VertexLayoutHandle {
+        return Box(bgfx.VertexLayoutHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造动态顶点缓冲句柄
+     * @brief[en] Construct a dynamic vertex buffer handle from idx (Box-wrapped)
+     */
+    public static func dynamicVertexBuffer(idx: UInt16): DynamicVertexBufferHandle {
+        return Box(bgfx.DynamicVertexBufferHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造动态索引缓冲句柄
+     * @brief[en] Construct a dynamic index buffer handle from idx (Box-wrapped)
+     */
+    public static func dynamicIndexBuffer(idx: UInt16): DynamicIndexBufferHandle {
+        return Box(bgfx.DynamicIndexBufferHandle(idx))
+    }
+
+    /**
+     * @brief[zh-cn] 以 idx 构造着色器句柄
+     * @brief[en] Construct a shader handle from idx (Box-wrapped)
+     */
+    public static func shader(idx: UInt16): ShaderHandle {
+        return Box(bgfx.ShaderHandle(idx))
+    }
+
+    // ------------------------------------------------------------------
+    // ===== 2. Attachment 构建（bgfx_attachment_init） =====
+    // ------------------------------------------------------------------
+    /**
+     * @brief[zh-cn] 构建并初始化 Attachment（内部 bgfx_attachment_init）
+     * @explain[zh-cn] 返回值快照，指针仅在工厂内部使用后即释放。
+     *
+     * @brief[en] Build and init an Attachment (bgfx_attachment_init inside)
+     * @explain[en] Returns a value snapshot (Box-wrapped); the pointer is used
+     * inside the factory only and freed immediately.
+     */
+    public static func attachment(
+        handle: TextureHandle, access: UInt32,
+        layer: UInt16, numLayers: UInt16,
+        mip: UInt16, flags: UInt8
+    ): Attachment {
+        let p = unsafe { LibC.malloc<bgfx.Attachment>() }
+        unsafe { p.write(bgfx.Attachment()) }
+        bgfx.bgfx_attachment_init_cj(p, handle.value, access, layer, numLayers, mip, flags: flags)
+        let value = unsafe { p.read() }
+        unsafe { LibC.free(p) }
+        return Box(value)
+    }
+
+    // ------------------------------------------------------------------
+    // ===== 3. TextureRegion 构建（bgfx_texture_region_init） =====
+    // ------------------------------------------------------------------
+    /**
+     * @brief[zh-cn] 构建 TextureRegion 值快照（内部 bgfx_texture_region_init）
+     * @explain[zh-cn] 新版 bgfx read/blit 以 TextureRegion 描述符传区域；
+     * width/height 0 表示取该 mip 剩余部分（整图）。
+     * 内部 malloc 的结构体内存在填充完成后立即释放，外部只持有 Box 值。
+     *
+     * @brief[en] Build a TextureRegion value snapshot (bgfx_texture_region_init inside)
+     * @explain[en] New bgfx read/blit takes a TextureRegion descriptor; width/height 0
+     * means the rest of the mip (full image). The internally malloc-ed struct memory is
+     * freed right after filling; external code only holds the Box value.
+     */
+    public static func textureRegion(
+        handle: TextureHandle,
+        x: UInt16, y: UInt16, width: UInt16, height: UInt16,
+        mip: UInt8
+    ): TextureRegion {
+        let p = unsafe { LibC.malloc<bgfx.TextureRegion>() }
+        bgfx.bgfx_texture_region_init_cj(p, handle.value, x, y, width, height)
+        var region = unsafe { p.read() }
+        region.mip = mip
+        unsafe { p.write(region) }
+        let value = unsafe { p.read() }
+        unsafe { LibC.free(p) }
+        return Box(value)
+    }
+
+    // ------------------------------------------------------------------
+    // ===== 4. SwapChain 构建（新版 bgfx backbuffer 描述符） =====
+    // ------------------------------------------------------------------
+    /**
+     * @brief[zh-cn] 构建 SwapChain 值快照（无指针暴露）
+     * @explain[zh-cn] nwh 为空指针表示 headless；formatColor/formatDepthStencil 传
+     * TextureFormat.Count.value() 表示平台默认 / 无深度。
+     * 需要指针形态的 bgfx API（bgfx_reset / create_frame_buffer_from_swap_chain）
+     * 由渲染引擎内部经 renderer 高阶 API 完成，外部只持有 Box 值。
+     *
+     * @brief[en] Build a SwapChain value snapshot (no pointer exposure)
+     * @explain[en] Null nwh = headless; pass TextureFormat.Count.value() for
+     * formatColor/formatDepthStencil to use platform default / no depth.
+     * Pointer-consuming bgfx APIs (bgfx_reset / create_frame_buffer_from_swap_chain)
+     * are handled internally by renderer high-level APIs; external code only holds the Box value.
+     */
+    public static func swapChain(
+        nwh: CPointer<Unit>,
+        width: UInt32, height: UInt32,
+        formatColor: UInt32, formatDepthStencil: UInt32
+    ): SwapChain {
+        var sc = bgfx.SwapChain()
+        sc.nwh = nwh
+        sc.width = width
+        sc.height = height
+        sc.formatColor = formatColor
+        sc.formatDepthStencil = formatDepthStencil
+        return Box(sc)
+    }
+
+    // ------------------------------------------------------------------
+    // ===== 5. Init 构建（bgfx_init_ctor） =====
+    // ------------------------------------------------------------------
+    /**
+     * @brief[zh-cn] 构建经 bgfx_init_ctor 填充默认值的 Init 值快照（无指针暴露）
+     * @explain[zh-cn] ctor 会按当前平台填充推荐的默认值（capabilities=UINT64_MAX 等）。
+     * 内部 malloc 的结构体内存在填充完成后立即释放，外部只持有 Box 值；
+     * 实际 bgfx_init_cj 调用须由渲染引擎内部（ThreeRenderer.initBgfx）完成。
+     *
+     * @brief[en] Build an Init value snapshot filled by bgfx_init_ctor (no pointer exposure)
+     * @explain[en] ctor fills recommended defaults for the current platform
+     * (capabilities=UINT64_MAX etc.). The internally malloc-ed struct memory is freed
+     * right after filling; external code only holds the Box value. The actual bgfx_init_cj
+     * call must be done inside the engine (ThreeRenderer.initBgfx).
+     */
+    public static func initParams(): Init {
+        let p = unsafe { LibC.malloc<bgfx.Init>() }
+        unsafe { p.write(bgfx.Init()) }
+        bgfx.bgfx_init_ctor_cj(p)
+        let value = unsafe { p.read() }
+        unsafe { LibC.free(p) }
+        return Box(value)
+    }
+}

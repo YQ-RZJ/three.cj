@@ -9,36 +9,44 @@ Checkbox widget
 ```cj
 public override func draw(): Bool
 ```
+Renders the checkbox and syncs the check state
 
+Return: 
+
+- Whether the check state changed this frame
 
 ### func getValue\(\)
 ```cj
 public func getValue(): Int32
 ```
-获取当前值（0=未选中，1=选中）
+Gets the current value
 
-### func init\(String,CPointer<Int32>\)
+Return: 
+
+- 0=unchecked, 1=checked
+
+### func init\(String,PtrArray<Int32>\)
 ```cj
-public init(label!: String, value!: CPointer < Int32 >)
+public init(label!: String, value!: PtrArray < Int32 >)
 ```
-
+Constructs a checkbox widget
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|label|String||
-|value|CPointer<Int32>||
+|label|String|Checkbox label text|
+|value|PtrArray<Int32>|State buffer (single-element PtrArray<Int32>, 0=unchecked 1=checked)|
 
 ### func setValue\(Int32\)
 ```cj
 public func setValue(v: Int32): Unit
 ```
-设置值
+Sets the value
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|v|Int32||
+|v|Int32|0=unchecked, 1=checked|
 

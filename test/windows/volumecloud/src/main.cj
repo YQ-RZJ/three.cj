@@ -41,8 +41,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.VolumeCloudPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -222,15 +222,15 @@ public class TestWindow <: WindowEngine {
                 // 按键控制：实时同步 threshold/opacity 到 pass
                 if (cloudPass.threshold != g_threshold) {
                     cloudPass.threshold = g_threshold
-                    Logger.debug(["volumecloud", "threshold synced: " + g_threshold.toString()])
+                    @LogDebug(["volumecloud", "threshold synced: " + g_threshold.toString()])
                 }
                 if (cloudPass.opacity != g_opacity) {
                     cloudPass.opacity = g_opacity
-                    Logger.debug(["volumecloud", "opacity synced: " + g_opacity.toString()])
+                    @LogDebug(["volumecloud", "opacity synced: " + g_opacity.toString()])
                 }
                 if (cloudPass.steps != g_steps) {
                     cloudPass.steps = g_steps
-                    Logger.debug(["volumecloud", "steps synced: " + g_steps.toString()])
+                    @LogDebug(["volumecloud", "steps synced: " + g_steps.toString()])
                 }
 
                 // R 键重置：参数回到默认值
@@ -304,7 +304,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== volumecloud：VolumeCloudPass 体积云后处理 ===")
     println("")
 

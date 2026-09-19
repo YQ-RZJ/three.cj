@@ -29,7 +29,7 @@
  * - fromArray / 构造器：从仓颉 Array 拷贝数据（一次性上传）
  * - toArray()：把 C 内存数据读回仓颉 Array
  * 供 renderer 高阶 API（setUniform / setTransform / makeRef 等）作为数据载体，
- * 外部无须接触裸指针；内存由内部 AutoFreePtr 自动释放。
+ * 外部无须接触裸指针；自有内存由内部管理（dispose() 或 ~init 终结器自动释放）。
  *
  * @file[en] PtrArray  Pointer-backed array: a C-memory array interoperable with Cangjie Array
  * @brief[en] Provides an array type backed by contiguous C memory (CPointer<T>) that can be
@@ -41,8 +41,8 @@
  * - fromArray / constructor: copies data from a Cangjie Array (one-shot upload)
  * - toArray(): reads C-memory data back into a Cangjie Array
  * It serves as the data carrier for higher-level renderer APIs (setUniform /
- * setTransform / makeRef etc.) without exposing raw pointers; memory is freed
- * automatically by the internal AutoFreePtr.
+ * setTransform / makeRef etc.) without exposing raw pointers; self-owned memory
+ * is managed internally (released via dispose() or the ~init finalizer).
  *
  * @package three.utils.memory
  */
@@ -57,7 +57,8 @@ package three.utils.memory
  * @explain[zh-cn] 底层持有连续 C 内存（CPointer<T>），提供数组常用功能（size/get/set），
  * 支持与仓颉 Array 互转（构造器 / toArray）。元素类型 T 须满足 CType 约束
  * （UInt8/UInt16/UInt32/Float32/Float64 等基础类型），与 CPointer<T> 一致。
- * 生命周期：内部由 AutoFreePtr 管理，dispose() 手动释放或 GC 回收时自动释放。
+ * 生命周期：自有内存由内部管理，dispose() 手动释放或 GC 回收时 ~init 自动释放；
+ * 也可通过 borrow 构造借用外部连续内存（如 ImGui 存储区），借用模式不释放。
  * @param[zh-cn] T 元素类型，须满足 CType 约束
  *
  * @brief[en] Pointer-backed array
@@ -65,13 +66,16 @@ package three.utils.memory
  * (size/get/set) and conversion to/from Cangjie Array (constructor / toArray).
  * Element type T must satisfy the CType constraint (basic types such as
  * UInt8/UInt16/UInt32/Float32/Float64), matching CPointer<T>.
- * Lifecycle: managed internally by AutoFreePtr; released manually via dispose()
- * or automatically by the GC.
+ * Lifecycle: self-owned memory is managed internally (released manually via
+ * dispose() or automatically by the ~init finalizer on GC collection); external
+ * contiguous memory can be borrowed via the borrow constructor (not freed).
  * @param[en] T Element type, must satisfy the CType constraint
  */
 public class PtrArray<T> where T <: CType {
-    private var holder: AutoFreePtr<T>
+    private var ptr: CPointer<T>
     private var length: Int64
+    /// 是否由本对象 malloc（借用构造为 false，不释放）
+    private var owned: Bool
 
     /**
      * @brief[zh-cn] 构造指定长度的空数组（内存清零）
@@ -81,8 +85,9 @@ public class PtrArray<T> where T <: CType {
      * @param[en] size Number of elements
      */
     public init(size: Int64) {
-        this.holder = AutoFreePtr<T>(unsafe { LibC.malloc<T>(count: size) })
+        this.ptr = unsafe { LibC.malloc<T>(count: size) }
         this.length = size
+        this.owned = true
     }
 
     /**
@@ -94,9 +99,37 @@ public class PtrArray<T> where T <: CType {
      */
     public init(values: Array<T>) {
         this.length = Int64(values.size)
-        this.holder = AutoFreePtr<T>(unsafe { LibC.malloc<T>(count: this.length) })
+        this.ptr = unsafe { LibC.malloc<T>(count: this.length) }
         for (i in 0..values.size) {
-            unsafe { this.holder.get().write(i, values[i]) }
+            unsafe { this.ptr.write(i, values[i]) }
+        }
+        this.owned = true
+    }
+
+    /**
+     * @brief[zh-cn] 借用外部连续内存（不持有、不释放）
+     * @param[zh-cn] borrow 外部连续内存指针（如 ImGui 存储区）
+     * @param[zh-cn] size 元素个数（默认 1）
+     *
+     * @brief[en] Borrows external contiguous memory (not owned, not freed)
+     * @param[en] borrow External contiguous-memory pointer (e.g. ImGui storage)
+     * @param[en] size Number of elements (default 1)
+     */
+    public init(borrow: CPointer<T>, size!: Int64 = 1) {
+        this.ptr = borrow
+        this.length = size
+        this.owned = false
+    }
+
+    /**
+     * @brief[zh-cn] 终结器：自有内存 GC 回收时自动释放（借用模式不释放）
+     *
+     * @brief[en] Finalizer: frees self-owned memory on GC collection (borrowed mode is not freed)
+     */
+    ~init() {
+        if (this.owned && !this.ptr.isNull()) {
+            unsafe { LibC.free(this.ptr) }
+            this.ptr = CPointer<T>()
         }
     }
 
@@ -121,7 +154,7 @@ public class PtrArray<T> where T <: CType {
      * @return[en] The element value
      */
     public func get(index: Int64): T {
-        return unsafe { this.holder.get().read(index) }
+        return unsafe { this.ptr.read(index) }
     }
 
     /**
@@ -134,7 +167,7 @@ public class PtrArray<T> where T <: CType {
      * value The element value
      */
     public func set(index: Int64, value: T): Unit {
-        unsafe { this.holder.get().write(index, value) }
+        unsafe { this.ptr.write(index, value) }
     }
 
     /**
@@ -145,7 +178,7 @@ public class PtrArray<T> where T <: CType {
      * @return[en] CPointer<T>
      */
     public func data(): CPointer<T> {
-        return this.holder.get()
+        return this.ptr
     }
 
     /**
@@ -156,7 +189,7 @@ public class PtrArray<T> where T <: CType {
      * @return[en] The copied Array<T>
      */
     public func toArray(): Array<T> {
-        let out = Array<T>(this.length, { i => unsafe { this.holder.get().read(i) } })
+        let out = Array<T>(this.length, { i => unsafe { this.ptr.read(i) } })
         return out
     }
 
@@ -166,7 +199,10 @@ public class PtrArray<T> where T <: CType {
      * @brief[en] Manually frees the underlying memory (GC will also free it; use this for timely release)
      */
     public func dispose(): Unit {
-        this.holder.dispose()
-        this.length = 0;
+        if (this.owned && !this.ptr.isNull()) {
+            unsafe { LibC.free(this.ptr) }
+            this.ptr = CPointer<T>()
+        }
+        this.length = 0
     }
 }

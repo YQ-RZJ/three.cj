@@ -29,8 +29,8 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.CubeTexturePass
 import three.rendering.postprocessing.OutputPass
 import three.rendering.textures.CubeTexture
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -183,7 +183,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== cubetexture：CubeTexturePass 立方体贴图背景 ===")
     println("")
 

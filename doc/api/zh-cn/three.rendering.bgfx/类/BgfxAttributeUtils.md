@@ -235,24 +235,3 @@ public func vertexUnpack(output: PtrArray < Float32 >, attr: UInt32, layout: Ver
 |data|PtrArray<UInt8>||
 |index|UInt32||
 
-### func weldVertices\(PtrArray<UInt8>,VertexLayoutPtr,PtrArray<UInt8>,UInt32,Bool,Float32\)
-```cj
-public func weldVertices(output: PtrArray < UInt8 >, layout: VertexLayoutPtr, data: PtrArray < UInt8 >, num: UInt32, index32: Bool, epsilon: Float32): UInt32
-```
-顶点焊接（按 epsilon 去重，返回焊接后顶点数）
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|output|PtrArray<UInt8>|输出焊接后数据layout 顶点布局指针data 源数据缓冲num 顶点数index32 是否使用 32 位索引epsilon 焊接阈值|
-|layout|VertexLayoutPtr||
-|data|PtrArray<UInt8>||
-|num|UInt32||
-|index32|Bool||
-|epsilon|Float32||
-
-返回: 
-
-- 焊接后顶点数
-

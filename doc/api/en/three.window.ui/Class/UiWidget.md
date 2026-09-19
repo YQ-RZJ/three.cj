@@ -25,17 +25,17 @@ Returns the widget ID
 ```cj
 public init()
 ```
-
+Constructs a widget without an ID
 
 ### func init\(String\)
 ```cj
 public init(id!: String)
 ```
-
+Constructs a widget with an ID
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|id|String||
+|id|String|Widget ID (used for ImGui PushID/PopID namespace isolation)|
 

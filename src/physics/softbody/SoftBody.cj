@@ -47,7 +47,8 @@ import three.physics.interfaces.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // =============================================================================
 // PhysicsSoftBodyDesc 软体描述
@@ -339,7 +340,7 @@ public class PhysicsSoftBodyFactory {
                         // shared settings 由软体持有，不销毁
                         if (bodyID == 0 || bodyID == 0xFFFFFFFF) {
                             JPH_SoftBodySharedSettings_Destroy_cj(shared)
-                            Logger.error(["PhysicsSoftBodyFactory", "CreateAndAddSoftBody 失败"])
+                            @LogError(["PhysicsSoftBodyFactory", "CreateAndAddSoftBody 失败"])
                             PhysicsSoftBody(world: world, bodyID: 0)
                         } else {
                             PhysicsSoftBody(world: world, bodyID: bodyID)

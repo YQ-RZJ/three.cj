@@ -75,7 +75,8 @@ import three.rendering.cameras.Camera
 import three.core.math.*
 import three.core.dsa.SimplexNoise
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.math.*
 
 /**
@@ -186,7 +187,7 @@ public class VolumeCloudPass <: ShaderPass {
         this.frame = 0
         this.texSize = texSize
         // 透明材质语义：needsSwap=true（基类默认）
-        Logger.trace(["volumecloud", "VolumeCloudPass constructed: texSize=" + texSize.toString() +
+        @LogTrace(["volumecloud", "VolumeCloudPass constructed: texSize=" + texSize.toString() +
                       " boxCenter=(${cloudCenter.x},${cloudCenter.y},${cloudCenter.z})" +
                       " boxHalf=(${cloudHalfSize.x},${cloudHalfSize.y},${cloudHalfSize.z})" +
                       " steps=" + steps.toString()])
@@ -259,8 +260,8 @@ public class VolumeCloudPass <: ShaderPass {
         this.setUniformVec4(renderer, uniforms, "u_steps",     [this.steps,     0.0, 0.0, 0.0])
         this.setUniformVec4(renderer, uniforms, "u_frame",     [Float64(this.frame), 0.0, 0.0, 0.0])
         this.setUniformVec4(renderer, uniforms, "u_texSize",   [Float64(this.texSize), 0.0, 0.0, 0.0])
-        Logger.trace(["volumecloud", "bindExtraUniforms: frame=" + this.frame.toString() +
-                      " texIdx=" + handleIdx(this._noiseTex).toString() +
+        @LogTrace(["volumecloud", "bindExtraUniforms: frame=" + this.frame.toString() +
+                      " texIdx=" + Handle.idx(this._noiseTex).toString() +
                       " steps=" + this.steps.toString()])
     }
 
@@ -283,7 +284,7 @@ public class VolumeCloudPass <: ShaderPass {
      * 3D 噪声纹理为本 pass 自建，须显式销毁；全屏 quad 由 EffectComposer 统一管理。
      */
     public override func dispose(): Unit {
-        if (isValidHandle(this._noiseTex)) {
+        if (Handle.isValid(this._noiseTex)) {
             match (this._renderer) {
                 case Some(r) => r.destroyTexture(this._noiseTex)
                 case None => ()
@@ -343,8 +344,8 @@ public class VolumeCloudPass <: ShaderPass {
             UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_W_CLAMP),
             Some(mem))
         this._noiseTexCreated = true
-        Logger.trace(["volumecloud", "createNoiseTexture: size=" + size.toString() +
-                      " texIdx=" + handleIdx(this._noiseTex).toString()])
+        @LogTrace(["volumecloud", "createNoiseTexture: size=" + size.toString() +
+                      " texIdx=" + Handle.idx(this._noiseTex).toString()])
     }
 
     /**

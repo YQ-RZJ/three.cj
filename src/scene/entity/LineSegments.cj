@@ -40,7 +40,8 @@ import three.rendering.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import three.rendering.materials.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import fastjson.*
 import fastjson.macros.*
@@ -116,7 +117,7 @@ public open class LineSegments <: Line {
                 }
             case Some(_) =>
                 
-                Logger.warn(["LineSegments.computeLineDistances()", "Computation only possible with non-indexed BufferGeometry."])
+                @LogWarn(["LineSegments.computeLineDistances()", "Computation only possible with non-indexed BufferGeometry."])
         }
         return this
     }

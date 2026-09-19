@@ -82,7 +82,8 @@ import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
 
@@ -200,13 +201,13 @@ public class SMAAPass <: Pass {
                 this._weightsFB = renderer.createFrameBuffer(1u8, weightsHandles, true)
 
                 // 创建 SMAA LUT 纹理（仅首次，setSize 可能多次调用）
-                if (!isValidHandle(this._areaTex)) {
+                if (!Handle.isValid(this._areaTex)) {
                     let (areaData, areaW, areaH) = this._buildAreaTexture()
                     let areaMem = BgfxMemory(UInt32(areaData.size))
                     areaMem.writeUInt8(areaData, Int64(areaData.size))
                     this._areaTex = renderer.createTexture2D(UInt16(areaW), UInt16(areaH), false, 1u16, TextureFormat.RGBA8.value(), lutFlags, Some(areaMem))
                 }
-                if (!isValidHandle(this._searchTex)) {
+                if (!Handle.isValid(this._searchTex)) {
                     let (searchData, searchW, searchH) = this._buildSearchTexture()
                     let searchMem = BgfxMemory(UInt32(searchData.size))
                     searchMem.writeUInt8(searchData, Int64(searchData.size))
@@ -217,7 +218,7 @@ public class SMAAPass <: Pass {
             case None => ()
         }
 
-        Logger.trace(["SMAAPass", "_createRTs done ${this._width}x${this._height} edgesFB.idx=${handleIdx(this._edgesFB)} weightsFB.idx=${handleIdx(this._weightsFB)}"])
+        @LogTrace(["SMAAPass", "_createRTs done ${this._width}x${this._height} edgesFB.idx=${Handle.idx(this._edgesFB)} weightsFB.idx=${Handle.idx(this._weightsFB)}"])
     }
 
     /**
@@ -231,13 +232,13 @@ public class SMAAPass <: Pass {
         }
         match (this._renderer) {
             case Some(renderer) =>
-                if (isValidHandle(this._edgesTex)) {
+                if (Handle.isValid(this._edgesTex)) {
                     renderer.destroyFrameBuffer(this._edgesFB)
                     renderer.destroyTexture(this._edgesTex)
                     this._edgesTex = INVALID_TEXTURE_HANDLE
                     this._edgesFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                if (isValidHandle(this._weightsTex)) {
+                if (Handle.isValid(this._weightsTex)) {
                     renderer.destroyFrameBuffer(this._weightsFB)
                     renderer.destroyTexture(this._weightsTex)
                     this._weightsTex = INVALID_TEXTURE_HANDLE
@@ -281,7 +282,7 @@ public class SMAAPass <: Pass {
                     case Some(weightsProg) =>
                         match (this._blendProg) {
                             case Some(blendProg) =>
-                                if (!isValidHandle(edgesProg) || !isValidHandle(weightsProg) || !isValidHandle(blendProg)) {
+                                if (!Handle.isValid(edgesProg) || !Handle.isValid(weightsProg) || !Handle.isValid(blendProg)) {
                                     return
                                 }
                                 this._renderSMAA(renderer, writeBuffer, readBuffer, edgesProg, weightsProg, blendProg)
@@ -419,11 +420,11 @@ public class SMAAPass <: Pass {
             case Some(renderer) =>
                 let areaTex = this._areaTex
                 let searchTex = this._searchTex
-                if (isValidHandle(areaTex)) {
+                if (Handle.isValid(areaTex)) {
                     renderer.destroyTexture(areaTex)
                     this._areaTex = INVALID_TEXTURE_HANDLE
                 }
-                if (isValidHandle(searchTex)) {
+                if (Handle.isValid(searchTex)) {
                     renderer.destroyTexture(searchTex)
                     this._searchTex = INVALID_TEXTURE_HANDLE
                 }
@@ -448,19 +449,19 @@ public class SMAAPass <: Pass {
             case Some(sp) =>
                 sp.compileBgfx()
                 this._edgesProg = Some(Box(sp.programHandle))
-            case None => Logger.warn(["SMAAPass", "shader smaaEdges not found"])
+            case None => @LogWarn(["SMAAPass", "shader smaaEdges not found"])
         }
         match (PostProcessingShaders.get("smaaWeights")) {
             case Some(sp) =>
                 sp.compileBgfx()
                 this._weightsProg = Some(Box(sp.programHandle))
-            case None => Logger.warn(["SMAAPass", "shader smaaWeights not found"])
+            case None => @LogWarn(["SMAAPass", "shader smaaWeights not found"])
         }
         match (PostProcessingShaders.get("smaaBlend")) {
             case Some(sp) =>
                 sp.compileBgfx()
                 this._blendProg = Some(Box(sp.programHandle))
-            case None => Logger.warn(["SMAAPass", "shader smaaBlend not found"])
+            case None => @LogWarn(["SMAAPass", "shader smaaBlend not found"])
         }
     }
 

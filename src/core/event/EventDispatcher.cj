@@ -105,7 +105,7 @@ public class Event {
  * }
  * let car = Car()
  * let handle = car.addEventListener("start", { event =>
- * Logger.info(["Car", "started!"])
+ * @LogInfo(["Car", "started!"])
  * })
  * car.start()
  * car.removeEventListener("start", handle)
@@ -121,7 +121,7 @@ public class Event {
  * }
  * let car = Car()
  * let handle = car.addEventListener("start", { event =>
- * Logger.info(["Car", "started!"])
+ * @LogInfo(["Car", "started!"])
  * })
  * car.start()
  * car.removeEventListener("start", handle)

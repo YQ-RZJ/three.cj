@@ -37,6 +37,7 @@ import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
 import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -201,7 +202,7 @@ public class TestWindow <: WindowEngine {
             case Some(pm) =>
                 if (pm.size != g_particleSize) {
                     pm.size = g_particleSize
-                    Logger.debug(["particles", "size synced: " + g_particleSize.toString()])
+                    @LogDebug(["particles", "size synced: " + g_particleSize.toString()])
                 }
                 pm.transparent = true
             case None => ()
@@ -261,7 +262,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== particles：Points 点云 + Sprite 精灵窗口渲染测试 ===")
     println("")
 

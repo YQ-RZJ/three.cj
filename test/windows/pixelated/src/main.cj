@@ -38,6 +38,7 @@ import three.rendering.postprocessing.RenderPixelatedPass
 import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
 import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -228,15 +229,15 @@ public class TestWindow <: WindowEngine {
         // 按键控制：实时同步 pixelSize/边缘强度到 pass
         if (this.pixelatedPass.pixelSize != g_pixelSize) {
             this.pixelatedPass.setPixelSize(g_pixelSize)
-            Logger.debug(["pixelated", "pixelSize synced: " + g_pixelSize.toString()])
+            @LogDebug(["pixelated", "pixelSize synced: " + g_pixelSize.toString()])
         }
         if (this.pixelatedPass.normalEdgeStrength != g_normalEdge) {
             this.pixelatedPass.normalEdgeStrength = g_normalEdge
-            Logger.debug(["pixelated", "normalEdge synced: " + g_normalEdge.toString()])
+            @LogDebug(["pixelated", "normalEdge synced: " + g_normalEdge.toString()])
         }
         if (this.pixelatedPass.depthEdgeStrength != g_depthEdge) {
             this.pixelatedPass.depthEdgeStrength = g_depthEdge
-            Logger.debug(["pixelated", "depthEdge synced: " + g_depthEdge.toString()])
+            @LogDebug(["pixelated", "depthEdge synced: " + g_depthEdge.toString()])
         }
 
         // R 键重置：参数回到默认值
@@ -303,7 +304,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== pixelated：RenderPixelatedPass 像素化渲染 ===")
     println("")
 

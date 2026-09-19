@@ -23,8 +23,9 @@ import three.scene.scenegraph.*
 import three.rendering.cameras.*
 import three.rendering.xr.*
 import three.rendering.textures.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.rendering.types.*
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -129,7 +130,7 @@ public class TestWindow <: WindowEngine {
                 this.renderer.dbgTextClear(0x00, false)
                 this.renderer.dbgTextPrintf(0, 0, 0x0f, "XR presenting=" + objs.xrManager.isXRPresenting().toString() + " refSpace=" + refSpaceStr(objs.xrManager.getReferenceSpaceType()))
                 let ctrlVisible = objs.controller.getTargetRaySpace().visible
-                this.renderer.dbgTextPrintf(0, 1, 0x0e, "controller.rayVisible=" + ctrlVisible.toString() + " depthTex=" + objs.depthSensing.getTexture().idx.toString())
+                this.renderer.dbgTextPrintf(0, 1, 0x0e, "controller.rayVisible=" + ctrlVisible.toString() + " depthTex=" + Handle.idx(objs.depthSensing.getTexture()).toString())
 
                 // ---- 渲染：presenting 时走 ArrayCamera 双眼视口，否则单眼 ----
                 // 对照 JS: WebGLRenderer 在 camera.isArrayCamera 时遍历 cameras 各渲半屏
@@ -166,7 +167,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== xrmanager：xr 包功能验证（XRManager/XRController/XRDepthSensing） ===")
     println("")
 

@@ -47,7 +47,8 @@ import three.physics.interfaces.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // =============================================================================
 // PhysicsHeightFieldDesc 高度场描述
@@ -395,7 +396,7 @@ public class PhysicsHeightFieldFactory {
                                     LibC.free(rot)
                                 }
                                 if (bodyID == 0 || bodyID == 0xFFFFFFFF) {
-                                    Logger.error(["PhysicsHeightFieldFactory", "CreateAndAddBody 失败"])
+                                    @LogError(["PhysicsHeightFieldFactory", "CreateAndAddBody 失败"])
                                     PhysicsHeightField(world: world, bodyID: 0, center: desc.center,
                                         sampleCount: n, sizeX: desc.sizeX, sizeZ: desc.sizeZ)
                                 } else {

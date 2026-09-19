@@ -43,6 +43,7 @@ package three.window.ui
 
 import std.core.*
 import imgui4cj.imgui.*
+import three.utils.memory.VoidPtr
 
 // =============================================================================
 // UiViewport — 视口查询
@@ -61,7 +62,7 @@ import imgui4cj.imgui.*
 public class UiViewport {
     private var _vp: CPointer<Unit>
 
-    public init(vpPtr: CPointer<Unit>) { this._vp = vpPtr }
+    internal init(vpPtr: CPointer<Unit>) { this._vp = vpPtr }
 
     /**
      * @brief[zh-cn] 获取主视口（通常是整个窗口）
@@ -86,7 +87,7 @@ public class UiViewport {
      *
      * @brief[en] Gets the underlying ImGuiViewport pointer
      */
-    public func getHandle(): CPointer<Unit> { return this._vp }
+    public func getHandle(): VoidPtr { return Box(this._vp) }
 
     // ImGuiViewport 字段偏移（x64）:
     // ImGuiViewport field offsets (x64):

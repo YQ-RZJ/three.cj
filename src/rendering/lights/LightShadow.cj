@@ -47,7 +47,8 @@ import three.rendering.rendertarget.*
 import three.core.event.*
 import three.rendering.cameras.*
 import three.utils.constants.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
 import fastjson.*
@@ -351,34 +352,34 @@ public open class LightShadow {
 
         // 光源在世界空间中的位置 = light.matrixWorld 的平移分量
         var lightPos = Vector3()
-        Logger.debug(["LightShadow", "BEFORE setFromMatrixPosition lightPos"])
+        @LogDebug(["LightShadow", "BEFORE setFromMatrixPosition lightPos"])
         lightPos.setFromMatrixPosition(light.matrixWorld)
-        Logger.debug(["LightShadow", "AFTER setFromMatrixPosition lightPos=(${lightPos.x},${lightPos.y},${lightPos.z})"])
+        @LogDebug(["LightShadow", "AFTER setFromMatrixPosition lightPos=(${lightPos.x},${lightPos.y},${lightPos.z})"])
         shadowCamera.position.copy(lightPos)
 
         // 构造观察目标：与 JS 一致，使用 light.target.matrixWorld 的位置
         // 方向光和聚光都含有 target 属性
         var lookTarget = Vector3()
-        Logger.debug(["LightShadow", "BEFORE match light.target"])
+        @LogDebug(["LightShadow", "BEFORE match light.target"])
         match (light) {
             case dl: DirectionalLight => lookTarget.setFromMatrixPosition(dl.target.matrixWorld)
             case sl: SpotLight => lookTarget.setFromMatrixPosition(sl.target.matrixWorld)
             // 兜底（理论上不执行）：回退到光源前方 -Z 方向
             case _ => lookTarget.setFromMatrixPosition(light.matrixWorld)
         }
-        Logger.debug(["LightShadow", "AFTER match target=(${lookTarget.x},${lookTarget.y},${lookTarget.z})"])
-        Logger.debug(["LightShadow", "BEFORE lookAt"])
+        @LogDebug(["LightShadow", "AFTER match target=(${lookTarget.x},${lookTarget.y},${lookTarget.z})"])
+        @LogDebug(["LightShadow", "BEFORE lookAt"])
         shadowCamera.lookAt(lookTarget)
-        Logger.debug(["LightShadow", "AFTER lookAt"])
-        Logger.debug(["LightShadow", "BEFORE updateMatrixWorld"])
+        @LogDebug(["LightShadow", "AFTER lookAt"])
+        @LogDebug(["LightShadow", "BEFORE updateMatrixWorld"])
         shadowCamera.updateMatrixWorld(false)
-        Logger.debug(["LightShadow", "AFTER updateMatrixWorld"])
+        @LogDebug(["LightShadow", "AFTER updateMatrixWorld"])
 
         var projScreenMatrix = Matrix4().multiplyMatrices(shadowCamera.projectionMatrix, shadowCamera.matrixWorldInverse)
         // Ignore: 仓颉版 Frustum 暂未支持 coordinateSystem/reversedDepth 参数，保留单参数形式在当前 bgfx 后端下与 JS setFromProjectionMatrix 等价。
-        Logger.debug(["LightShadow", "BEFORE frustum setFromProjectionMatrix"])
+        @LogDebug(["LightShadow", "BEFORE frustum setFromProjectionMatrix"])
         this._frustum.setFromProjectionMatrix(projScreenMatrix)
-        Logger.debug(["LightShadow", "AFTER frustum setFromProjectionMatrix"])
+        @LogDebug(["LightShadow", "AFTER frustum setFromProjectionMatrix"])
 
         // 与 JS side 一致：WebGPU 坐标系或反向深度时使用 Identity Z 分支，
         // 否则使用标准 [0,1] Z 映射。
@@ -387,9 +388,9 @@ public open class LightShadow {
         } else {
             shadowMatrix.set(0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 1.0)
         }
-        Logger.debug(["LightShadow", "AFTER shadowMatrix.set"])
+        @LogDebug(["LightShadow", "AFTER shadowMatrix.set"])
         shadowMatrix.multiply(projScreenMatrix)
-        Logger.debug(["LightShadow", "AFTER shadowMatrix.multiply"])
+        @LogDebug(["LightShadow", "AFTER shadowMatrix.multiply"])
     }
 
     /**

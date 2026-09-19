@@ -24,9 +24,9 @@ import three.rendering.lights.*
 import three.rendering.ThreeRenderer
 import three.rendering.xr.*
 import three.rendering.textures.*
-import bgfx4cj.bgfx.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.rendering.types.*
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /// XRReferenceSpaceType 枚举转字符串（仓颉枚举无内置 ToString）
 public func refSpaceStr(rs: XRReferenceSpaceType): String {
@@ -63,7 +63,6 @@ public class SceneObjects {
 
 /// 创建场景：XR 管理器/控制器/深度感知构造 + 接口验证 + 球体
 public func createScene(width: Int32, height: Int32, renderer: ThreeRenderer): SceneObjects {
-    Logger.setLevel(LogLevel.Debug)
 
     let scene = Scene()
     scene.name = "XRScene"
@@ -141,8 +140,9 @@ public func createScene(width: Int32, height: Int32, renderer: ThreeRenderer): S
     // ---- 3. XRDepthSensing（对照 JS WebXRDepthSensing）----
     let depthSensing = XRDepthSensing()
     println("  [xr] DepthSensing: isAvailable=${depthSensing.isAvailable()}")
-    // setTexture 需 bgfx TextureHandle（对照 JS: WebXRDepthSensing.setDepthTexture）
-    let depthTexHandle = TextureHandle(2u16)
+    // setTexture 需纹理句柄（对照 JS: WebXRDepthSensing.setDepthTexture）；
+    // 通过 three.rendering.types 的工厂函数构造，无须依赖 bgfx4cj
+    let depthTexHandle = Handle.texture(2u16)
     depthSensing.setTexture(depthTexHandle)
     println("  [xr] DepthSensing: setTexture OK")
     let depthMesh = depthSensing.getMesh()

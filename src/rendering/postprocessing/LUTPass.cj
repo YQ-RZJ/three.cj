@@ -62,7 +62,8 @@ import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 颜色分级（LUT）后处理 pass
@@ -114,7 +115,7 @@ public class LUTPass <: ShaderPass {
         this.lutSize = lutSize
         this.intensity = intensity
         // needsSwap=true（继承 ShaderPass 默认）
-        Logger.trace(["lut", "LUTPass constructed: lutIdx=" + handleIdx(lut).toString() +
+        @LogTrace(["lut", "LUTPass constructed: lutIdx=" + Handle.idx(lut).toString() +
                       " lutSize=" + lutSize.toString() +
                       " intensity=" + intensity.toString()])
     }
@@ -139,7 +140,7 @@ public class LUTPass <: ShaderPass {
         // lutSize / intensity（bgfx 最小单位 vec4，x=value）
         this.setUniformVec4(renderer, uniforms, "u_lutSize",   Float64(this.lutSize))
         this.setUniformVec4(renderer, uniforms, "u_intensity", this.intensity)
-        Logger.trace(["lut", "bindExtraUniforms: lutIdx=" + handleIdx(this.lut).toString() +
+        @LogTrace(["lut", "bindExtraUniforms: lutIdx=" + Handle.idx(this.lut).toString() +
                       " lutSize=" + this.lutSize.toString() +
                       " intensity=" + this.intensity.toString()])
     }
@@ -184,19 +185,19 @@ public class LUTPass <: ShaderPass {
         deltaTime: Float64
     ): Unit {
         // 无有效 LUT 纹理时跳过（无查表可做）
-        if (!isValidHandle(this.lut)) {
-            Logger.trace(["lut", "render: lut texture invalid (idx=65535), skip pass"])
+        if (!Handle.isValid(this.lut)) {
+            @LogTrace(["lut", "render: lut texture invalid (idx=65535), skip pass"])
             return
         }
         if (this.lutSize <= 0) {
-            Logger.trace(["lut", "render: lutSize<=0, skip pass"])
+            @LogTrace(["lut", "render: lutSize<=0, skip pass"])
             return
         }
-        Logger.trace(["lut", "render: entering LUTPass.render (lutIdx=" + handleIdx(this.lut).toString() +
+        @LogTrace(["lut", "render: entering LUTPass.render (lutIdx=" + Handle.idx(this.lut).toString() +
                       " lutSize=" + this.lutSize.toString() +
                       " intensity=" + this.intensity.toString() +
-                      " writeBuffer=" + handleIdx(writeBuffer).toString() +
-                      " readBuffer=" + handleIdx(readBuffer).toString() + ")"])
+                      " writeBuffer=" + Handle.idx(writeBuffer).toString() +
+                      " readBuffer=" + Handle.idx(readBuffer).toString() + ")"])
         super.render(renderer, writeBuffer, readBuffer, deltaTime)
     }
 
@@ -211,6 +212,6 @@ public class LUTPass <: ShaderPass {
      *         the full-screen quad is managed as a singleton by EffectComposer.
      */
     public override func dispose(): Unit {
-        Logger.trace(["lut", "disposed"])
+        @LogTrace(["lut", "disposed"])
     }
 }

@@ -2,33 +2,10 @@
 
 ## API列表
 
-### 函数
+### 类
 |  名称   | 描述  |
 |  ----  | ----  |
-|[handleIdx(FrameBufferHandle)](./函数.md#func-handleidxframebufferhandle)|取帧缓冲句柄内部 idx（仅用于日志调试输出；有效性判断请用 isValidHandle）|
-|[handleIdx(TextureHandle)](./函数.md#func-handleidxtexturehandle)|取纹理句柄 idx（日志用）|
-|[handleIdx(ProgramHandle)](./函数.md#func-handleidxprogramhandle)|取程序句柄 idx（日志用）|
-|[handleIdx(UniformHandle)](./函数.md#func-handleidxuniformhandle)|取 uniform 句柄 idx（日志用）|
-|[handleIdx(VertexBufferHandle)](./函数.md#func-handleidxvertexbufferhandle)|取静态顶点缓冲句柄 idx（日志用）|
-|[handleIdx(IndexBufferHandle)](./函数.md#func-handleidxindexbufferhandle)|取静态索引缓冲句柄 idx（日志用）|
-|[handleIdx(VertexLayoutHandle)](./函数.md#func-handleidxvertexlayouthandle)|取顶点布局句柄 idx（日志用）|
-|[handleIdx(DynamicVertexBufferHandle)](./函数.md#func-handleidxdynamicvertexbufferhandle)|取动态顶点缓冲句柄 idx（日志用）|
-|[handleIdx(DynamicIndexBufferHandle)](./函数.md#func-handleidxdynamicindexbufferhandle)|取动态索引缓冲句柄 idx（日志用）|
-|[handleIdx(ShaderHandle)](./函数.md#func-handleidxshaderhandle)|取着色器句柄 idx（日志用）|
-|[handleIdx(IndirectBufferHandle)](./函数.md#func-handleidxindirectbufferhandle)|取间接绘制缓冲句柄 idx（日志用）|
-|[handleIdx(OcclusionQueryHandle)](./函数.md#func-handleidxocclusionqueryhandle)|取遮挡查询句柄 idx（日志用）|
-|[isValidHandle(FrameBufferHandle)](./函数.md#func-isvalidhandleframebufferhandle)|判断帧缓冲句柄是否有效（idx != 0xFFFF）|
-|[isValidHandle(TextureHandle)](./函数.md#func-isvalidhandletexturehandle)|判断纹理句柄是否有效|
-|[isValidHandle(ProgramHandle)](./函数.md#func-isvalidhandleprogramhandle)|判断程序句柄是否有效|
-|[isValidHandle(UniformHandle)](./函数.md#func-isvalidhandleuniformhandle)|判断 uniform 句柄是否有效|
-|[isValidHandle(VertexBufferHandle)](./函数.md#func-isvalidhandlevertexbufferhandle)|判断静态顶点缓冲句柄是否有效|
-|[isValidHandle(IndexBufferHandle)](./函数.md#func-isvalidhandleindexbufferhandle)|判断静态索引缓冲句柄是否有效|
-|[isValidHandle(VertexLayoutHandle)](./函数.md#func-isvalidhandlevertexlayouthandle)|判断顶点布局句柄是否有效|
-|[isValidHandle(DynamicVertexBufferHandle)](./函数.md#func-isvalidhandledynamicvertexbufferhandle)|判断动态顶点缓冲句柄是否有效|
-|[isValidHandle(DynamicIndexBufferHandle)](./函数.md#func-isvalidhandledynamicindexbufferhandle)|判断动态索引缓冲句柄是否有效|
-|[isValidHandle(ShaderHandle)](./函数.md#func-isvalidhandleshaderhandle)|判断着色器句柄是否有效|
-|[isValidHandle(IndirectBufferHandle)](./函数.md#func-isvalidhandleindirectbufferhandle)|判断间接绘制缓冲句柄是否有效|
-|[isValidHandle(OcclusionQueryHandle)](./函数.md#func-isvalidhandleocclusionqueryhandle)|判断遮挡查询句柄是否有效|
+|[Handle](./类/Handle.md#class-handle)|bgfx 类型工厂 —— 统一的 Box 包装类型构建入口|
 
 ### 类型别名
 |  名称   | 描述  |
@@ -69,14 +46,15 @@
 |[ProgramHandle](./类型别名.md#type-programhandle)|程序句柄（vs+fs 链接后）|
 |[RenderFrame](./类型别名.md#type-renderframe)|渲染帧类型（Render / Submit）|
 |[RendererType](./类型别名.md#type-renderertype)|渲染器类型（Direct3D11 / Vulkan / OpenGLES / Metal / Noop ...）|
-|[Resolution](./类型别名.md#type-resolution)|后缓冲分辨率与重置参数|
 |[ShaderHandle](./类型别名.md#type-shaderhandle)|着色器句柄|
 |[StatsPtr](./类型别名.md#type-statsptr)|渲染器统计指针（getStats 返回）|
 |[Stats](./类型别名.md#type-stats)|渲染器统计信息|
+|[SwapChain](./类型别名.md#type-swapchain)|交换链描述（原生窗口 backbuffer，新版 bgfx 取代 Resolution）|
 |[TextureFormat](./类型别名.md#type-textureformat)|纹理格式（RGBA8 / RGBA16F / D24 / D24S8 ...）|
 |[TextureHandle](./类型别名.md#type-texturehandle)|纹理句柄|
 |[TextureInfoPtr](./类型别名.md#type-textureinfoptr)|纹理信息指针（createTexture / calcTextureSize 传入）|
 |[TextureInfo](./类型别名.md#type-textureinfo)|纹理信息（format / width / height / numMips 等）|
+|[TextureRegion](./类型别名.md#type-textureregion)|纹理区域描述符（新版 bgfx read/blit 区域模型）|
 |[TopologyConvert](./类型别名.md#type-topologyconvert)|拓扑转换类型（TriListFlipWinding / TriStripToTriList ...）|
 |[TopologySort](./类型别名.md#type-topologysort)|拓扑排序类型（DirectionFrontToBackMin / DistanceBackToFrontAvg ...）|
 |[Topology](./类型别名.md#type-topology)|后端能力枚举（GPU 型号名）|
@@ -104,29 +82,12 @@
 |[BGFX_API_VERSION](./变量与常量.md#let-bgfx_api_version)|bgfx API 版本号|
 |[BGFX_INVALID_HANDLE_IDX](./变量与常量.md#let-bgfx_invalid_handle_idx)|bgfx 句柄无效索引值|
 |[BUFFER_ALLOW_RESIZE](./变量与常量.md#let-buffer_allow_resize)|允许动态缓冲 resize|
-|[BUFFER_COMPUTE_FORMAT_16X1](./变量与常量.md#let-buffer_compute_format_16x1)|Compute buffer format：16bit × 1|
-|[BUFFER_COMPUTE_FORMAT_16X2](./变量与常量.md#let-buffer_compute_format_16x2)|Compute buffer format：16bit × 2|
-|[BUFFER_COMPUTE_FORMAT_16X4](./变量与常量.md#let-buffer_compute_format_16x4)|Compute buffer format：16bit × 4|
-|[BUFFER_COMPUTE_FORMAT_32X1](./变量与常量.md#let-buffer_compute_format_32x1)|Compute buffer format：32bit × 1|
-|[BUFFER_COMPUTE_FORMAT_32X2](./变量与常量.md#let-buffer_compute_format_32x2)|Compute buffer format：32bit × 2|
-|[BUFFER_COMPUTE_FORMAT_32X4](./变量与常量.md#let-buffer_compute_format_32x4)|Compute buffer format：32bit × 4|
-|[BUFFER_COMPUTE_FORMAT_8X1](./变量与常量.md#let-buffer_compute_format_8x1)|Compute buffer format：8bit × 1|
-|[BUFFER_COMPUTE_FORMAT_8X2](./变量与常量.md#let-buffer_compute_format_8x2)|Compute buffer format：8bit × 2|
-|[BUFFER_COMPUTE_FORMAT_8X4](./变量与常量.md#let-buffer_compute_format_8x4)|Compute buffer format：8bit × 4|
-|[BUFFER_COMPUTE_FORMAT_MASK](./变量与常量.md#let-buffer_compute_format_mask)|Compute buffer format bit mask|
-|[BUFFER_COMPUTE_FORMAT_SHIFT](./变量与常量.md#let-buffer_compute_format_shift)|Compute buffer format bit offset|
 |[BUFFER_COMPUTE_READ](./变量与常量.md#let-buffer_compute_read)|计算缓冲可读|
 |[BUFFER_COMPUTE_READ_WRITE](./变量与常量.md#let-buffer_compute_read_write)|计算缓冲可读写|
-|[BUFFER_COMPUTE_TYPE_FLOAT](./变量与常量.md#let-buffer_compute_type_float)|计算缓冲类型：Float|
-|[BUFFER_COMPUTE_TYPE_INT](./变量与常量.md#let-buffer_compute_type_int)|计算缓冲类型：Int|
-|[BUFFER_COMPUTE_TYPE_MASK](./变量与常量.md#let-buffer_compute_type_mask)|计算缓冲类型 bit mask|
-|[BUFFER_COMPUTE_TYPE_SHIFT](./变量与常量.md#let-buffer_compute_type_shift)|计算缓冲类型 bit offset|
-|[BUFFER_COMPUTE_TYPE_UINT](./变量与常量.md#let-buffer_compute_type_uint)|计算缓冲类型：UInt|
 |[BUFFER_COMPUTE_WRITE](./变量与常量.md#let-buffer_compute_write)|计算缓冲可写|
 |[BUFFER_DRAW_INDIRECT](./变量与常量.md#let-buffer_draw_indirect)|间接绘制缓冲|
 |[BUFFER_INDEX32](./变量与常量.md#let-buffer_index32)|32bit 索引缓冲|
 |[BUFFER_NONE](./变量与常量.md#let-buffer_none)|无特殊标志|
-|[CAPS_ALPHA_TO_COVERAGE](./变量与常量.md#let-caps_alpha_to_coverage)|Alpha to coverage 支持|
 |[CAPS_BLEND_INDEPENDENT](./变量与常量.md#let-caps_blend_independent)|独立混合支持|
 |[CAPS_COMPUTE](./变量与常量.md#let-caps_compute)|计算着色器支持|
 |[CAPS_CONSERVATIVE_RASTER](./变量与常量.md#let-caps_conservative_raster)|保守光栅化支持|
@@ -149,31 +110,18 @@
 |[CAPS_FORMAT_TEXTURE_MSAA](./变量与常量.md#let-caps_format_texture_msaa)|MSAA 纹理支持|
 |[CAPS_FORMAT_TEXTURE_NONE](./变量与常量.md#let-caps_format_texture_none)|格式无能力|
 |[CAPS_FORMAT_TEXTURE_VERTEX](./变量与常量.md#let-caps_format_texture_vertex)|顶点缓冲纹理支持|
-|[CAPS_FRAGMENT_DEPTH](./变量与常量.md#let-caps_fragment_depth)|片元深度支持|
 |[CAPS_FRAGMENT_ORDERING](./变量与常量.md#let-caps_fragment_ordering)|片元排序支持|
 |[CAPS_GRAPHICS_DEBUGGER](./变量与常量.md#let-caps_graphics_debugger)|Graphics debugger support|
 |[CAPS_HDR10](./变量与常量.md#let-caps_hdr10)|HDR10 支持|
-|[CAPS_HIDPI](./变量与常量.md#let-caps_hidpi)|HiDPI 支持|
 |[CAPS_IMAGE_RW](./变量与常量.md#let-caps_image_rw)|图像读写支持|
 |[CAPS_INDEX32](./变量与常量.md#let-caps_index32)|32bit 索引支持|
-|[CAPS_INSTANCING](./变量与常量.md#let-caps_instancing)|实例化支持|
-|[CAPS_OCCLUSION_QUERY](./变量与常量.md#let-caps_occlusion_query)|遮挡查询支持|
 |[CAPS_PRIMITIVE_ID](./变量与常量.md#let-caps_primitive_id)|图元 ID 支持|
 |[CAPS_RENDERER_MULTITHREADED](./变量与常量.md#let-caps_renderer_multithreaded)|多线程渲染器支持|
 |[CAPS_SWAP_CHAIN](./变量与常量.md#let-caps_swap_chain)|交换链支持|
-|[CAPS_TEXTURE_2D_ARRAY](./变量与常量.md#let-caps_texture_2d_array)|2D texture array support|
-|[CAPS_TEXTURE_3D](./变量与常量.md#let-caps_texture_3d)|3D 纹理支持|
-|[CAPS_TEXTURE_BLIT](./变量与常量.md#let-caps_texture_blit)|纹理 blit 支持|
-|[CAPS_TEXTURE_COMPARE_ALL](./变量与常量.md#let-caps_texture_compare_all)|纹理深度比较支持（全部）|
-|[CAPS_TEXTURE_COMPARE_LEQUAL](./变量与常量.md#let-caps_texture_compare_lequal)|纹理深度比较支持（LEQUAL）|
-|[CAPS_TEXTURE_COMPARE_RESERVED](./变量与常量.md#let-caps_texture_compare_reserved)|纹理深度比较保留位|
 |[CAPS_TEXTURE_CUBE_ARRAY](./变量与常量.md#let-caps_texture_cube_array)|Cube texture array support|
 |[CAPS_TEXTURE_DIRECT_ACCESS](./变量与常量.md#let-caps_texture_direct_access)|Texture direct access support|
-|[CAPS_TEXTURE_READ_BACK](./变量与常量.md#let-caps_texture_read_back)|Texture readback support|
 |[CAPS_TRANSPARENT_BACKBUFFER](./变量与常量.md#let-caps_transparent_backbuffer)|Transparent backbuffer support|
-|[CAPS_VERTEX_ATTRIB_HALF](./变量与常量.md#let-caps_vertex_attrib_half)|顶点属性 Half 支持|
 |[CAPS_VERTEX_ATTRIB_UINT10](./变量与常量.md#let-caps_vertex_attrib_uint10)|顶点属性 UInt10 支持|
-|[CAPS_VERTEX_ID](./变量与常量.md#let-caps_vertex_id)|顶点 ID 支持|
 |[CAPS_VIEWPORT_LAYER_ARRAY](./变量与常量.md#let-caps_viewport_layer_array)|Viewport layer array support|
 |[CLEAR_COLOR](./变量与常量.md#let-clear_color)|Clear color|
 |[CLEAR_DEPTH](./变量与常量.md#let-clear_depth)|Clear depth|
@@ -360,7 +308,6 @@
 |[STATE_WRITE_RGB](./变量与常量.md#let-state_write_rgb)|写入 RGB 通道|
 |[STATE_WRITE_R](./变量与常量.md#let-state_write_r)|写入 R 通道|
 |[STATE_WRITE_Z](./变量与常量.md#let-state_write_z)|写入 Z（深度）通道|
-|[STENCIL_DEFAULT](./变量与常量.md#let-stencil_default)|默认模板|
 |[STENCIL_FUNC_REF_MASK](./变量与常量.md#let-stencil_func_ref_mask)|模板函数参考值 bit mask|
 |[STENCIL_FUNC_REF_SHIFT](./变量与常量.md#let-stencil_func_ref_shift)|模板函数参考值 bit offset|
 |[STENCIL_FUNC_RMASK_MASK](./变量与常量.md#let-stencil_func_rmask_mask)|模板函数mask bit mask|

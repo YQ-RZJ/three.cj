@@ -149,7 +149,7 @@ public class EffectComposer {
     /**
      * RT 纹理格式（RGBA16F 半浮点）。
      */
-    private static let RT_FORMAT: UInt32 = 74u32  // TextureFormat.RGBA16F.value()
+    private static let RT_FORMAT: UInt32 = TextureFormat.RGBA16F.value()
 
     /**
      * @brief[zh-cn] 构造 EffectComposer
@@ -362,7 +362,12 @@ public class EffectComposer {
         this._rt1.value = this._createFBWithDepth(rt1Color, rt1Depth)
 
         let rt2Color = this.renderer.createTexture2D(w, h, false, 1u16, EffectComposer.RT_FORMAT, colorFlags, None)
-        let rt2Depth = this.renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24.value(), colorFlags, None)
+        // 深度附件必须用 D24S8：新版 bgfx 的 D3D11 后端中 D24 无 DSV 格式
+        // （s_textureFormat[D24].m_fmtDsv = DXGI_FORMAT_UNKNOWN），以 D24 为深度附件
+        // 创建 frame buffer 会失败返回 INVALID，ping-pong 的 readBuffer 退化为无效句柄，
+        // 场景经 set_view_frame_buffer(INVALID) 直接画进主 backbuffer（与后处理帧交替上屏），
+        // 后处理 pass 再从无效 FB 取色 → 采样到垃圾纹理。rt1/rt2 统一 D24S8。
+        let rt2Depth = this.renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), colorFlags, None)
         this._rt2.value = this._createFBWithDepth(rt2Color, rt2Depth)
 
         this._writeBuffer.value = this._rt1.value

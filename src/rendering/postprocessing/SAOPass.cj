@@ -88,7 +88,8 @@ import three.rendering.cameras.*
 import three.scene.entity.Mesh
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
@@ -180,7 +181,7 @@ public class SAOPass <: Pass {
             this._destroyRTs()
             this._width = width
             this._height = height
-            Logger.trace(["sao", "setSize=${width}x${height}"])
+            @LogTrace(["sao", "setSize=${width}x${height}"])
         }
     }
 
@@ -188,7 +189,7 @@ public class SAOPass <: Pass {
 
     private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
-        if (isValidHandle(this._normalTex)) { return }
+        if (Handle.isValid(this._normalTex)) { return }
 
         // 法线 RT：RGBA16F + D24 depth attachment
         let normalTex = renderer.createTexture2D(
@@ -199,7 +200,7 @@ public class SAOPass <: Pass {
         this._normalTex = normalTex
         let normalDepthTex = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
             None)
         this._normalDepthTex = normalDepthTex
@@ -214,7 +215,7 @@ public class SAOPass <: Pass {
         this._depthTex = depthTex
         let depthDepthTex = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
             None)
         this._depthDepthTex = depthDepthTex
@@ -238,7 +239,7 @@ public class SAOPass <: Pass {
         this._blurTex = blurTex
         this._blurFB = this._createFB(renderer, blurTex)
 
-        Logger.trace(["sao", "_ensureRTs done ${this._width}x${this._height}"])
+        @LogTrace(["sao", "_ensureRTs done ${this._width}x${this._height}"])
     }
 
     private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
@@ -262,16 +263,16 @@ public class SAOPass <: Pass {
                 let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
                 let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
                 let saoTex = this._saoTex; let blurTex = this._blurTex
-                if (isValidHandle(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
-                if (isValidHandle(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (isValidHandle(saoFB)) { renderer.destroyFrameBuffer(saoFB) }
-                if (isValidHandle(blurFB)) { renderer.destroyFrameBuffer(blurFB) }
-                if (isValidHandle(normalTex)) { renderer.destroyTexture(normalTex) }
-                if (isValidHandle(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
-                if (isValidHandle(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (isValidHandle(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-                if (isValidHandle(saoTex)) { renderer.destroyTexture(saoTex) }
-                if (isValidHandle(blurTex)) { renderer.destroyTexture(blurTex) }
+                if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
+                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+                if (Handle.isValid(saoFB)) { renderer.destroyFrameBuffer(saoFB) }
+                if (Handle.isValid(blurFB)) { renderer.destroyFrameBuffer(blurFB) }
+                if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
+                if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
+                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+                if (Handle.isValid(saoTex)) { renderer.destroyTexture(saoTex) }
+                if (Handle.isValid(blurTex)) { renderer.destroyTexture(blurTex) }
                 this._normalFB = INVALID_FRAME_BUFFER_HANDLE
                 this._normalTex = INVALID_TEXTURE_HANDLE
                 this._normalDepthTex = INVALID_TEXTURE_HANDLE
@@ -478,7 +479,7 @@ public class SAOPass <: Pass {
             case Some(scene) => match (camOpt) {
                 case Some(camera) =>
                     this._ensureRTs(renderer)
-                    if (!isValidHandle(this._normalFB)) { Logger.trace(["sao", "render: _ensureRTs failed, normalFB invalid"]); return }
+                    if (!Handle.isValid(this._normalFB)) { @LogTrace(["sao", "render: _ensureRTs failed, normalFB invalid"]); return }
 
                     let baseView = SAOPass.SAO_VIEW_ID_BASE
                     let uniforms = this._uniforms
@@ -495,7 +496,7 @@ public class SAOPass <: Pass {
                     this._renderBlur(renderer, camera, UInt16(UInt16(baseView) + 4u16), uniforms, 1.0, 0.0, this._blurTex, this._saoFB)
                     // ===== 6. 输出 pass（view+5）：按 output 模式写 writeBuffer/屏幕 =====
                     this._renderOutput(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 5u16))
-                    Logger.trace(["sao", "render: 6-pass chain done"])
+                    @LogTrace(["sao", "render: 6-pass chain done"])
                 case None => ()
             }
             case None => ()
@@ -516,11 +517,11 @@ public class SAOPass <: Pass {
         let normalProgOpt = ShaderLibs.get("normal")
         match (normalProgOpt) {
             case Some(normalSp) =>
-                if (!isValidHandle(Box(normalSp.programHandle))) {
+                if (!Handle.isValid(Box(normalSp.programHandle))) {
                     normalSp.compileBgfx()
                 }
                 let normalProg = Box(normalSp.programHandle)
-                if (!isValidHandle(normalProg)) { Logger.trace(["sao", "normal prog compile failed"]); return }
+                if (!Handle.isValid(normalProg)) { @LogTrace(["sao", "normal prog compile failed"]); return }
 
                 let layout = this._getOrCreateLayout(renderer)
                 let renderObjects = ArrayList<RenderObject>()
@@ -530,7 +531,7 @@ public class SAOPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let posAttrOpt = ro.geometry.getAttribute("position")
                     match (posAttrOpt) {
                         case Some(_) =>
@@ -560,7 +561,7 @@ public class SAOPass <: Pass {
 
                             renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                             let ib = this._createIB(renderer, ro.geometry)
-                            if (isValidHandle(ib)) {
+                            if (Handle.isValid(ib)) {
                                 renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                             }
                             let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -572,8 +573,8 @@ public class SAOPass <: Pass {
                         case None => ()
                     }
                 }
-                Logger.trace(["sao", "normal pass submitCnt=${submitCnt}"])
-            case None => Logger.trace(["sao", "normal shader not registered"])
+                @LogTrace(["sao", "normal pass submitCnt=${submitCnt}"])
+            case None => @LogTrace(["sao", "normal shader not registered"])
         }
     }
 
@@ -590,26 +591,26 @@ public class SAOPass <: Pass {
         let depthProgOpt = PostProcessingShaders.get("aodepth")
         match (depthProgOpt) {
             case Some(depthSp) =>
-                if (!isValidHandle(Box(depthSp.programHandle))) {
+                if (!Handle.isValid(Box(depthSp.programHandle))) {
                     depthSp.compileBgfx()
                 }
                 let depthProg = Box(depthSp.programHandle)
-                if (!isValidHandle(depthProg)) { Logger.trace(["sao", "depth: aodepth program compile FAILED"]); return }
-                Logger.trace(["sao", "depth: aodepth prog idx=${handleIdx(depthProg)}"])
+                if (!Handle.isValid(depthProg)) { @LogTrace(["sao", "depth: aodepth program compile FAILED"]); return }
+                @LogTrace(["sao", "depth: aodepth prog idx=${Handle.idx(depthProg)}"])
 
                 let layout = this._getOrCreateLayout(renderer)
                 let renderObjects = ArrayList<RenderObject>()
                 this._collectMeshes(scene, renderObjects)
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -618,8 +619,8 @@ public class SAOPass <: Pass {
                     renderer.setState(depthRenderState, rgba: 0x00000000u32)
                     renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
                 }
-                Logger.trace(["sao", "depth: submitted renderObjects=${renderObjects.size}"])
-            case None => Logger.trace(["sao", "depth: aodepth shader NOT REGISTERED in PostProcessingShaders"])
+                @LogTrace(["sao", "depth: submitted renderObjects=${renderObjects.size}"])
+            case None => @LogTrace(["sao", "depth: aodepth shader NOT REGISTERED in PostProcessingShaders"])
         }
     }
 
@@ -635,12 +636,12 @@ public class SAOPass <: Pass {
         let saoProgOpt = PostProcessingShaders.get("sao")
         match (saoProgOpt) {
             case Some(saoSp) =>
-                if (!isValidHandle(Box(saoSp.programHandle))) {
+                if (!Handle.isValid(Box(saoSp.programHandle))) {
                     saoSp.compileBgfx()
                 }
                 let saoProg = Box(saoSp.programHandle)
-                if (!isValidHandle(saoProg)) { Logger.trace(["sao", "sao prog compile failed"]); return }
-                Logger.trace(["sao", "saoCalc: prog idx=${handleIdx(saoProg)} normalTex=${handleIdx(this._normalTex)} depthTex=${handleIdx(this._depthTex)}"])
+                if (!Handle.isValid(saoProg)) { @LogTrace(["sao", "sao prog compile failed"]); return }
+                @LogTrace(["sao", "saoCalc: prog idx=${Handle.idx(saoProg)} normalTex=${Handle.idx(this._normalTex)} depthTex=${Handle.idx(this._depthTex)}"])
 
                 // 采样器：stage 0=深度, 1=法线
                 let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
@@ -686,7 +687,7 @@ public class SAOPass <: Pass {
 
                 // 全屏四边形 submit
                 this.submitQuad(viewId, saoProg)
-            case None => Logger.trace(["sao", "sao shader not registered"])
+            case None => @LogTrace(["sao", "sao shader not registered"])
         }
     }
 
@@ -704,12 +705,12 @@ public class SAOPass <: Pass {
         let blurProgOpt = PostProcessingShaders.get("saoblur")
         match (blurProgOpt) {
             case Some(blurSp) =>
-                if (!isValidHandle(Box(blurSp.programHandle))) {
+                if (!Handle.isValid(Box(blurSp.programHandle))) {
                     blurSp.compileBgfx()
                 }
                 let blurProg = Box(blurSp.programHandle)
-                if (!isValidHandle(blurProg)) { Logger.trace(["sao", "blur: saoblur program compile FAILED"]); return }
-                Logger.trace(["sao", "blur: prog idx=${handleIdx(blurProg)}srcTex=${handleIdx(srcTex)}}ir=(${dirX},${dirY})"])
+                if (!Handle.isValid(blurProg)) { @LogTrace(["sao", "blur: saoblur program compile FAILED"]); return }
+                @LogTrace(["sao", "blur: prog idx=${Handle.idx(blurProg)}srcTex=${Handle.idx(srcTex)}}ir=(${dirX},${dirY})"])
 
                 let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
                 this.bindTexture(renderer, 0u8, uDiff, srcTex, 0u32)
@@ -755,7 +756,7 @@ public class SAOPass <: Pass {
                 this.setUniform(renderer, uWeights, wMem, num: 9u16)
 
                 this.submitQuad(viewId, blurProg)
-            case None => Logger.trace(["sao", "blur: saoblur shader NOT REGISTERED in PostProcessingShaders"])
+            case None => @LogTrace(["sao", "blur: saoblur shader NOT REGISTERED in PostProcessingShaders"])
         }
     }
 
@@ -781,19 +782,19 @@ public class SAOPass <: Pass {
             let applyProgOpt = PostProcessingShaders.get("saoapply")
             match (applyProgOpt) {
                 case Some(applySp) =>
-                    if (!isValidHandle(Box(applySp.programHandle))) {
+                    if (!Handle.isValid(Box(applySp.programHandle))) {
                         applySp.compileBgfx()
                     }
                     let applyProg = Box(applySp.programHandle)
-                    if (!isValidHandle(applyProg)) { Logger.trace(["sao", "output default: saoapply compile FAILED"]); return }
+                    if (!Handle.isValid(applyProg)) { @LogTrace(["sao", "output default: saoapply compile FAILED"]); return }
                     let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
                     let uScene = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
                     this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
                     let uAO = uniforms.createUniform("tAO", UniformType.Sampler.value())
                     this.bindTexture(renderer, 1u8, uAO, this._saoTex, 0u32)
-                    Logger.trace(["sao", "output default: sceneTex=${handleIdx(sceneTex)} saoTex=${handleIdx(this._saoTex)}"])
+                    @LogTrace(["sao", "output default: sceneTex=${Handle.idx(sceneTex)} saoTex=${Handle.idx(this._saoTex)}"])
                     this.submitQuad(viewId, applyProg)
-                case None => Logger.trace(["sao", "output default: saoapply shader NOT REGISTERED"])
+                case None => @LogTrace(["sao", "output default: saoapply shader NOT REGISTERED"])
             }
             return
         }
@@ -806,20 +807,20 @@ public class SAOPass <: Pass {
         let copyProgOpt = PostProcessingShaders.get("copy")
         match (copyProgOpt) {
             case Some(copySp) =>
-                if (!isValidHandle(Box(copySp.programHandle))) {
+                if (!Handle.isValid(Box(copySp.programHandle))) {
                     copySp.compileBgfx()
                 }
                 let copyProg = Box(copySp.programHandle)
-                if (!isValidHandle(copyProg)) { Logger.trace(["sao", "output copy: copy compile FAILED"]); return }
+                if (!Handle.isValid(copyProg)) { @LogTrace(["sao", "output copy: copy compile FAILED"]); return }
                 let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
                 this.bindTexture(renderer, 0u8, uDiff, srcTex, 0u32)
                 let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
                 let oMem = BgfxMemory(16u32)
                 oMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
                 this.setUniform(renderer, uOpacity, oMem, num: 1u16)
-                Logger.trace(["sao", "output copy: output=${this.output} srcTex=${handleIdx(srcTex)}"])
+                @LogTrace(["sao", "output copy: output=${this.output} srcTex=${Handle.idx(srcTex)}"])
                 this.submitQuad(viewId, copyProg)
-            case None => Logger.trace(["sao", "output copy: copy shader NOT REGISTERED"])
+            case None => @LogTrace(["sao", "output copy: copy shader NOT REGISTERED"])
         }
     }
 

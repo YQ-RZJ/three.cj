@@ -30,17 +30,17 @@ public func hasSelection(): Bool
 ```
 是否有选中文本
 
-### func init\(CPointer<Unit>\)
+### func init\(VoidPtr\)
 ```cj
-public init(dataPtr: CPointer < Unit >)
+public init(dataPtr: VoidPtr)
 ```
-
+使用底层回调数据指针构造包装器
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|dataPtr|CPointer<Unit>||
+|dataPtr|VoidPtr|底层 ImGuiInputTextCallbackData 指针|
 
 ### func insertChars\(Int32,String\)
 ```cj
@@ -78,5 +78,5 @@ public func setSelection(start: Int32, end_: Int32): Unit
 |名称|类型|描述|
 |---|---|---|
 |start|Int32|起始位置|
-|end_|Int32||
+|end_|Int32|结束位置|
 

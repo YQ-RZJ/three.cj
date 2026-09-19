@@ -73,7 +73,8 @@ import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.core.math.Vector2
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.types.*
 
 /**
@@ -139,7 +140,7 @@ public class DotScreenPass <: Pass {
         this.scale = scale
         // needsSwap=true（pass 后 composer 交换 buffer）
         this.needsSwap = true
-        Logger.trace(["dotscreen", "DotScreenPass constructed: center=(" +
+        @LogTrace(["dotscreen", "DotScreenPass constructed: center=(" +
                       center.x.toString() + "," + center.y.toString() +
                       ") angle=" + angle.toString() +
                       " scale=" + scale.toString()])
@@ -153,7 +154,7 @@ public class DotScreenPass <: Pass {
      */
     public override func setSize(width: Int64, height: Int64): Unit {
         // DotScreenPass 无内部 RT，无需重建资源
-        Logger.trace(["dotscreen", "setSize: " + width.toString() + "x" + height.toString() +
+        @LogTrace(["dotscreen", "setSize: " + width.toString() + "x" + height.toString() +
                       " (no internal RT)"])
     }
 
@@ -167,12 +168,12 @@ public class DotScreenPass <: Pass {
                     sp.compileBgfx()
                     this._dotScreenProg = Some(Box(sp.programHandle))
                     this._dotScreenCompiled = true
-                    Logger.trace(["dotscreen", "dot_screen shader compiled: prog.idx=" +
-                                  handleIdx(Box(sp.programHandle)).toString()])
+                    @LogTrace(["dotscreen", "dot_screen shader compiled: prog.idx=" +
+                                  Handle.idx(Box(sp.programHandle)).toString()])
                 }
                 return this._dotScreenProg
             case None =>
-                Logger.trace(["dotscreen", "dot_screen shader not registered"])
+                @LogTrace(["dotscreen", "dot_screen shader not registered"])
                 return None
         }
     }
@@ -220,8 +221,8 @@ public class DotScreenPass <: Pass {
 
         match (this._compileDotScreen()) {
             case Some(prog) =>
-                if (!isValidHandle(prog)) {
-                    Logger.trace(["dotscreen", "dot_screen prog invalid, skip"])
+                if (!Handle.isValid(prog)) {
+                    @LogTrace(["dotscreen", "dot_screen prog invalid, skip"])
                     return
                 }
 
@@ -259,7 +260,7 @@ public class DotScreenPass <: Pass {
                 // 全屏 quad submit（覆盖写 state）
                 this.submitQuad(viewId, prog)
 
-                Logger.trace(["dotscreen", "pass: view=" + viewId.toString() +
+                @LogTrace(["dotscreen", "pass: view=" + viewId.toString() +
                               " center=(" + this.center.x.toString() + "," +
                               this.center.y.toString() + ")" +
                               " angle=" + this.angle.toString() +
@@ -267,7 +268,7 @@ public class DotScreenPass <: Pass {
                               " tSize=" + renderer.width.toString() + "x" +
                               renderer.height.toString()])
             case None =>
-                Logger.trace(["dotscreen", "dot_screen shader compile failed, skip pass"])
+                @LogTrace(["dotscreen", "dot_screen shader compile failed, skip pass"])
         }
     }
 
@@ -280,6 +281,6 @@ public class DotScreenPass <: Pass {
      *         here; the full-screen quad is managed as a singleton by EffectComposer.
      */
     public override func dispose(): Unit {
-        Logger.trace(["dotscreen", "disposed"])
+        @LogTrace(["dotscreen", "disposed"])
     }
 }

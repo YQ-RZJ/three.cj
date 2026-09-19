@@ -19,8 +19,8 @@ import three.window.KeyboardProvider
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.postprocessing.EffectComposer
 import three.rendering.postprocessing.RenderPass
 import three.rendering.postprocessing.SAOPass
@@ -159,7 +159,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== sp_sao：尺度敏感环境光遮蔽（SAO）后处理 pass ===")
     println("")
 

@@ -35,7 +35,8 @@ package three.resource.loader
 
 import three.utils.constants.*
 import three.rendering.textures.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
 import bgfx4cj.bimg.*
 import std.collection.*
@@ -80,7 +81,7 @@ public class DDSLoader <: CompressedTextureLoader {
         if (buffer.size < 4) { return texData }
         let magic = UInt32(buffer[0]) | (UInt32(buffer[1]) << 8) | (UInt32(buffer[2]) << 16) | (UInt32(buffer[3]) << 24)
         if (magic != 0x20534444u32) {
-            Logger.debug(["DDSLoader", "invalid magic"])
+            @LogDebug(["DDSLoader", "invalid magic"])
             return texData
         }
 
@@ -94,7 +95,7 @@ public class DDSLoader <: CompressedTextureLoader {
         let ic = bimg_image_parse_dds_cj(allocator, unsafe { CPointer<Unit>(dataPtr) }, UInt32(buffer.size), CPointer<BimgError>())
         dataPtrHolder.dispose()
         if (ic.isNull()) {
-            Logger.debug(["DDSLoader", "parse_dds failed"])
+            @LogDebug(["DDSLoader", "parse_dds failed"])
             return texData
         }
 
@@ -166,28 +167,29 @@ internal func _containerToCompressedTexData(ic: CPointer<ImageContainer>, isCube
 }
 
 // bimg TextureFormat 枚举 → three 压缩格式常量
-// bimg 枚举值：BC1=0, BC2=1, BC3=2, BC4=3, BC5=4, BC6H=5, BC7=6, ETC1=7 ...
+// 注意：新版 bimg 重排了 TextureFormat 枚举（插入 BC4S/BC5S/BC6HU 等），ETC1=10、ETC2=11、ETC2A=12，
+// 旧映射（ETC1=7 等）已失效，统一通过 bgfx4cj.bimg.TextureFormat 枚举取值，避免魔法数字。
 internal func _bimgFormatToThree(format: UInt32): Int64 {
-    match (format) {
-        case 0u32 => return RGB_S3TC_DXT1_Format      // BC1 / DXT1
-        case 1u32 => return RGBA_S3TC_DXT3_Format     // BC2 / DXT3
-        case 2u32 => return RGBA_S3TC_DXT5_Format     // BC3 / DXT5
-        case 7u32 => return RGB_ETC1_Format           // ETC1
-        case 8u32 => return RGB_ETC2_Format           // ETC2
-        case 9u32 => return RGBA_ETC2_EAC_Format      // ETC2A
-        case _ => return RGBAFormat                   // 未知格式回退 RGBA
+    return match (TextureFormat.fromValue(format)) {
+        case TextureFormat.BC1 => RGB_S3TC_DXT1_Format      // BC1 / DXT1
+        case TextureFormat.BC2 => RGBA_S3TC_DXT3_Format     // BC2 / DXT3
+        case TextureFormat.BC3 => RGBA_S3TC_DXT5_Format     // BC3 / DXT5
+        case TextureFormat.ETC1 => RGB_ETC1_Format           // ETC1
+        case TextureFormat.ETC2 => RGB_ETC2_Format           // ETC2
+        case TextureFormat.ETC2A => RGBA_ETC2_EAC_Format      // ETC2A
+        case _ => RGBAFormat                   // 未知格式回退 RGBA
     }
 }
 
 // 各压缩格式的块字节数（mip 数据大小计算用），非压缩返回 0
 internal func _blockBytesForFormat(format: UInt32): Int64 {
-    match (format) {
-        case 0u32 => return 8   // BC1 / DXT1
-        case 1u32 => return 16  // BC2 / DXT3
-        case 2u32 => return 16  // BC3 / DXT5
-        case 7u32 => return 8   // ETC1
-        case 8u32 => return 8   // ETC2
-        case 9u32 => return 16  // ETC2A
-        case _ => return 0
+    return match (TextureFormat.fromValue(format)) {
+        case TextureFormat.BC1 => 8                           // BC1 / DXT1
+        case TextureFormat.BC2 => 16                          // BC2 / DXT3
+        case TextureFormat.BC3 => 16                          // BC3 / DXT5
+        case TextureFormat.ETC1 => 8                          // ETC1
+        case TextureFormat.ETC2 => 8                          // ETC2
+        case TextureFormat.ETC2A => 16                        // ETC2A
+        case _ => 0                                           // 非压缩格式
     }
 }

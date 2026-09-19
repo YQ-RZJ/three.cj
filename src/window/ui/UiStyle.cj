@@ -42,6 +42,7 @@ package three.window.ui
 import std.core.*
 import imgui4cj.imgui.*
 import three.core.math.*
+import three.utils.memory.VoidPtr
 
 /**
  * @brief[zh-cn] ImGui 样式管理类
@@ -158,14 +159,8 @@ public class UiStyle {
 
     // ===== 查询 =====
 
-    /**
-     * @brief[zh-cn] 获取样式对象指针
-     * @return[zh-cn] 样式对象指针
-     *
-     * @brief[en] Returns the style object pointer
-     * @return[en] Style object pointer
-     */
-    public func getStyle(): CPointer<Unit> {
+    /// 获取样式对象指针（内部）
+    internal func getStyle(): CPointer<Unit> {
         return igGetStyle_cj()
     }
 
@@ -185,9 +180,11 @@ public class UiStyle {
     /**
      * @brief[zh-cn] 获取颜色名称
      * @param[zh-cn] idx 颜色索引
+     * @return[zh-cn] 颜色名称字符串
      *
      * @brief[en] Returns the color name
      * @param[en] idx Color index
+     * @return[en] Color name string
      */
     public func getColorName(idx: Int32): String {
         return igGetStyleColorName_cj(idx)
@@ -197,15 +194,15 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 压入字体
-     * @param[zh-cn] font 字体指针
+     * @param[zh-cn] font 字体对象
      * @param[zh-cn] fontSizeBaseUnscaled 基础字号
      *
      * @brief[en] Pushes a font
-     * @param[en] font Font pointer
+     * @param[en] font Font object
      * @param[en] fontSizeBaseUnscaled Base font size
      */
-    public func pushFont(font: CPointer<Unit>, fontSizeBaseUnscaled!: Float32 = 0.0): Unit {
-        igPushFont_cj(font, fontSizeBaseUnscaled)
+    public func pushFont(font: UiFont, fontSizeBaseUnscaled!: Float32 = 0.0): Unit {
+        igPushFont_cj(font.getHandle().value, fontSizeBaseUnscaled)
     }
 
     /**
@@ -219,13 +216,13 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 获取当前字体
-     * @return[zh-cn] 当前字体指针
+     * @return[zh-cn] 当前字体对象
      *
      * @brief[en] Returns the current font
-     * @return[en] Current font pointer
+     * @return[en] Current font object
      */
-    public func getFont(): CPointer<Unit> {
-        return igGetFont_cj()
+    public func getFont(): UiFont {
+        return UiFont(Box(igGetFont_cj()))
     }
 
     /**
@@ -248,8 +245,8 @@ public class UiStyle {
      * @brief[en] Shows the style editor
      * @param[en] ref Style reference (null = edit global style)
      */
-    public func showStyleEditor(ref!: CPointer<Unit> = CPointer<Unit>()): Unit {
-        igShowStyleEditor_cj(ref)
+    public func showStyleEditor(ref!: VoidPtr = Box(CPointer<Unit>())): Unit {
+        igShowStyleEditor_cj(ref.value)
     }
 
     /**
@@ -307,21 +304,31 @@ public class UiStyle {
     }
 
     /**
-     * @brief[zh-cn] 设置全局字体缩放（IO.FontGlobalScale）
+     * @brief[zh-cn] 设置主字体缩放（Style.FontScaleMain）
+     * @explain[zh-cn] ImGui 1.92 起 IO.FontGlobalScale 已移除，改用 ImGuiStyle.FontScaleMain。
      * @param[zh-cn] scale 缩放因子（1.0 = 原始大小）
      *
-     * @brief[en] Sets the global font scale (IO.FontGlobalScale)
+     * @brief[en] Sets the main font scale (Style.FontScaleMain)
      * @param[en] scale Scale factor (1.0 = original size)
      */
     public static func setFontGlobalScale(scale: Float32): Unit {
-        let io = ImGui_GetIO_cj()
-        if (!io.isNull()) {
-            // ImGuiIO::FontGlobalScale offset (x64):
-            // ConfigFlags(4) + BackendFlags(4) + DisplaySize(8) + DisplayFramebufferScale(8)
-            // + DeltaTime(4) + IniSavingRate(4) + IniFilename(ptr8) + LogFilename(ptr8)
-            // + UserData(ptr8) + Fonts(ptr8) = 64
-            unsafe { CPointer<Float32>(CPointer<UInt8>(io) + 64).write(scale) }
+        let style = igGetStyle_cj()
+        if (!style.isNull()) {
+            ImGuiStyle_Set_FontScaleMain_cj(style, scale)
         }
+    }
+
+    /**
+     * @brief[zh-cn] 获取主字体缩放（Style.FontScaleMain）
+     * @return[zh-cn] 缩放因子
+     *
+     * @brief[en] Gets the main font scale (Style.FontScaleMain)
+     * @return[en] Scale factor
+     */
+    public static func getFontGlobalScale(): Float32 {
+        let style = igGetStyle_cj()
+        if (style.isNull()) { return 1.0f32 }
+        return ImGuiStyle_Get_FontScaleMain_cj(style)
     }
 
     /**
@@ -334,10 +341,8 @@ public class UiStyle {
     public static func getDisplaySize(): (Float32, Float32) {
         let io = ImGui_GetIO_cj()
         if (io.isNull()) { return (0.0f32, 0.0f32) }
-        // ImGuiIO::DisplaySize offset (x64): ConfigFlags(4) + BackendFlags(4) = 8
-        let w = unsafe { CPointer<Float32>(CPointer<UInt8>(io) + 8).read() }
-        let h = unsafe { CPointer<Float32>(CPointer<UInt8>(io) + 12).read() }
-        return (w, h)
+        let v = ImGuiIO_Get_DisplaySize_cj(io)
+        return (v.x, v.y)
     }
 
     // ===== 栈操作（Item / TextWrap / ItemFlag） =====
@@ -345,8 +350,10 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 压入控件宽度（覆盖自动计算）
+     * @param[zh-cn] itemWidth 控件宽度
      *
      * @brief[en] Pushes item width (overrides auto-calculation)
+     * @param[en] itemWidth Item width
      */
     public static func pushItemWidth(itemWidth: Float32): Unit { igPushItemWidth_cj(itemWidth) }
     /**
@@ -357,15 +364,19 @@ public class UiStyle {
     public static func popItemWidth(): Unit { igPopItemWidth_cj() }
     /**
      * @brief[zh-cn] 计算当前控件宽度
+     * @return[zh-cn] 当前控件宽度
      *
      * @brief[en] Calculates the current item width
+     * @return[en] Current item width
      */
     public static func calcItemWidth(): Float32 { return igCalcItemWidth_cj() }
 
     /**
      * @brief[zh-cn] 压入文本自动换行位置（0.0=窗口右边缘）
+     * @param[zh-cn] wrapPosX 换行位置 X，默认 0.0（窗口右边缘）
      *
      * @brief[en] Pushes text wrap position (0.0=window right edge)
+     * @param[en] wrapPosX Wrap position X, defaults to 0.0 (window right edge)
      */
     public static func pushTextWrapPos(wrapPosX!: Float32 = 0.0f32): Unit { igPushTextWrapPos_cj(wrapPosX) }
     /**
@@ -397,20 +408,26 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 获取 ImGui 运行时间（秒）
+     * @return[zh-cn] 自 ImGui 初始化以来的运行秒数
      *
      * @brief[en] Gets the ImGui running time (seconds)
+     * @return[en] Seconds elapsed since ImGui initialization
      */
     public static func getTime(): Float64 { return igGetTime_cj() }
     /**
      * @brief[zh-cn] 获取 ImGui 帧计数
+     * @return[zh-cn] 已渲染帧数
      *
      * @brief[en] Gets the ImGui frame count
+     * @return[en] Number of rendered frames
      */
     public static func getFrameCount(): Int32 { return igGetFrameCount_cj() }
     /**
      * @brief[zh-cn] 获取当前全局缩放因子
+     * @return[zh-cn] 当前全局缩放因子
      *
      * @brief[en] Gets the current global scale factor
+     * @return[en] Current global scale factor
      */
     public static func getScale(): Float32 { return igGetScale_cj() }
 
@@ -443,14 +460,18 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 获取剪贴板文本
+     * @return[zh-cn] 剪贴板文本内容
      *
      * @brief[en] Gets clipboard text
+     * @return[en] Clipboard text content
      */
     public static func getClipboardText(): String { return igGetClipboardText_cj() }
     /**
      * @brief[zh-cn] 设置剪贴板文本
+     * @param[zh-cn] text 要写入剪贴板的文本
      *
      * @brief[en] Sets clipboard text
+     * @param[en] text Text to write to the clipboard
      */
     public static func setClipboardText(text: String): Unit {
         unsafe { let cs = LibC.mallocCString(text); igSetClipboardText_cj(cs); LibC.free(cs) }
@@ -461,8 +482,16 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] RGB → HSV
+     * @param[zh-cn] r 红色分量（0~1）
+     * @param[zh-cn] g 绿色分量（0~1）
+     * @param[zh-cn] b 蓝色分量（0~1）
+     * @return[zh-cn] (h, s, v) HSV 分量
      *
      * @brief[en] RGB → HSV
+     * @param[en] r Red component (0~1)
+     * @param[en] g Green component (0~1)
+     * @param[en] b Blue component (0~1)
+     * @return[en] (h, s, v) HSV components
      */
     public static func rgbToHSV(r: Float32, g: Float32, b: Float32): (Float32, Float32, Float32) {
         let hp = unsafe { LibC.malloc<Float32>() }
@@ -477,8 +506,16 @@ public class UiStyle {
     }
     /**
      * @brief[zh-cn] HSV → RGB
+     * @param[zh-cn] h 色相（0~360）
+     * @param[zh-cn] s 饱和度（0~1）
+     * @param[zh-cn] v 明度（0~1）
+     * @return[zh-cn] (r, g, b) RGB 分量
      *
      * @brief[en] HSV → RGB
+     * @param[en] h Hue (0~360)
+     * @param[en] s Saturation (0~1)
+     * @param[en] v Value (0~1)
+     * @return[en] (r, g, b) RGB components
      */
     public static func hsvToRGB(h: Float32, s: Float32, v: Float32): (Float32, Float32, Float32) {
         let rp = unsafe { LibC.malloc<Float32>() }
@@ -497,8 +534,12 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 按 ImGuiCol 获取颜色值（Vec4）
+     * @param[zh-cn] idx 颜色索引（ImGuiCol 枚举值）
+     * @return[zh-cn] 颜色值（RGBA，分量范围 [0, 1]）
      *
      * @brief[en] Gets color value by ImGuiCol (Vec4)
+     * @param[en] idx Color index (ImGuiCol enum value)
+     * @return[en] Color value (RGBA, components in [0, 1])
      */
     public static func getColorVec4(idx: Int32): ImVec4 {
         return unsafe { igGetStyleColorVec4_cj(idx).read() }
@@ -564,8 +605,18 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 将 RGBA 转换为 ImU32 颜色
+     * @param[zh-cn] r 红色分量（0~255）
+     * @param[zh-cn] g 绿色分量（0~255）
+     * @param[zh-cn] b 蓝色分量（0~255）
+     * @param[zh-cn] a 透明度分量（0~255）
+     * @return[zh-cn] ImU32 打包颜色值
      *
      * @brief[en] Converts RGBA to ImU32 color
+     * @param[en] r Red component (0~255)
+     * @param[en] g Green component (0~255)
+     * @param[en] b Blue component (0~255)
+     * @param[en] a Alpha component (0~255)
+     * @return[en] Packed ImU32 color value
      */
     public static func col32(r: UInt32, g: UInt32, b: UInt32, a: UInt32): UInt32 {
         return imCol32(r, g, b, a)
@@ -573,8 +624,12 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 将 ImU32 转换为 ImVec4
+     * @param[zh-cn] col ImU32 打包颜色值
+     * @return[zh-cn] ImVec4 颜色值（RGBA，分量范围 [0, 1]）
      *
      * @brief[en] Converts ImU32 to ImVec4
+     * @param[en] col Packed ImU32 color value
+     * @return[en] ImVec4 color value (RGBA, components in [0, 1])
      */
     public static func u32ToVec4(col: UInt32): ImVec4 {
         return igColorConvertU32ToFloat4_cj(col)
@@ -582,8 +637,12 @@ public class UiStyle {
 
     /**
      * @brief[zh-cn] 将 ImVec4 转换为 ImU32
+     * @param[zh-cn] col ImVec4 颜色值（RGBA，分量范围 [0, 1]）
+     * @return[zh-cn] ImU32 打包颜色值
      *
      * @brief[en] Converts ImVec4 to ImU32
+     * @param[en] col ImVec4 color value (RGBA, components in [0, 1])
+     * @return[en] Packed ImU32 color value
      */
     public static func vec4ToU32(col: ImVec4): UInt32 {
         return igColorConvertFloat4ToU32_cj(col)

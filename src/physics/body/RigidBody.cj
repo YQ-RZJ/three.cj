@@ -83,7 +83,8 @@ import three.physics.interfaces.*
 import three.physics.world.*
 import three.scene.objects.*
 import std.collection.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 物理刚体便捷封装
@@ -398,7 +399,7 @@ public class RigidBody {
         // 创建刚体
         this._handle = this._world.createBody(this._desc)
         if (!this._handle.isValid()) {
-            Logger.error(["RigidBody", "attach 失败：createBody 返回 INVALID"])
+            @LogError(["RigidBody", "attach 失败：createBody 返回 INVALID"])
             return this
         }
 

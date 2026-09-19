@@ -69,7 +69,8 @@ import three.physics.interfaces.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 
 // =============================================================================
 // 内部枚举映射辅助
@@ -221,7 +222,7 @@ public class PhysicsCharacterFactory {
                         // 形状：创建原生形状 → 设置给角色 → 释放本地引用（角色内部 AddRef）
                         let shp = jb.createNativeShape(d.shape)
                         if (shp.isNull()) {
-                            Logger.error(["PhysicsCharacterFactory", "角色形状创建失败"])
+                            @LogError(["PhysicsCharacterFactory", "角色形状创建失败"])
                             PhysicsCharacter(world: world, handle: CPointer<Unit>(), layer: d.layer)
                         } else {
                             let s = unsafe { LibC.malloc<JPHCharacterSettings>() }
@@ -247,7 +248,7 @@ public class PhysicsCharacterFactory {
                         }
                     }
                 case _ =>
-                    Logger.warn(["PhysicsCharacterFactory", "角色仅支持 Jolt 后端"])
+                    @LogWarn(["PhysicsCharacterFactory", "角色仅支持 Jolt 后端"])
                     PhysicsCharacter(world: world, handle: CPointer<Unit>(), layer: d.layer)
             }
         })
@@ -278,7 +279,7 @@ public class PhysicsCharacterFactory {
                     } else {
                         let shp = jb.createNativeShape(d.shape)
                         if (shp.isNull()) {
-                            Logger.error(["PhysicsCharacterFactory", "虚拟角色形状创建失败"])
+                            @LogError(["PhysicsCharacterFactory", "虚拟角色形状创建失败"])
                             PhysicsCharacterVirtual(world: world, handle: CPointer<Unit>(), layer: d.layer)
                         } else {
                             let s = unsafe { LibC.malloc<JPHCharacterVirtualSettings>() }
@@ -303,7 +304,7 @@ public class PhysicsCharacterFactory {
                         }
                     }
                 case _ =>
-                    Logger.warn(["PhysicsCharacterFactory", "角色仅支持 Jolt 后端"])
+                    @LogWarn(["PhysicsCharacterFactory", "角色仅支持 Jolt 后端"])
                     PhysicsCharacterVirtual(world: world, handle: CPointer<Unit>(), layer: d.layer)
             }
         })

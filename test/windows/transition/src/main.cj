@@ -42,8 +42,8 @@ import three.rendering.postprocessing.RenderTransitionPass
 import three.rendering.postprocessing.OutputPass
 import three.rendering.types.*
 import three.utils.constants.*
-import three.utils.log.Logger
-import three.utils.log.LogLevel
+import three.utils.log.*
+import three.utils.log.macros.*
 import std.collection.*
 
 /**
@@ -237,15 +237,15 @@ public class TestWindow <: WindowEngine {
                 // 按键控制：实时同步 mixRatio/threshold/useTexture 到 pass
                 if (transitionPass.mixRatio != g_mixRatio) {
                     transitionPass.setTransition(g_mixRatio)
-                    Logger.debug(["transition", "mixRatio synced: " + g_mixRatio.toString()])
+                    @LogDebug(["transition", "mixRatio synced: " + g_mixRatio.toString()])
                 }
                 if (transitionPass.threshold != g_threshold) {
                     transitionPass.setTextureThreshold(g_threshold)
-                    Logger.debug(["transition", "threshold synced: " + g_threshold.toString()])
+                    @LogDebug(["transition", "threshold synced: " + g_threshold.toString()])
                 }
                 if (transitionPass.useMixTexture != g_useTexture) {
                     transitionPass.useTexture(g_useTexture)
-                    Logger.debug(["transition", "useTexture synced: " + g_useTexture.toString()])
+                    @LogDebug(["transition", "useTexture synced: " + g_useTexture.toString()])
                 }
 
                 // R 键重置：参数回到默认值
@@ -321,7 +321,7 @@ public class TestWindow <: WindowEngine {
             case Some(composer) => composer.dispose()
             case None => ()
         }
-        if (isValidHandle(this.mixTex)) { this.renderer.destroyTexture(this.mixTex) }
+        if (Handle.isValid(this.mixTex)) { this.renderer.destroyTexture(this.mixTex) }
         this.renderer.shutdown()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
@@ -329,7 +329,6 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    Logger.setLevel(LogLevel.Debug)
     println("=== transition：RenderTransitionPass 场景过渡渲染 ===")
     println("")
 

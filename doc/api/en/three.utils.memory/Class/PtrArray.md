@@ -37,18 +37,6 @@ Return:
 
 - The element value
 
-### func init\(Int64\)
-```cj
-public init(size: Int64)
-```
-Constructs an empty array of the given length (memory zeroed)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|size|Int64|Number of elements|
-
 ### func init\(Array<T>\)
 ```cj
 public init(values: Array < T >)
@@ -60,6 +48,31 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |values|Array<T>|Source data|
+
+### func init\(CPointer<T>,Int64\)
+```cj
+public init(borrow: CPointer < T >, size!: Int64 = 1)
+```
+Borrows external contiguous memory (not owned, not freed)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|borrow|CPointer<T>|External contiguous-memory pointer (e.g. ImGui storage)|
+|size|Int64|Number of elements (default 1)|
+
+### func init\(Int64\)
+```cj
+public init(size: Int64)
+```
+Constructs an empty array of the given length (memory zeroed)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|size|Int64|Number of elements|
 
 ### func set\(Int64,T\)
 ```cj

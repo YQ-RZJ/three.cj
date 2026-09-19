@@ -29,3 +29,4 @@ libs/*
 *-lock.json5
 _reference
 openspec/
+tools/

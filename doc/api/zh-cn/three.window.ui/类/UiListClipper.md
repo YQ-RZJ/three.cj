@@ -3,7 +3,7 @@
 ```cj
 public class UiListClipper
 ```
-=============================================================================
+虚拟列表裁剪器，用于高性能渲染大型列表（仅绘制可见项）
 
 ### func begin\(Int32,Float32\)
 ```cj
@@ -22,7 +22,7 @@ public func begin(itemsCount: Int32, itemsHeight!: Float32 = - 1.0f32): Unit
 ```cj
 public func destroy(): Unit
 ```
-
+销毁裁剪器并释放底层资源
 
 ### func end\(\)
 ```cj
@@ -36,17 +36,25 @@ public func getDisplayEnd(): Int32
 ```
 获取当前批次结束索引
 
+返回: 
+
+- 当前批次结束索引
+
 ### func getDisplayStart\(\)
 ```cj
 public func getDisplayStart(): Int32
 ```
 获取当前批次起始索引
 
+返回: 
+
+- 当前批次起始索引
+
 ### func init\(\)
 ```cj
 public init()
 ```
-
+构造虚拟列表裁剪器
 
 ### func step\(\)
 ```cj

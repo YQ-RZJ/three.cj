@@ -9,11 +9,15 @@ public class UiSpacing <: UiWidget
 ```cj
 public override func draw(): Bool
 ```
+插入一行垂直间距
 
+返回: 
+
+- 恒为 false（无交互）
 
 ### func init\(\)
 ```cj
 public init()
 ```
-
+构造间距控件
 

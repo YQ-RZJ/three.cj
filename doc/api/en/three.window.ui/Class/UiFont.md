@@ -3,7 +3,7 @@
 ```cj
 public class UiFont
 ```
-Font object wrapper
+Font object (safe type)
 
 ### func addRemapChar\(UInt16,UInt16\)
 ```cj
@@ -15,8 +15,8 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|from|UInt16|Source codepoint (UInt16)|
-|to|UInt16|Target codepoint (UInt16)|
+|from|UInt16|Source code point|
+|to|UInt16|Target code point|
 
 ### func calcTextSize\(String,Float32,Float32\)
 ```cj
@@ -29,8 +29,8 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |text|String|Text|
-|fontSize|Float32|Font size (0=use default)|
-|wrapWidth|Float32|Wrap width (-1.0=no wrap)|
+|fontSize|Float32|Font size (0 = use default)|
+|wrapWidth|Float32|Wrap width (-1.0 = no wrapping)|
 
 Return: 
 
@@ -42,18 +42,22 @@ public func getDebugName(): String
 ```
 Gets the font debug name
 
+Return: 
+
+- Debug name string; empty string if not loaded
+
 ### func getFontBaked\(Float32,Float32\)
 ```cj
 public func getFontBaked(fontSize!: Float32 = 0.0f32, density!: Float32 = 1.0f32): UiFontBaked
 ```
-Gets ImFontBaked (baked font data)
+Gets the baked font data
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|fontSize|Float32||
-|density|Float32||
+|fontSize|Float32|Font size (0 = use default)|
+|density|Float32|Rasterizer density|
 
 Return: 
 
@@ -61,21 +65,25 @@ Return:
 
 ### func getHandle\(\)
 ```cj
-public func getHandle(): CPointer < Unit >
+public func getHandle(): VoidPtr
 ```
-Gets the underlying ImFont pointer (for UiStyle.pushFont)
+Gets the raw ImFont pointer (low-level interface, usually not needed)
 
-### func init\(CPointer<Unit>\)
+Return: 
+
+- Raw ImFont pointer
+
+### func init\(VoidPtr\)
 ```cj
-public init(fontPtr: CPointer < Unit >)
+public init(fontPtr: VoidPtr)
 ```
-
+Constructs from a raw ImFont pointer
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|fontPtr|CPointer<Unit>||
+|fontPtr|VoidPtr|Raw ImFont pointer|
 
 ### func isGlyphInFont\(UInt16\)
 ```cj
@@ -87,11 +95,19 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|codepoint|UInt16|Unicode codepoint|
+|codepoint|UInt16|Unicode code point (ImWchar range, <= 0xFFFF)|
+
+Return: 
+
+- true if present
 
 ### func isLoaded\(\)
 ```cj
 public func isLoaded(): Bool
 ```
 Whether the font is loaded
+
+Return: 
+
+- true if loaded
 

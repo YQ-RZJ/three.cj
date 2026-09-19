@@ -78,7 +78,8 @@ import three.rendering.cameras.*
 import three.scene.entity.Mesh
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
-import three.utils.log.Logger
+import three.utils.log.*
+import three.utils.log.macros.*
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxAttributeDesc
 import three.rendering.types.*
@@ -187,7 +188,7 @@ public class GTAOPass <: Pass {
             this._destroyRTs()
             this._width = width
             this._height = height
-            Logger.trace(["gtao", "setSize=${width}x${height}"])
+            @LogTrace(["gtao", "setSize=${width}x${height}"])
         }
     }
 
@@ -212,7 +213,7 @@ public class GTAOPass <: Pass {
 
     private func _ensureRTs(renderer: ThreeRenderer): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
-        if (isValidHandle(this._normalTex)) { return }
+        if (Handle.isValid(this._normalTex)) { return }
 
         // 法线 RT：RGBA16F + D24 depth attachment
         let normalTex = renderer.createTexture2D(
@@ -223,7 +224,7 @@ public class GTAOPass <: Pass {
         this._normalTex = normalTex
         let normalDepthTex = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
             None)
         this._normalDepthTex = normalDepthTex
@@ -239,7 +240,7 @@ public class GTAOPass <: Pass {
         this._depthTex = depthTex
         let depthDepthTex = renderer.createTexture2D(
             UInt16(this._width), UInt16(this._height), false, 1u16,
-            TextureFormat.D24.value(),
+            TextureFormat.D24S8.value(),
             BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
             None)
         this._depthDepthTex = depthDepthTex
@@ -268,7 +269,7 @@ public class GTAOPass <: Pass {
         // PD 旋转噪声：SimplexNoise（64x64 RGBA8，RepeatWrapping）
         this._pdNoiseTex = this._createNoiseTexture(renderer, this._generatePdNoiseData(), 64u16, 64u16)
 
-        Logger.trace(["gtao", "_ensureRTs done ${this._width}x${this._height}"])
+        @LogTrace(["gtao", "_ensureRTs done ${this._width}x${this._height}"])
     }
 
     private func _createFB(renderer: ThreeRenderer, tex: TextureHandle): FrameBufferHandle {
@@ -293,18 +294,18 @@ public class GTAOPass <: Pass {
                 let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
                 let gtaoTex = this._gtaoTex; let pdTex = this._pdTex
                 let gtaoNoiseTex = this._gtaoNoiseTex; let pdNoiseTex = this._pdNoiseTex
-                if (isValidHandle(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
-                if (isValidHandle(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (isValidHandle(gtaoFB)) { renderer.destroyFrameBuffer(gtaoFB) }
-                if (isValidHandle(pdFB)) { renderer.destroyFrameBuffer(pdFB) }
-                if (isValidHandle(normalTex)) { renderer.destroyTexture(normalTex) }
-                if (isValidHandle(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
-                if (isValidHandle(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (isValidHandle(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-                if (isValidHandle(gtaoTex)) { renderer.destroyTexture(gtaoTex) }
-                if (isValidHandle(pdTex)) { renderer.destroyTexture(pdTex) }
-                if (isValidHandle(gtaoNoiseTex)) { renderer.destroyTexture(gtaoNoiseTex) }
-                if (isValidHandle(pdNoiseTex)) { renderer.destroyTexture(pdNoiseTex) }
+                if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
+                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+                if (Handle.isValid(gtaoFB)) { renderer.destroyFrameBuffer(gtaoFB) }
+                if (Handle.isValid(pdFB)) { renderer.destroyFrameBuffer(pdFB) }
+                if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
+                if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
+                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+                if (Handle.isValid(gtaoTex)) { renderer.destroyTexture(gtaoTex) }
+                if (Handle.isValid(pdTex)) { renderer.destroyTexture(pdTex) }
+                if (Handle.isValid(gtaoNoiseTex)) { renderer.destroyTexture(gtaoNoiseTex) }
+                if (Handle.isValid(pdNoiseTex)) { renderer.destroyTexture(pdNoiseTex) }
                 this._normalFB = INVALID_FRAME_BUFFER_HANDLE
                 this._normalTex = INVALID_TEXTURE_HANDLE
                 this._normalDepthTex = INVALID_TEXTURE_HANDLE
@@ -569,7 +570,7 @@ public class GTAOPass <: Pass {
             case Some(scene) => match (camOpt) {
                 case Some(camera) =>
                     this._ensureRTs(renderer)
-                    if (!isValidHandle(this._normalFB)) { Logger.trace(["gtao", "render: _ensureRTs failed, normalFB invalid"]); return }
+                    if (!Handle.isValid(this._normalFB)) { @LogTrace(["gtao", "render: _ensureRTs failed, normalFB invalid"]); return }
 
                     let baseView = GTAOPass.GTAO_VIEW_ID_BASE
                     let uniforms = this._uniforms
@@ -584,7 +585,7 @@ public class GTAOPass <: Pass {
                     this._renderPD(renderer, camera, UInt16(UInt16(baseView) + 3u16), uniforms)
                     // ===== 5. 输出 pass（view+4）：按 output 模式写 writeBuffer/屏幕 =====
                     this._renderOutput(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 4u16))
-                    Logger.trace(["gtao", "render: 5-pass chain done"])
+                    @LogTrace(["gtao", "render: 5-pass chain done"])
                 case None => ()
             }
             case None => ()
@@ -605,11 +606,11 @@ public class GTAOPass <: Pass {
         let normalProgOpt = ShaderLibs.get("normal")
         match (normalProgOpt) {
             case Some(normalSp) =>
-                if (!isValidHandle(Box(normalSp.programHandle))) {
+                if (!Handle.isValid(Box(normalSp.programHandle))) {
                     normalSp.compileBgfx()
                 }
                 let normalProg = Box(normalSp.programHandle)
-                if (!isValidHandle(normalProg)) { Logger.trace(["gtao", "normal prog compile failed"]); return }
+                if (!Handle.isValid(normalProg)) { @LogTrace(["gtao", "normal prog compile failed"]); return }
 
                 let layout = this._getOrCreateLayout(renderer)
                 let renderObjects = ArrayList<RenderObject>()
@@ -620,7 +621,7 @@ public class GTAOPass <: Pass {
                 var submitCnt: Int64 = 0
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let posAttrOpt = ro.geometry.getAttribute("position")
                     match (posAttrOpt) {
                         case Some(_) =>
@@ -658,7 +659,7 @@ public class GTAOPass <: Pass {
 
                             renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                             let ib = this._createIB(renderer, ro.geometry)
-                            if (isValidHandle(ib)) {
+                            if (Handle.isValid(ib)) {
                                 renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                             }
                             let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -670,8 +671,8 @@ public class GTAOPass <: Pass {
                         case None => ()
                     }
                 }
-                Logger.trace(["gtao", "normal pass submitCnt=${submitCnt}"])
-            case None => Logger.trace(["gtao", "normal shader not registered"])
+                @LogTrace(["gtao", "normal pass submitCnt=${submitCnt}"])
+            case None => @LogTrace(["gtao", "normal shader not registered"])
         }
     }
 
@@ -689,26 +690,26 @@ public class GTAOPass <: Pass {
         let depthProgOpt = PostProcessingShaders.get("aodepth")
         match (depthProgOpt) {
             case Some(depthSp) =>
-                if (!isValidHandle(Box(depthSp.programHandle))) {
+                if (!Handle.isValid(Box(depthSp.programHandle))) {
                     depthSp.compileBgfx()
                 }
                 let depthProg = Box(depthSp.programHandle)
-                if (!isValidHandle(depthProg)) { Logger.trace(["gtao", "depth: aodepth program compile FAILED"]); return }
-                Logger.trace(["gtao", "depth: aodepth prog idx=${handleIdx(depthProg)}"])
+                if (!Handle.isValid(depthProg)) { @LogTrace(["gtao", "depth: aodepth program compile FAILED"]); return }
+                @LogTrace(["gtao", "depth: aodepth prog idx=${Handle.idx(depthProg)}"])
 
                 let layout = this._getOrCreateLayout(renderer)
                 let renderObjects = ArrayList<RenderObject>()
                 this._collectMeshes(scene, renderObjects)
                 for (ro in renderObjects) {
                     let vb = this._createVB(renderer, ro.geometry)
-                    if (!isValidHandle(vb)) { continue }
+                    if (!Handle.isValid(vb)) { continue }
                     let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
                     let mtxMem = BgfxMemory(64u32)
                     mtxMem.writeFloats(mtxArr, 16)
                     renderer.setTransform(mtxMem, num: 1u16)
                     renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
                     let ib = this._createIB(renderer, ro.geometry)
-                    if (isValidHandle(ib)) {
+                    if (Handle.isValid(ib)) {
                         renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                     }
                     let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -717,8 +718,8 @@ public class GTAOPass <: Pass {
                     renderer.setState(depthRenderState, rgba: 0x00000000u32)
                     renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
                 }
-                Logger.trace(["gtao", "depth: submitted renderObjects=${renderObjects.size}"])
-            case None => Logger.trace(["gtao", "depth: aodepth shader NOT REGISTERED in PostProcessingShaders"])
+                @LogTrace(["gtao", "depth: submitted renderObjects=${renderObjects.size}"])
+            case None => @LogTrace(["gtao", "depth: aodepth shader NOT REGISTERED in PostProcessingShaders"])
         }
     }
 
@@ -734,12 +735,12 @@ public class GTAOPass <: Pass {
         let gtaoProgOpt = PostProcessingShaders.get("gtao")
         match (gtaoProgOpt) {
             case Some(gtaoSp) =>
-                if (!isValidHandle(Box(gtaoSp.programHandle))) {
+                if (!Handle.isValid(Box(gtaoSp.programHandle))) {
                     gtaoSp.compileBgfx()
                 }
                 let gtaoProg = Box(gtaoSp.programHandle)
-                if (!isValidHandle(gtaoProg)) { Logger.trace(["gtao", "gtao prog compile failed"]); return }
-                Logger.trace(["gtao", "gtaoCalc: prog idx=${handleIdx(gtaoProg)} normalTex=${handleIdx(this._normalTex)} depthTex=${handleIdx(this._depthTex)} noiseTex=${handleIdx(this._gtaoNoiseTex)}"])
+                if (!Handle.isValid(gtaoProg)) { @LogTrace(["gtao", "gtao prog compile failed"]); return }
+                @LogTrace(["gtao", "gtaoCalc: prog idx=${Handle.idx(gtaoProg)} normalTex=${Handle.idx(this._normalTex)} depthTex=${Handle.idx(this._depthTex)} noiseTex=${Handle.idx(this._gtaoNoiseTex)}"])
 
                 // 采样器：stage 0=法线, 1=深度, 2=噪声
                 let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
@@ -793,7 +794,7 @@ public class GTAOPass <: Pass {
 
                 // 全屏四边形 submit
                 this.submitQuad(viewId, gtaoProg)
-            case None => Logger.trace(["gtao", "gtao shader not registered"])
+            case None => @LogTrace(["gtao", "gtao shader not registered"])
         }
     }
 
@@ -809,12 +810,12 @@ public class GTAOPass <: Pass {
         let pdProgOpt = PostProcessingShaders.get("gtaopd")
         match (pdProgOpt) {
             case Some(pdSp) =>
-                if (!isValidHandle(Box(pdSp.programHandle))) {
+                if (!Handle.isValid(Box(pdSp.programHandle))) {
                     pdSp.compileBgfx()
                 }
                 let pdProg = Box(pdSp.programHandle)
-                if (!isValidHandle(pdProg)) { Logger.trace(["gtao", "pd: gtaopd program compile FAILED"]); return }
-                Logger.trace(["gtao", "pd: prog idx=${handleIdx(pdProg)} gtaoTex=${handleIdx(this._gtaoTex)} pdNoiseTex=${handleIdx(this._pdNoiseTex)}"])
+                if (!Handle.isValid(pdProg)) { @LogTrace(["gtao", "pd: gtaopd program compile FAILED"]); return }
+                @LogTrace(["gtao", "pd: prog idx=${Handle.idx(pdProg)} gtaoTex=${Handle.idx(this._gtaoTex)} pdNoiseTex=${Handle.idx(this._pdNoiseTex)}"])
 
                 // 采样器：stage 0=tDiffuse(gtao AO 图), 1=tNormal, 2=tDepth, 3=tNoise(pd 噪声)
                 let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
@@ -859,7 +860,7 @@ public class GTAOPass <: Pass {
 
                 // 全屏四边形 submit
                 this.submitQuad(viewId, pdProg)
-            case None => Logger.trace(["gtao", "pd: gtaopd shader NOT REGISTERED in PostProcessingShaders"])
+            case None => @LogTrace(["gtao", "pd: gtaopd shader NOT REGISTERED in PostProcessingShaders"])
         }
     }
 
@@ -891,11 +892,11 @@ public class GTAOPass <: Pass {
             let depthProgOpt = PostProcessingShaders.get("gtaodepth")
             match (depthProgOpt) {
                 case Some(depthSp) =>
-                    if (!isValidHandle(Box(depthSp.programHandle))) {
+                    if (!Handle.isValid(Box(depthSp.programHandle))) {
                         depthSp.compileBgfx()
                     }
                     let depthProg = Box(depthSp.programHandle)
-                    if (!isValidHandle(depthProg)) { Logger.trace(["gtao", "output depth: gtaodepth compile FAILED"]); return }
+                    if (!Handle.isValid(depthProg)) { @LogTrace(["gtao", "output depth: gtaodepth compile FAILED"]); return }
                     let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
                     this.bindTexture(renderer, 0u8, uDepth, this._depthTex, 0u32)
                     match (this._camera) {
@@ -907,7 +908,7 @@ public class GTAOPass <: Pass {
                         case None => ()
                     }
                     this.submitQuad(viewId, depthProg)
-                case None => Logger.trace(["gtao", "output depth: gtaodepth shader NOT REGISTERED"])
+                case None => @LogTrace(["gtao", "output depth: gtaodepth shader NOT REGISTERED"])
             }
             return
         }
@@ -917,11 +918,11 @@ public class GTAOPass <: Pass {
             let applyProgOpt = PostProcessingShaders.get("gtaoapply")
             match (applyProgOpt) {
                 case Some(applySp) =>
-                    if (!isValidHandle(Box(applySp.programHandle))) {
+                    if (!Handle.isValid(Box(applySp.programHandle))) {
                         applySp.compileBgfx()
                     }
                     let applyProg = Box(applySp.programHandle)
-                    if (!isValidHandle(applyProg)) { Logger.trace(["gtao", "output default: gtaoapply compile FAILED"]); return }
+                    if (!Handle.isValid(applyProg)) { @LogTrace(["gtao", "output default: gtaoapply compile FAILED"]); return }
                     let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
                     let uScene = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
                     this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
@@ -931,9 +932,9 @@ public class GTAOPass <: Pass {
                     let iMem = BgfxMemory(16u32)
                     iMem.writeFloats([this.blendIntensity, 0.0, 0.0, 0.0], 4)
                     this.setUniform(renderer, uIntensity, iMem)
-                    Logger.trace(["gtao", "output default: sceneTex=${handleIdx(sceneTex)} pdTex=${handleIdx(this._pdTex)}"])
+                    @LogTrace(["gtao", "output default: sceneTex=${Handle.idx(sceneTex)} pdTex=${Handle.idx(this._pdTex)}"])
                     this.submitQuad(viewId, applyProg)
-                case None => Logger.trace(["gtao", "output default: gtaoapply shader NOT REGISTERED"])
+                case None => @LogTrace(["gtao", "output default: gtaoapply shader NOT REGISTERED"])
             }
             return
         }
@@ -950,20 +951,20 @@ public class GTAOPass <: Pass {
         let copyProgOpt = PostProcessingShaders.get("copy")
         match (copyProgOpt) {
             case Some(copySp) =>
-                if (!isValidHandle(Box(copySp.programHandle))) {
+                if (!Handle.isValid(Box(copySp.programHandle))) {
                     copySp.compileBgfx()
                 }
                 let copyProg = Box(copySp.programHandle)
-                if (!isValidHandle(copyProg)) { Logger.trace(["gtao", "output copy: copy compile FAILED"]); return }
+                if (!Handle.isValid(copyProg)) { @LogTrace(["gtao", "output copy: copy compile FAILED"]); return }
                 let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
                 this.bindTexture(renderer, 0u8, uDiff, srcTex, 0u32)
                 let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
                 let oMem = BgfxMemory(16u32)
                 oMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
                 this.setUniform(renderer, uOpacity, oMem)
-                Logger.trace(["gtao", "output copy: output=${this.output} srcTex=${handleIdx(srcTex)}"])
+                @LogTrace(["gtao", "output copy: output=${this.output} srcTex=${Handle.idx(srcTex)}"])
                 this.submitQuad(viewId, copyProg)
-            case None => Logger.trace(["gtao", "output copy: copy shader NOT REGISTERED"])
+            case None => @LogTrace(["gtao", "output copy: copy shader NOT REGISTERED"])
         }
     }
 

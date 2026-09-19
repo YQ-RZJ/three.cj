@@ -59,7 +59,7 @@ package three.script.vm
  * try {
  * vm.doString("return 1 + ")
  * } catch (e: LuaError) {
- * Logger.error(["LuaError", "脚本错误: " + e.message])  // 语法错误
+ * @LogError(["LuaError", "脚本错误: " + e.message])  // 语法错误
  * }
  */
 public class LuaError <: Exception {
