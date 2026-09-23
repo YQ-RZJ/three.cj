@@ -1,6 +1,0 @@
-{
-  "name": "@types/libSDL3.so",
-  "types": "./Index.d.ts",
-  "version": "1.0.0",
-  "description": "Type declarations for the SDL3 NAPI module (libSDL3.so, nm_modname=SDL3)"
-}
