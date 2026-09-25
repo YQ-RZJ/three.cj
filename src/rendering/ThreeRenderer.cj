@@ -216,8 +216,16 @@ public class ThreeRenderer <: Renderer & IRenderer {
     private var _renderMtx = Mutex()
     private var _renderCmdCnd = Condition()
     private var _renderDoneCnd = Condition()
-    private var _renderCmd: Option<() -> Unit> = None
-    private var _renderDone: Bool = false
+    // FIFO 命令队列 + 单调完成序号（多提交者并发安全）：
+    // 旧实现用共享布尔 _renderDone + 单次 signal() 通知完成，多个提交者
+    // （ArkTS 主线程 setColor 等参数更新 + 窗口泵线程 onFrame render）并发时，
+    // 提交者的唤醒会被彼此吞掉（_renderDone 被重置 / signal 被别的等待者消费），
+    // 导致某个提交者永久孤儿等待 → 泵线程 onFrame 不返回 → shutdown().wait() 死锁。
+    // 新实现：每个提交者持有自己的序号，等待 doneSeq 追上该序号；完成时
+    // broadcast 唤醒全部等待者，各自由谓词判断是否继续等待。
+    private var _renderQueue = ArrayList<() -> Unit>()
+    private var _renderSubmitSeq: Int64 = 0
+    private var _renderDoneSeq: Int64 = 0
     private var _renderExit: Bool = false
     private var _renderSThread: Option<SThread<Unit>> = None
     private var _renderReady: Bool = false
@@ -247,21 +255,47 @@ public class ThreeRenderer <: Renderer & IRenderer {
         this._renderReady = true
         while (!this._renderExit) {
             this._renderMtx.lock()
-            while (this._renderCmd.isNone() && !this._renderExit) {
+            while (this._renderQueue.isEmpty() && !this._renderExit) {
                 this._renderCmdCnd.wait(this._renderMtx)
             }
-            match (this._renderCmd) {
-                case Some(cmd) =>
-                    // 渲染线程执行 bgfx 闭包：持全局可重入锁，与主线程裸调互斥。
-                    // 闭包内部（如 BgfxUniforms/BgfxBackend 再调 bgfx FFI）同线程重入，不会自我死锁。
-                    bgfxCallMtx.lock()
-                    cmd()
-                    bgfxCallMtx.unlock()
-                    this._renderCmd = None
-                    this._renderDone = true
-                    this._renderDoneCnd.signal()
-                case None => ()
+            if (this._renderQueue.isEmpty() || this._renderExit) {
+                // 退出：剩余未执行命令按"放弃"处理——推进完成序号并唤醒其提交者，
+                // 避免任何人悬挂在 _renderDoneCnd 上
+                let abandoned = this._renderQueue.size
+                if (abandoned > 0) {
+                    this._renderQueue.clear()
+                    this._renderDoneSeq += Int64(abandoned)
+                    this._renderDoneCnd.broadcast()
+                }
+                this._renderMtx.unlock()
+                break
             }
+            let cmd = this._renderQueue.remove(at: 0)
+            this._renderMtx.unlock()
+
+            // 渲染线程执行 bgfx 闭包：持全局可重入锁，与主线程裸调互斥。
+            // 闭包内部（如 BgfxUniforms/BgfxBackend 再调 bgfx FFI）同线程重入，不会自我死锁。
+            bgfxCallMtx.lock()
+            let cmdStart = MonoTime.now()
+            try {
+                cmd()
+            } catch (e: Error) {
+                // 异常隔离：单条命令失败不能杀渲染线程，否则其提交者永久等待
+                @LogError(["ThreeRenderer._renderLoop: bgfx cmd failed: ${e}"])
+            }
+            bgfxCallMtx.unlock()
+            // 诊断日志（只记录、不解锁）：单条命令异常耗时说明原生层/管线异常，
+            // 是排查帧卡顿与挂死的关键信号
+            let cmdCostMs = (MonoTime.now() - cmdStart).toMilliseconds()
+            if (cmdCostMs > 200) {
+                @LogWarn(["ThreeRenderer: bgfx cmd cost ${cmdCostMs}ms (>200)"])
+            }
+
+            this._renderMtx.lock()
+            this._renderDoneSeq += 1
+            // broadcast 而非 signal：多个提交者可能同时在等，signal 只唤醒一个，
+            // 若唤醒的那位谓词未满足（其序号更靠后）会继续睡，其余提交者成孤儿
+            this._renderDoneCnd.broadcast()
             this._renderMtx.unlock()
         }
     }
@@ -271,10 +305,17 @@ public class ThreeRenderer <: Renderer & IRenderer {
             this._initRenderThread()
         }
         this._renderMtx.lock()
-        this._renderCmd = Some(cmd)
-        this._renderDone = false
+        if (this._renderExit) {
+            // 渲染线程已退出（bgfx 已 shutdown）：命令不再执行，直接返回，
+            // 防止提交者等待一个永远不会推进的序号
+            this._renderMtx.unlock()
+            return
+        }
+        this._renderSubmitSeq += 1
+        let mySeq = this._renderSubmitSeq
+        this._renderQueue.add(cmd)
         this._renderCmdCnd.signal()
-        while (!this._renderDone) {
+        while (this._renderDoneSeq < mySeq) {
             this._renderDoneCnd.wait(this._renderMtx)
         }
         this._renderMtx.unlock()
@@ -428,6 +469,13 @@ public class ThreeRenderer <: Renderer & IRenderer {
         _execBgfx({ => bgfx.bgfx_shutdown_cj() })
         this._renderMtx.lock()
         this._renderExit = true
+        // 丢弃未执行命令并释放其提交者（推进序号 + 双条件唤醒），确保 shutdown 不悬挂
+        let abandoned = this._renderQueue.size
+        if (abandoned > 0) {
+            this._renderQueue.clear()
+            this._renderDoneSeq += Int64(abandoned)
+        }
+        this._renderDoneCnd.broadcast()
         this._renderCmdCnd.signal()
         this._renderMtx.unlock()
     }

@@ -3182,6 +3182,11 @@ vec2 a_texcoord0 : TEXCOORD0;
      */
     public static func shutdown(): Unit {
         ShaderCompiler.stop()
+        // bgfx_shutdown 后缓存中的 program/shader 句柄全部失效；必须清空缓存，
+        // 让下次 initialize() 重建全新实例。否则重进会话时 get() 返回持有死句柄
+        // 的旧 ShaderProgram（compileBgfx 因源码已解析而跳过重建），全场景渲染
+        // 死句柄 → 画面全黑。
+        programs.clear()
     }
 }
 

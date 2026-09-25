@@ -60,6 +60,36 @@ const syscapJson = path.join(process.cwd(), '.idea/.deveco/cangjie/syscap_api_co
 process.env.COMPILE_CONDITION_ENTRY = `APILevel_level=23,product=default,APILevel_syscap=${syscapJson},target=default`
 process.env.COMPILE_CONDITION = process.env.COMPILE_CONDITION_ENTRY
 
+// ============================================================================
+// 仓颉 runtime .so 拷贝黑白名单（纯 CMake 在 configure 期过滤拷贝）
+// 规则：白名单为空 -> 全量拷贝 SDK runtime 目录，仅剔除黑名单；
+//       白名单非空 -> 只拷白名单内的库（黑名单仍优先剔除）。
+// 修改名单后重新构建即生效；从黑名单移除的库会在下次构建时被补拷回来
+// （清理只作用于仓颉 runtime 家族：libcangjie-* / libsecurec / libboundscheck /
+//  libpcre2-*，libSDL3 等工程自有 .so 不受影响）。
+//
+// 通配符：名单项支持 * 匹配任意字符序列（仅 *，按完整文件名锚定匹配）：
+//   '*'                        -> 全部 .so（黑名单=全不拷 / 白名单=全拷）
+//   'libcangjie-std-unittest*' -> unittest 全族一条顶 8 项
+//   'libcangjie-std-math*'     -> 选中 std-math.so + std-math.numeric.so
+//   精确名（如 'libcangjie-runtime.so'）照常使用。
+// ============================================================================
+// 白名单：仅拷贝这些 .so（逗号分隔，空 = 全量拷贝）
+process.env.CJ_STD_INCLUDE = [
+  // 'libcangjie-std-core.so',
+].join(',')
+// 黑名单：始终排除的 .so（逗号分隔，支持通配符）
+process.env.CJ_STD_EXCLUDE = [
+  // unittest 全族（UI 应用用不到）
+  'libcangjie-std-unittest*',
+  // ast/reflect（unittest 依赖链，运行期不使用）
+  'libcangjie-std-ast.so',
+  'libcangjie-std-reflect.so',
+  // database（当前工程未使用）
+  'libcangjie-std-database.so',
+  'libcangjie-std-database.sql.so',
+].join(',')
+
 export default {
   system: appTasks, /* Built-in plugin of Hvigor. It cannot be modified. */
   plugins: []       /* Custom plugin to extend the functionality of Hvigor. */
