@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 时间戳查询池
  * @brief[zh-cn] 对照 WebGLTimestampQueryPool.js，GPU 时间戳查询
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLTimestampQueryPool.js。bgfx 没有直接的时间戳查询 API，此处提供占位实现。
+ * @explain[zh-cn] bgfx 没有直接的时间戳查询 API，此处提供占位实现。
  *
  * @file[en] bgfx Timestamp Query Pool
  * @brief[en] Corresponds to WebGLTimestampQueryPool.js, GPU timestamp queries
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLTimestampQueryPool.js. bgfx has no direct timestamp query API; this provides a placeholder implementation.
+ * @explain[en] bgfx has no direct timestamp query API; this provides a placeholder implementation.
  */
 package three.rendering.bgfx
 

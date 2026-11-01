@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * WireframeGeometry 继承自 BufferGeometry，从 BufferGeometry 中提取所有边线（去重）。
  * 使用 Set 做边去重（正反两个 hash 都登记），避免多面共边时同一条边被输出多次。
- * 对应 Three.js geometries/WireframeGeometry.js。
  *
  * @file[en] Wireframe Geometry
  * @brief[en] Extracts wireframe edges from BufferGeometry
  * @explain[en] 
  * WireframeGeometry extends BufferGeometry, extracting all unique edges from BufferGeometry.
  * Uses a Set for edge deduplication (both forward and reverse hashes are registered) to avoid outputting the same edge multiple times when faces share edges.
- * Corresponds to Three.js geometries/WireframeGeometry.js.
  */
 package three.rendering.geometry
 

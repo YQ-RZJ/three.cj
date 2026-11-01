@@ -108,7 +108,8 @@ import std.collection.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue }
 import std.sync.{ AtomicBool, AtomicInt64 }
 import std.time.*
 import sdl4cj.sdl.*
-import three.core.thread.{ Mutex, Condition, SThread }
+import three.core.thread.{ Mutex, Condition, SThread, sleepNS }
+import three.resource.pipeline.AssetManager
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -312,10 +313,7 @@ internal class SDLDispatcher {
         _sdlExit = true
         _sdlCmdCnd.signal()
         _sdlMtx.unlock()
-        match (_sdlSThread) {
-            case Some(t) => t.join()
-            case None => ()
-        }
+        if (let Some(t) <- _sdlSThread) { t.join() }
         _sdlSThread = None
     }
 
@@ -360,13 +358,11 @@ internal class SDLDispatcher {
     /// 非阻塞检查并执行一条待执行命令（SDL 系统线程内调用）
     private static func _drainCommands(): Unit {
         _sdlMtx.lock()
-        match (_sdlCmd) {
-            case Some(cmd) =>
-                cmd()
-                _sdlCmd = None
-                _sdlDone = true
-                _sdlDoneCnd.signal()
-            case None => ()
+        if (let Some(cmd) <- _sdlCmd) {
+            cmd()
+            _sdlCmd = None
+            _sdlDone = true
+            _sdlDoneCnd.signal()
         }
         _sdlMtx.unlock()
     }
@@ -387,9 +383,8 @@ internal class SDLDispatcher {
         /* 使用缓存引用而非 _registry.get——避免在 SDL 外来线程上
          * 调 ConcurrentHashMap.get 触发 GetOrCreateTypeInfo 与 GC 竞争。 */
         if (windowID == _cachedWindowID) {
-            match (_cachedQueue) {
-                case Some(q) => q.add(_toDispatchEvent(evPtr, t, windowID))
-                case None => ()
+            if (let Some(q) <- _cachedQueue) {
+                q.add(_toDispatchEvent(evPtr, t, windowID))
             }
         } else {
             if (let Some(q) <- _registry.get(windowID)) {
@@ -545,6 +540,15 @@ public open class WindowEngine {
     private var _windowID: UInt32 = 0
     private var _exitRequested: Bool = false
 
+    // ===== 帧时钟（窗口泵线程独占读写；onFrame 与用户逻辑同线程读取，无需原子） =====
+    private var _frameDeltaTime: Float64 = 0.0
+    private var _elapsedTime: Float64 = 0.0
+    // ===== 可选帧率上限（0 = 不限速） =====
+    // 泵循环末尾按目标帧间隔 sleep，用于：(1) 避免无 VSync 时泵循环空转烧 CPU；
+    // (2) 配合"固定步长累加器"让物理/动画以真实时间前进（帧率无关）。
+    // 帧间隔以 ns 存储，避免每帧浮点换算带来的抖动。
+    private var _targetFrameIntervalNs: Int64 = 0
+
     // ===== 事件队列 + 快照（仅窗口泵线程读写，无锁） =====
     private var _eventQueue: ConcurrentLinkedQueue<DispatchEvent> = ConcurrentLinkedQueue()
     private var _snapshot: InputSnapshot = InputSnapshot()
@@ -587,6 +591,64 @@ public open class WindowEngine {
      * @param[en] dt Seconds elapsed since the previous loop
      */
     public open func onFrame(dt: Float64): Unit {}
+    /**
+     * @brief[zh-cn] 距上一循环的秒数（本帧真实帧间隔 dt）
+     * @explain[zh-cn] 与透传给 onFrame/bindOnFrame 的 dt 同一来源（MonoTime 实测）。
+     * 需要"以真实时间驱动动画/逻辑"的代码若不方便接收 onFrame 参数，可直接读本属性。
+     * 帧率无关的写法：`let speed = 3.6`（单位/秒），每帧 `pos += speed * this.frameDeltaTime`，
+     * 或 `this.animTime += this.frameDeltaTime` 累加为累计时间。
+     * 线程模型：本属性由窗口泵线程在每循环写入，也被窗口泵线程（onFrame 内）读取，
+     * 同线程读写无需原子；跨线程读取不保证新鲜度（渲染/物理等子线程不依赖它——
+     * 它们的时间基准由主循环显式传参：ThreeRenderer 无需、PhysicsWorld.update(dt)、
+     * AudioContext 无需，故不提供跨线程 dt getter）。
+     *
+     * @brief[en] Seconds since the previous loop (real measured frame interval)
+     * @explain[en] Same source as the dt passed to onFrame/bindOnFrame (measured via MonoTime).
+     * Read this directly when a helper cannot receive the onFrame parameter.
+     * Frame-rate independent pattern: `let speed = 3.6` (units/sec) and per frame
+     * `pos += speed * this.frameDeltaTime`, or accumulate `this.animTime += this.frameDeltaTime`.
+     * Threading: written by the window pump thread at the top of each loop and read by the
+     * same thread inside onFrame, so no atomic is needed; cross-thread reads are stale by design
+     * (render/physics/audio don't depend on it - their time base is passed explicitly, e.g.
+     * PhysicsWorld.update(dt); no cross-thread dt getter is provided).
+     */
+    public prop frameDeltaTime: Float64 {
+        get() { this._frameDeltaTime }
+    }
+    /**
+     * @brief[zh-cn] 累计运行秒数（自窗口泵循环开始，逐帧 += frameDeltaTime）
+     * @brief[en] Cumulative running seconds since the window pump loop started
+     * (accumulated per frame: elapsedTime += frameDeltaTime)
+     */
+    public prop elapsedTime: Float64 {
+        get() { this._elapsedTime }
+    }
+    /**
+     * @brief[zh-cn] 目标帧率上限（帧/秒；0 = 不限速）
+     * @param[zh-cn] 新值 <= 0 表示取消限速
+     * @explain[zh-cn] 泵循环末尾按目标帧间隔 sleep 补齐。
+     * 建议配合"固定步长累加器"使用：物理/动画每帧按 real dt 累进固定子步，
+     * 否则不一致的帧率会让固定步长模拟"加速/减速"（剖析实测：无上限时泵循环
+     * 可跑 200-700fps，固定 1/60 步进的物理以数倍真实时间运行，表现为忽快忽停）。
+     *
+     * @brief[en] Target frame-rate cap (frames/sec; 0 = uncapped)
+     * @param[en] Values <= 0 disable the cap
+     * @explain[en] The pump loop sleeps at the end of each iteration to fill the
+     * target frame interval. Pair it with a fixed-step accumulator: physics/animation
+     * should accumulate the per-frame real dt and advance fixed substeps, otherwise a
+     * fixed timestep sim accelerates with the frame rate (profiling showed the pump
+     * loop running at 200-700fps, making a fixed-1/60-step world run many times faster
+     * than real time, appearing as fast-then-jerky motion).
+     */
+    public mut prop targetFrameRate: Float64 {
+        get() {
+            if (this._targetFrameIntervalNs <= 0) { return 0.0 }
+            return 1e9 / Float64(this._targetFrameIntervalNs)
+        }
+        set(v) {
+            this._targetFrameIntervalNs = if (v <= 0.0) { 0 } else { Int64(1e9 / v) }
+        }
+    }
     /**
      * @brief[zh-cn] 关闭前调用（清理逻辑/渲染器）
      *
@@ -899,10 +961,7 @@ public open class WindowEngine {
      * requestClose() inside onFrame, or an external shutdown() call.
      */
     public func wait(): Unit {
-        match (this._pumpThread) {
-            case Some(t) => t.get()
-            case None => ()
-        }
+        if (let Some(t) <- this._pumpThread) { t.get() }
     }
 
     /**
@@ -977,20 +1036,20 @@ public open class WindowEngine {
         // 生命周期：窗口创建后
         if (let Some(f) <- this._bindOnInit) { f() } else { this.onInit() }
         // onInit 中应已完成 bgfx 初始化；此时初始化 Gui 上下文（依赖 bgfx）
-        match (this._gui) {
-            case Some(ctx) =>
-                if (!ctx.initialized) {
-                    match (this._execBgfx) {
-                        case Some(execFn) =>
-                            @LogInfo(["WindowEngine._windowLoop: initializing Gui context"])
-                            ctx.initialize(this, execFn)
-                            @LogInfo(["WindowEngine._windowLoop: Gui context initialized"])
-                        case None => @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
-                    }
+        if (let Some(ctx) <- this._gui) {
+            if (!ctx.initialized) {
+                if (let Some(execFn) <- this._execBgfx) {
+                    @LogInfo(["WindowEngine._windowLoop: initializing Gui context"])
+                    ctx.initialize(this, execFn)
+                    @LogInfo(["WindowEngine._windowLoop: Gui context initialized"])
+                } else {
+                    @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
                 }
-            case None => ()
+            }
         }
         var lastTime = MonoTime.now()
+        // 帧率节流的帧起点（循环末尾刷新，作为下一帧的基准）
+        var lastFrameStart = MonoTime.now()
         var lastWidth = this._width
         var lastHeight = this._height
         while (!this._snapshot.closeRequested && !this._exitRequested) {
@@ -1010,20 +1069,24 @@ public open class WindowEngine {
             let now = MonoTime.now()
             let dt = Float64((now - lastTime).toMilliseconds()) / 1000.0
             lastTime = now
+            // 记录帧时钟：与透传给 onFrame/bindOnFrame 的 dt 同一来源（真实帧间隔），
+            // 供未接收 dt 参数的用户代码（工具函数/后处理时间 uniform）读取
+            this._frameDeltaTime = dt
+            this._elapsedTime += dt
             // ③a 开始 Gui 新帧（在 onFrame 之前，确保控件 API 可用）
-            match (this._gui) {
-                case Some(ctx) =>
-                    if (ctx.initialized) {
-                        this._updatePixelRatio()
-                        ctx.setPixelRatio(this._pixelRatio)
-                        ctx.newFrame(dt, this._width, this._height)
-                    }
-                case None => ()
+            if (let Some(ctx) <- this._gui) {
+                if (ctx.initialized) {
+                    this._updatePixelRatio()
+                    ctx.setPixelRatio(this._pixelRatio)
+                    ctx.newFrame(dt, this._width, this._height)
+                }
             }
             // ③ 用户帧回调：异常时绝不能让泵线程静默死亡——否则主协程 win.wait()
             // 会永久挂起、进程卡死。记录异常并请求关闭，使 onClose 清理流程正常走完。
             var frameFailed = false
             try {
+                // 每帧泵全局资源管理器：在时间预算内分帧派发异步加载完成回调（AssetBundle / 异步分帧加载管线）
+                AssetManager.pumpShared()
                 if (let Some(f) <- this._bindOnFrame) { f(dt) } else { this.onFrame(dt) }
             } catch (e: Exception) {
                 frameFailed = true
@@ -1034,26 +1097,33 @@ public open class WindowEngine {
                 break
             }
             // ③b Gui render hook：onFrame 结束后将 Gui 绘制提交到渲染线程
-            match (this._gui) {
-                case Some(ctx) =>
-                    if (ctx.initialized) {
-                        match (this._execBgfx) {
-                            case Some(execFn) =>
-                                let vw = this._width
-                                let vh = this._height
-                                execFn({ =>
-                                    ctx.render(vw, vh)
-                                })
-                            case None =>
-                                @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
-                        }
+            if (let Some(ctx) <- this._gui) {
+                if (ctx.initialized) {
+                    if (let Some(execFn) <- this._execBgfx) {
+                        let vw = this._width
+                        let vh = this._height
+                        execFn({ =>
+                            ctx.render(vw, vh)
+                        })
+                    } else {
+                        @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
                     }
-                case None => ()
+                }
             }
             // ④ 循环末尾重置（下一循环重新收集）
             this._snapshot.resetForNextFrame()
             for (p in this._providers) {
                 p.endFrame()
+            }
+            // ④ 帧速率节流（可选开启）：目标帧间隔未到则 sleep 补齐剩余时间。
+            // 相比"下一帧开始时才 sleep"，这里以帧起点为基准逐帧推进，长期无漂移；
+            // 单帧超预算（落后）时不积压回补，直接重置基准，避免连发忙帧追赶。
+            if (this._targetFrameIntervalNs > 0) {
+                let elapsedNs = Int64((MonoTime.now() - lastFrameStart).toNanoseconds())
+                if (elapsedNs < this._targetFrameIntervalNs) {
+                    sleepNS(UInt64(this._targetFrameIntervalNs - elapsedNs))
+                }
+                lastFrameStart = MonoTime.now()
             }
         }
         // 清理所有输入提供者
@@ -1062,11 +1132,9 @@ public open class WindowEngine {
         }
         // 销毁 Gui 上下文：必须在 onClose()（renderer.shutdown() 停掉 bgfx 线程）
         // 与 SDL 窗口销毁之前——其 SDL3/bgfx 后端关闭依赖这两个线程仍存活
-        match (this._gui) {
-            case Some(ctx) =>
-                ctx.shutdown()
-                this._gui = None
-            case None => ()
+        if (let Some(ctx) <- this._gui) {
+            ctx.shutdown()
+            this._gui = None
         }
         // 生命周期：关闭前 + 销毁
         if (let Some(f) <- this._bindOnClose) { f() } else { this.onClose() }
@@ -1108,25 +1176,23 @@ public open class WindowEngine {
             }
         }
         // 将输入事件转发给 Gui（ImGui）上下文
-        match (this._gui) {
-            case Some(ctx) =>
-                if (ctx.initialized) {
-                    if (t == SDL_EVENT_KEY_DOWN || t == SDL_EVENT_KEY_UP) {
-                        ctx.addKeyEvent(UInt32(evt.f1), UInt32(evt.f2), UInt32(evt.f5), evt.b1, evt.b2)
-                    } else if (t == SDL_EVENT_TEXT_INPUT) {
-                        ctx.addTextInput(evt.text)
-                    } else if (t == SDL_EVENT_MOUSE_MOTION) {
-                        ctx.addMousePosEvent(evt.f1, evt.f2)
-                    } else if (t == SDL_EVENT_MOUSE_BUTTON_DOWN || t == SDL_EVENT_MOUSE_BUTTON_UP) {
-                        // SDL 按钮：1=左 2=中 3=右；ImGui：0=左 1=右 2=中
-                        let sdlBtn = Int32(evt.f1)
-                        let imBtn: Int32 = if (sdlBtn == 1i32) { 0i32 } else if (sdlBtn == 3i32) { 1i32 } else if (sdlBtn == 2i32) { 2i32 } else { sdlBtn - 1i32 }
-                        ctx.addMouseButtonEvent(imBtn, evt.b1)
-                    } else if (t == SDL_EVENT_MOUSE_WHEEL) {
-                        ctx.addMouseWheelEvent(evt.f1, evt.f2)
-                    }
+        if (let Some(ctx) <- this._gui) {
+            if (ctx.initialized) {
+                if (t == SDL_EVENT_KEY_DOWN || t == SDL_EVENT_KEY_UP) {
+                    ctx.addKeyEvent(UInt32(evt.f1), UInt32(evt.f2), UInt32(evt.f5), evt.b1, evt.b2)
+                } else if (t == SDL_EVENT_TEXT_INPUT) {
+                    ctx.addTextInput(evt.text)
+                } else if (t == SDL_EVENT_MOUSE_MOTION) {
+                    ctx.addMousePosEvent(evt.f1, evt.f2)
+                } else if (t == SDL_EVENT_MOUSE_BUTTON_DOWN || t == SDL_EVENT_MOUSE_BUTTON_UP) {
+                    // SDL 按钮：1=左 2=中 3=右；ImGui：0=左 1=右 2=中
+                    let sdlBtn = Int32(evt.f1)
+                    let imBtn: Int32 = if (sdlBtn == 1i32) { 0i32 } else if (sdlBtn == 3i32) { 1i32 } else if (sdlBtn == 2i32) { 2i32 } else { sdlBtn - 1i32 }
+                    ctx.addMouseButtonEvent(imBtn, evt.b1)
+                } else if (t == SDL_EVENT_MOUSE_WHEEL) {
+                    ctx.addMouseWheelEvent(evt.f1, evt.f2)
                 }
-            case None => ()
+            }
         }
     }
 

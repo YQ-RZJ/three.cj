@@ -41,7 +41,7 @@ public const shadowmap_pars_vertex: String = #"
 
 #if NUM_SPOT_LIGHT_COORDS > 0
 
-	// bgfx4cj: spot 阴影矩阵数组化（对齐 Three.js mat4 spotLightMatrix[NUM_SPOT_LIGHT_COORDS]），
+	// bgfx4cj: spot 阴影矩阵数组化（对齐参考实现 mat4 spotLightMatrix[NUM_SPOT_LIGHT_COORDS]），
 	// 每个带阴影的 spot 光源一份 bias × lightViewProj。
 	// varying vSpotLightCoord[] 由 ShaderLibs.cj 头部 $output/$input 声明（bgfx 不支持 chunk 内 varying 关键字）
 	uniform mat4 spotLightMatrix[ NUM_SPOT_LIGHT_COORDS ];
@@ -77,7 +77,7 @@ public const shadowmap_pars_vertex: String = #"
 
 	#if NUM_SPOT_LIGHT_SHADOWS > 0
 
-		// bgfx4cj: spot 阴影矩阵声明在 NUM_SPOT_LIGHT_COORDS > 0 域（见上方），此处保留占位以对齐 three.js 原结构
+		// bgfx4cj: spot 阴影矩阵声明在 NUM_SPOT_LIGHT_COORDS > 0 域（见上方），此处保留占位以对齐原结构
 
 	#endif
 
@@ -87,7 +87,7 @@ public const shadowmap_pars_vertex: String = #"
 	#if NUM_RECT_AREA_LIGHTS > 0
 
 		// TODO (abelnation): uniforms for area light shadows
-		// Ignore: JS 原文 TODO（area light shadows），属 three.js 上游未实现项。
+		// Ignore: JS 原文 TODO（area light shadows），属上游未实现项。
 
 	#endif
 	*/

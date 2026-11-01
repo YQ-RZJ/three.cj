@@ -377,9 +377,8 @@ public class UiBullet <: UiWidget {
      */
     public override func draw(): Bool {
         igBullet_cj()
-        match (this._content) {
-            case Some(f) => f()
-            case None => ()
+        if (let Some(f) <- this._content) {
+            f()
         }
         return false
     }

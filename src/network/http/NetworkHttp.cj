@@ -155,28 +155,26 @@ public class NetworkHttp {
         for ((name, value) in req.headers) {
             builder = builder.header(name, [value])
         }
-        match (req.body) {
-            case Some(b) =>
-                match (req.method) {
-                    case "POST" =>
-                        let body = RealRequestBody.create(
-                            Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
-                        builder = builder.post(body)
-                    case "PUT" =>
-                        let body = RealRequestBody.create(
-                            Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
-                        builder = builder.put(body)
-                    case "PATCH" =>
-                        let body = RealRequestBody.create(
-                            Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
-                        builder = builder.patch(body)
-                    case "DELETE" =>
-                        let body = RealRequestBody.create(
-                            Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
-                        builder = builder.delete(Option<RequestBody>.Some(body))
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(b) <- req.body) {
+            match (req.method) {
+                case "POST" =>
+                    let body = RealRequestBody.create(
+                        Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
+                    builder = builder.post(body)
+                case "PUT" =>
+                    let body = RealRequestBody.create(
+                        Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
+                    builder = builder.put(body)
+                case "PATCH" =>
+                    let body = RealRequestBody.create(
+                        Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
+                    builder = builder.patch(body)
+                case "DELETE" =>
+                    let body = RealRequestBody.create(
+                        Option<MediaType>.Some(MediaType.get("application/json; charset=utf-8")), b)
+                    builder = builder.delete(Option<RequestBody>.Some(body))
+                case _ => ()
+            }
         }
         return builder.build()
     }
@@ -204,10 +202,7 @@ public class NetworkHttp {
         // 正文
         var body: Option<String> = None
         let b = resp.getBody()
-        match (b) {
-            case Some(rb) => body = Some(rb.getString())
-            case None => ()
-        }
+        if (let Some(rb) <- b) { body = Some(rb.getString()) }
         var arr = Array<(String, String)>(hs.size, { _ => ("", "") })
         for (i in 0..hs.size) {
             arr[Int64(i)] = hs[i]

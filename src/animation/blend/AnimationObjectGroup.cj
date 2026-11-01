@@ -200,10 +200,7 @@ public class AnimationObjectGroup {
 
                         bindingsForPath[index] = lastCached
 
-                        let binding = match (bindingOpt) {
-                            case Some(b) => b
-                            case None => PropertyBinding(object, paths[j], parsedPaths[j])
-                        }
+                        let binding = if (let Some(b) <- bindingOpt) { b } else { PropertyBinding(object, paths[j], parsedPaths[j]) }
 
                         bindingsForPath[firstActiveIndex] = binding
                     }

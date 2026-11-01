@@ -399,9 +399,10 @@ public class PropertyBinding {
         let nodeName = _getStringFromMap(parsedPath, "nodeName")
         if (nodeName != "") {
             // findNode 返回 Option<IPropertyBindingRoot>，未找到时回退根节点（与 JS `node === undefined ? rootNode : node` 一致）
-            match (PropertyBinding.findNode(rootNode, nodeName)) {
-                case Some(n) => this.node = n
-                case None => this.node = rootNode
+            if (let Some(n) <- PropertyBinding.findNode(rootNode, nodeName)) {
+                this.node = n
+            } else {
+                this.node = rootNode
             }
         } else {
             this.node = rootNode
@@ -477,48 +478,45 @@ public class PropertyBinding {
     public static func parseTrackName(trackName: String): HashMap<String, Any> {
         
         let matchesOpt = _trackRe.find(trackName)
-        match (matchesOpt) {
-            case Some(matches) =>
-                // _trackRe 捕获组顺序：1=directory, 2=nodeName, 3=objectName, 4=objectIndex, 5=propertyName, 6=propertyIndex
-                // matchString(n) 未匹配时返回空字符串
-                let nodeName: String = matches.matchString(2)
-                let objectName: String = matches.matchString(3)
-                let oiStr: String = matches.matchString(4)
-                let propertyName: String = matches.matchString(5)
-                let piStr: String = matches.matchString(6)
-                let objectIndex: Option<Any> = if (oiStr == "") { None } else { Some(oiStr) }
-                let propertyIndex: Option<Any> = if (piStr == "") { None } else { Some(piStr) }
-                
-                var finalNodeName = nodeName
-                var finalObjectName = objectName
-                let lastDotOpt = finalNodeName.lastIndexOf(".")
-                match (lastDotOpt) {
-                    case Some(lastDot) =>
-                        if (lastDot >= 0 && lastDot < finalNodeName.size - 1) {
-                            let possibleObjectName = finalNodeName[lastDot + 1..]
-                            var isSupported = false
-                            for (sup in _supportedObjectNames) {
-                                if (possibleObjectName == sup) { isSupported = true; break }
-                            }
-                            if (isSupported && finalObjectName == "") {
-                                finalNodeName = finalNodeName[0..lastDot]
-                                finalObjectName = possibleObjectName
-                            }
-                        }
-                    case None => ()
+        if (let Some(matches) <- matchesOpt) {
+            // _trackRe 捕获组顺序：1=directory, 2=nodeName, 3=objectName, 4=objectIndex, 5=propertyName, 6=propertyIndex
+            // matchString(n) 未匹配时返回空字符串
+            let nodeName: String = matches.matchString(2)
+            let objectName: String = matches.matchString(3)
+            let oiStr: String = matches.matchString(4)
+            let propertyName: String = matches.matchString(5)
+            let piStr: String = matches.matchString(6)
+            let objectIndex: Option<Any> = if (oiStr == "") { None } else { Some(oiStr) }
+            let propertyIndex: Option<Any> = if (piStr == "") { None } else { Some(piStr) }
+
+            var finalNodeName = nodeName
+            var finalObjectName = objectName
+            let lastDotOpt = finalNodeName.lastIndexOf(".")
+            if (let Some(lastDot) <- lastDotOpt) {
+                if (lastDot >= 0 && lastDot < finalNodeName.size - 1) {
+                    let possibleObjectName = finalNodeName[lastDot + 1..]
+                    var isSupported = false
+                    for (sup in _supportedObjectNames) {
+                        if (possibleObjectName == sup) { isSupported = true; break }
+                    }
+                    if (isSupported && finalObjectName == "") {
+                        finalNodeName = finalNodeName[0..lastDot]
+                        finalObjectName = possibleObjectName
+                    }
                 }
-                if (propertyName == "") {
-                    throw Exception("THREE.PropertyBinding: can not parse propertyName from trackName: " + trackName)
-                }
-                let result = HashMap<String, Any>()
-                result.add("nodeName", finalNodeName)
-                result.add("objectName", finalObjectName)
-                result.add("objectIndex", objectIndex)
-                result.add("propertyName", propertyName)
-                result.add("propertyIndex", propertyIndex)
-                return result
-            case None =>
-                throw Exception("THREE.PropertyBinding: Cannot parse trackName: " + trackName)
+            }
+            if (propertyName == "") {
+                throw Exception("THREE.PropertyBinding: can not parse propertyName from trackName: " + trackName)
+            }
+            let result = HashMap<String, Any>()
+            result.add("nodeName", finalNodeName)
+            result.add("objectName", finalObjectName)
+            result.add("objectIndex", objectIndex)
+            result.add("propertyName", propertyName)
+            result.add("propertyIndex", propertyIndex)
+            return result
+        } else {
+            throw Exception("THREE.PropertyBinding: Cannot parse trackName: " + trackName)
         }
     }
 
@@ -556,11 +554,11 @@ public class PropertyBinding {
                         let boneOpt = skinned.skeleton.getBoneByName(nodeName)
                         if (boneOpt.isSome()) {
                             // Bone <: Object3D <: IPropertyBindingRoot——中间变量向上转型（避免 as 在 Some 内解析问题）
-                            return match (boneOpt) {
-                                case Some(b) =>
-                                    let bRoot: IPropertyBindingRoot = b
-                                    Option<IPropertyBindingRoot>.Some(bRoot)
-                                case None => Option<IPropertyBindingRoot>.None
+                            return if (let Some(b) <- boneOpt) {
+                                let bRoot: IPropertyBindingRoot = b
+                                Option<IPropertyBindingRoot>.Some(bRoot)
+                            } else {
+                                Option<IPropertyBindingRoot>.None
                             }
                         }
                     case _ => ()
@@ -587,10 +585,7 @@ public class PropertyBinding {
                 return Some(childNode)
             }
             let result = _searchNodeSubtree(childNode, nodeName)
-            match (result) {
-                case Some(_) => return result
-                case None => ()
-            }
+            if (let Some(_) <- result) { return result }
         }
         return None
     }
@@ -649,22 +644,18 @@ public class PropertyBinding {
     internal func _getValue_arrayElement(buffer: Array<Float64>, offset: Int64): Unit {
         match (this.resolvedProperty) {
             case arr: Array<Float64> =>
-                match (this.propertyIndex) {
-                    case Some(idx) =>
-                        match (idx) {
-                            case i: Int64 => if (i >= 0 && i < arr.size) { buffer[offset] = arr[i] }
-                            case _ => ()
-                        }
-                    case None => ()
+                if (let Some(idx) <- this.propertyIndex) {
+                    match (idx) {
+                        case i: Int64 => if (i >= 0 && i < arr.size) { buffer[offset] = arr[i] }
+                        case _ => ()
+                    }
                 }
             case arr: ArrayList<Float64> =>
-                match (this.propertyIndex) {
-                    case Some(idx) =>
-                        match (idx) {
-                            case i: Int64 => if (i >= 0 && i < arr.size) { buffer[offset] = arr[i] }
-                            case _ => ()
-                        }
-                    case None => ()
+                if (let Some(idx) <- this.propertyIndex) {
+                    match (idx) {
+                        case i: Int64 => if (i >= 0 && i < arr.size) { buffer[offset] = arr[i] }
+                        case _ => ()
+                    }
                 }
             case _ => ()
         }
@@ -759,22 +750,18 @@ public class PropertyBinding {
     internal func _setValue_arrayElement(buffer: Array<Float64>, offset: Int64): Unit {
         match (this.resolvedProperty) {
             case arr: Array<Float64> =>
-                match (this.propertyIndex) {
-                    case Some(idx) =>
-                        match (idx) {
-                            case i: Int64 => if (i >= 0 && i < arr.size) { arr[i] = buffer[offset] }
-                            case _ => ()
-                        }
-                    case None => ()
+                if (let Some(idx) <- this.propertyIndex) {
+                    match (idx) {
+                        case i: Int64 => if (i >= 0 && i < arr.size) { arr[i] = buffer[offset] }
+                        case _ => ()
+                    }
                 }
             case arr: ArrayList<Float64> =>
-                match (this.propertyIndex) {
-                    case Some(idx) =>
-                        match (idx) {
-                            case i: Int64 => if (i >= 0 && i < arr.size) { arr[i] = buffer[offset] }
-                            case _ => ()
-                        }
-                    case None => ()
+                if (let Some(idx) <- this.propertyIndex) {
+                    match (idx) {
+                        case i: Int64 => if (i >= 0 && i < arr.size) { arr[i] = buffer[offset] }
+                        case _ => ()
+                    }
                 }
             case _ => ()
         }
@@ -897,9 +884,9 @@ public class PropertyBinding {
                 let nodeName = _getStringFromMap(parsedPath, "nodeName")
                 if (nodeName != "") {
                     let found = PropertyBinding.findNode(this.rootNode, nodeName)
-                    match (found) {
-                        case Some(n) => targetObject = n; this.node = n
-                        case None => ()
+                    if (let Some(n) <- found) {
+                        targetObject = n
+                        this.node = n
                     }
                 }
         }
@@ -924,13 +911,17 @@ public class PropertyBinding {
                 case "materials" =>
                     match (targetObject) {
                         case obj: Mesh =>
-                            match (objectIndexVal) {
-                                case Some(idx: Int64) =>
+                            if (let Some(v) <- objectIndexVal) {
+                                if (v is Int64) {
+                                    let idx = (v as Int64).getOrThrow()
                                     if (idx == 0) {
                                         this.resolvedObject = obj.material
                                     }
-                                case _ =>
+                                } else {
                                     this.resolvedObject = obj.material
+                                }
+                            } else {
+                                this.resolvedObject = obj.material
                             }
                         case _ => ()
                     }
@@ -939,9 +930,8 @@ public class PropertyBinding {
                         case obj: Object3D =>
                             // 骨骼搜索：通过 children 递归查找
                             let found = _searchNodeSubtree(obj, objectName)
-                            match (found) {
-                                case Some(bone) => this.resolvedObject = bone
-                                case None => ()
+                            if (let Some(bone) <- found) {
+                                this.resolvedObject = bone
                             }
                         case _ => ()
                     }
@@ -977,22 +967,18 @@ public class PropertyBinding {
             if (propertyName == "morphTargetInfluences") {
                 match (targetObject) {
                     case mesh: Mesh =>
-                        match (propertyIndexVal) {
-                            case Some(idx) =>
-                                match (idx) {
-                                    case idxStr: String =>
-                                        // 尝试从 morphTargetDictionary 解析索引
-                                        let morphIdx = mesh.morphTargetDictionary.get(idxStr)
-                                        match (morphIdx) {
-                                            case Some(i) =>
-                                                this.propertyIndex = Some(i)
-                                            case None => ()
-                                        }
-                                    case i: Int64 =>
+                        if (let Some(idx) <- propertyIndexVal) {
+                            match (idx) {
+                                case idxStr: String =>
+                                    // 尝试从 morphTargetDictionary 解析索引
+                                    let morphIdx = mesh.morphTargetDictionary.get(idxStr)
+                                    if (let Some(i) <- morphIdx) {
                                         this.propertyIndex = Some(i)
-                                    case _ => ()
-                                }
-                            case None => ()
+                                    }
+                                case i: Int64 =>
+                                    this.propertyIndex = Some(i)
+                                case _ => ()
+                            }
                         }
                     case _ => ()
                 }

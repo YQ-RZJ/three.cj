@@ -24,13 +24,13 @@
  * @file[zh-cn] 点光源
  * @brief[zh-cn] 从某点向各方向均匀照射的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/PointLight.js。光线随距离按 decay 衰减（物理正确时 decay=2）。
+ * 光线随距离按 decay 衰减（物理正确时 decay=2）。
  * 点光源不投射方向性阴影，而是通过 PointLightShadow 生成六面立方体阴影贴图。
  *
  * @file[en] Point Light
  * @brief[en] A light that emits uniformly in all directions from a point
  * @explain[en] 
- * Corresponds to Three.js lights/PointLight.js. Light decays with distance according to decay (physically correct when decay=2).
+ * Light decays with distance according to decay (physically correct when decay=2).
  * Point lights do not cast directional shadows; instead they use PointLightShadow to generate a 6-face cube shadow map.
  */
 package three.rendering.lights
@@ -50,12 +50,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 从某点向各方向均匀照射的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/PointLight.js。光线随距离按 decay 衰减（物理正确时 decay=2）。
+ * 光线随距离按 decay 衰减（物理正确时 decay=2）。
  * 点光源不投射方向性阴影，而是通过 PointLightShadow 生成六面立方体阴影贴图。
  *
  * @brief[en] A light that emits uniformly in all directions from a point
  * @explain[en] 
- * Corresponds to Three.js lights/PointLight.js. Light decays with distance according to decay (physically correct when decay=2).
+ * Light decays with distance according to decay (physically correct when decay=2).
  * Point lights do not cast directional shadows; instead they use PointLightShadow to generate a 6-face cube shadow map.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Light]

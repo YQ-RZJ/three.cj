@@ -36,6 +36,8 @@ package three.scene.objects
 import three.core.math.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
+import three.profiler.macros.*
 import std.collection.*
 import std.sort.*
 
@@ -388,6 +390,7 @@ public class Raycaster {
      * recursive Whether to recursively check descendants, default true
      * @return[en] Array holding intersection results
      */
+    @Zone[three.scene.objects.Raycaster.intersectObjects, name=raycastIntersectObjects]
     public func intersectObjects(objects: Array<Object3D>, recursive!: Bool = true): ArrayList<Intersection> {
         let intersects = ArrayList<Intersection>()
         for (obj in objects) {

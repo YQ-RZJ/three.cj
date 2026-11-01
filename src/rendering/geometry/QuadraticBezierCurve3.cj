@@ -25,13 +25,11 @@
  * @brief[zh-cn] 3 个控制点定义的 3D 二次贝塞尔曲线
  * @explain[zh-cn] 
  * QuadraticBezierCurve3 继承 Curve，由 v0（起始点）、v1（控制点）、v2（终止点）定义，支持 3D 空间。
- * 对应 Three.js extras/curves/QuadraticBezierCurve3.js。
  *
  * @file[en] 3D Quadratic Bezier Curve
  * @brief[en] 3D quadratic Bezier curve defined by 3 control points
  * @explain[en] 
  * QuadraticBezierCurve3 extends Curve, defined by v0 (start point), v1 (control point), v2 (end point), supporting 3D space.
- * Corresponds to Three.js extras/curves/QuadraticBezierCurve3.js.
  */
 package three.rendering.geometry
 

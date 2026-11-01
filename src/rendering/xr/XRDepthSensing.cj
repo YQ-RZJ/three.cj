@@ -23,13 +23,11 @@
  *
  * @file[zh-cn] XRDepthSensing XR 深度感知
  * @brief[zh-cn] 对照 WebXRDepthSensing.js，提供深度感知数据
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webxr/WebXRDepthSensing.js
  * WebXRDepthSensing 管理 XR 深度纹理和深度网格。
  * bgfx 版本使用 TextureHandle 替代 WebGL 纹理。
  *
  * @file[en] XRDepthSensing XR depth sensing
  * @brief[en] Provides depth sensing data, corresponding to WebXRDepthSensing.js
- * @explain[en] Reference source: three.js/src/renderers/webxr/WebXRDepthSensing.js
  * WebXRDepthSensing manages XR depth textures and depth meshes.
  * bgfx version uses TextureHandle instead of WebGL textures.
  *
@@ -183,15 +181,15 @@ public class XRDepthSensing {
      */
     public func getMesh(): Option<Mesh> {
         if (Handle.isValid(_texture)) {
-            match (_mesh) {
-                case None =>
-                    let uniforms = HashMap<String, Any>()
-                    uniforms.add("depthWidth", this.depthWidth)
-                    uniforms.add("depthHeight", this.depthHeight)
-                    let material = ShaderMaterial(_occlusion_vertex, _occlusion_fragment, uniforms: uniforms)
-                    let mesh = Mesh(geometry: PlaneGeometry(width: 20.0, height: 20.0), material: material)
-                    this._mesh = Some(mesh)
-                case Some(_) => ()
+            if (let Some(_) <- _mesh) {
+                ()
+            } else {
+                let uniforms = HashMap<String, Any>()
+                uniforms.add("depthWidth", this.depthWidth)
+                uniforms.add("depthHeight", this.depthHeight)
+                let material = ShaderMaterial(_occlusion_vertex, _occlusion_fragment, uniforms: uniforms)
+                let mesh = Mesh(geometry: PlaneGeometry(width: 20.0, height: 20.0), material: material)
+                this._mesh = Some(mesh)
             }
         }
         return _mesh

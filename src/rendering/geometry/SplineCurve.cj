@@ -25,13 +25,11 @@
  * @brief[zh-cn] 由点数组定义的 2D Catmull-Rom 样条曲线
  * @explain[zh-cn] 
  * SplineCurve 继承 Curve，由一组 2D 点定义，使用 CatmullRom 插值。
- * 对应 Three.js extras/curves/SplineCurve.js。
  *
  * @file[en] 2D Spline Curve
  * @brief[en] 2D Catmull-Rom spline curve defined by an array of points
  * @explain[en] 
  * SplineCurve extends Curve, defined by a set of 2D points using CatmullRom interpolation.
- * Corresponds to Three.js extras/curves/SplineCurve.js.
  */
 package three.rendering.geometry
 import std.collection.*

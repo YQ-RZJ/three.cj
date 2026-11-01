@@ -58,6 +58,8 @@ package three.rendering.postprocessing
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 import three.utils.memory.AutoFreePtr
 import std.collection.*
 
@@ -397,28 +399,39 @@ public class EffectComposer {
      * finishRender 会触发一次 bgfx_frame（场景渲染阶段的上屏交换），
      * 本处仅负责最后一个上屏 pass 之后的那一次交换，二者帧序不冲突。
      */
+    @Zone[three.rendering.postprocessing.EffectComposer.render]
     public func render(deltaTime!: Float64 = 0.016): Unit {
         if (!this._rtsCreated) {
             this.setSize(this._width, this._height)
         }
-        // 执行所有 enabled pass
-        for (i in 0..this.passes.size) {
-            let pass = this.passes[i]
-            if (!pass.enabled) {
-                continue
+        // ★整条 pass 链一次性提交到渲染线程执行。
+        //   原先 pass 链在调用线程（通常是主线程）上逐个执行，每个 pass 内部的每个
+        //   高阶 bgfx API（setRenderTarget / setViewport / clear / bindTexture / submit …）
+        //   都要单独经 renderer.execBgfx 走一次"排队 + 等待渲染线程"的线程往返：
+        //   实测 afterimage 场景每帧 34 次 × 约 20µs ≈ 0.65ms，占该场景帧时 2/3。
+        //   整链提交后，链内的 execBgfx 全部命中"渲染线程快路径"（直接在渲染线程执行），
+        //   每帧只剩 1 次线程往返。
+        //   附带的正确性收益：execBgfx 不再"不可重入"，链内可安全嵌套 renderer.render
+        //   （RenderPass 的场景渲染即为此种嵌套）。
+        this.renderer.execBgfx({ =>
+            // 执行所有 enabled pass
+            for (i in 0..this.passes.size) {
+                let pass = this.passes[i]
+                if (!pass.enabled) {
+                    continue
+                }
+                // 最后一个 enabled pass 渲染到屏幕
+                pass.renderToScreen = (this.renderToScreen && this.isLastEnabledPass(Int64(i)))
+                pass.render(this.renderer, this._writeBuffer.value, this._readBuffer.value, deltaTime)
+                if (pass.needsSwap) {
+                    this.swapBuffers()
+                }
             }
-            // 最后一个 enabled pass 渲染到屏幕
-            pass.renderToScreen = (this.renderToScreen && this.isLastEnabledPass(Int64(i)))
-            pass.render(this.renderer, this._writeBuffer.value, this._readBuffer.value, deltaTime)
-            if (pass.needsSwap) {
-                this.swapBuffers()
+            // 统一触发一次上屏（renderToScreen=true 时）
+            if (this.renderToScreen) {
+                this.renderer.present(capture: false)
             }
-        }
-        // 统一触发一次上屏（renderToScreen=true 时）
-        // 经 renderer.present 序列化到渲染线程，避免与 pass 内的 bgfx 调用竞态。
-        if (this.renderToScreen) {
-            this.renderer.present(capture: false)
-        }
+        })
     }
 
     /**

@@ -134,13 +134,12 @@ public class AudioListenerHelper <: Object3D {
     public func update(): Unit {
         this.listener.updateWorldMatrix(true, false, false)
 
-        match (this.parent) {
-            case Some(p) =>
-                p.updateWorldMatrix(true, false, false)
-                let inv = Matrix4().copy(p.matrixWorld).invert()
-                this.matrix.copy(inv).multiply(this.listener.matrixWorld)
-            case None =>
-                this.matrix.copy(this.listener.matrixWorld)
+        if (let Some(p) <- this.parent) {
+            p.updateWorldMatrix(true, false, false)
+            let inv = Matrix4().copy(p.matrixWorld).invert()
+            this.matrix.copy(inv).multiply(this.listener.matrixWorld)
+        } else {
+            this.matrix.copy(this.listener.matrixWorld)
         }
         this.matrixWorldNeedsUpdate = true
     }

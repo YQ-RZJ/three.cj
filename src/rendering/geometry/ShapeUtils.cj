@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] ShapeUtils 形状工具函数
- * @brief[zh-cn] 对应 Three.js extras/ShapeUtils.js，提供 2D 多边形面积、绕向判断与三角剖分
+ * @brief[zh-cn] 提供 2D 多边形面积、绕向判断与三角剖分
  * @explain[zh-cn] 提供 2D 多边形（contour）的面积计算、绕向判断，以及带孔洞（holes）的复合形状的三角剖分功能
  *
  * @file[en] ShapeUtils shape utility functions
- * @brief[en] Corresponds to Three.js extras/ShapeUtils.js, provides 2D polygon area, winding direction and triangulation
+ * @brief[en] Provides 2D polygon area, winding direction and triangulation
  * @explain[en] Provides 2D polygon area calculation, winding direction determination, and triangulation of compound shapes with holes
  *
  * @package three.rendering.geometry
@@ -38,10 +38,10 @@ import std.collection.*
 
 /**
  * @brief[zh-cn] 形状工具类，提供 2D 多边形的面积计算、绕向判断与三角剖分功能
- * @explain[zh-cn] 提供 2D 多边形（contour）的面积计算、绕向判断，以及带孔洞（holes）的复合形状的三角剖分功能。参见：https://three.js.org/docs/#api/en/extras/ShapeUtils
+ * @explain[zh-cn] 提供 2D 多边形（contour）的面积计算、绕向判断，以及带孔洞（holes）的复合形状的三角剖分功能。参见 ShapeUtils API 文档
  *
  * @brief[en] Shape utility class, provides 2D polygon area calculation, winding direction and triangulation
- * @explain[en] Provides 2D polygon area calculation, winding direction determination, and triangulation of compound shapes with holes. See: https://three.js.org/docs/#api/en/extras/ShapeUtils
+ * @explain[en] Provides 2D polygon area calculation, winding direction determination, and triangulation of compound shapes with holes. See the ShapeUtils API documentation
  */
 public class ShapeUtils {
     /**

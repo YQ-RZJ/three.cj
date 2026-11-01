@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 着色器缓存
  * @brief[zh-cn] 替代 WebGLShaderCache，管理着色器的复用和引用计数
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLShaderCache.js。WebGLShaderCache 通过代码哈希缓存着色器阶段，避免重复编译。bgfx 版本同样缓存 ShaderHandle，通过引用计数管理生命周期。
+ * @explain[zh-cn] WebGLShaderCache 通过代码哈希缓存着色器阶段，避免重复编译。bgfx 版本同样缓存 ShaderHandle，通过引用计数管理生命周期。
  *
  * @file[en] bgfx Shader Cache
  * @brief[en] Replaces WebGLShaderCache, manages shader reuse and reference counting
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLShaderCache.js. WebGLShaderCache caches shader stages by code hash to avoid recompilation. The bgfx version also caches ShaderHandle and manages lifetime via reference counting.
+ * @explain[en] WebGLShaderCache caches shader stages by code hash to avoid recompilation. The bgfx version also caches ShaderHandle and manages lifetime via reference counting.
  */
 package three.rendering.bgfx
 
@@ -75,29 +75,22 @@ public class BgfxShaderCache {
      * fragmentCode Fragment shader code
      */
     public func update(materialId: Int64, vertexCode: String, fragmentCode: String): Unit {
-        match (materialCache.get(materialId)) {
-            case Some(shaders) =>
-                // 顶点着色器
-                if (!shaders.contains(vertexCode)) {
-                    shaders.add(vertexCode)
-                    match (shaderCache.get(vertexCode)) {
-                        case Some(stage) => stage.usedTimes += 1
-                        case None => ()
-                    }
-                }
-                // 片段着色器
-                if (!shaders.contains(fragmentCode)) {
-                    shaders.add(fragmentCode)
-                    match (shaderCache.get(fragmentCode)) {
-                        case Some(stage) => stage.usedTimes += 1
-                        case None => ()
-                    }
-                }
-            case None =>
-                let shaders = HashSet<String>()
+        if (let Some(shaders) <- materialCache.get(materialId)) {
+            // 顶点着色器
+            if (!shaders.contains(vertexCode)) {
                 shaders.add(vertexCode)
+                if (let Some(stage) <- shaderCache.get(vertexCode)) { stage.usedTimes += 1 }
+            }
+            // 片段着色器
+            if (!shaders.contains(fragmentCode)) {
                 shaders.add(fragmentCode)
-                materialCache.add(materialId, shaders)
+                if (let Some(stage) <- shaderCache.get(fragmentCode)) { stage.usedTimes += 1 }
+            }
+        } else {
+            let shaders = HashSet<String>()
+            shaders.add(vertexCode)
+            shaders.add(fragmentCode)
+            materialCache.add(materialId, shaders)
         }
     }
 
@@ -111,20 +104,16 @@ public class BgfxShaderCache {
      * @param[en] materialId Material ID
      */
     public func remove(materialId: Int64): Unit {
-        match (materialCache.get(materialId)) {
-            case Some(shaders) =>
-                for (code in shaders) {
-                    match (shaderCache.get(code)) {
-                        case Some(stage) =>
-                            stage.usedTimes -= 1
-                            if (stage.usedTimes <= 0) {
-                                shaderCache.remove(code)
-                            }
-                        case None => ()
+        if (let Some(shaders) <- materialCache.get(materialId)) {
+            for (code in shaders) {
+                if (let Some(stage) <- shaderCache.get(code)) {
+                    stage.usedTimes -= 1
+                    if (stage.usedTimes <= 0) {
+                        shaderCache.remove(code)
                     }
                 }
-                materialCache.remove(materialId)
-            case None => ()
+            }
+            materialCache.remove(materialId)
         }
     }
 
@@ -146,16 +135,15 @@ public class BgfxShaderCache {
      * @return[en] Shader stage
      */
     public func getShaderStage(code: String, shader: BgfxShader, mem: BgfxMemory, name: String): ShaderStage {
-        match (shaderCache.get(code)) {
-            case Some(stage) =>
-                return stage
-            case None =>
-                let stage = ShaderStage()
-                stage.code = code
-                stage.handle = shader.compileShader(mem, name)
-                stage.usedTimes = 1
-                shaderCache.add(code, stage)
-                return stage
+        if (let Some(stage) <- shaderCache.get(code)) {
+            return stage
+        } else {
+            let stage = ShaderStage()
+            stage.code = code
+            stage.handle = shader.compileShader(mem, name)
+            stage.usedTimes = 1
+            shaderCache.add(code, stage)
+            return stage
         }
     }
 

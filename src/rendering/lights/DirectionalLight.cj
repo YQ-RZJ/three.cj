@@ -24,13 +24,13 @@
  * @file[zh-cn] 方向光
  * @brief[zh-cn] 方向光，从特定方向平行照射场景的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/DirectionalLight.js。方向光从无限远处平行照射，
+ * 方向光从无限远处平行照射，
  * 具有 target 对象用于控制照射方向，并支持阴影映射。
  *
  * @file[en] Directional Light
  * @brief[en] Directional light that illuminates the scene from a specific direction
  * @explain[en] 
- * Corresponds to Three.js lights/DirectionalLight.js. Directional light illuminates from
+ * Directional light illuminates from
  * infinity in parallel rays, has a target object for controlling direction, and supports shadow mapping.
  */
 package three.rendering.lights

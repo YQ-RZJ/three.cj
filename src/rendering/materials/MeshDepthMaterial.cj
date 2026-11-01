@@ -24,14 +24,14 @@
  * @file[zh-cn] 网格深度材质
  * @brief[zh-cn] 基于深度绘制几何体的材质
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshDepthMaterial.js。深度基于相机近远平面计算：白色最近，黑色最远。
+ * 深度基于相机近远平面计算：白色最近，黑色最远。
  * 主要用于阴影贴图渲染（作为 DirectionalLight/SpotLight 的阴影深度材质），
  * 也可通过 Object3D.customDepthMaterial 自定义物体的深度绘制行为。
  *
  * @file[en] Mesh Depth Material
  * @brief[en] Material that renders geometry based on depth
  * @explain[en] 
- * Corresponds to Three.js materials/MeshDepthMaterial.js. Depth is calculated based on camera near/far planes: white for nearest, black for farthest.
+ * Depth is calculated based on camera near/far planes: white for nearest, black for farthest.
  * Primarily used for shadow map rendering (as the shadow depth material for DirectionalLight/SpotLight),
  * can also customize depth rendering behavior via Object3D.customDepthMaterial.
  */
@@ -46,12 +46,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 基于深度绘制几何体的材质
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshDepthMaterial.js。深度基于相机近远平面计算：白色最近，黑色最远。
+ * 深度基于相机近远平面计算：白色最近，黑色最远。
  * 主要用于阴影贴图渲染，也可通过 Object3D.customDepthMaterial 自定义深度绘制行为。
  *
  * @brief[en] Material that renders geometry based on depth
  * @explain[en] 
- * Corresponds to Three.js materials/MeshDepthMaterial.js. Depth is calculated based on camera near/far planes.
+ * Depth is calculated based on camera near/far planes.
  * Primarily used for shadow map rendering, can also customize via Object3D.customDepthMaterial.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]

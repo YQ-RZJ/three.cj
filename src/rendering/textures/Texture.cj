@@ -33,6 +33,7 @@ package three.rendering.textures
 
 import three.core.math.*
 import three.utils.constants.*
+import three.utils.allocator.IdAllocator
 import three.core.event.EventDispatcher
 import three.core.event.Event
 import three.rendering.rendertarget.RenderTarget
@@ -190,6 +191,24 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
      * @brief[en] Unique identifier
      */
     public var uuid: String
+
+    /**
+     * @brief[zh-cn] 进程内唯一整数标识（构造时分配，自增）
+     * @explain[zh-cn] 与 Material.id 同理：渲染热路径（_bindMatTexture/_bindEnvMap）逐 draw
+     *               以纹理作缓存键时，用 uuid.hashCode() 会对 36 字符字符串重算哈希，
+     *               是纯浪费；改用整数 id 作键即可。uuid 仍保留给序列化 / 外部引用。
+     *
+     * @brief[en] Process-unique integer identifier (assigned at construction, auto-incrementing)
+     * @explain[en] Same rationale as Material.id: on render hot paths (_bindMatTexture/_bindEnvMap)
+     *               textures are used as cache keys per draw; uuid.hashCode() recomputes a hash
+     *               over a 36-char string, which is pure overhead. Using the integer id as the key
+     *               avoids it. uuid is retained for serialization / external references.
+     */
+    @JsonIgnore
+    public let id: Int64
+
+    @JsonIgnore
+    private static let _idGen: IdAllocator = IdAllocator(startId: 1)
 
     /**
      * @brief[zh-cn] 用户可命名标签
@@ -460,6 +479,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
         this.anisotropy = anisotropy
         this.colorSpace = colorSpace
         this.uuid = MathUtils.generateUUID()
+        this.id = Texture._idGen.allocate()
         this.name = ""
         this.source = Source(data: image)
         this.mipmaps = ArrayList<Any>()
@@ -613,17 +633,17 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
      */
     public func setValues(values: HashMap<String, Any>): Unit {
         // 与 JS side 一致：逐键反射赋值；仓颉侧无反射，故此处显式列举常见字段。
-        match (values.get("wrapS")) { case Some(v) => match (v) { case i: Int64 => this.wrapS = i; case _ => () }; case None => () }
-        match (values.get("wrapT")) { case Some(v) => match (v) { case i: Int64 => this.wrapT = i; case _ => () }; case None => () }
-        match (values.get("magFilter")) { case Some(v) => match (v) { case i: Int64 => this.magFilter = i; case _ => () }; case None => () }
-        match (values.get("minFilter")) { case Some(v) => match (v) { case i: Int64 => this.minFilter = i; case _ => () }; case None => () }
-        match (values.get("anisotropy")) { case Some(v) => match (v) { case i: Int64 => this.anisotropy = i; case _ => () }; case None => () }
-        match (values.get("format")) { case Some(v) => match (v) { case i: Int64 => this.format = i; case _ => () }; case None => () }
-        match (values.get("mapping")) { case Some(v) => match (v) { case i: Int64 => this.mapping = i; case _ => () }; case None => () }
-        match (values.get("colorSpace")) { case Some(v) => match (v) { case s: String => this.colorSpace = s; case _ => () }; case None => () }
-        match (values.get("flipY")) { case Some(v) => match (v) { case b: Bool => this.flipY = b; case _ => () }; case None => () }
-        match (values.get("generateMipmaps")) { case Some(v) => match (v) { case b: Bool => this.generateMipmaps = b; case _ => () }; case None => () }
-        match (values.get("premultiplyAlpha")) { case Some(v) => match (v) { case b: Bool => this.premultiplyAlpha = b; case _ => () }; case None => () }
+        if (let Some(v) <- values.get("wrapS")) { match (v) { case i: Int64 => this.wrapS = i; case _ => () } }
+        if (let Some(v) <- values.get("wrapT")) { match (v) { case i: Int64 => this.wrapT = i; case _ => () } }
+        if (let Some(v) <- values.get("magFilter")) { match (v) { case i: Int64 => this.magFilter = i; case _ => () } }
+        if (let Some(v) <- values.get("minFilter")) { match (v) { case i: Int64 => this.minFilter = i; case _ => () } }
+        if (let Some(v) <- values.get("anisotropy")) { match (v) { case i: Int64 => this.anisotropy = i; case _ => () } }
+        if (let Some(v) <- values.get("format")) { match (v) { case i: Int64 => this.format = i; case _ => () } }
+        if (let Some(v) <- values.get("mapping")) { match (v) { case i: Int64 => this.mapping = i; case _ => () } }
+        if (let Some(v) <- values.get("colorSpace")) { match (v) { case s: String => this.colorSpace = s; case _ => () } }
+        if (let Some(v) <- values.get("flipY")) { match (v) { case b: Bool => this.flipY = b; case _ => () } }
+        if (let Some(v) <- values.get("generateMipmaps")) { match (v) { case b: Bool => this.generateMipmaps = b; case _ => () } }
+        if (let Some(v) <- values.get("premultiplyAlpha")) { match (v) { case b: Bool => this.premultiplyAlpha = b; case _ => () } }
         this.needsUpdate = true
     }
 }

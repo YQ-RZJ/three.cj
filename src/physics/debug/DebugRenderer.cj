@@ -322,37 +322,33 @@ public class PhysicsDebugRenderer {
 
     internal static func _onDrawLine(ud: CPointer<Unit>, from: CPointer<JPHVec3>,
         to: CPointer<JPHVec3>, color: UInt32): Unit {
-        match (_active) {
-            case Some(r) =>
-                if (!from.isNull() && !to.isNull()) {
-                    let f = unsafe { from.read() }
-                    let t = unsafe { to.read() }
-                    var line = PhysicsDebugLine()
-                    line.from = _lh(f)
-                    line.to = _lh(t)
-                    line.color = color
-                    r.lines.add(line)
-                }
-            case None => ()
+        if (let Some(r) <- _active) {
+            if (!from.isNull() && !to.isNull()) {
+                let f = unsafe { from.read() }
+                let t = unsafe { to.read() }
+                var line = PhysicsDebugLine()
+                line.from = _lh(f)
+                line.to = _lh(t)
+                line.color = color
+                r.lines.add(line)
+            }
         }
     }
 
     internal static func _onDrawTriangle(ud: CPointer<Unit>, v1: CPointer<JPHVec3>,
         v2: CPointer<JPHVec3>, v3: CPointer<JPHVec3>, color: UInt32): Unit {
-        match (_active) {
-            case Some(r) =>
-                if (!v1.isNull() && !v2.isNull() && !v3.isNull()) {
-                    let a = unsafe { v1.read() }
-                    let b = unsafe { v2.read() }
-                    let c = unsafe { v3.read() }
-                    var tri = PhysicsDebugTriangle()
-                    tri.v1 = _lh(a)
-                    tri.v2 = _lh(b)
-                    tri.v3 = _lh(c)
-                    tri.color = color
-                    r.triangles.add(tri)
-                }
-            case None => ()
+        if (let Some(r) <- _active) {
+            if (!v1.isNull() && !v2.isNull() && !v3.isNull()) {
+                let a = unsafe { v1.read() }
+                let b = unsafe { v2.read() }
+                let c = unsafe { v3.read() }
+                var tri = PhysicsDebugTriangle()
+                tri.v1 = _lh(a)
+                tri.v2 = _lh(b)
+                tri.v3 = _lh(c)
+                tri.color = color
+                r.triangles.add(tri)
+            }
         }
     }
 }

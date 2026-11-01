@@ -48,6 +48,8 @@ import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 保存 pass
@@ -130,10 +132,7 @@ public class SavePass <: Pass {
     public override func setSize(width: Int64, height: Int64): Unit {
         this._width = width
         this._height = height
-        match (this._renderer) {
-            case Some(renderer) => this._createRT(renderer, UInt16(width), UInt16(height))
-            case None => ()
-        }
+        if (let Some(renderer) <- this._renderer) { this._createRT(renderer, UInt16(width), UInt16(height)) }
     }
 
     /**
@@ -148,6 +147,7 @@ public class SavePass <: Pass {
      * @param[en] readBuffer Read buffer (copy source)
      * @param[en] deltaTime Frame delta time
      */
+    @Zone[three.rendering.postprocessing.SavePass.render, name=savePass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -161,15 +161,14 @@ public class SavePass <: Pass {
         }
         // 取 CopyShader + 编译（仅首次）
         // 后处理 shader 已迁移到 postprocessing 内部注册表 PostProcessingShaders
-        match (this._prog) {
-            case None =>
-                match (PostProcessingShaders.get("copy")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._prog = Some(Box(sp.programHandle))
-                    case None => return
-                }
-            case Some(_) => ()
+        if (let Some(_) <- this._prog) {
+        } else {
+            if (let Some(sp) <- PostProcessingShaders.get("copy")) {
+                sp.compileBgfx()
+                this._prog = Some(Box(sp.programHandle))
+            } else {
+                return
+            }
         }
         if(let Some(prog) <- this._prog){
             if (!Handle.isValid(prog)) { return }
@@ -182,16 +181,14 @@ public class SavePass <: Pass {
             this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
             // 绑 readBuffer color 0 到 tDiffuse sampler（stage 0）
-            let uniforms = BgfxUniforms()
-            let uTex = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+            let uniforms = this._passUniforms()
+            let uTex = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
             let readTex = this.getTexture(renderer, readBuffer, 0u8)
             this.bindTexture(renderer, 0u8, uTex, readTex, 0u32)
 
             // opacity uniform = 1.0
-            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-            let opacityMem = BgfxMemory(16u32)
-            opacityMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
-            this.setUniform(renderer, uOpacity, opacityMem, num: 1u16)
+            let uOpacity = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uOpacity, 0, 1.0)
 
             this.submitQuad(viewId, prog)
         }
@@ -203,11 +200,9 @@ public class SavePass <: Pass {
      */
     public override func dispose(): Unit {
         if (this._rtCreated) {
-            match (this._renderer) {
-                case Some(renderer) =>
-                    renderer.destroyFrameBuffer(this.renderTarget)
-                    renderer.destroyTexture(this._rtColor)
-                case None => ()
+            if (let Some(renderer) <- this._renderer) {
+                renderer.destroyFrameBuffer(this.renderTarget)
+                renderer.destroyTexture(this._rtColor)
             }
             this._rtCreated = false
         }

@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 着色器程序
  * @brief[zh-cn] 替代 WebGLProgram，使用 bgfx ProgramHandle 管理着色器程序
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLProgram.js。在 WebGL 中通过 gl.createProgram/gl.attachShader/gl.linkProgram 管理程序，在 bgfx 中通过 bgfx_create_program_cj 创建程序。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.createProgram/gl.attachShader/gl.linkProgram 管理程序，在 bgfx 中通过 bgfx_create_program_cj 创建程序。
  *
  * @file[en] bgfx Shader Program
  * @brief[en] Replaces WebGLProgram, manages shader programs using bgfx ProgramHandle
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLProgram.js. In WebGL, programs are managed via gl.createProgram/gl.attachShader/gl.linkProgram; in bgfx, programs are created via bgfx_create_program_cj.
+ * @explain[en] In WebGL, programs are managed via gl.createProgram/gl.attachShader/gl.linkProgram; in bgfx, programs are created via bgfx_create_program_cj.
  */
 package three.rendering.bgfx
 

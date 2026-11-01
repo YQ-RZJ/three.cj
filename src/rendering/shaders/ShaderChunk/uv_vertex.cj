@@ -45,7 +45,7 @@ public const uv_vertex: String = #"
 #endif
 #ifdef USE_MAP
 
-	// 对照 three.js uv_vertex：vMapUv = (mapTransform * vec3(uv,1)).xy。
+	// 对照参考实现 uv_vertex：vMapUv = (mapTransform * vec3(uv,1)).xy。
 	// bgfx4cj 修复：默认 mapTransform 为单位矩阵（无 offset/repeat/rotation 时），
 	// 直接 vMapUv = MAP_UV 等价且规避 Mat3 uniform 在 HLSL 转译下可能未生效
 	// （0 矩阵 → v_mapUv 恒 0 → 采样 (0,0) → 纹理显示为左上角单像素颜色）。

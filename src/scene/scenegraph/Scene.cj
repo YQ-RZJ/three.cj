@@ -70,9 +70,10 @@ public class Scene <: Object3D & IScene {
     @JsonCustom["fog"]
     public open mut prop fogJson: String {
         get() {
-            match (this.fog) {
-                case Some(f) => f.toJson()
-                case None => "null"
+            if (let Some(f) <- this.fog) {
+                f.toJson()
+            } else {
+                "null"
             }
         }
         set(v) {
@@ -94,9 +95,10 @@ public class Scene <: Object3D & IScene {
     @JsonCustom["fogExp2"]
     public open mut prop fogExp2Json: String {
         get() {
-            match (this.fogExp2) {
-                case Some(f) => f.toJson()
-                case None => "null"
+            if (let Some(f) <- this.fogExp2) {
+                f.toJson()
+            } else {
+                "null"
             }
         }
         set(v) {
@@ -117,8 +119,9 @@ public class Scene <: Object3D & IScene {
     @JsonCustom["background"]
     public open mut prop backgroundJson: String {
         get() {
-            match (this.background) {
-                case Some(c: Color) =>
+            if (let Some(bg) <- this.background) {
+                if (bg is Color) {
+                    let c = (bg as Color).getOrThrow()
                     let stream = ByteBuffer()
                     let writer = JsonStreamWriter(stream)
                     writer.startObject()
@@ -129,7 +132,8 @@ public class Scene <: Object3D & IScene {
                     writer.endObject()
                     writer.flush()
                     String.fromUtf8(readToEnd(stream))
-                case Some(t: Texture) =>
+                } else if (bg is Texture) {
+                    let t = (bg as Texture).getOrThrow()
                     let stream = ByteBuffer()
                     let writer = JsonStreamWriter(stream)
                     writer.startObject()
@@ -140,7 +144,11 @@ public class Scene <: Object3D & IScene {
                     writer.endObject()
                     writer.flush()
                     String.fromUtf8(readToEnd(stream))
-                case _ => "null"
+                } else {
+                    "null"
+                }
+            } else {
+                "null"
             }
         }
         set(v) {
@@ -158,9 +166,10 @@ public class Scene <: Object3D & IScene {
     @JsonCustom["environment"]
     public open mut prop environmentJson: String {
         get() {
-            match (this.environment) {
-                case Some(t) => t.toJson()
-                case None => "null"
+            if (let Some(t) <- this.environment) {
+                t.toJson()
+            } else {
+                "null"
             }
         }
         set(v) {
@@ -225,9 +234,10 @@ public class Scene <: Object3D & IScene {
     @JsonCustom["overrideMaterial"]
     public open mut prop overrideMaterialJson: String {
         get() {
-            match (this.overrideMaterial) {
-                case Some(m) => m.toJson()
-                case None => "null"
+            if (let Some(m) <- this.overrideMaterial) {
+                m.toJson()
+            } else {
+                "null"
             }
         }
         set(v) {
@@ -283,27 +293,31 @@ public class Scene <: Object3D & IScene {
         super.copy(source, recursive)
         match (source) {
             case s: Scene =>
-                match (s.fog) {
-                    case Some(f) => this.fog = Some(f.clone())
-                    case None => this.fog = None
+                if (let Some(f) <- s.fog) {
+                    this.fog = Some(f.clone())
+                } else {
+                    this.fog = None
                 }
-                match (s.fogExp2) {
-                    case Some(f) => this.fogExp2 = Some(f.clone())
-                    case None => this.fogExp2 = None
+                if (let Some(f) <- s.fogExp2) {
+                    this.fogExp2 = Some(f.clone())
+                } else {
+                    this.fogExp2 = None
                 }
                 // background 深拷贝（对照 JS: source.background.clone()）
-                match (s.background) {
-                    case Some(b) => match (b) {
+                if (let Some(b) <- s.background) {
+                    match (b) {
                         case c: Color => this.background = Some(c.clone())
                         case t: Texture => this.background = Some(t.clone())
                         case _ => this.background = s.background
                     }
-                    case None => this.background = None
+                } else {
+                    this.background = None
                 }
                 // environment 深拷贝（对照 JS: source.environment.clone()）
-                match (s.environment) {
-                    case Some(e) => this.environment = Some(e.clone())
-                    case None => this.environment = None
+                if (let Some(e) <- s.environment) {
+                    this.environment = Some(e.clone())
+                } else {
+                    this.environment = None
                 }
                 this.backgroundBlurriness = s.backgroundBlurriness
                 this.backgroundIntensity = s.backgroundIntensity
@@ -311,9 +325,10 @@ public class Scene <: Object3D & IScene {
                 this.environmentIntensity = s.environmentIntensity
                 this.environmentRotation.copy(s.environmentRotation)
                 // overrideMaterial 深拷贝（对照 JS: source.overrideMaterial.clone()）
-                match (s.overrideMaterial) {
-                    case Some(m) => this.overrideMaterial = Some(m.clone())
-                    case None => this.overrideMaterial = None
+                if (let Some(m) <- s.overrideMaterial) {
+                    this.overrideMaterial = Some(m.clone())
+                } else {
+                    this.overrideMaterial = None
                 }
                 this.matrixAutoUpdate = s.matrixAutoUpdate
             case _ => ()
@@ -331,5 +346,20 @@ public class Scene <: Object3D & IScene {
     public override func clone(): Object3D {
         let obj = Scene()
         return obj.copy(this, true)
+    }
+
+    /**
+     * @brief[zh-cn] 获取场景背景（IScene 接口实现）
+     * @explain[zh-cn] PMREMGenerator.fromScene 通过 IScene 接口读取背景作为环境贴图来源，
+     * 避免 textures 包直接依赖 scenegraph 包造成循环依赖。
+     * @return[zh-cn] 背景对象（Color / Texture / CubeTexture）；未设置时为 None
+     *
+     * @brief[en] Get the scene background (IScene interface implementation)
+     * @explain[en] PMREMGenerator.fromScene reads the background via the IScene interface as the
+     * environment-map source, avoiding a circular dependency from textures to scenegraph.
+     * @return[en] Background object (Color / Texture / CubeTexture); None when unset
+     */
+    public func getBackground(): Option<IBackground> {
+        return this.background
     }
 }

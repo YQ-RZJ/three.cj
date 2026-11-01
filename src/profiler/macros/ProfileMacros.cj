@@ -31,8 +31,18 @@
  * @explain[zh-cn] ## 设计思想
  * 宏在**编译期（宏展开进程）读取环境变量 THREE_PROFILER**，与属性声明的**链路**
  * （如 "three.test.aaa.bbb"）做**段级前缀匹配**：
- * - 未命中 → 宏原样返回输入 Tokens（**零侵入**）；
+ * - 未命中 → 宏原样返回输入 Tokens（**零侵入**，输入什么输出什么）；
  * - 命中 → 重写为 try{}finally{} 包裹（**侵入**，异常安全）。
+ *
+ * ### 零侵入对调用点的约束
+ * 零侵入要求"输入什么输出什么"，因此**宏的输入必须本身就是合法的仓颉代码**：
+ * - 函数级形态（`@Zone[链路] func f(): Unit {...}`）：原样返回函数声明，零侵入下同样合法；
+ * - 区间/表达式形态（`@Zone[链路]( 表达式 )`）：输入必须是**合法表达式**；
+ * -  **块形态 `@Zone[链路]({ 语句; 语句 })` 不是独立合法的仓颉**——块在表达式位置
+ *   会被解析为 lambda 体（报 `expected '=>' in lambda expression`），它只在宏命中
+ *   被改写时才成立。因此零侵入档位（`THREE_PROFILER=off`）下会编译失败。
+ *   需要对多语句计时时，请用函数级形态（把语句块提取为方法后修饰其声明），
+ *   这也是引擎内既有的统一用法。
  *
  * ## 链路匹配规则（段级前缀，按 '.' 分段）
  * 设属性链路 L = "three.test.aaa.bbb"（无属性时默认 "three"）：
@@ -232,6 +242,22 @@ private func lastSegment(link: String): String {
 }
 
 /**
+ * @brief[zh-cn] 计算源位置键（编译期常量）
+ * @explain[zh-cn] 键 = fileId * 2^20 + line：同一文件同一行唯一确定一个插桩点。
+ *               宏在展开期算好并以字面量写入产物，运行时只做整型键查表，
+ *               不再为每次 zone 进入拼接 "name\x1ffile\x1fline" 字符串。
+ *
+ * @brief[en] Computes the source-location key (compile-time constant)
+ * @explain[en] key = fileId * 2^20 + line uniquely identifies an instrumentation
+ *               point within a file. The macro computes it at expansion time and
+ *               emits it as a literal, so at runtime there is only an integer-keyed
+ *               lookup — no per-entry "name\x1ffile\x1fline" string concatenation.
+ */
+private func srclocKey(fileId: Int64, line: Int64): Int64 {
+    return fileId * 1048576 + line
+}
+
+/**
  * @brief[zh-cn] 剥离输入外层 { }（用户可写 @X[l]({...}) 或 @X[l](stmt1; stmt2)）
  *
  * @brief[en] Strip the outer braces of the input (users may write
@@ -271,23 +297,45 @@ private func kvValue(kvs: ArrayList<(String, String)>, key: String, fallback: St
  *    finally { z.close() }`，语句/表达式位置均可用。
  * 显示名取链路末段；可选 `color=0xAABBGGRR`。未命中时零侵入。
  *
+ * 同一链路末段在不同类上重名时（如各 Job 的 `run`），可用 `name=xxx` 显式
+ * 指定显示名（`@Zone[three.animation.skeletal.SamplingJob.run, name=SamplingJob.run]`），
+ * 保证采集端按名字聚合时不会把不同函数的耗时混在一起。
+ *
  * @brief[en] @Zone — auto-wrap in a Tracy zone (dual form: function decl or
  * @Zone[link]( code ) block), gated by THREE_PROFILER link matching.
+ * The display name defaults to the last link segment; `name=xxx` overrides it
+ * (useful when several classes share a member name, e.g. multiple `run` jobs).
  */
 public macro Zone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
-            let name = lastSegment(link)
-            let colorKv = parseAttr(attrTokens)[1]
+    if (let Some(link) <- gate(attrTokens)) {
+            let kvs = parseAttr(attrTokens)[1]
+            // 显示名：默认取链路末段；name= 显式覆盖（同名方法区分）
+            let nameOverride = kvValue(kvs, "name", "")
+            let name = if (nameOverride != "") { nameOverride } else { lastSegment(link) }
             var colorTok: Tokens = quote(0)   // 0 = Tracy 默认配色
-            for ((k, v) in colorKv) {
+            for ((k, v) in kvs) {
                 if (k == "color") {
                     // 属性值保持用户写法（0xAABBGGRR 字面量直接透传）
                     colorTok = quote($(v))
                 }
             }
-            if (inputTokens.size > 0 && inputTokens[0].kind == TokenKind.FUNC) {
+            // 函数级形态判定：深度 0 上存在 FUNC 关键字。
+            // 修饰符（public / open / override / protected / static 等）会排在
+            // FUNC 之前，故不能只检查 inputTokens[0]。
+            var isFuncDecl = false
+            var scanDepth = 0
+            for (i in 0..inputTokens.size) {
+                let sk = inputTokens[i].kind
+                if (sk == TokenKind.LCURL) {
+                    scanDepth += 1
+                } else if (sk == TokenKind.RCURL) {
+                    scanDepth -= 1
+                } else if (scanDepth == 0 && sk == TokenKind.FUNC) {
+                    isFuncDecl = true
+                    break
+                }
+            }
+            if (isFuncDecl) {
                 // ---- 函数级形态：注入方法体 {} 内部，签名原样保留 ----
                 // 定位函数体：第一个深度 0 的 LCURL 与其配对 RCURL
                 var bodyStart = -1
@@ -321,9 +369,11 @@ public macro Zone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                 let p0 = inputTokens[0].pos
                 let fileMark = "f${p0.fileID}"
                 let lineTok = quote($(p0.line))
+                // 源位置键：编译期常量，运行时免去字符串键拼接
+                let keyTok = quote($(srclocKey(Int64(p0.fileID), Int64(p0.line))))
                 return quote(
                     $(head)
-                        let __tracyZone = ProfZone($(name), $(colorTok), $(fileMark), $(lineTok), $(funcName))
+                        let __tracyZone = ProfZone($(keyTok), $(name), $(colorTok), $(fileMark), $(lineTok), $(funcName))
                         try {
                             $(body)
                         }
@@ -337,9 +387,11 @@ public macro Zone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                 let p0 = inputTokens[0].pos
                 let fileMark = "f${p0.fileID}"
                 let lineTok = quote($(p0.line))
+                // 源位置键：编译期常量，运行时免去字符串键拼接
+                let keyTok = quote($(srclocKey(Int64(p0.fileID), Int64(p0.line))))
                 let body = stripBraces(inputTokens)
                 return quote(
-                    let __tz = ProfZone($(name), $(colorTok), $(fileMark), $(lineTok))
+                    let __tz = ProfZone($(keyTok), $(name), $(colorTok), $(fileMark), $(lineTok))
                     try {
                         $(body)
                     }
@@ -348,6 +400,8 @@ public macro Zone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                     }
                 )
             }
+    } else {
+        return inputTokens
     }
 }
 
@@ -363,15 +417,15 @@ public macro Zone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * @brief[en] @FrameMark — emits Frame.mark() after the wrapped code.
  */
 public macro FrameMark(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let body = stripBraces(inputTokens)
             let name = lastSegment(link)
             return quote(
                 $(body)
                 ProfFrame.mark($(name))
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -380,15 +434,15 @@ public macro FrameMark(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * @brief[en] @FrameStart — emits Frame.start(name) before the wrapped code.
  */
 public macro FrameStart(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let body = stripBraces(inputTokens)
             let name = lastSegment(link)
             return quote(
                 ProfFrame.start($(name))
                 $(body)
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -397,15 +451,15 @@ public macro FrameStart(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * @brief[en] @FrameEnd — emits Frame.finish(name) after the wrapped code.
  */
 public macro FrameEnd(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let body = stripBraces(inputTokens)
             let name = lastSegment(link)
             return quote(
                 $(body)
                 ProfFrame.finish($(name))
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -423,9 +477,7 @@ public macro FrameEnd(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * passes the value through.
  */
 public macro Plot(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let name = lastSegment(link)
             let body = stripBraces(inputTokens)
             return quote(
@@ -437,6 +489,8 @@ public macro Plot(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                 finally {
                 }
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -445,9 +499,7 @@ public macro Plot(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * @brief[en] @PlotI64 — like @Plot for Int64 expressions.
  */
 public macro PlotI64(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let name = lastSegment(link)
             let body = stripBraces(inputTokens)
             return quote(
@@ -459,6 +511,8 @@ public macro PlotI64(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                 finally {
                 }
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -476,9 +530,7 @@ public macro PlotI64(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * passes the value through. Optional severity=trace|debug|info|warning|error|fatal.
  */
 public macro Message(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let kvs = parseAttr(attrTokens)[1]
             let sev = kvValue(kvs, "severity", "info")
             let logCall = match (sev) {
@@ -499,6 +551,8 @@ public macro Message(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                 finally {
                 }
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -515,9 +569,7 @@ public macro Message(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * @brief[en] @Fiber — wraps code in Fiber.enter/leave pair.
  */
 public macro Fiber(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let name = lastSegment(link)
             let body = stripBraces(inputTokens)
             return quote(
@@ -529,6 +581,8 @@ public macro Fiber(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                     ProfFiber.leave()
                 }
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -546,9 +600,7 @@ public macro Fiber(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * event, passes the pointer through. Optional size= k/v (default 0).
  */
 public macro MemAlloc(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let name = lastSegment(link)
             let kvs = parseAttr(attrTokens)[1]
             // size= 为任意表达式 tokens（cangjieLex 还原，保持用户写法）
@@ -565,6 +617,8 @@ public macro MemAlloc(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                 finally {
                 }
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -574,9 +628,7 @@ public macro MemAlloc(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * passes the pointer through.
  */
 public macro MemFree(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let name = lastSegment(link)
             let body = stripBraces(inputTokens)
             // __tmp 保持原始类型透传，上报调用点重解释为 CPointer<Unit>
@@ -589,6 +641,8 @@ public macro MemFree(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                 finally {
                 }
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -607,9 +661,7 @@ public macro MemFree(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * (begin/end pair auto-emitted); timestamps reported later via Gpu.time.
  */
 public macro GpuZone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let name = lastSegment(link)
             let kvs = parseAttr(attrTokens)[1]
             let ctxTok = cangjieLex(kvValue(kvs, "context", "0"))
@@ -626,6 +678,8 @@ public macro GpuZone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                     __tgz.close()
                 }
             )
+    } else {
+        return inputTokens
     }
 }
 
@@ -644,9 +698,7 @@ public macro GpuZone(attrTokens: Tokens, inputTokens: Tokens): Tokens {
  * timeline (scope-lock semantics; fine-grained lock/unlock via Lock API).
  */
 public macro LockTrack(attrTokens: Tokens, inputTokens: Tokens): Tokens {
-    match (gate(attrTokens)) {
-        case None => return inputTokens
-        case Some(link) =>
+    if (let Some(link) <- gate(attrTokens)) {
             let name = lastSegment(link)
             let p0 = inputTokens[0].pos
             let fileMark = "f${p0.fileID}"
@@ -661,5 +713,7 @@ public macro LockTrack(attrTokens: Tokens, inputTokens: Tokens): Tokens {
                     __tlz.close()
                 }
             )
+    } else {
+        return inputTokens
     }
 }

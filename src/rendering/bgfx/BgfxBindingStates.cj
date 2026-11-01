@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 顶点绑定状态管理
  * @brief[zh-cn] 替代 WebGLBindingStates，管理顶点属性绑定状态
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLBindingStates.js。在 WebGL 中使用 VAO（Vertex Array Object）管理顶点属性绑定，在 bgfx 中使用 VertexLayout 管理顶点布局，绑定状态通过 bgfx_set_vertex_buffer_cj 设置。
+ * @explain[zh-cn] 在 WebGL 中使用 VAO（Vertex Array Object）管理顶点属性绑定，在 bgfx 中使用 VertexLayout 管理顶点布局，绑定状态通过 bgfx_set_vertex_buffer_cj 设置。
  *
  * @file[en] bgfx Vertex Binding States Management
  * @brief[en] Replace WebGLBindingStates, manage vertex attribute binding states
- * @explain[en] Mirrors three.js/src/renderers/webgl/WebGLBindingStates.js. In WebGL, VAOs manage vertex attribute bindings; in bgfx, VertexLayout manages vertex layout and binding states are set via bgfx_set_vertex_buffer_cj.
+ * @explain[en] In WebGL, VAOs manage vertex attribute bindings; in bgfx, VertexLayout manages vertex layout and binding states are set via bgfx_set_vertex_buffer_cj.
  */
 package three.rendering.bgfx
 
@@ -227,42 +227,42 @@ public class BgfxBindingStates {
     private func getBindingState(geometryId: Int64, objectId: Int64, programId: Int64, wireframe: Bool): BindingState {
         // 获取或创建 objectMap
         var objectMap: HashMap<Int64, HashMap<Int64, HashMap<Bool, BindingState>>> = 
-            match (bindingStates.get(geometryId)) {
-                case Some(m) => m
-                case None =>
-                    let m = HashMap<Int64, HashMap<Int64, HashMap<Bool, BindingState>>>()
-                    bindingStates.add(geometryId, m)
-                    m
+            if (let Some(m) <- bindingStates.get(geometryId)) {
+                m
+            } else {
+                let m = HashMap<Int64, HashMap<Int64, HashMap<Bool, BindingState>>>()
+                bindingStates.add(geometryId, m)
+                m
             }
 
         // 获取或创建 programMap
         var programMap: HashMap<Int64, HashMap<Bool, BindingState>> = 
-            match (objectMap.get(objectId)) {
-                case Some(m) => m
-                case None =>
-                    let m = HashMap<Int64, HashMap<Bool, BindingState>>()
-                    objectMap.add(objectId, m)
-                    m
+            if (let Some(m) <- objectMap.get(objectId)) {
+                m
+            } else {
+                let m = HashMap<Int64, HashMap<Bool, BindingState>>()
+                objectMap.add(objectId, m)
+                m
             }
 
         // 获取或创建 stateMap
         var stateMap: HashMap<Bool, BindingState> = 
-            match (programMap.get(programId)) {
-                case Some(m) => m
-                case None =>
-                    let m = HashMap<Bool, BindingState>()
-                    programMap.add(programId, m)
-                    m
+            if (let Some(m) <- programMap.get(programId)) {
+                m
+            } else {
+                let m = HashMap<Bool, BindingState>()
+                programMap.add(programId, m)
+                m
             }
 
         // 获取或创建 state
         let state: BindingState = 
-            match (stateMap.get(wireframe)) {
-                case Some(s) => s
-                case None =>
-                    let s = BindingState(geometryId, programId, wireframe)
-                    stateMap.add(wireframe, s)
-                    s
+            if (let Some(s) <- stateMap.get(wireframe)) {
+                s
+            } else {
+                let s = BindingState(geometryId, programId, wireframe)
+                stateMap.add(wireframe, s)
+                s
             }
         return state
     }

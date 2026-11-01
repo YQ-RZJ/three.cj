@@ -146,17 +146,15 @@ public class Points <: Object3D {
      */
     public func updateMorphTargets(): Unit {
         let morphAttributes = this.geometry.morphAttributes
-        match (morphAttributes.get("position")) {
-            case Some(attrArr) =>
-                // morphAttributes.position 是 ArrayList<BufferAttribute>，逐项建字典
-                this.morphTargetInfluences = Array<Float64>(attrArr.size, { _ => 0.0 })
-                this.morphTargetDictionary = HashMap<String, Int64>()
-                for (i in 0..attrArr.size) {
-                    // 与 JS side 一致：用 morphAttribute.name 或 "morphTarget" + i 作为键
-                    let name = "morphTarget" + i.toString()
-                    this.morphTargetDictionary.add(name, i)
-                }
-            case None => ()
+        if (let Some(attrArr) <- morphAttributes.get("position")) {
+            // morphAttributes.position 是 ArrayList<BufferAttribute>，逐项建字典
+            this.morphTargetInfluences = Array<Float64>(attrArr.size, { _ => 0.0 })
+            this.morphTargetDictionary = HashMap<String, Int64>()
+            for (i in 0..attrArr.size) {
+                // 与 JS side 一致：用 morphAttribute.name 或 "morphTarget" + i 作为键
+                let name = "morphTarget" + i.toString()
+                this.morphTargetDictionary.add(name, i)
+            }
         }
     }
 
@@ -195,18 +193,19 @@ public class Points <: Object3D {
 
         // Checking boundingSphere distance to ray
         
-        match (geometry.boundingSphere) {
-            case None => geometry.computeBoundingSphere()
-            case Some(_) => ()
+        if (let Some(_) <- geometry.boundingSphere) {
+            ()
+        } else {
+            geometry.computeBoundingSphere()
         }
         let sphere = Sphere()
-        match (geometry.boundingSphere) {
-            case Some(bs) =>
-                sphere.copy(bs)
-                sphere.applyMatrix4(matrixWorld)
-                sphere.radius = sphere.radius + threshold
-                if (raycaster.ray.intersectsSphere(sphere) == false) { return }
-            case None => return
+        if (let Some(bs) <- geometry.boundingSphere) {
+            sphere.copy(bs)
+            sphere.applyMatrix4(matrixWorld)
+            sphere.radius = sphere.radius + threshold
+            if (raycaster.ray.intersectsSphere(sphere) == false) { return }
+        } else {
+            return
         }
 
         // transform ray to local space
@@ -220,19 +219,42 @@ public class Points <: Object3D {
         let localThresholdSq = localThreshold * localThreshold
 
         // index / non-index 分支
-        match (geometry.index) {
-            case Some(indexAttr) =>
-                let start = if (drawRange[0] > 0) { drawRange[0] } else { 0 }
-                let end = if (Int64(indexAttr.count) < drawRange[0] + drawRange[1]) { Int64(indexAttr.count) } else { drawRange[0] + drawRange[1] }
-                for (i in start..end) {
-                    let a = Int64(indexAttr.getX(i))
-                    // _position.fromBufferAttribute(positionAttribute, a) — 仓颉侧用 getX/Y/Z 拼装
-                    let position = Vector3()
-                    match (geometry.getAttribute("position")) {
-                        case Some(posAttr) =>
-                            position.set(posAttr.getX(a), posAttr.getY(a), posAttr.getZ(a))
-                        case None => ()
+        if (let Some(indexAttr) <- geometry.index) {
+            let start = if (drawRange[0] > 0) { drawRange[0] } else { 0 }
+            let end = if (Int64(indexAttr.count) < drawRange[0] + drawRange[1]) { Int64(indexAttr.count) } else { drawRange[0] + drawRange[1] }
+            for (i in start..end) {
+                let a = Int64(indexAttr.getX(i))
+                // _position.fromBufferAttribute(positionAttribute, a) — 仓颉侧用 getX/Y/Z 拼装
+                let position = Vector3()
+                if (let Some(posAttr) <- geometry.getAttribute("position")) {
+                    position.set(posAttr.getX(a), posAttr.getY(a), posAttr.getZ(a))
+                }
+                // testPoint：rayPointDistanceSq < localThresholdSq 时命中
+                let rayPointDistanceSq = ray.distanceSqToPoint(position)
+                if (rayPointDistanceSq < localThresholdSq) {
+                    let intersectPoint = Vector3()
+                    ray.closestPointToPoint(position, intersectPoint)
+                    intersectPoint.applyMatrix4(matrixWorld)
+                    let distance = raycaster.ray.origin.distanceTo(intersectPoint)
+                    if (distance >= raycaster.near && distance <= raycaster.far) {
+                        // 对照 JS testPoint 命中对象：{distance, distanceToRay, point, index, face:null, faceIndex:null, barycoord:null, object}
+                        let intersection = Intersection()
+                        intersection.distance = distance
+                        intersection.distanceToRay = sqrt(rayPointDistanceSq)
+                        intersection.point = intersectPoint
+                        intersection.index = a
+                        intersection.obj = Some(this)
+                        intersects.add(intersection)
                     }
+                }
+            }
+        } else {
+            if (let Some(positionAttr) <- geometry.getAttribute("position")) {
+                let start = if (drawRange[0] > 0) { drawRange[0] } else { 0 }
+                        let end = if (Int64(positionAttr.count) < drawRange[0] + drawRange[1]) { Int64(positionAttr.count) } else { drawRange[0] + drawRange[1] }
+                for (i in start..end) {
+                    // _position.fromBufferAttribute(positionAttribute, i) — 仓颉侧用 getX/Y/Z 拼装
+                    let position = Vector3(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i))
                     // testPoint：rayPointDistanceSq < localThresholdSq 时命中
                     let rayPointDistanceSq = ray.distanceSqToPoint(position)
                     if (rayPointDistanceSq < localThresholdSq) {
@@ -246,41 +268,13 @@ public class Points <: Object3D {
                             intersection.distance = distance
                             intersection.distanceToRay = sqrt(rayPointDistanceSq)
                             intersection.point = intersectPoint
-                            intersection.index = a
+                            intersection.index = i
                             intersection.obj = Some(this)
                             intersects.add(intersection)
                         }
                     }
                 }
-            case None =>
-                match (geometry.getAttribute("position")) {
-                    case Some(positionAttr) =>
-                        let start = if (drawRange[0] > 0) { drawRange[0] } else { 0 }
-                        let end = if (Int64(positionAttr.count) < drawRange[0] + drawRange[1]) { Int64(positionAttr.count) } else { drawRange[0] + drawRange[1] }
-                        for (i in start..end) {
-                            // _position.fromBufferAttribute(positionAttribute, i) — 仓颉侧用 getX/Y/Z 拼装
-                            let position = Vector3(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i))
-                            // testPoint：rayPointDistanceSq < localThresholdSq 时命中
-                            let rayPointDistanceSq = ray.distanceSqToPoint(position)
-                            if (rayPointDistanceSq < localThresholdSq) {
-                                let intersectPoint = Vector3()
-                                ray.closestPointToPoint(position, intersectPoint)
-                                intersectPoint.applyMatrix4(matrixWorld)
-                                let distance = raycaster.ray.origin.distanceTo(intersectPoint)
-                                if (distance >= raycaster.near && distance <= raycaster.far) {
-                                    // 对照 JS testPoint 命中对象：{distance, distanceToRay, point, index, face:null, faceIndex:null, barycoord:null, object}
-                                    let intersection = Intersection()
-                                    intersection.distance = distance
-                                    intersection.distanceToRay = sqrt(rayPointDistanceSq)
-                                    intersection.point = intersectPoint
-                                    intersection.index = i
-                                    intersection.obj = Some(this)
-                                    intersects.add(intersection)
-                                }
-                            }
-                        }
-                    case None => ()
-                }
+            }
         }
     }
 

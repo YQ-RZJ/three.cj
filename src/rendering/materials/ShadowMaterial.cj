@@ -24,13 +24,13 @@
  * @file[zh-cn] 阴影材质
  * @brief[zh-cn] 阴影材质，可以接收阴影但本身完全透明
  * @explain[zh-cn] 
- * 对应 Three.js materials/ShadowMaterial.js。该材质可以接收阴影，但本身完全透明。
+ * 该材质可以接收阴影，但本身完全透明。
  * 常用于在地面平面等几何体上仅显示阴影投射效果。
  *
  * @file[en] Shadow Material
  * @brief[en] Shadow material, can receive shadows but is itself fully transparent
  * @explain[en] 
- * Corresponds to Three.js materials/ShadowMaterial.js. This material can receive shadows but is itself fully transparent.
+ * This material can receive shadows but is itself fully transparent.
  * Commonly used to display only shadow casting effects on geometry such as ground planes.
  */
 package three.rendering.materials
@@ -43,11 +43,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 阴影材质，可以接收阴影但本身完全透明
  * @explain[zh-cn] 
- * 对应 Three.js materials/ShadowMaterial.js。常用于在地面平面等几何体上仅显示阴影投射效果。
+ * 常用于在地面平面等几何体上仅显示阴影投射效果。
  *
  * @brief[en] Shadow material, can receive shadows but is itself fully transparent
  * @explain[en] 
- * Corresponds to Three.js materials/ShadowMaterial.js. Commonly used to display only shadow casting effects on ground planes.
+ * Commonly used to display only shadow casting effects on ground planes.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]
 public class ShadowMaterial <: Material {

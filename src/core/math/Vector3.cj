@@ -67,6 +67,33 @@ public class Vector3 {
     public var z: Float64
 
     /**
+     * @brief[zh-cn] 布局填充字段（内部使用，不参与任何运算/序列化）
+     * @explain[zh-cn] 修复引擎实测"画面冻结"挂死：cjc 对紧邻 z 字段（偏移 24，对象共
+     *               32 字节）的向量化读取会生成 movupd 16 字节加载，越过对象尾部
+     *               8 字节。当该对象恰被 GC 分配在堆已提交区域最末尾时，越界读命中
+     *               未映射页触发访问违例，且运行时异常处理器恢复后原地重试，形成
+     *               永久异常循环（卡死现场：gdb 采样 RIP 恒为
+     *               Triangle.computeBarycoord+56 `movupd 0x18(%r9)`，下一页
+     *               0x...68000 不可读）。本字段把对象撑到 40 字节，使该 SIMD 读
+     *               完整落在对象内部，从根上消除越界。帧率越高分配越频繁、堆前沿
+     *               越易被压实到页边界，故高性能路径必触发。
+     *
+     * @brief[en] Layout padding field (internal only, not used by any math or serialization)
+     * @explain[en] Fixes a real "frozen frame" hang: cjc emits a 16-byte movupd load for
+     *               the z field (offset 24 in a 32-byte object), over-reading 8 bytes past
+     *               the object end. When GC places the object flush against the end of a
+     *               committed heap region, the over-read faults on the unmapped next page
+     *               and the runtime's exception handler resumes execution in place,
+     *               producing an infinite fault/retry loop (gdb showed RIP pinned at
+     *               Triangle.computeBarycoord+56 `movupd 0x18(%r9)` with the next page
+     *               unreadable). Growing the object to 40 bytes keeps the SIMD load fully
+     *               inside the object. Higher frame rates compact the heap frontier to page
+     *               boundaries more often, so hot paths reliably trigger it.
+     */
+    @When[cjc_version <= "1.2.0"]
+    private var _layoutPad: Float64 = 0.0
+
+    /**
      * @brief[zh-cn] 默认构造函数，初始化为零向量 (0, 0, 0)
      *
      * @brief[en] Default constructor, initializes to zero vector (0, 0, 0)

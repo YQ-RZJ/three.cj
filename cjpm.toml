@@ -30,16 +30,16 @@
     output-type = "static"
   [dependencies.imgui4cj]
     git = "https://gitcode.com/yq24w/imgui4cj.git"
-    tag = "v1.0.0"
+    tag = "v1.1.0"
     output-type = "static"
   [dependencies.tracy4cj]
     git = "https://gitcode.com/yq24w/tracy4cj.git"
-    tag = "v1.0.0"
+    tag = "v1.1.0"
     output-type = "static"
 
 [package]
   cjc-version = "1.1.0"
-  compile-option = "-Woff unused"
+  compile-option = "-Woff unused -O2"
   description = "three"
   link-option = ""
   name = "three"
@@ -47,7 +47,7 @@
   override-compile-option = ""
   src-dir = "src"
   target-dir = ""
-  version = "0.1.0"
+  version = "0.2.0"
   [package.package-configuration]
 
 [profile]

@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] OBJLoader Wavefront OBJ 格式加载器
- * @brief[zh-cn] 对应 Three.js examples/jsm/loaders/OBJLoader.js 的仓颉侧实现
+ * @brief[zh-cn] Wavefront OBJ 模型的仓颉侧实现
  * @explain[zh-cn] Wavefront OBJ 格式加载器：解析 v/vt/vn/f/o/g/usemtl/mtllib/s 指令，生成 Group 包含的 Mesh 列表（position/normal/uv/color 属性）。仓颉侧使用 std 字符串解析，无浏览器依赖。
  *
  * @file[en] OBJLoader  Wavefront OBJ format loader
- * @brief[en] Cangjie implementation corresponding to Three.js examples/jsm/loaders/OBJLoader.js
+ * @brief[en] Cangjie implementation of the Wavefront OBJ model loader
  * @explain[en] Wavefront OBJ format loader: parses v/vt/vn/f/o/g/usemtl/mtllib/s directives, generates Group containing Mesh list (position/normal/uv/color attributes). Cangjie side uses std string parsing with no browser dependency.
  */
 package three.resource.loader
@@ -290,9 +290,8 @@ public class OBJLoader <: Loader {
                     for (mi in 0..obj.materials.size) {
                         let srcMat = obj.materials[mi]
                         var material: Option<Material> = None
-                        match (this.materials) {
-                            case Some(mc) => material = mc.create(srcMat.name)
-                            case None => ()
+                        if (let Some(mc) <- this.materials) {
+                            material = mc.create(srcMat.name)
                         }
                         if (material.isNone()) {
                             
@@ -302,9 +301,8 @@ public class OBJLoader <: Loader {
                             defaultMat.vertexColors = hasVertexColors
                             material = Some(defaultMat)
                         }
-                        match (material) {
-                            case Some(m) => createdMaterials.add(m)
-                            case None => ()
+                        if (let Some(m) <- material) {
+                            createdMaterials.add(m)
                         }
                     }
                 }

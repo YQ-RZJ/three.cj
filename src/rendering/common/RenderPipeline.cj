@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * RenderPipeline 通过 TSL outputNode + QuadMesh 全屏三角形驱动管线：
  * render() → _update() → quadMesh.render(renderer) → backend.beginRender → backend.draw
- * 对照源码: three.js/src/renderers/common/RenderPipeline.js (252 行)
  *
  * @file[en] RenderPipeline
  * @brief[en] TSL outputNode-driven fullscreen render pipeline
  * @explain[en] 
  * RenderPipeline drives the pipeline via TSL outputNode + QuadMesh fullscreen triangle:
  * render() → _update() → quadMesh.render(renderer) → backend.beginRender → backend.draw
- * Corresponding source: three.js/src/renderers/common/RenderPipeline.js (252 lines)
  */
 package three.rendering.common
 

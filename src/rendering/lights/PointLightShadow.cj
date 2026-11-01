@@ -24,14 +24,14 @@
  * @file[zh-cn] 点光源阴影配置
  * @brief[zh-cn] 专用于PointLight的阴影配置，内部相机为透视投影
  * @explain[zh-cn] 
- * 对应 Three.js lights/PointLightShadow.js。内部相机为 PerspectiveCamera（透视投影），
+ * 内部相机为 PerspectiveCamera（透视投影），
  * 默认 fov=90、aspect=1、near=0.5、far=500。点光源阴影需6面立方体阴影贴图，渲染器内部处理多面渲染。
  * 点光源强制 smType = SM_TYPE_OMNI（立方体6面阴影）。
  *
  * @file[en] Point Light Shadow
  * @brief[en] Shadow configuration specific to PointLight, with a perspective camera internally
  * @explain[en] 
- * Corresponds to Three.js lights/PointLightShadow.js. The internal camera is a PerspectiveCamera,
+ * The internal camera is a PerspectiveCamera,
  * default fov=90, aspect=1, near=0.5, far=500. Point light shadows require a 6-face cube shadow map,
  * with multi-face rendering handled internally by the renderer.
  * Point light forces smType = SM_TYPE_OMNI (cube 6-face shadow).
@@ -48,13 +48,13 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 专用于PointLight的阴影配置，内部相机为透视投影
  * @explain[zh-cn] 
- * 对应 Three.js lights/PointLightShadow.js。内部相机为 PerspectiveCamera（透视投影），
+ * 内部相机为 PerspectiveCamera（透视投影），
  * 默认 fov=90、aspect=1、near=0.5、far=500。点光源阴影需6面立方体阴影贴图，渲染器内部处理多面渲染。
  * 点光源强制 smType = SM_TYPE_OMNI（立方体6面阴影）。
  *
  * @brief[en] Shadow configuration specific to PointLight, with a perspective camera internally
  * @explain[en] 
- * Corresponds to Three.js lights/PointLightShadow.js. The internal camera is a PerspectiveCamera,
+ * The internal camera is a PerspectiveCamera,
  * default fov=90, aspect=1, near=0.5, far=500. Point light shadows require a 6-face cube shadow map,
  * with multi-face rendering handled internally by the renderer.
  * Point light forces smType = SM_TYPE_OMNI (cube 6-face shadow).

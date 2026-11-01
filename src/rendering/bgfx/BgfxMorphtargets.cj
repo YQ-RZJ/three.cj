@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 变形目标管理
  * @brief[zh-cn] 替代 WebGLMorphtargets，管理变形目标数据
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLMorphtargets.js。WebGLMorphtargets 负责管理变形目标的权重和属性绑定。
+ * @explain[zh-cn] WebGLMorphtargets 负责管理变形目标的权重和属性绑定。
  *
  * @file[en] bgfx Morph Target Management
  * @brief[en] Replaces WebGLMorphtargets, manages morph target data
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLMorphtargets.js. WebGLMorphtargets manages morph target weights and attribute bindings.
+ * @explain[en] WebGLMorphtargets manages morph target weights and attribute bindings.
  */
 package three.rendering.bgfx
 
@@ -91,12 +91,12 @@ public class BgfxMorphtargets {
      * @return[en] Morph target info
      */
     public func get(geometryId: Int64, count: Int64): MorphTargetInfo {
-        match (morphTargets.get(geometryId)) {
-            case Some(info) => return info
-            case None =>
-                let info = MorphTargetInfo(count)
-                morphTargets.add(geometryId, info)
-                return info
+        if (let Some(info) <- morphTargets.get(geometryId)) {
+            return info
+        } else {
+            let info = MorphTargetInfo(count)
+            morphTargets.add(geometryId, info)
+            return info
         }
     }
 
@@ -112,14 +112,11 @@ public class BgfxMorphtargets {
      * weights Weights array
      */
     public func update(geometryId: Int64, weights: Array<Float32>): Unit {
-        match (morphTargets.get(geometryId)) {
-            case Some(info) =>
-                let len = if (weights.size < info.weights.size) { weights.size } else { info.weights.size }
-                for (i in 0..len) {
-                    info.weights[i] = weights[i]
-                }
-            case None =>
-                ()
+        if (let Some(info) <- morphTargets.get(geometryId)) {
+            let len = if (weights.size < info.weights.size) { weights.size } else { info.weights.size }
+            for (i in 0..len) {
+                info.weights[i] = weights[i]
+            }
         }
     }
 

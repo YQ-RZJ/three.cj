@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 光照管理
  * @brief[zh-cn] 替代 WebGLLights，收集和设置光照 uniform 数据
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLLights.js 及 16-shadowmaps/shadowmaps.cpp。多光源 uniform 策略：方向光、点光源、聚光源、半球光等均使用数组化 uniform 传递到着色器。阴影相关 uniform 与 shadowmaps Uniforms 结构对齐。
+ * @explain[zh-cn] 多光源 uniform 策略：方向光、点光源、聚光源、半球光等均使用数组化 uniform 传递到着色器。阴影相关 uniform 与 shadowmaps Uniforms 结构对齐。
  *
  * @file[en] bgfx Light Management
  * @brief[en] Replaces WebGLLights, collects and sets light uniform data
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLLights.js and 16-shadowmaps/shadowmaps.cpp. Multi-light uniform strategy: directional, point, spot, hemisphere lights all use array uniforms to pass to shaders. Shadow-related uniforms align with shadowmaps Uniforms structure.
+ * @explain[en] Multi-light uniform strategy: directional, point, spot, hemisphere lights all use array uniforms to pass to shaders. Shadow-related uniforms align with shadowmaps Uniforms structure.
  */
 package three.rendering.bgfx
 
@@ -163,39 +163,39 @@ public class LightUniformsCache {
      * @return[en] Light uniform data
      */
     public func get(lightId: Int64, lightType: String): LightUniformData {
-        match (cache.get(lightId)) {
-            case Some(uniforms) => return uniforms
-            case None =>
-                let uniforms = LightUniformData()
-                // 根据光源类型初始化 uniform 数据
-                if (lightType == "DirectionalLight") {
-                    uniforms.direction = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
-                } else if (lightType == "SpotLight") {
-                    uniforms.position = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.direction = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.distance = 0.0f32
-                    uniforms.coneCos = 0.0f32
-                    uniforms.penumbraCos = 0.0f32
-                    uniforms.decay = 0.0f32
-                } else if (lightType == "PointLight") {
-                    uniforms.position = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.distance = 0.0f32
-                    uniforms.decay = 0.0f32
-                } else if (lightType == "HemisphereLight") {
-                    uniforms.direction = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.skyColor = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.groundColor = Array<Float32>(3, { _ => 0.0f32 })
-                } else if (lightType == "RectAreaLight") {
-                    uniforms.position = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.halfWidth = Array<Float32>(3, { _ => 0.0f32 })
-                    uniforms.halfHeight = Array<Float32>(3, { _ => 0.0f32 })
-                }
-                cache.add(lightId, uniforms)
-                return uniforms
+        if (let Some(uniforms) <- cache.get(lightId)) {
+            return uniforms
+        } else {
+            let uniforms = LightUniformData()
+            // 根据光源类型初始化 uniform 数据
+            if (lightType == "DirectionalLight") {
+                uniforms.direction = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
+            } else if (lightType == "SpotLight") {
+                uniforms.position = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.direction = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.distance = 0.0f32
+                uniforms.coneCos = 0.0f32
+                uniforms.penumbraCos = 0.0f32
+                uniforms.decay = 0.0f32
+            } else if (lightType == "PointLight") {
+                uniforms.position = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.distance = 0.0f32
+                uniforms.decay = 0.0f32
+            } else if (lightType == "HemisphereLight") {
+                uniforms.direction = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.skyColor = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.groundColor = Array<Float32>(3, { _ => 0.0f32 })
+            } else if (lightType == "RectAreaLight") {
+                uniforms.position = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.color = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.halfWidth = Array<Float32>(3, { _ => 0.0f32 })
+                uniforms.halfHeight = Array<Float32>(3, { _ => 0.0f32 })
+            }
+            cache.add(lightId, uniforms)
+            return uniforms
         }
     }
 

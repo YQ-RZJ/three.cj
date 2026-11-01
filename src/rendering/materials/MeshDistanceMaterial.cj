@@ -24,13 +24,13 @@
  * @file[zh-cn] 网格距离材质
  * @brief[zh-cn] 用于实现点光源阴影映射的距离材质
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshDistanceMaterial.js。内部渲染时使用，
+ * 内部渲染时使用，
  * 也可通过 Object3D.customDistanceMaterial 自定义点光源阴影投射。
  *
  * @file[en] Mesh Distance Material
  * @brief[en] Distance material used for point light shadow mapping
  * @explain[en] 
- * Corresponds to Three.js materials/MeshDistanceMaterial.js. Used internally for rendering,
+ * Used internally for rendering,
  * can also customize point light shadow casting via Object3D.customDistanceMaterial.
  */
 package three.rendering.materials
@@ -44,12 +44,12 @@ import three.rendering.textures.*
 /**
  * @brief[zh-cn] 用于实现点光源阴影映射的距离材质
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshDistanceMaterial.js。内部渲染时使用，
+ * 内部渲染时使用，
  * 也可通过 Object3D.customDistanceMaterial 自定义点光源阴影投射。
  *
  * @brief[en] Distance material used for point light shadow mapping
  * @explain[en] 
- * Corresponds to Three.js materials/MeshDistanceMaterial.js. Used internally for rendering,
+ * Used internally for rendering,
  * can also customize point light shadow casting via Object3D.customDistanceMaterial.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]

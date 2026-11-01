@@ -97,7 +97,6 @@ import three.core.event.*
 import three.rendering.cameras.*
 import three.scene.scenegraph.*
 import three.utils.memory.AutoFreePtr
-import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
 import std.collection.*
@@ -265,20 +264,18 @@ public open class SSAARenderPass <: Pass {
      * 调用约定：caller 已在渲染线程，本方法直接调 bgfx API。
      */
     private func _createRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                let w = UInt16(this._width)
-                let h = UInt16(this._height)
-                let rtFlags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
+        if (let Some(renderer) <- this._renderer) {
+            let w = UInt16(this._width)
+            let h = UInt16(this._height)
+            let rtFlags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
 
-                this._sampleTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA16F.value(), rtFlags, None)
-                this._sampleDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), rtFlags, None)
+            this._sampleTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA16F.value(), rtFlags, None)
+            this._sampleDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), rtFlags, None)
 
-                let handles = Array<TextureHandle>(2, { i => if (i == 0) { this._sampleTex } else { this._sampleDepthTex } })
-                this._sampleFB = renderer.createFrameBuffer(2u8, handles, true)
+            let handles = Array<TextureHandle>(2, { i => if (i == 0) { this._sampleTex } else { this._sampleDepthTex } })
+            this._sampleFB = renderer.createFrameBuffer(2u8, handles, true)
 
-                this._rtsCreated = true
-            case None => ()
+            this._rtsCreated = true
         }
         @LogTrace(["SSAARenderPass", "_createRTs done ${this._width}x${this._height} sampleFB.idx=${Handle.idx(this._sampleFB)}"])
     }
@@ -290,21 +287,19 @@ public open class SSAARenderPass <: Pass {
         if (!this._rtsCreated) {
             return
         }
-        match (this._renderer) {
-            case Some(renderer) =>
-                if (Handle.isValid(this._sampleFB)) {
-                    renderer.destroyFrameBuffer(this._sampleFB)
-                    this._sampleFB = INVALID_FRAME_BUFFER_HANDLE
-                }
-                if (Handle.isValid(this._sampleTex)) {
-                    renderer.destroyTexture(this._sampleTex)
-                    this._sampleTex = INVALID_TEXTURE_HANDLE
-                }
-                if (Handle.isValid(this._sampleDepthTex)) {
-                    renderer.destroyTexture(this._sampleDepthTex)
-                    this._sampleDepthTex = INVALID_TEXTURE_HANDLE
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            if (Handle.isValid(this._sampleFB)) {
+                renderer.destroyFrameBuffer(this._sampleFB)
+                this._sampleFB = INVALID_FRAME_BUFFER_HANDLE
+            }
+            if (Handle.isValid(this._sampleTex)) {
+                renderer.destroyTexture(this._sampleTex)
+                this._sampleTex = INVALID_TEXTURE_HANDLE
+            }
+            if (Handle.isValid(this._sampleDepthTex)) {
+                renderer.destroyTexture(this._sampleDepthTex)
+                this._sampleDepthTex = INVALID_TEXTURE_HANDLE
+            }
         }
         this._rtsCreated = false
     }
@@ -332,11 +327,9 @@ public open class SSAARenderPass <: Pass {
 
         // 编译 copy shader（仅首次）
         this._ensureCompiled()
-        match (this._copyProg) {
-            case Some(copyProg) =>
-                if (!Handle.isValid(copyProg)) { return }
-                this._renderSSAA(renderer, writeBuffer, copyProg)
-            case None => ()
+        if (let Some(copyProg) <- this._copyProg) {
+            if (!Handle.isValid(copyProg)) { return }
+            this._renderSSAA(renderer, writeBuffer, copyProg)
         }
     }
 
@@ -376,6 +369,12 @@ public open class SSAARenderPass <: Pass {
         let baseSampleWeight = 1.0 / Float64(jitterCount)
         // roundingRange = 1/32
         let roundingRange = 1.0 / 32.0
+
+        // uniform 句柄与附件纹理句柄在进程生命周期内不变：缓存一次，循环内复用，
+        // 避免每样本重复 createUniform（锁 + 字符串哈希）与 getTexture。
+        let uTex = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+        let uOpacity = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+        let sampleColorTex = this.getTexture(renderer, this._sampleFB, 0u8)
 
         // 循环累加（每 jitter 样本）
         var i: Int64 = 0
@@ -426,17 +425,11 @@ public open class SSAARenderPass <: Pass {
                 this.clearRenderTarget(renderer, accumView, 0x0000u16, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
             }
 
-            // 绑 sampleRT color 0 到 tDiffuse sampler
-            let uniforms = BgfxUniforms()
-            let uTex = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-            let sampleTex = this.getTexture(renderer, this._sampleFB, 0u8)
-            this.bindTexture(renderer, 0u8, uTex, sampleTex, 0u32)
+            // 绑 sampleRT color 0 到 tDiffuse sampler（句柄缓存复用）
+            this.bindTexture(renderer, 0u8, uTex, sampleColorTex, 0u32)
 
-            // u_opacity.x = sampleWeight
-            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-            let opacityMem = BgfxMemory(16u32)
-            opacityMem.writeFloats([Float64(sw), 0.0, 0.0, 0.0], 4)
-            this.setUniform(renderer, uOpacity, opacityMem, num: 1u16)
+            // u_opacity.x = sampleWeight（槽位复用 + 复用暂存数组，避免逐样本新建 BgfxMemory/数组字面量）
+            this._setScalarUniform(renderer, uOpacity, 0, Float64(sw))
 
             // 加性混合：BGFX_STATE_BLEND_FUNC(ONE, ONE) = src*1 + dst*1
             let blendState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
@@ -466,17 +459,12 @@ public open class SSAARenderPass <: Pass {
             this.setRenderTarget(renderer, outputView, INVALID_FRAME_BUFFER_HANDLE)
             this.clearRenderTarget(renderer, outputView, clearFlags, colWithAlpha, depth: 1.0f32, stencil: 0u8)
 
-            // 绑 writeBuffer color 0 到 tDiffuse sampler
-            let uniforms = BgfxUniforms()
-            let uTex = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+            // 绑 writeBuffer color 0 到 tDiffuse sampler（句柄缓存复用）
             let writeTex = this.getTexture(renderer, writeBuffer, 0u8)
             this.bindTexture(renderer, 0u8, uTex, writeTex, 0u32)
 
-            // u_opacity.x = 1.0（覆盖写，非加性）
-            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-            let opacityMem = BgfxMemory(16u32)
-            opacityMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
-            this.setUniform(renderer, uOpacity, opacityMem, num: 1u16)
+            // u_opacity.x = 1.0（覆盖写，非加性；槽位复用）
+            this._setScalarUniform(renderer, uOpacity, 1, 1.0)
 
             // 普通覆盖写状态
             let state = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A | BgfxConstants.FRONT_CCW
@@ -504,11 +492,11 @@ public open class SSAARenderPass <: Pass {
             return
         }
         // 后处理 shader 已迁移到 postprocessing 内部注册表 PostProcessingShaders
-        match (PostProcessingShaders.get("copy")) {
-            case Some(sp) =>
-                sp.compileBgfx()
-                this._copyProg = Some(Box(sp.programHandle))
-            case None => @LogWarn(["SSAARenderPass", "shader copy not found"])
+        if (let Some(sp) <- PostProcessingShaders.get("copy")) {
+            sp.compileBgfx()
+            this._copyProg = Some(Box(sp.programHandle))
+        } else {
+            @LogWarn(["SSAARenderPass", "shader copy not found"])
         }
     }
 }

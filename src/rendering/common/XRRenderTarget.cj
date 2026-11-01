@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] XR 渲染目标
  * @brief[zh-cn] XR 渲染目标类，定义 XR 渲染的帧缓冲尺寸
- * @explain[zh-cn] XRRenderTarget 表示 XR（扩展现实）渲染使用的渲染目标，持有宽度和高度属性。对照源码: three.js/src/renderers/common/XRRenderTarget.js
+ * @explain[zh-cn] XRRenderTarget 表示 XR（扩展现实）渲染使用的渲染目标，持有宽度和高度属性。
  *
  * @file[en] XR Render Target
  * @brief[en] XR render target class, defining the frame buffer dimensions for XR rendering
- * @explain[en] XRRenderTarget represents the render target used for XR (Extended Reality) rendering, holding width and height properties. Reference: three.js/src/renderers/common/XRRenderTarget.js
+ * @explain[en] XRRenderTarget represents the render target used for XR (Extended Reality) rendering, holding width and height properties.
  */
 package three.rendering.common
 

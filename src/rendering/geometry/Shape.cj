@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * Shape 继承 Path，定义带可选洞的 2D 形状平面。
  * 可与 ExtrudeGeometry、ShapeGeometry 配合获取点或三角化面。
- * 对应 Three.js extras/core/Shape.js。
  *
  * @file[en] Shape
  * @brief[en] Defines a 2D shape plane with optional holes
  * @explain[en] 
  * Shape extends Path, defining a 2D shape plane with optional holes.
  * Can be used with ExtrudeGeometry and ShapeGeometry to get points or triangulated faces.
- * Corresponds to Three.js extras/core/Shape.js.
  */
 package three.rendering.geometry
 

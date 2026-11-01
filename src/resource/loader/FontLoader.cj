@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] FontLoader 字体加载器
- * @brief[zh-cn] 对应 Three.js loaders/FontLoader.js 的仓颉侧实现，加载 JSON 格式字体数据
+ * @brief[zh-cn] 加载 JSON 格式字体数据的仓颉侧实现
  * @explain[zh-cn] 使用 std.fs 从本地文件系统加载 JSON 格式字体文件，主要供 TextGeometry 使用。
  *
  * @file[en] FontLoader  Font loader
- * @brief[en] Cangjie implementation corresponding to Three.js loaders/FontLoader.js, loads JSON-format font data
+ * @brief[en] Cangjie implementation that loads JSON-format font data
  * @explain[en] Loads JSON-format font files from the local file system using std.fs, primarily for TextGeometry usage.
  */
 package three.resource.loader

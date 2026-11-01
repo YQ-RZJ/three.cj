@@ -24,12 +24,12 @@
  * @file[zh-cn] 平面辅助对象
  * @brief[zh-cn] 平面辅助对象，用于可视化 Plane 平面
  * @explain[zh-cn] 
- * 对应 Three.js helpers/PlaneHelper.js。显示为网格线框，带半透明填充面。
+ * 显示为网格线框，带半透明填充面。
  *
  * @file[en] Plane Helper
  * @brief[en] Plane helper for visualizing Plane objects
  * @explain[en] 
- * Corresponds to Three.js helpers/PlaneHelper.js. Displays as wireframe grid with a semi-transparent fill face.
+ * Displays as wireframe grid with a semi-transparent fill face.
  */
 package three.rendering.helpers
 

@@ -25,7 +25,7 @@
  * @brief[zh-cn] 阴影贴图相关常量定义（跨包共享，避免循环依赖）
  * @explain[zh-cn] 
  * 对照源码: 16-shadowmaps/shadowmaps.cpp 的 LightType/DepthImpl/PackDepth/SmImpl/SmType 枚举，
- * 以及 three.js/src/constants.js 的 BasicShadowMap/PCFShadowMap/PCFSoftShadowMap/VSMShadowMap。
+ * 以及主流引擎通用常量中的 BasicShadowMap/PCFShadowMap/PCFSoftShadowMap/VSMShadowMap。
  * 本文件单独放在 three.rendering.lights 包，使 lights 与 renderers.bgfx 都能 import，
  * 避免 BgfxShadowMap ↔ lights 的循环依赖。
  *
@@ -33,7 +33,7 @@
  * @brief[en] Shadow map related constant definitions (shared across packages to avoid circular dependencies)
  * @explain[en] 
  * Corresponds to: 16-shadowmaps/shadowmaps.cpp LightType/DepthImpl/PackDepth/SmImpl/SmType enums,
- * and three.js/src/constants.js BasicShadowMap/PCFShadowMap/PCFSoftShadowMap/VSMShadowMap.
+ * and BasicShadowMap/PCFShadowMap/PCFSoftShadowMap/VSMShadowMap from mainstream engine common constants.
  * Placed in three.rendering.lights package so both lights and renderers.bgfx can import it,
  * avoiding circular dependency between BgfxShadowMap and lights.
  */

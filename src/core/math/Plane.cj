@@ -330,9 +330,10 @@ public class Plane {
      * @return[en] This instance
      */
     public func applyMatrix4(matrix: Matrix4, optionalNormalMatrix!: Option<Matrix3> = None): Plane {
-        let normalMatrix = match (optionalNormalMatrix) {
-            case Some(m) => m
-            case None => Matrix3().getNormalMatrix(matrix)
+        let normalMatrix = if (let Some(m) <- optionalNormalMatrix) {
+            m
+        } else {
+            Matrix3().getNormalMatrix(matrix)
         }
         let referencePoint = this.coplanarPoint(Vector3()).applyMatrix4(matrix)
         let normal = this.normal.applyMatrix3(normalMatrix).normalize()

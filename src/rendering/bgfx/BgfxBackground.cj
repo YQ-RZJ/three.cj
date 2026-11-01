@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 背景渲染
  * @brief[zh-cn] 替代 WebGLBackground，渲染场景背景（颜色/纹理/天空盒）
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLBackground.js。WebGLBackground 负责渲染场景的背景（纯色、纹理或天空盒）。bgfx 通过 bgfx_set_view_clear_cj 设置清除颜色。
+ * @explain[zh-cn] WebGLBackground 负责渲染场景的背景（纯色、纹理或天空盒）。bgfx 通过 bgfx_set_view_clear_cj 设置清除颜色。
  *
  * @file[en] bgfx Background Rendering
  * @brief[en] Replace WebGLBackground, render scene background (color/texture/skybox)
- * @explain[en] Mirrors three.js/src/renderers/webgl/WebGLBackground.js. WebGLBackground renders scene backgrounds (solid color, texture, or skybox). bgfx sets clear color via bgfx_set_view_clear_cj.
+ * @explain[en] WebGLBackground renders scene backgrounds (solid color, texture, or skybox). bgfx sets clear color via bgfx_set_view_clear_cj.
  */
 package three.rendering.bgfx
 

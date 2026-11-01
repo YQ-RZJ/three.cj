@@ -47,13 +47,13 @@ public const lights_fragment_begin: String = #"
  * - Create a material parameter that is to be passed as the third parameter to your lighting functions.
  *
  * TODO:
- * Ignore: JS 原文 TODO（area light / sphere light / diffuse light probe 支持），属 three.js 上游未实现项。
+ * Ignore: JS 原文 TODO（area light / sphere light / diffuse light probe 支持），属上游未实现项。
  * - Add area light support.
  * - Add sphere light support.
  * - Add diffuse light probe (irradiance cubemap) support.
  */
 
-// bgfx4cj: 使用世界空间坐标（v_worldPos）替代 Three.js 的视图空间（-vViewPosition）
+// bgfx4cj: 使用世界空间坐标（v_worldPos）替代上游实现的视图空间（-vViewPosition）
 // 因为渲染器传递的光源数据是世界空间坐标，而非视图空间
 vec3 geometryPosition = v_worldPos;
 vec3 geometryNormal = v_normal;

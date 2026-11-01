@@ -24,12 +24,12 @@
  * @file[zh-cn] 圆锥体几何体
  * @brief[zh-cn] 圆锥体几何体，CylinderGeometry 的特例（顶部半径为 0）
  * @explain[zh-cn] 
- * ConeGeometry 继承自 CylinderGeometry，对应 Three.js geometries/ConeGeometry.js。
+ * ConeGeometry 继承自 CylinderGeometry。
  *
  * @file[en] Cone Geometry
  * @brief[en] Cone geometry, a special case of CylinderGeometry with top radius of 0
  * @explain[en] 
- * ConeGeometry extends CylinderGeometry, corresponding to Three.js geometries/ConeGeometry.js.
+ * ConeGeometry extends CylinderGeometry.
  */
 package three.rendering.geometry
 

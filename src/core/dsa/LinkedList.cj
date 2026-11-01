@@ -135,14 +135,13 @@ public class LinkedList<T> {
      */
     public func addFirst(element: T): LinkedListNode<T> {
         let node = LinkedListNode<T>(element)
-        match (_head) {
-            case None =>
-                _head = node
-                _tail = node
-            case Some(oldHead) =>
-                node.setNext(oldHead)
-                oldHead.setPrev(node)
-                _head = node
+        if (let Some(oldHead) <- _head) {
+            node.setNext(oldHead)
+            oldHead.setPrev(node)
+            _head = node
+        } else {
+            _head = node
+            _tail = node
         }
         _size += 1
         return node
@@ -159,14 +158,13 @@ public class LinkedList<T> {
      */
     public func addLast(element: T): LinkedListNode<T> {
         let node = LinkedListNode<T>(element)
-        match (_tail) {
-            case None =>
-                _head = node
-                _tail = node
-            case Some(oldTail) =>
-                node.setPrev(oldTail)
-                oldTail.setNext(node)
-                _tail = node
+        if (let Some(oldTail) <- _tail) {
+            node.setPrev(oldTail)
+            oldTail.setNext(node)
+            _tail = node
+        } else {
+            _head = node
+            _tail = node
         }
         _size += 1
         return node
@@ -185,17 +183,16 @@ public class LinkedList<T> {
      */
     public func addBefore(node: LinkedListNode<T>, element: T): LinkedListNode<T> {
         let newNode = LinkedListNode<T>(element)
-        match (node.prev) {
-            case None =>
-                // node 是头节点
-                newNode.setNext(node)
-                node.setPrev(newNode)
-                _head = newNode
-            case Some(prev) =>
-                newNode.setPrev(prev)
-                newNode.setNext(node)
-                prev.setNext(newNode)
-                node.setPrev(newNode)
+        if (let Some(prev) <- node.prev) {
+            newNode.setPrev(prev)
+            newNode.setNext(node)
+            prev.setNext(newNode)
+            node.setPrev(newNode)
+        } else {
+            // node 是头节点
+            newNode.setNext(node)
+            node.setPrev(newNode)
+            _head = newNode
         }
         _size += 1
         return newNode
@@ -214,17 +211,16 @@ public class LinkedList<T> {
      */
     public func addAfter(node: LinkedListNode<T>, element: T): LinkedListNode<T> {
         let newNode = LinkedListNode<T>(element)
-        match (node.next) {
-            case None =>
-                // node 是尾节点
-                newNode.setPrev(node)
-                node.setNext(newNode)
-                _tail = newNode
-            case Some(next) =>
-                newNode.setPrev(node)
-                newNode.setNext(next)
-                next.setPrev(newNode)
-                node.setNext(newNode)
+        if (let Some(next) <- node.next) {
+            newNode.setPrev(node)
+            newNode.setNext(next)
+            next.setPrev(newNode)
+            node.setNext(newNode)
+        } else {
+            // node 是尾节点
+            newNode.setPrev(node)
+            node.setNext(newNode)
+            _tail = newNode
         }
         _size += 1
         return newNode
@@ -238,12 +234,12 @@ public class LinkedList<T> {
      * @return[en] Head value, or None if the list is empty
      */
     public func removeFirst(): ?T {
-        match (_head) {
-            case None => return None
-            case Some(node) =>
-                let value = node.value
-                _removeNode(node)
-                return Some(value)
+        if (let Some(node) <- _head) {
+            let value = node.value
+            _removeNode(node)
+            return Some(value)
+        } else {
+            return None
         }
     }
 
@@ -255,12 +251,12 @@ public class LinkedList<T> {
      * @return[en] Tail value, or None if the list is empty
      */
     public func removeLast(): ?T {
-        match (_tail) {
-            case None => return None
-            case Some(node) =>
-                let value = node.value
-                _removeNode(node)
-                return Some(value)
+        if (let Some(node) <- _tail) {
+            let value = node.value
+            _removeNode(node)
+            return Some(value)
+        } else {
+            return None
         }
     }
 
@@ -282,9 +278,10 @@ public class LinkedList<T> {
      */
     public prop first: ?T {
         get() {
-            match (_head) {
-                case None => return None
-                case Some(node) => return node.value
+            if (let Some(node) <- _head) {
+                return node.value
+            } else {
+                return None
             }
         }
     }
@@ -296,9 +293,10 @@ public class LinkedList<T> {
      */
     public prop last: ?T {
         get() {
-            match (_tail) {
-                case None => return None
-                case Some(node) => return node.value
+            if (let Some(node) <- _tail) {
+                return node.value
+            } else {
+                return None
             }
         }
     }
@@ -359,11 +357,11 @@ public class LinkedList<T> {
         let list = ArrayList<T>()
         var node = _head
         while (true) {
-            match (node) {
-                case None => break
-                case Some(n) =>
-                    list.add(n.value)
-                    node = n.next
+            if (let Some(n) <- node) {
+                list.add(n.value)
+                node = n.next
+            } else {
+                break
             }
         }
         return Array<T>(list.size, { i => list[i] })
@@ -381,13 +379,15 @@ public class LinkedList<T> {
         let prev = node.prev
         let next = node.next
 
-        match (prev) {
-            case None => _head = next
-            case Some(p) => p.setNext(next)
+        if (let Some(p) <- prev) {
+            p.setNext(next)
+        } else {
+            _head = next
         }
-        match (next) {
-            case None => _tail = prev
-            case Some(n) => n.setPrev(prev)
+        if (let Some(n) <- next) {
+            n.setPrev(prev)
+        } else {
+            _tail = prev
         }
         node.setPrev(None)
         node.setNext(None)

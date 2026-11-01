@@ -93,24 +93,20 @@ public open class CompressedTextureLoader <: Loader {
             let compressedTexture = CompressedTexture(Array<UInt8>(), width, height, format: format)
 
             
-            match (texData.get("mipmapCount")) {
-                case Some(v) =>
-                    match (v) {
-                        case i: Int64 => if (i == 1) { compressedTexture.minFilter = LinearFilter }
-                        case f: Float64 => if (Int64(f) == 1) { compressedTexture.minFilter = LinearFilter }
-                        case _ => ()
-                    }
-                case None => ()
+            if (let Some(v) <- texData.get("mipmapCount")) {
+                match (v) {
+                    case i: Int64 => if (i == 1) { compressedTexture.minFilter = LinearFilter }
+                    case f: Float64 => if (Int64(f) == 1) { compressedTexture.minFilter = LinearFilter }
+                    case _ => ()
+                }
             }
 
             
-            match (texData.get("mipmaps")) {
-                case Some(v) =>
-                    match (v) {
-                        case list: ArrayList<Any> => compressedTexture.mipmaps = list
-                        case _ => ()
-                    }
-                case None => ()
+            if (let Some(v) <- texData.get("mipmaps")) {
+                match (v) {
+                    case list: ArrayList<Any> => compressedTexture.mipmaps = list
+                    case _ => ()
+                }
             }
 
             compressedTexture.needsUpdate = true
@@ -141,13 +137,12 @@ public open class CompressedTextureLoader <: Loader {
 
 // 从 texData HashMap 中读取整数值（兼容 Int64/Float64）
 internal func _texDataInt(map: HashMap<String, Any>, key: String, defaultVal: Int64): Int64 {
-    match (map.get(key)) {
-        case Some(v) =>
-            match (v) {
-                case i: Int64 => return i
-                case f: Float64 => return Int64(f)
-                case _ => return defaultVal
-            }
-        case None => return defaultVal
+    if (let Some(v) <- map.get(key)) {
+        match (v) {
+            case i: Int64 => return i
+            case f: Float64 => return Int64(f)
+            case _ => return defaultVal
+        }
     }
+    return defaultVal
 }

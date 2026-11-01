@@ -159,13 +159,11 @@ public class PhysicsBinding {
                 d = _anyToFloat64(bg.parameters.get("depth"), 1.0)
             case _ =>
                 // 兜底：用 boundingBox 尺寸
-                match (mesh.geometry.boundingBox) {
-                    case Some(box) =>
+                if (let Some(box) <- mesh.geometry.boundingBox) {
                         w = box.max.x - box.min.x
                         h = box.max.y - box.min.y
                         d = box.max.z - box.min.z
-                    case None => ()
-                }
+                    }
         }
         let shape = PhysicsShape.box(w, h, d)
         return PhysicsBinding.bind(world, mesh, shape,
@@ -199,9 +197,8 @@ public class PhysicsBinding {
                 r = _anyToFloat64(sg.parameters.get("radius"), 0.5)
             case _ =>
                 // 兜底：用 boundingSphere 半径
-                match (mesh.geometry.boundingSphere) {
-                    case Some(sph) => r = sph.radius
-                    case None => ()
+                if (let Some(sph) <- mesh.geometry.boundingSphere) {
+                    r = sph.radius
                 }
         }
         let shape = PhysicsShape.sphere(r)
@@ -333,16 +330,16 @@ public class PhysicsBinding {
 /// 从 parameters HashMap 中读取数值，Any 可能是 Float64/Int64/Float32 等数值类型。
 /// 常见情况：BoxGeometry.parameters["width"] 是 Float64；CapsuleGeometry 的 radius 是 Float64。
 internal func _anyToFloat64(opt: Option<Any>, default: Float64): Float64 {
-    match (opt) {
-        case Some(v) =>
-            match (v) {
-                case f: Float64 => return f
-                case f: Float32 => return Float64(f)
-                case i: Int64 => return Float64(i)
-                case i: Int32 => return Float64(i)
-                case i: Int16 => return Float64(i)
-                case _ => return default
-            }
-        case None => return default
+    if (let Some(v) <- opt) {
+        match (v) {
+            case f: Float64 => return f
+            case f: Float32 => return Float64(f)
+            case i: Int64 => return Float64(i)
+            case i: Int32 => return Float64(i)
+            case i: Int16 => return Float64(i)
+            case _ => return default
+        }
+    } else {
+        return default
     }
 }

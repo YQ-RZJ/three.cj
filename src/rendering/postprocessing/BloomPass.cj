@@ -83,6 +83,8 @@ import three.utils.memory.AutoFreePtr
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 import std.collection.*
 import std.math.*
 
@@ -178,9 +180,20 @@ public class BloomPass <: Pass {
     private var _renderer: Option<ThreeRenderer> = None
 
     /**
-     * 归一化高斯核系数（buildKernel(sigma) 结果，补齐到 kernelSize 长度）。
+     * @brief[zh-cn] 归一化高斯核系数（buildKernel(sigma) 结果，补齐到 kernelSize 长度）。
      */
     private var _kernel: Array<Float64> = Array<Float64>(0, { _ => 0.0 })
+
+    /**
+     * @brief[zh-cn] 上传用的高斯核（vec4 对齐：kernelSize*4 个 float，系数在 .x）
+     * @explain[zh-cn] 与 _kernel 同源，随 _buildKernel 一起构建；每帧卷积直接复用，
+     *               避免每帧重新分配并填充 kernelSize*4 个元素。
+     *
+     * @brief[en] The upload-ready Gaussian kernel (vec4 aligned: kernelSize*4 floats, coefficients in .x)
+     * @explain[en] Built together with _kernel; the convolution reuses it directly instead of
+     *               allocating and filling kernelSize*4 elements every frame.
+     */
+    private var _kernelFloats: Array<Float64> = Array<Float64>(0, { _ => 0.0 })
 
     /**
      * 构造 BgfxBloomPass。
@@ -235,6 +248,12 @@ public class BloomPass <: Pass {
         for (i in 0..n) {
             padded[i] = values[i]
         }
+        // 上传用 vec4 对齐数组：kernelSize 个 vec4，系数放在 .x
+        let floats = Array<Float64>(kernelSize * 4, { _ => 0.0 })
+        for (i in 0..kernelSize) {
+            floats[i * 4] = padded[i]
+        }
+        this._kernelFloats = floats
         return padded
     }
 
@@ -259,24 +278,22 @@ public class BloomPass <: Pass {
             return
         }
         let flags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
-        match (this._renderer) {
-            case Some(renderer) =>
-                this._rtXTex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.RGBA16F.value(),
-                    flags,
-                    None)
-                this._rtXFB = this._createFB(renderer, this._rtXTex)
+        if (let Some(renderer) <- this._renderer) {
+            this._rtXTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                flags,
+                None)
+            this._rtXFB = this._createFB(renderer, this._rtXTex)
 
-                this._rtYTex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.RGBA16F.value(),
-                    flags,
-                    None)
-                this._rtYFB = this._createFB(renderer, this._rtYTex)
+            this._rtYTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                flags,
+                None)
+            this._rtYFB = this._createFB(renderer, this._rtYTex)
 
-                this._rtsCreated = true
-            case None => ()
+            this._rtsCreated = true
         }
         @LogTrace(["BloomPass", "RTs created: ${this._width}x${this._height} rtX=${Handle.idx(this._rtXTex)} rtY=${Handle.idx(this._rtYTex)}"])
     }
@@ -295,25 +312,23 @@ public class BloomPass <: Pass {
      * 销毁两个中间 RT。
      */
     private func _destroyRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                if (Handle.isValid(this._rtXFB)) {
-                    renderer.destroyFrameBuffer(this._rtXFB)
-                    this._rtXFB = INVALID_FRAME_BUFFER_HANDLE
-                }
-                if (Handle.isValid(this._rtXTex)) {
-                    renderer.destroyTexture(this._rtXTex)
-                    this._rtXTex = INVALID_TEXTURE_HANDLE
-                }
-                if (Handle.isValid(this._rtYFB)) {
-                    renderer.destroyFrameBuffer(this._rtYFB)
-                    this._rtYFB = INVALID_FRAME_BUFFER_HANDLE
-                }
-                if (Handle.isValid(this._rtYTex)) {
-                    renderer.destroyTexture(this._rtYTex)
-                    this._rtYTex = INVALID_TEXTURE_HANDLE
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            if (Handle.isValid(this._rtXFB)) {
+                renderer.destroyFrameBuffer(this._rtXFB)
+                this._rtXFB = INVALID_FRAME_BUFFER_HANDLE
+            }
+            if (Handle.isValid(this._rtXTex)) {
+                renderer.destroyTexture(this._rtXTex)
+                this._rtXTex = INVALID_TEXTURE_HANDLE
+            }
+            if (Handle.isValid(this._rtYFB)) {
+                renderer.destroyFrameBuffer(this._rtYFB)
+                this._rtYFB = INVALID_FRAME_BUFFER_HANDLE
+            }
+            if (Handle.isValid(this._rtYTex)) {
+                renderer.destroyTexture(this._rtYTex)
+                this._rtYTex = INVALID_TEXTURE_HANDLE
+            }
         }
         this._rtsCreated = false
     }
@@ -331,6 +346,7 @@ public class BloomPass <: Pass {
      * @param readBuffer 读 buffer（上一 pass 的场景渲染结果）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.BloomPass.render, name=bloomRender]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -365,6 +381,7 @@ public class BloomPass <: Pass {
      * @param incX 步长 x（blurX.x 或 0）
      * @param incY 步长 y（0 或 blurY.y）
      */
+    @Zone[three.rendering.postprocessing.BloomPass.renderConvPass, name=bloomConvPass]
     private func _renderConvPass(
         renderer: ThreeRenderer,
         viewOffset: UInt16,
@@ -380,43 +397,36 @@ public class BloomPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
 
         let progOpt = PostProcessingShaders.get("bloom_conv")
-        match (progOpt) {
-            case Some(sp) =>
-                // 首次使用按 kernelSize 编译（KERNEL_SIZE_FLOAT / KERNEL_SIZE_INT 两个 define）
-                if (Handle.isValid(Box(sp.programHandle))) {
-                    let defSizeF = "KERNEL_SIZE_FLOAT=" + Float64(this.kernelSize).toString()
-                    let defSizeI = "KERNEL_SIZE_INT=" + this.kernelSize.toString()
-                    sp.compileBgfx(extraDefines: [defSizeF, defSizeI])
-                    @LogTrace(["BloomPass", "conv shader compiled: KERNEL_SIZE_FLOAT=${defSizeF} KERNEL_SIZE_INT=${defSizeI}"])
-                }
-                let prog = Box(sp.programHandle)
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(sp) <- progOpt) {
+            // 首次使用按 kernelSize 编译（KERNEL_SIZE_FLOAT / KERNEL_SIZE_INT 两个 define）
+            if (Handle.isValid(Box(sp.programHandle))) {
+                let defSizeF = "KERNEL_SIZE_FLOAT=" + Float64(this.kernelSize).toString()
+                let defSizeI = "KERNEL_SIZE_INT=" + this.kernelSize.toString()
+                sp.compileBgfx(extraDefines: [defSizeF, defSizeI])
+                @LogTrace(["BloomPass", "conv shader compiled: KERNEL_SIZE_FLOAT=${defSizeF} KERNEL_SIZE_INT=${defSizeI}"])
+            }
+            let prog = Box(sp.programHandle)
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
-                // tDiffuse（输入纹理，水平=readBuffer / 垂直=renderTargetX）
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                let inputTex = this.getTexture(renderer, inputFB, 0u8)
-                this.bindTexture(renderer, 0u8, uDiffuse, inputTex, 0u32)
+            let uniforms = this._passUniforms()
+            // tDiffuse（输入纹理，水平=readBuffer / 垂直=renderTargetX）
+            let uDiffuse = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            let inputTex = this.getTexture(renderer, inputFB, 0u8)
+            this.bindTexture(renderer, 0u8, uDiffuse, inputTex, 0u32)
 
-                // uImageIncrement（卷积步长，xy=增量）
-                let uInc = uniforms.createUniform("uImageIncrement", UniformType.Vec4.value())
-                let incMem = BgfxMemory(16u32)
-                incMem.writeFloats([incX, incY, 0.0, 0.0], 4)
-                this.setUniform(renderer, uInc, incMem)
+            // uImageIncrement（卷积步长，xy=增量）
+            let uInc = this._cachedUniform("uImageIncrement", UniformType.Vec4.value())
+            this._setVec2Uniform(renderer, uInc, 0, incX, incY)
 
-                // cKernel（归一化高斯核，vec4 数组：x=系数，yzw=padding）
-                let uKernel = uniforms.createUniform("cKernel", UniformType.Vec4.value(), UInt16(this.kernelSize))
-                let kernMem = BgfxMemory(UInt32(this.kernelSize * 16))
-                let kernFloats: Array<Float64> = Array<Float64>(this.kernelSize * 4, { _ => 0.0 })
-                for (i in 0..this.kernelSize) {
-                    kernFloats[i * 4 + 0] = this._kernel[i]
-                }
-                kernMem.writeFloats(kernFloats, Int64(kernFloats.size))
-                this.setUniform(renderer, uKernel, kernMem, num: UInt16(this.kernelSize))
+            // cKernel（归一化高斯核，vec4 数组：x=系数，yzw=padding）
+            let uKernel = this._cachedUniform("cKernel", UniformType.Vec4.value(), num: UInt16(this.kernelSize))
+            // 复用上传缓冲（kernelSize 固定，容量不变则不重新分配）
+            let kernMem = this._uploadMem(1, UInt32(this.kernelSize * 16))
+            kernMem.writeFloats(this._kernelFloats, Int64(this._kernelFloats.size))
+            this.setUniform(renderer, uKernel, kernMem, num: UInt16(this.kernelSize))
 
-                @LogTrace(["BloomPass", "conv pass view=${viewId} inc=(${incX}, ${incY}) kernel[0]=${this._kernel[0]} kernel[1]=${this._kernel[1]} outTex=${Handle.idx(outTex)}"])
-                this.submitQuad(viewId, prog)
-            case None => ()
+            @LogTrace(["BloomPass", "conv pass view=${viewId} inc=(${incX}, ${incY}) kernel[0]=${this._kernel[0]} kernel[1]=${this._kernel[1]} outTex=${Handle.idx(outTex)}"])
+            this.submitQuad(viewId, prog)
         }
     }
 
@@ -426,6 +436,7 @@ public class BloomPass <: Pass {
      * bgfx 差异：依赖 AdditiveBlending 混合状态把 blur 叠加到 readBuffer 既有内容；
      * bgfx 无全局混合状态，shader 内显式采样 scene(readBuffer) + blur(renderTargetY) 相加。
      */
+    @Zone[three.rendering.postprocessing.BloomPass.renderCombine, name=bloomCombine]
     private func _renderCombine(renderer: ThreeRenderer, readBuffer: FrameBufferHandle): Unit {
         let viewId = UInt16(BloomPass.BLOOM_VIEW_ID_BASE + 2u16)
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
@@ -438,33 +449,29 @@ public class BloomPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
 
         let progOpt = PostProcessingShaders.get("bloom_combine")
-        match (progOpt) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    sp.compileBgfx()
-                }
-                let prog = Box(sp.programHandle)
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(sp) <- progOpt) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                sp.compileBgfx()
+            }
+            let prog = Box(sp.programHandle)
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
-                // stage 0 = readBuffer 场景
-                let uScene = uniforms.createUniform("bloomScene", UniformType.Sampler.value())
-                let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
+            let uniforms = this._passUniforms()
+            // stage 0 = readBuffer 场景
+            let uScene = this._cachedUniform("bloomScene", UniformType.Sampler.value())
+            let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
 
-                // stage 1 = 垂直卷积结果（renderTargetY）
-                let uBlur = uniforms.createUniform("bloomBlur", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uBlur, this._rtYTex, 0u32)
+            // stage 1 = 垂直卷积结果（renderTargetY）
+            let uBlur = this._cachedUniform("bloomBlur", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uBlur, this._rtYTex, 0u32)
 
-                // uStrength
-                let uStrength = uniforms.createUniform("uStrength", UniformType.Vec4.value())
-                let sMem = BgfxMemory(16u32)
-                sMem.writeFloats([this.strength, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uStrength, sMem)
+            // uStrength
+            let uStrength = this._cachedUniform("uStrength", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uStrength, 2, this.strength)
 
-                @LogTrace(["BloomPass", "combine view=${viewId} renderToScreen=${this.renderToScreen} strength=${this.strength} sceneTex=${Handle.idx(sceneTex)} blurTex=${Handle.idx(this._rtYTex)}"])
-                this.submitQuad(viewId, prog)
-            case None => ()
+            @LogTrace(["BloomPass", "combine view=${viewId} renderToScreen=${this.renderToScreen} strength=${this.strength} sceneTex=${Handle.idx(sceneTex)} blurTex=${Handle.idx(this._rtYTex)}"])
+            this.submitQuad(viewId, prog)
         }
     }
 

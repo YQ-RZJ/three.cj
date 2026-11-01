@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 渲染状态栈
  * @brief[zh-cn] 替代 WebGLRenderStates，管理渲染状态栈
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLRenderStates.js。WebGLRenderStates 负责管理每帧的渲染状态（光源、阴影等）。
+ * @explain[zh-cn] WebGLRenderStates 负责管理每帧的渲染状态（光源、阴影等）。
  *
  * @file[en] bgfx Render State Stack
  * @brief[en] Replaces WebGLRenderStates, manages render state stack
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLRenderStates.js. WebGLRenderStates manages per-frame render states (lights, shadows, etc.).
+ * @explain[en] WebGLRenderStates manages per-frame render states (lights, shadows, etc.).
  */
 package three.rendering.bgfx
 
@@ -178,12 +178,12 @@ public class BgfxRenderStates {
      * @return[en] Render state
      */
     public func get(sceneId: Int64): BgfxRenderState {
-        match (renderStates.get(sceneId)) {
-            case Some(state) => return state
-            case None =>
-                let state = BgfxRenderState()
-                renderStates.add(sceneId, state)
-                return state
+        if (let Some(state) <- renderStates.get(sceneId)) {
+            return state
+        } else {
+            let state = BgfxRenderState()
+            renderStates.add(sceneId, state)
+            return state
         }
     }
 

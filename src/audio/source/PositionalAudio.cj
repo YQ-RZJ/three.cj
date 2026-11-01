@@ -67,6 +67,8 @@ import openalsoft4cj.alc.*
 
 import three.audio.device.*
 import three.audio.listener.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 3D 位置音频，继承 Audio
@@ -142,6 +144,21 @@ public open class PositionalAudio <: Audio {
     public var velocity: Vector3
 
     /**
+     * @brief[zh-cn] 音频变换槽（异步下发到 OpenAL 空间音源）
+     * @explain[zh-cn] 渲染线程每帧把音源的世界位置/方向/速度写进槽内并置脏，音频
+     *               线程在自己的循环里取走脏槽并调用 alSourcefv，避免每帧一次跨线程
+     *               阻塞往返（实测单次 70~180µs）。
+     *
+     * @brief[en] The audio transform slot (submitted asynchronously to the OpenAL spatial source)
+     * @explain[en] Every frame the render thread writes the source's world position/direction/
+     *               velocity into the slot and flags it dirty; the audio thread picks up
+     *               dirty slots in its own loop and calls alSourcefv, avoiding a blocking
+     *               cross-thread round trip per frame (measured 70~180µs each).
+     */
+    @JsonIgnore
+    private var _slot: AudioTransformSlot = AudioTransformSlot()
+
+    /**
      * @brief[zh-cn] 创建 3D 位置音频源
      * @param[zh-cn] listener 关联的音频监听器
      *
@@ -154,11 +171,26 @@ public open class PositionalAudio <: Audio {
         this.refDistance = 1.0
         this.rolloffFactor = 1.0
         this.maxDistance = 10000.0
-        this.distanceModel = 2  // inverseClamped，对应 Three.js 默认 'inverse'
+        this.distanceModel = 2  // inverseClamped，与主流音频引擎默认的 'inverse' 保持一致
         this.coneInnerAngle = 360.0
         this.coneOuterAngle = 360.0
         this.coneOuterGain = 0.0
         this.velocity = Vector3()
+        this.context.registerTransformSlot(this._slot)
+    }
+
+    /**
+     * @brief[zh-cn] OpenAL 源被释放后失效变换槽
+     * @explain[zh-cn] 源已在音频线程上删除，槽若仍持有旧源 ID，音频线程会向已删除的
+     *               源下发参数（AL_INVALID_NAME），故在此把源 ID 置 0 表示跳过下发。
+     *
+     * @brief[en] Invalidates the transform slot after the OpenAL source was released
+     * @explain[en] The source was deleted on the audio thread; if the slot still held the
+     *               old source id, the audio thread would submit parameters to a deleted
+     *               source (AL_INVALID_NAME), so the id is zeroed here to skip submission.
+     */
+    protected override func _onSourceReleased(): Unit {
+        this._slot.invalidate()
     }
 
     /**
@@ -176,44 +208,44 @@ public open class PositionalAudio <: Audio {
     protected override func _createSource(): Unit {
         if (!this.context.initialized) { return }
 
-        match (this.buffer) {
-            case Some(buf) =>
-                let bufId = buf.bufferId
-                let refDist = Float32(this.refDistance)
-                let rolloff = Float32(this.rolloffFactor)
-                let maxDist = Float32(this.maxDistance)
-                let coneInner = Float32(this.coneInnerAngle)
-                let coneOuter = Float32(this.coneOuterAngle)
-                let coneOuterG = Float32(this.coneOuterGain)
-                let modelIdx = this.distanceModel
+        if (let Some(buf) <- this.buffer) {
+            let bufId = buf.bufferId
+            let refDist = Float32(this.refDistance)
+            let rolloff = Float32(this.rolloffFactor)
+            let maxDist = Float32(this.maxDistance)
+            let coneInner = Float32(this.coneInnerAngle)
+            let coneOuter = Float32(this.coneOuterAngle)
+            let coneOuterG = Float32(this.coneOuterGain)
+            let modelIdx = this.distanceModel
 
-                this.context.execAudio({ =>
-                    // 生成源
-                    let srcPtr = unsafe { LibC.malloc<UInt32>() }
-                    alGenSources_cj(1, srcPtr)
-                    let id = unsafe { srcPtr.read() }
-                    unsafe { LibC.free(srcPtr) }
+            this.context.execAudio({ =>
+                // 生成源
+                let srcPtr = unsafe { LibC.malloc<UInt32>() }
+                alGenSources_cj(1, srcPtr)
+                let id = unsafe { srcPtr.read() }
+                unsafe { LibC.free(srcPtr) }
 
-                    // 绑定缓冲区
-                    alSourcei_cj(id, AL_BUFFER, Int32(bufId))
+                // 绑定缓冲区
+                alSourcei_cj(id, AL_BUFFER, Int32(bufId))
 
-                    // 设置距离衰减参数（PannerNode 等价属性）
-                    alSourcef_cj(id, AL_REFERENCE_DISTANCE, refDist)
-                    alSourcef_cj(id, AL_ROLLOFF_FACTOR, rolloff)
-                    alSourcef_cj(id, AL_MAX_DISTANCE, maxDist)
-                    alSourcei_cj(id, AL_SOURCE_RELATIVE, 0)  // 绝对坐标
+                // 设置距离衰减参数（PannerNode 等价属性）
+                alSourcef_cj(id, AL_REFERENCE_DISTANCE, refDist)
+                alSourcef_cj(id, AL_ROLLOFF_FACTOR, rolloff)
+                alSourcef_cj(id, AL_MAX_DISTANCE, maxDist)
+                alSourcei_cj(id, AL_SOURCE_RELATIVE, 0)  // 绝对坐标
 
-                    // 设置方向性锥体
-                    alSourcef_cj(id, AL_CONE_INNER_ANGLE, coneInner)
-                    alSourcef_cj(id, AL_CONE_OUTER_ANGLE, coneOuter)
-                    alSourcef_cj(id, AL_CONE_OUTER_GAIN, coneOuterG)
+                // 设置方向性锥体
+                alSourcef_cj(id, AL_CONE_INNER_ANGLE, coneInner)
+                alSourcef_cj(id, AL_CONE_OUTER_ANGLE, coneOuter)
+                alSourcef_cj(id, AL_CONE_OUTER_GAIN, coneOuterG)
 
-                    this.sourceId = id
-                })
+                this.sourceId = id
+                // 绑定变换槽的源 ID（在音频线程上写，与下发路径同线程串行）
+                this._slot.sourceId = id
+            })
 
-                // 设置全局距离模型
-                this._applyDistanceModel()
-            case None => ()
+            // 设置全局距离模型
+            this._applyDistanceModel()
         }
     }
 
@@ -221,14 +253,18 @@ public open class PositionalAudio <: Audio {
      * @brief[zh-cn] 重写 updateMatrixWorld，将世界位置和朝向同步到 OpenAL 源
      * @param[zh-cn] force 是否强制更新
      * @explain[zh-cn] 从 matrixWorld 提取位置和朝向，转换到右手坐标系（翻转 Z 轴）后
-     * 设置到源；速度用于多普勒效应。
+     *               写入变换槽；音频线程在下一轮循环中把脏槽下发到源，渲染线程不
+     *               产生任何阻塞等待。速度用于多普勒效应。
      *
      * @brief[en] Overrides updateMatrixWorld to sync the world position and orientation to the OpenAL source
      * @param[en] force Whether to force the update
      * @explain[en] Extracts the position and orientation from matrixWorld, converts them
-     * to the right-handed coordinate system (flip Z axis) and sets them on the
-     * source; the velocity is used for the Doppler effect.
+     * to the right-handed coordinate system (flip Z axis) and writes them into the
+     * transform slot; the audio thread submits dirty slots to the source in its next
+     * loop iteration, so the render thread never blocks. The velocity is used for
+     * the Doppler effect.
      */
+    @Zone[three.audio.source.PositionalAudio.updateMatrixWorld, name=positionalAudioUpdate]
     public override func updateMatrixWorld(force: Bool): Unit {
         super.updateMatrixWorld(force)
 
@@ -237,49 +273,29 @@ public open class PositionalAudio <: Audio {
 
         let te = this.matrixWorld.elements
 
-        // 从世界矩阵提取位置（左手系）
-        let px = te[12]
-        let py = te[13]
-        let pz = te[14]
+        // 从世界矩阵提取位置（左手系 → OpenAL 右手系：翻转 Z）
+        let px = Float32(te[12])
+        let py = Float32(te[13])
+        let pz = Float32(-te[14])
 
-        // 转换到 OpenAL 右手系：翻转 Z
-        let posBuf = unsafe { LibC.malloc<Float32>(count: 3) }
-        unsafe {
-            posBuf.write(Float32(px))
-            (posBuf + 1).write(Float32(py))
-            (posBuf + 2).write(Float32(-pz))  // LH → RH: z 翻转
-        }
-
-        // 从世界矩阵提取方向（左手系 +Z 方向），转换到右手系
-        let dirBuf = unsafe { LibC.malloc<Float32>(count: 3) }
-        unsafe {
-            dirBuf.write(Float32(te[8]))    // forward x
-            (dirBuf + 1).write(Float32(te[9]))   // forward y
-            (dirBuf + 2).write(Float32(-te[10])) // forward z: LH → RH
-        }
+        // 从世界矩阵提取方向（左手系 +Z 方向 → 右手系）
+        let dx = Float32(te[8])
+        let dy = Float32(te[9])
+        let dz = Float32(-te[10])
 
         // 速度（左手系 → 右手系: z 翻转，用于多普勒效应；默认 0 = 无多普勒）
-        let velBuf = unsafe { LibC.malloc<Float32>(count: 3) }
         let vx = Float32(this.velocity.x)
         let vy = Float32(this.velocity.y)
-        let vz = Float32(-this.velocity.z)  // LH → RH
-        unsafe {
-            velBuf.write(vx)
-            (velBuf + 1).write(vy)
-            (velBuf + 2).write(vz)
-        }
+        let vz = Float32(-this.velocity.z)
 
-        let srcId = this.sourceId
-        // 三个源属性在单次 execAudio 闭包内提交，减少线程往返
-        this.context.execAudio({ =>
-            alSourcefv_cj(srcId, AL_POSITION, posBuf)
-            alSourcefv_cj(srcId, AL_DIRECTION, dirBuf)
-            alSourcefv_cj(srcId, AL_VELOCITY, velBuf)
-        })
-
-        unsafe { LibC.free(posBuf) }
-        unsafe { LibC.free(dirBuf) }
-        unsafe { LibC.free(velBuf) }
+        // 异步提交：只写槽内字段并置脏，音频线程负责下发 OpenAL
+        this.context.postTransform(
+            this._slot,
+            px, py, pz,
+            dx, dy, dz,
+            vx, vy, vz,
+            1.0f32
+        )
     }
 
     /**
@@ -382,7 +398,7 @@ public open class PositionalAudio <: Audio {
         if (this.context.initialized && this.sourceId != 0u32) {
             let srcId = this.sourceId
             let v = Float32(value)
-            this.context.execAudio({ => alSourcef_cj(srcId, AL_MAX_DISTANCE, v) })
+            this.context.postAudio({ => alSourcef_cj(srcId, AL_MAX_DISTANCE, v) })
         }
         return this
     }
@@ -465,7 +481,7 @@ public open class PositionalAudio <: Audio {
             case 6 => DistanceModel.ExponentDistanceClamped.value()
             case _ => DistanceModel.InverseDistanceClamped.value()
         }
-        this.context.execAudio({ => alDistanceModel_cj(modelValue) })
+        this.context.postAudio({ => alDistanceModel_cj(modelValue) })
     }
 
     /**
@@ -478,7 +494,7 @@ public open class PositionalAudio <: Audio {
         let inner = Float32(this.coneInnerAngle)
         let outer = Float32(this.coneOuterAngle)
         let outerG = Float32(this.coneOuterGain)
-        this.context.execAudio({ =>
+        this.context.postAudio({ =>
             alSourcef_cj(srcId, AL_CONE_INNER_ANGLE, inner)
             alSourcef_cj(srcId, AL_CONE_OUTER_ANGLE, outer)
             alSourcef_cj(srcId, AL_CONE_OUTER_GAIN, outerG)

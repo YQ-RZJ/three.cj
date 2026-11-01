@@ -22,15 +22,28 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] ThreeRenderer bgfx 渲染器
- * @brief[zh-cn] bgfx 渲染器 — Renderer 子类的薄实现
- * @explain[zh-cn] ThreeRenderer <: Renderer，继承 Renderer 的 _render 调度层，
+ * @brief[zh-cn] bgfx 渲染器 — Renderer 薄实现
+ * @explain[zh-cn] 继承 Renderer 的 _render 调度管线，仅封装 bgfx 专用线程约束。
+ * 线程模型（依据《多线程改造计划》阶段 1）：
+ * - 所有 bgfx FFI 调用经 `_execBgfx` 投递到独立渲染线程执行（SPSC 无锁命令队列 +
+ *   FrameFence 完成序号 + 信号量唤醒）；调用方在渲染线程上走同线程快路径直接执行。
+ * - 跨线程投递有同步（execBgfx / _execBgfx）与单向（_execBgfxNoWait）两种语义；
+ *   同步路径仅低频等待使用 Fence 条件变量，高频投递路径全程无锁。
+ * - finishRender → bgfx_touch
  *
- * @file[en] ThreeRenderer bgfx renderer
- * @brief[en] bgfx renderer — thin implementation of Renderer subclass
- * @explain[en] ThreeRenderer <: Renderer, inherits Renderer's _render scheduling layer,
- * - _execBgfx: all bgfx API calls are delegated to a dedicated system thread
- * - initBgfx: bgfx_init_cj + platformData.nwh
- * - render: delegates to Renderer pipeline via _execBgfx → _render(scene, camera)
+ * @brief[en] bgfx renderer — thin Renderer implementation
+ * @explain[en] All rendering logic is handled by backend: BgfxBackend:
+ * - beginRender → bgfx_set_view_rect + bgfx_set_view_clear
+ * - draw → bgfx_set_vertex_buffer + bgfx_set_state + bgfx_submit
+ * - finishRender → bgfx_touch
+ * Inherits Renderer's _render scheduling pipeline, only encapsulates bgfx-specific thread constraints.
+ * Thread model (per Phase 1 of the multi-threading refactoring plan):
+ * - every bgfx FFI call is posted to the dedicated render thread via `_execBgfx`
+ *   (SPSC lock-free command queue + FrameFence done sequence + semaphore wake);
+ *   callers already on the render thread take the same-thread fast path and run directly.
+ * - cross-thread submission has synchronous (execBgfx / _execBgfx) and fire-and-forget
+ *   (_execBgfxNoWait) semantics; only the low-frequency synchronous wait touches the
+ *   fence's condition variable, the hot submission path is fully lock-free.
  * All rendering logic is handled by backend: BgfxBackend + subsystems (RenderLists/RenderContexts etc.).
  *
  * @package three.rendering
@@ -49,24 +62,23 @@ import three.scene.scenegraph.*
 import three.rendering.materials.*
 import three.rendering.cameras.*
 import three.rendering.textures.*
-import three.rendering.interfaces.IRenderer
-import three.rendering.interfaces.IRenderTarget
+import three.rendering.interfaces.{IRenderer, IRenderTarget}
 import three.rendering.common.*
 import three.rendering.shaders.*
-import three.rendering.bgfx.*
 import three.rendering.bgfx.*
 import three.rendering.types.*
 import three.core.thread.*
 import three.utils.memory.intToCPointer
 import three.utils.log.*
 import three.utils.log.macros.*
-import three.utils.memory.AutoFreePtr
-import three.utils.memory.BgfxMemory
-import three.utils.memory.PtrArray
+import three.profiler.*
+import three.profiler.macros.*
+import three.utils.memory.{ AutoFreePtr, BgfxMemory ,PtrArray}
 import bgfx4cj.bgfx as bgfx
 import bgfx4cj.bx.*
 import std.collection.*
 import std.runtime.*
+import std.sync.{ AtomicUInt64, AtomicBool }
 import std.time.*
 
 // ===== 跨平台渲染器选择 =====
@@ -187,11 +199,11 @@ public class ThreeRenderer <: Renderer & IRenderer {
     public var clearColor: UInt32 = 0x00000000u32
 
     /**
-     * @brief[zh-cn] 设置清除色 — Three.js 对齐：renderer.setClearColor(color, alpha)
+     * @brief[zh-cn] 设置清除色 — 对齐 renderer.setClearColor(color, alpha)
      * @param[zh-cn] color 清除颜色
      * alpha 透明度，默认 1.0
      *
-     * @brief[en] Set clear color — Three.js alignment: renderer.setClearColor(color, alpha)
+     * @brief[en] Set clear color — aligns with renderer.setClearColor(color, alpha)
      * @param[en] color Clear color
      * alpha Alpha value, default 1.0
      */
@@ -210,26 +222,50 @@ public class ThreeRenderer <: Renderer & IRenderer {
         })
     }
 
-    // ===== bgfx 同步原语 =====
-    // 使用 three.core.thread 的系统级 Mutex/Condition（基于 sdl4cj，而非 std.sync），
-    // 因为需要跨用户态与系统线程同步。
-    private var _renderMtx = Mutex()
-    private var _renderCmdCnd = Condition()
-    private var _renderDoneCnd = Condition()
-    // FIFO 命令队列 + 单调完成序号（多提交者并发安全）：
-    // 旧实现用共享布尔 _renderDone + 单次 signal() 通知完成，多个提交者
-    // （ArkTS 主线程 setColor 等参数更新 + 窗口泵线程 onFrame render）并发时，
-    // 提交者的唤醒会被彼此吞掉（_renderDone 被重置 / signal 被别的等待者消费），
-    // 导致某个提交者永久孤儿等待 → 泵线程 onFrame 不返回 → shutdown().wait() 死锁。
-    // 新实现：每个提交者持有自己的序号，等待 doneSeq 追上该序号；完成时
-    // broadcast 唤醒全部等待者，各自由谓词判断是否继续等待。
-    private var _renderQueue = ArrayList<() -> Unit>()
-    private var _renderSubmitSeq: Int64 = 0
-    private var _renderDoneSeq: Int64 = 0
-    private var _renderExit: Bool = false
+    // ===== bgfx 同步原语（依据《多线程改造计划》阶段 1 重构）=====
+    // 旧模型：ArrayList 命令队列 + Mutex + 双条件变量 + 单调序号。
+    //   瓶颈：消费端逐条 remove(at:0)（O(n) 搬移，锁内操作）；每条命令一次
+    //   加锁/解锁 + signal；每条命令执行完一次广播——后处理链一帧 30+ 命令时
+    //   锁竞争与唤醒开销显著。
+    // 新模型（本文件）：
+    // - 命令队列 → SPSCQueue（无锁环形缓冲，push/pop 无 CAS 无 Mutex）；
+    // - 完成同步 → FrameFence（原子提交/完成序号 + 等待路径条件变量），
+    //   完成序号按"批"推进，唤醒次数由命令数降为批次数；
+    // - 唤醒 → _renderWake 信号量（一次性通知，无谓词状态）；
+    // - 退出标志 → AtomicBool（无锁读写）。
+    // 多提交者并发安全说明：跨线程投递必须来自同一外部线程（当前场景为窗口泵
+    // 线程 onFrame）；渲染线程自身的调用走"同线程快路径"直接执行（不入队）。
+    // 若未来出现多外部线程并发投递需求，需在 SPSCQueue 外加 MPMC 或队外互斥。
+    private let _renderQueue = SPSCQueue<() -> Unit>(capacity: 4096)
+    private let _renderWake = Semaphore(initVal: 0)
+    private let _renderFence = FrameFence()
+    private let _renderExit = AtomicBool(false)
     private var _renderSThread: Option<SThread<Unit>> = None
+    /**
+     * @brief[zh-cn] 渲染线程的 SDL 系统线程 ID（渲染线程快路径判定用）
+     * @explain[zh-cn] 由渲染线程在入口写入（原子存储）。`_execBgfx` 用它与当前
+     *               线程 ID 比对：相同即说明调用方已在渲染线程上，可直接执行闭包，
+     *               省掉"排队 + 条件变量等待 + 唤醒"的一次线程往返。
+     *               线程身份用 SDL **系统**线程 ID（本工程的渲染线程是 SDL 系统线程；
+     *               仓颉自带的用户态线程其承载系统线程不固定，不适用）。
+     *
+     * @brief[en] SDL system thread ID of the render thread (used by the render-thread fast path)
+     * @explain[en] Written by the render thread on entry (atomic store). `_execBgfx`
+     *               compares it with the current thread ID: on a match the caller is
+     *               already on the render thread, so the closure can run directly,
+     *               saving one queue + condition-variable round trip. The identity
+     *               uses the SDL *system* thread ID (this project's render thread is
+     *               an SDL system thread; Cangjie's own user-mode threads are not).
+     */
+    private let _renderThreadId = AtomicUInt64(0u64)
     private var _renderReady: Bool = false
     private var _initBgfxResult: Bool = false
+
+    // ===== bgfx 初始化配置 =====
+    // initBgfx 时由实参写入，setSize 触发 bgfx_reset 时复用同一份 flags，
+    // 避免 reset 后 V-Sync / MSAA 等状态与初始化时不一致。
+    // 默认与 initBgfx 的默认参数一致：不开 V-Sync、不开 MSAA。
+    private var _resetFlags: UInt32 = RESET_NONE
 
     // ===== BgfxBackend 后端 =====
     // 通过父类 Renderer.backend 访问
@@ -252,73 +288,214 @@ public class ThreeRenderer <: Renderer & IRenderer {
     }
 
     private func _renderLoop(): Unit {
+        // 记录渲染线程的 SDL 系统线程 ID：_execBgfx 用它判定"调用方已在渲染线程"
+        this._renderThreadId.store(getCurrentThreadId())
         this._renderReady = true
-        while (!this._renderExit) {
-            this._renderMtx.lock()
-            while (this._renderQueue.isEmpty() && !this._renderExit) {
-                this._renderCmdCnd.wait(this._renderMtx)
+        while (!this._renderExit.load()) {
+            // 批量排空（无锁）：一次执行当前队列中的全部命令，整批完成后再推进完成序号。
+            // 与旧实现（逐条 remove(at:0) O(n) 搬移 + 每条命令一次锁/条件变量/广播）相比，
+            // 锁与唤醒次数由"命令数"降为"批次数"（后处理链一帧 30+ 命令时的关键收益）。
+            let n = this._drainAndExec()
+            if (n > 0) {
+                this._renderFence.advanceBy(n)
+            } else {
+                // 无命令：睡到有新命令投递（信号量唤醒，一次性通知无需谓词重查）
+                if (!this._renderExit.load()) { this._renderWake.wait() }
             }
-            if (this._renderQueue.isEmpty() || this._renderExit) {
-                // 退出：剩余未执行命令按"放弃"处理——推进完成序号并唤醒其提交者，
-                // 避免任何人悬挂在 _renderDoneCnd 上
-                let abandoned = this._renderQueue.size
-                if (abandoned > 0) {
-                    this._renderQueue.clear()
-                    this._renderDoneSeq += Int64(abandoned)
-                    this._renderDoneCnd.broadcast()
-                }
-                this._renderMtx.unlock()
-                break
-            }
-            let cmd = this._renderQueue.remove(at: 0)
-            this._renderMtx.unlock()
-
-            // 渲染线程执行 bgfx 闭包：持全局可重入锁，与主线程裸调互斥。
-            // 闭包内部（如 BgfxUniforms/BgfxBackend 再调 bgfx FFI）同线程重入，不会自我死锁。
-            bgfxCallMtx.lock()
-            let cmdStart = MonoTime.now()
-            try {
-                cmd()
-            } catch (e: Error) {
-                // 异常隔离：单条命令失败不能杀渲染线程，否则其提交者永久等待
-                @LogError(["ThreeRenderer._renderLoop: bgfx cmd failed: ${e}"])
-            }
-            bgfxCallMtx.unlock()
-            // 诊断日志（只记录、不解锁）：单条命令异常耗时说明原生层/管线异常，
-            // 是排查帧卡顿与挂死的关键信号
-            let cmdCostMs = (MonoTime.now() - cmdStart).toMilliseconds()
-            if (cmdCostMs > 200) {
-                @LogWarn(["ThreeRenderer: bgfx cmd cost ${cmdCostMs}ms (>200)"])
-            }
-
-            this._renderMtx.lock()
-            this._renderDoneSeq += 1
-            // broadcast 而非 signal：多个提交者可能同时在等，signal 只唤醒一个，
-            // 若唤醒的那位谓词未满足（其序号更靠后）会继续睡，其余提交者成孤儿
-            this._renderDoneCnd.broadcast()
-            this._renderMtx.unlock()
+        }
+        // 退出路径：bgfx 已 shutdown，残留命令不得再执行（执行将崩溃），
+        // 但必须按"已提交-已完成"缺口推进完成序号，唤醒仍可能在等待的提交者
+        // （与旧实现退出分支"推进序号 + broadcast"等价，避免任何人悬挂）。
+        let outstanding = this._renderFence.submitted() - this._renderFence.done()
+        if (outstanding > 0) {
+            this._renderFence.advanceBy(outstanding)
         }
     }
 
+    /**
+     * @brief[zh-cn] 批量排空命令队列并在渲染线程执行（无锁 pop）
+     * @return[zh-cn] 本批实际执行的命令数
+     * @explain[zh-cn] 循环 pop 直到队列空，逐条持全局可重入锁执行 bgfx 闭包。
+     *               单条命令失败仅记录日志（异常隔离），不终止排空，保证其提交者
+     *               的完成序号仍会被推进。
+     *
+     * @brief[en] Drain the command queue in batches and execute on the render thread (lock-free pop)
+     * @return[en] Number of commands executed in this batch
+     * @explain[en] Pops until empty, executing each bgfx closure while holding the global
+     *              reentrant lock. A single failing command is logged (isolation) and does
+     *              not stop the drain, so its submitter's done sequence is still advanced.
+     */
+    private func _drainAndExec(): Int64 {
+        var n: Int64 = 0
+        while (true) {
+            if (let Some(cmd) <- this._renderQueue.pop()) {
+                // 渲染线程执行 bgfx 闭包：持全局可重入锁，与主线程裸调互斥。
+                // 闭包内部（如 BgfxUniforms/BgfxBackend 再调 bgfx FFI）同线程重入，不会自我死锁。
+                bgfxCallMtx.lock()
+                let cmdStart = MonoTime.now()
+                try {
+                    cmd()
+                } catch (e: Error) {
+                    // 异常隔离：单条命令失败不能杀渲染线程，否则其提交者永久等待
+                    @LogError(["ThreeRenderer._renderLoop: bgfx cmd failed: ${e}"])
+                }
+                bgfxCallMtx.unlock()
+                // 诊断日志（只记录、不解锁）：单条命令异常耗时说明原生层/管线异常，
+                // 是排查帧卡顿与挂死的关键信号
+                let cmdCostMs = (MonoTime.now() - cmdStart).toMilliseconds()
+                if (cmdCostMs > 200) {
+                    @LogWarn(["ThreeRenderer: bgfx cmd cost ${cmdCostMs}ms (>200)"])
+                }
+                n += 1
+            } else {
+                break
+            }
+        }
+        return n
+    }
+
+    // 注：此处不插桩——快路径（同线程直接执行）无同步开销，逐次插桩会让每帧产生
+    // 数十个 zone 事件淹没采集端；跨线程往返路径在 _execBgfxQueued 内插桩。
     private func _execBgfx(cmd: () -> Unit): Unit {
         if (this._renderSThread.isNone()) {
             this._initRenderThread()
         }
-        this._renderMtx.lock()
-        if (this._renderExit) {
-            // 渲染线程已退出（bgfx 已 shutdown）：命令不再执行，直接返回，
-            // 防止提交者等待一个永远不会推进的序号
-            this._renderMtx.unlock()
+        // ★渲染线程快路径：调用方已在渲染线程上（SDL 系统线程 ID 相同）→ 直接执行闭包。
+        //   收益：省掉一次"排队 + 条件变量等待 + 唤醒"的线程往返（实测约 20µs/次）；
+        //   后处理链每帧有 30+ 次此类调用（每个 pass 的每个高阶 bgfx API 一次），
+        //   是后处理场景的第一大开销。
+        //   附带收益：解除"execBgfx 不可重入"的限制——闭包内再调 execBgfx 不再自我等待死锁，
+        //   因此整条 pass 链可以一次性提交到渲染线程执行。
+        //   线程身份用 SDL 系统线程 ID（渲染线程是 SDL 系统线程；仓颉自带用户态线程不适用）。
+        let renderTid = this._renderThreadId.load()
+        if (renderTid != 0u64 && getCurrentThreadId() == renderTid) {
+            // 与渲染循环一致：持全局可重入锁（可重入，嵌套调用不会自我死锁）
+            bgfxCallMtx.lock()
+            try {
+                cmd()
+            } finally {
+                bgfxCallMtx.unlock()
+            }
             return
         }
-        this._renderSubmitSeq += 1
-        let mySeq = this._renderSubmitSeq
-        this._renderQueue.add(cmd)
-        this._renderCmdCnd.signal()
-        while (this._renderDoneSeq < mySeq) {
-            this._renderDoneCnd.wait(this._renderMtx)
+        this._execBgfxQueued(cmd)
+    }
+
+    /**
+     * @brief[zh-cn] 跨线程排队路径：把 bgfx 调用闭包排到渲染线程并同步等待完成
+     * @explain[zh-cn] 单独成方法以便只对"跨线程往返"插桩：快路径（同线程直接执行）
+     *               无同步开销，逐次插桩会让每帧产生数十个 zone 事件、淹没采集端
+     *               （实测后处理场景 1.1M 事件/15s，帧标记丢失约 60%）。
+     *               跨线程往返是真正需要观测的量（每次约 20µs）。
+     *
+     * @brief[en] Cross-thread queueing path: enqueues a bgfx closure to the render thread and waits
+     * @explain[en] Split out so that only the *cross-thread round trip* is instrumented: the
+     *               fast path (same-thread direct execution) has no synchronization cost,
+     *               and instrumenting it every time produced dozens of zone events per
+     *               frame, flooding the collector (measured: 1.1M events / 15s, with
+     *               ~60% of the frame marks lost). The round trip is the quantity that
+     *               actually needs observing (~20µs each).
+     */
+    @Zone[three.rendering.ThreeRenderer.execBgfxQueued]
+    private func _execBgfxQueued(cmd: () -> Unit): Unit {
+        let seq = this._enqueue(cmd)
+        if (seq == 0) { return }
+        // 同步等待：完成序号追上我这条命令后返回（Fence 无锁自旋检查一次，
+        // 未满足才进条件变量；跨线程往返是真正需要观测的量，故本方法保留插桩）
+        this._renderFence.waitUntil(seq)
+    }
+
+    /**
+     * @brief[zh-cn] 无锁投递命令到渲染线程命令队列（SPSC push + 信号量唤醒）
+     * @param[zh-cn] cmd 待执行的 bgfx 调用闭包
+     * @return[zh-cn] 本次投递的完成序号（0 表示渲染线程已退出，命令被丢弃）
+     * @explain[zh-cn] 调用的线程身份判定（快路径/跨线程）由上层 _execBgfx/
+     *               _execBgfxNoWait 完成，本方法只负责"跨线程投递"这一件事：
+     * - 先检查退出标志（无锁原子读）：已退出则丢弃并返回 0，绝不入队；
+     * - submit 一个完成序号（占用序号空间，保证后续等待型提交的完成条件不被提前满足）；
+     * - SPSC 入队（无锁）。队列满（极端积压，单帧命令数不会触发）时短暂自旋等待
+     *   消费端排空——渲染线程只在队列空时休眠，队列满说明其正在排空，自旋必有出口；
+     * - 信号量唤醒渲染线程（一次性通知，无需谓词重查）。
+     *
+     * @brief[en] Lock-free submission of a command into the render command queue (SPSC push + semaphore wake)
+     * @param[en] cmd bgfx closure to execute
+     * @return[en] Completion sequence of this submission (0 if the render thread exited and the command was dropped)
+     * @explain[en] Thread-identity routing (fast path / cross-thread) is done by the callers
+     *              _execBgfx/_execBgfxNoWait; this method only handles cross-thread submission:
+     * - checks the exit flag first (lock-free atomic read): drop and return 0 when exiting;
+     * - submits a completion sequence (reserves sequence space so later waiting
+     *   submissions cannot be satisfied early);
+     * - enqueues via SPSC (lock-free). On full (extreme backlog, unreachable at per-frame
+     *   command counts) it briefly spins for the consumer to drain — the render thread only
+     *   sleeps when empty, so the spin always terminates;
+     * - wakes the render thread via the semaphore (one-shot, no predicate re-check).
+     */
+    private func _enqueue(cmd: () -> Unit): Int64 {
+        if (this._renderSThread.isNone()) {
+            this._initRenderThread()
         }
-        this._renderMtx.unlock()
+        if (this._renderExit.load()) { return 0 }
+        let seq = this._renderFence.submit()
+        while (!this._renderQueue.push(cmd)) {
+            if (this._renderExit.load()) { return 0 }
+            sleepNS(1000)
+        }
+        this._renderWake.signal()
+        return seq
+    }
+
+    /**
+     * @brief[zh-cn] 单向投递 bgfx 闭包到渲染线程（不等待执行完成）
+     * @explain[zh-cn] 与 `_execBgfxQueued` 共用同一条 FIFO 命令队列，但提交后立即返回，
+     *               不等待渲染线程执行完毕。适用于"纯输出型"调用（如画面内调试文本）：
+     *               调用方不读取任何返回值，正确性只依赖"命令在渲染线程上按提交顺序执行"。
+     *
+     *               收益：跨线程同步的代价是两次线程上下文切换（signal 唤醒渲染线程 +
+     *               broadcast 唤醒提交者），实测每次约 95µs。调试文本每帧调用数次时，
+     *               这些往返构成纯粹的等待开销（实测某场景每帧 3 次 dbgText 调用
+     *               合计 351µs，而整帧间隔仅 664µs）。
+     *
+     *               顺序保证：命令进同一条 FIFO 队列，与其他命令严格按提交顺序执行。
+     *               后续任何"等待型"提交（如 `render`）都会等到本命令执行完毕
+     *               （完成序号逐条推进），故"先 dbgText、后 render"时文本仍在该帧生效。
+     *
+     * @brief[en] Fire-and-forget submission of a bgfx closure to the render thread (does not wait for completion)
+     * @explain[en] Shares the same FIFO command queue with `_execBgfxQueued`, but returns
+     *              immediately without waiting for the render thread to execute it. Suitable for
+     *              "output-only" calls (e.g. on-screen debug text): the caller reads no result,
+     *              so correctness only depends on commands executing in submission order.
+     *
+     *              Benefit: cross-thread synchronization costs two thread context switches
+     *              (signalling the render thread + broadcasting back to the submitter),
+     *              measured at ~95µs per round trip. When debug text is called several times
+     *              per frame, those round trips are pure waiting overhead (measured: 3 dbgText
+     *              calls = 351µs per frame, while the whole frame interval is only 664µs).
+     *
+     *              Ordering guarantee: the command enters the same FIFO queue and executes
+     *              strictly in submission order. Any later "waiting" submission (e.g. `render`)
+     *              waits until this command has executed (the completion sequence advances
+     *              per command), so text issued before `render` still takes effect that frame.
+     */
+    private func _execBgfxNoWait(cmd: () -> Unit): Unit {
+        if (this._renderSThread.isNone()) {
+            this._initRenderThread()
+        }
+        // 快路径：调用方已在渲染线程 → 直接执行（无需排队）
+        let renderTid = this._renderThreadId.load()
+        if (renderTid != 0u64 && getCurrentThreadId() == renderTid) {
+            bgfxCallMtx.lock()
+            try {
+                cmd()
+            } finally {
+                bgfxCallMtx.unlock()
+            }
+            return
+        }
+        // 单向投递（不等待）：经 _enqueue 走 SPSC 无锁入队 + 信号量唤醒。
+        // 仍需占用一个完成序号：渲染线程按批执行时逐条推进完成序号，等待型提交
+        // 以"我的序号"为完成条件——此处不等待，但必须占位，否则后续等待者的
+        // 完成条件会被提前满足（其命令尚未执行）。
+        let _ = this._enqueue(cmd)
     }
 
 /**
@@ -341,23 +518,72 @@ public class ThreeRenderer <: Renderer & IRenderer {
  * @param[zh-cn] hwnd 原生窗口句柄
  * width 窗口逻辑宽度
  * height 窗口逻辑高度
+ * vsync 是否开启垂直同步（默认 false，即不锁定刷新率）。开启后帧率被显示器刷新率
+ *   锁死（60Hz 显示器即 60FPS 上限）；关闭则按 CPU/GPU 实际耗时出帧，
+ *   简单场景可达数百 FPS，但可能出现画面撕裂、帧间隔不均。
+ * msaa 多重采样档位，取 bgfx.RESET_MSAA_* 常量组合（0 表示关闭）。
+ * maxAnisotropy 最大各向异性过滤（0 = 不启用）。
+ * numBackBuffers 后备缓冲数量（1~MAX_BACK_BUFFERS，越大越能掩盖 GPU 抖动，延迟也越高）。
+ * maxFrameLatency DXGI 允许的最大帧排队数。
  * @return[zh-cn] 初始化是否成功
  * @explain[zh-cn] width/height 为逻辑尺寸，内部会按 pixelRatio 换算为物理后备缓冲尺寸后传给 bgfx。
+ *   全部新增参数均为带默认值的命名参数，既有调用点无需修改。
  *
  * @brief[en] Initialize bgfx renderer
  * @param[en] hwnd Native window handle
  * width Window logical width
  * height Window logical height
+ * vsync Enable vertical sync (default false, i.e. refresh rate not capped). When on, the frame
+ *   rate is capped by the display refresh rate (60Hz display → 60FPS ceiling); when off, frames
+ *   are produced as fast as CPU/GPU allow (hundreds of FPS on simple scenes) but
+ *   tearing/uneven pacing may appear.
+ * msaa Multisample level, combine bgfx.RESET_MSAA_* constants (0 = disabled).
+ * maxAnisotropy Maximum anisotropy filtering (0 = disabled).
+ * numBackBuffers Number of back buffers (1..MAX_BACK_BUFFERS; more hides GPU jitter, adds latency).
+ * maxFrameLatency Maximum DXGI queued frames.
  * @return[en] Whether initialization succeeded
  * @explain[en] width/height are logical dimensions; internally converted to physical backbuffer dimensions using pixelRatio before passing to bgfx.
+ *   All new parameters are named with defaults, so existing call sites need no changes.
  */
-    public func initBgfx(hwnd: UIntNative, width: Int32, height: Int32): Bool {
+    public func initBgfx(
+        hwnd: UIntNative,
+        width: Int32,
+        height: Int32,
+        vsync!: Bool = false,
+        msaa!: UInt32 = RESET_NONE,
+        maxAnisotropy!: UInt32 = RESET_NONE,
+        numBackBuffers!: UInt8 = 2u8,
+        maxFrameLatency!: UInt8 = 2u8
+    ): Bool {
         this._initBgfxResult = false
-        _execBgfx({ => this._initBgfxResult = this._initBgfxImpl(hwnd, width, height) })
+        _execBgfx({ =>
+            this._initBgfxResult = this._initBgfxImpl(
+                hwnd, width, height,
+                vsync: vsync,
+                msaa: msaa,
+                maxAnisotropy: maxAnisotropy,
+                numBackBuffers: numBackBuffers,
+                maxFrameLatency: maxFrameLatency
+            )
+        })
         return this._initBgfxResult
     }
 
-    private func _initBgfxImpl(hwnd: UIntNative, width: Int32, height: Int32): Bool {
+    /**
+     * @brief[zh-cn] initBgfx 的实现体（在渲染线程上执行），参数含义与 initBgfx 一致
+     *
+     * @brief[en] Implementation body of initBgfx (runs on the render thread); parameters mirror initBgfx
+     */
+    private func _initBgfxImpl(
+        hwnd: UIntNative,
+        width: Int32,
+        height: Int32,
+        vsync!: Bool = false,
+        msaa!: UInt32 = RESET_NONE,
+        maxAnisotropy!: UInt32 = RESET_NONE,
+        numBackBuffers!: UInt8 = 2u8,
+        maxFrameLatency!: UInt8 = 2u8
+    ): Bool {
         ShaderLibs.initialize()
         // width/height 为逻辑尺寸；bgfx 初始化需使用物理后备缓冲尺寸（乘以 pixelRatio）
         super.setSize(Int64(width), Int64(height))
@@ -374,12 +600,21 @@ public class ThreeRenderer <: Renderer & IRenderer {
         initParams.deviceId = bgfx.PCI_ID_NONE
         // 新版 bgfx：主窗口交换链经 Init.swapChain 传入（nwh 从 platformData 移入 swapChain）
         initParams.swapChain.width = UInt32(physicalW); initParams.swapChain.height = UInt32(physicalH)
-        initParams.reset = 0x00000080u32
-        initParams.swapChain.numBackBuffers = 2
-        initParams.swapChain.maxFrameLatency = 2
+        // reset 标志位按位组合：MSAA | (VSYNC 可选) | MAXANISOTROPY(可选)。
+        // 注意 0x00000080 是 BGFX_RESET_VSYNC（不是 FLUSH_AFTER_RENDER，后者是 0x00002000）。
+        var resetFlags = msaa
+        if (vsync) { resetFlags |= RESET_VSYNC }
+        if (maxAnisotropy != RESET_NONE) { resetFlags |= RESET_MAXANISOTROPY }
+        // 缓存供 setSize 的 bgfx_reset 复用，保证 reset 前后呈现设置一致
+        this._resetFlags = resetFlags
+        initParams.reset = resetFlags
+        initParams.swapChain.numBackBuffers = numBackBuffers
+        initParams.swapChain.maxFrameLatency = maxFrameLatency
         initParams.debug = false
         initParams.profile = false
-        @LogDebug(["API", "setting nwh via intToCPointer, hwnd=" + hwnd.toString()])
+        @LogDebug(["API", "setting nwh via intToCPointer, hwnd=" + hwnd.toString() +
+            " reset=0x" + resetFlags.toString(radix: 16) + " numBackBuffers=" + numBackBuffers.toString() +
+            " maxFrameLatency=" + maxFrameLatency.toString()])
         initParams.swapChain.nwh = intToCPointer(hwnd)
         unsafe { initPtr.write(initParams) }
         var ok = bgfx.bgfx_init_cj(initPtr)
@@ -444,8 +679,30 @@ public class ThreeRenderer <: Renderer & IRenderer {
  * @param[en] scene Scene to render
  * camera Render camera
  */
+    @Zone[three.rendering.ThreeRenderer.render]
     public func render(scene: Scene, camera: Camera): Unit {
         _execBgfx({ => super.render(scene, camera) })
+    }
+
+/**
+ * @brief[zh-cn] 同步 bgfx 后端渲染统计到抽象层 info（帧末钩子）
+ * @explain[zh-cn] bgfx 直接提交路径（_drawRenderObject 的 bgfx_submit_cj）不经过 BufferRenderer，
+ * 绘制统计累加在 BgfxInfo 上；此处在渲染线程内把本帧 calls/triangles 同步到 renderer.info
+ * 并清零后端计数（不依赖 BgfxInfo.autoReset），供主线程消费方读取。
+ *
+ * @brief[en] Sync bgfx backend render stats into abstract-layer info (frame-end hook)
+ * @explain[en] The bgfx direct submit path (_drawRenderObject's bgfx_submit_cj) bypasses BufferRenderer,
+ * so draw stats accumulate in BgfxInfo; this syncs the frame's calls/triangles into renderer.info on the
+ * render thread and resets backend counters (not relying on BgfxInfo.autoReset) for main-thread consumers.
+ */
+    public override func _syncRenderStats(): Unit {
+        if (let Some(bb) <- (this.backend as BgfxBackend)) {
+            this.info.render.calls = bb.info.render.calls
+            this.info.render.triangles = bb.info.render.triangles
+            this.info.calls = bb.info.render.calls
+            this.info.triangles = bb.info.render.triangles
+            bb.info.reset()
+        }
     }
 
 /**
@@ -466,18 +723,13 @@ public class ThreeRenderer <: Renderer & IRenderer {
  */
     public func shutdown(): Unit {
         ShaderLibs.shutdown()
+        // 同步执行 bgfx_shutdown（先等它执行完，保证其前的命令已全部完成）
         _execBgfx({ => bgfx.bgfx_shutdown_cj() })
-        this._renderMtx.lock()
-        this._renderExit = true
-        // 丢弃未执行命令并释放其提交者（推进序号 + 双条件唤醒），确保 shutdown 不悬挂
-        let abandoned = this._renderQueue.size
-        if (abandoned > 0) {
-            this._renderQueue.clear()
-            this._renderDoneSeq += Int64(abandoned)
-        }
-        this._renderDoneCnd.broadcast()
-        this._renderCmdCnd.signal()
-        this._renderMtx.unlock()
+        // 置退出标志（无锁原子写）并唤醒渲染线程。
+        // 渲染线程的退出路径会放弃残留命令并推进完成序号，唤醒任何仍在等待的提交者，
+        // 确保 shutdown 不悬挂（等价旧实现"排空队列 + 推进序号 + 广播"）。
+        this._renderExit.store(true)
+        this._renderWake.signal()
     }
 
 /**
@@ -500,13 +752,14 @@ public class ThreeRenderer <: Renderer & IRenderer {
         this._width = physicalW; this._height = physicalH
         // bgfx 在表面尺寸变化（旋转/窗口缩放）后必须重建后备缓冲，
         // 否则 backbuffer 尺寸与 surface 不匹配 → 横屏后画面闪烁/内容错乱。
-        // flags 与 initBgfx 保持一致（0x00000080 = FLUSH_AFTER_RENDER）。
+        // flags 复用 initBgfx 写入的 _resetFlags（V-Sync / MSAA 等），
+        // 保证 reset 前后呈现设置一致。
         // format 必须传 TextureFormat.Count 哨兵——bgfx 见 Count 才会沿用 init 时的
         // 后台缓冲格式；传 0 会被当作 TextureFormat.BC1（压缩格式），D3D11 后端
         // IDXGISwapChain::ResizeBuffers 收到压缩格式返回 E_INVALIDARG，swapchain
         // 保持旧尺寸 → 画面定格/内容只占左上角。
         if (changed) {
-            this.reset(UInt32(physicalW), UInt32(physicalH), 0x00000080u32,
+            this.reset(UInt32(physicalW), UInt32(physicalH), this._resetFlags,
                 bgfx.TextureFormat.Count.value())
         }
         // SSAO pass 尺寸由 EffectComposer.setSize 转发（SSAO 已 Pass 化，不再经 renderer 内置同步）
@@ -521,9 +774,8 @@ public class ThreeRenderer <: Renderer & IRenderer {
  */
     public func setShadowType(value: Int64): Unit {
         _execBgfx({ =>
-            match (this.backend as BgfxBackend) {
-                case Some(bgfx) => bgfx.setShadowType(value)
-                case None => ()
+            if (let Some(bgfx) <- (this.backend as BgfxBackend)) {
+                bgfx.setShadowType(value)
             }
         })
     }
@@ -537,17 +789,17 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // 尺寸由 composer.setSize 转发（SSAOPass.setSize override），无需 renderer 内置同步。
 
     // ========================================================================
-    // ===== 后处理高阶 API（对齐 Three.js WebGLRenderer 暴露位置/命名） =====
+    // ===== 后处理高阶 API（对齐主流 WebGL 渲染器的暴露位置/命名） =====
     // ========================================================================
     //
     // 设计动机：原 postprocessing 中所有 pass 直接调底层 bgfx API
     // （bgfx_set_view_frame_buffer_cj / bgfx_set_texture_cj / bgfx_set_uniform_cj /
     //   bgfx_submit_cj / bgfx_set_view_clear_cj / bgfx_set_view_rect_cj ...），
-    // 违反 Three.js 的分层设计——Three.js 的 pass 只用 renderer.setRenderTarget /
+    // 违反分层设计——pass 应只用 renderer.setRenderTarget /
     // renderer.clear / fsQuad.render(renderer) 等高阶 API，不接触底层 WebGL。
     //
-    // 本组方法把 bgfx 底层调用封装进 renderer 内部，对外暴露与 Three.js
-    // `WebGLRenderer` 等价的高阶 API。命名/位置严格对齐 Three.js：
+    // 本组方法把 bgfx 底层调用封装进 renderer 内部，对外暴露与 WebGL 渲染器
+    // 等价的高阶 API。命名/位置严格对齐主流引擎惯例：
     //   - setRenderTarget / getRenderTarget  ← renderer.setRenderTarget(null)
     //   - clear / setClearColor              ← renderer.clear / setClearColor
     //   - setViewport                        ← renderer.setViewport
@@ -908,10 +1160,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         let resultBox: Box<TextureHandle> = Box(INVALID_TEXTURE_HANDLE)
         let memRef = mem
         _execBgfx({ =>
-            let memPtr = match (memRef) {
-                case Some(m) => m.get()
-                case None => CPointer<bgfx.Memory>()
-            }
+            let memPtr = if (let Some(m) <- memRef) { m.get() } else { CPointer<bgfx.Memory>() }
             resultBox.value = Box(bgfx.bgfx_create_texture_2d_cj(w, h, hasMips, numLayers, format, flags, memPtr))
         })
         return resultBox.value
@@ -947,10 +1196,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         let resultBox: Box<TextureHandle> = Box(INVALID_TEXTURE_HANDLE)
         let memRef = mem
         _execBgfx({ =>
-            let memPtr = match (memRef) {
-                case Some(m) => m.get()
-                case None => CPointer<bgfx.Memory>()
-            }
+            let memPtr = if (let Some(m) <- memRef) { m.get() } else { CPointer<bgfx.Memory>() }
             resultBox.value = Box(bgfx.bgfx_create_texture_cube_cj(side, hasMips, numLayers, format, flags, memPtr))
         })
         return resultBox.value
@@ -989,10 +1235,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         let resultBox: Box<TextureHandle> = Box(INVALID_TEXTURE_HANDLE)
         let memRef = mem
         _execBgfx({ =>
-            let memPtr = match (memRef) {
-                case Some(m) => m.get()
-                case None => CPointer<bgfx.Memory>()
-            }
+            let memPtr = if (let Some(m) <- memRef) { m.get() } else { CPointer<bgfx.Memory>() }
             resultBox.value = Box(bgfx.bgfx_create_texture_3d_cj(w, h, d, hasMips, format, flags, memPtr))
         })
         return resultBox.value
@@ -1184,12 +1427,12 @@ public class ThreeRenderer <: Renderer & IRenderer {
     }
 
     // ========================================================================
-    // ===== Draw 提交封装（对齐 Three.js gl.drawElements + fsQuad.render） =====
+    // ===== Draw 提交封装（对齐 WebGL gl.drawElements + fsQuad.render） =====
     // ========================================================================
     // 设计动机：postprocessing pass（如 SavePass/UnrealBloomPass/SSRPass）需自行
     // submit 全屏 quad，原直接调 bgfx_submit_cj / bgfx_set_state_cj / bgfx_set_transform_cj
     // 违反分层。本组方法把这些 per-draw 瞬态状态封装进 renderer。
-    // 与 Three.js WebGLState 对齐：state 是持久的，bgfx 是 per-draw 瞬态，
+    // 与 WebGL 状态跟踪模型对齐：state 是持久的，bgfx 是 per-draw 瞬态，
     // 故每次 submit 前需重设 state/transform/index buffer。
     // ========================================================================
 
@@ -1614,7 +1857,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // 设计动机：GltfLoader 等外部加载器需自行创建顶点缓冲，
     // 原直接调 bgfx_create_vertex_buffer_cj / bgfx_create_vertex_layout_cj
     // 违反分层。本组方法把这些资源创建/销毁封装进 renderer。
-    // 与 Three.js WebGLGeometries 对齐：geometry 创建 GPU 资源。
+    // 与 WebGL 几何体管理模型对齐：geometry 创建 GPU 资源。
     //
     // bgfx VertexLayout 创建序列（底层 FFI）：
     //   malloc(VertexLayout) → begin(layout, rendererType)
@@ -1686,9 +1929,8 @@ public class ThreeRenderer <: Renderer & IRenderer {
         _execBgfx({ =>
             bgfx.bgfx_destroy_vertex_layout_cj(layout.value)
             // 释放 malloc 的 VertexLayout 内存
-            match (this._layoutPtrs.get(layout.value.idx)) {
-                case Some(holder) => holder.dispose()
-                case None => ()
+            if (let Some(holder) <- this._layoutPtrs.get(layout.value.idx)) {
+                holder.dispose()
             }
             this._layoutPtrs.remove(layout.value.idx)
         })
@@ -1723,9 +1965,10 @@ public class ThreeRenderer <: Renderer & IRenderer {
     ): VertexBufferHandle {
         let resultBox: Box<VertexBufferHandle> = Box(INVALID_VERTEX_BUFFER_HANDLE)
         _execBgfx({ =>
-            match (this._layoutPtrs.get(layout.value.idx)) {
-                case Some(holder) => resultBox.value = Box(bgfx.bgfx_create_vertex_buffer_cj(mem.get(), holder.get(), flags))
-                case None => resultBox.value = INVALID_VERTEX_BUFFER_HANDLE
+            if (let Some(holder) <- this._layoutPtrs.get(layout.value.idx)) {
+                resultBox.value = Box(bgfx.bgfx_create_vertex_buffer_cj(mem.get(), holder.get(), flags))
+            } else {
+                resultBox.value = INVALID_VERTEX_BUFFER_HANDLE
             }
         })
         return resultBox.value
@@ -1761,9 +2004,10 @@ public class ThreeRenderer <: Renderer & IRenderer {
     ): VertexBufferHandle {
         let resultBox: Box<VertexBufferHandle> = Box(INVALID_VERTEX_BUFFER_HANDLE)
         _execBgfx({ =>
-            match (this._layoutPtrs.get(layout.value.idx)) {
-                case Some(holder) => resultBox.value = Box(bgfx.bgfx_create_vertex_buffer_cj(mem.get(), holder.get(), flags))
-                case None => resultBox.value = INVALID_VERTEX_BUFFER_HANDLE
+            if (let Some(holder) <- this._layoutPtrs.get(layout.value.idx)) {
+                resultBox.value = Box(bgfx.bgfx_create_vertex_buffer_cj(mem.get(), holder.get(), flags))
+            } else {
+                resultBox.value = INVALID_VERTEX_BUFFER_HANDLE
             }
         })
         return resultBox.value
@@ -1846,7 +2090,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // ========================================================================
     // ===== 资源生命周期补充：纹理变体 / framebuffer 变体 =====
     // ========================================================================
-    // 设计动机：与 Three.js WebGLTextures / WebGLRenderTarget 对齐，纹理与
+    // 设计动机：与 WebGL 纹理/渲染目标管理模型对齐，纹理与
     // render target 的创建/更新/查询变体统一经 renderer 高阶 API 暴露，
     // 外部渲染开发只依赖 ThreeRenderer 一个类，无须 import 其他类。
     // ========================================================================
@@ -2168,7 +2412,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // ========================================================================
     // 设计动机：动态缓冲（每帧可更新）、间接绘制缓冲、遮挡查询统一经
     // renderer 高阶 API 暴露，外部渲染开发只依赖 ThreeRenderer 一个类。
-    // 对照 Three.js WebGLGeometries（静态缓冲）的扩展：动态缓冲对应
+    // 对照 WebGL 几何体管理（静态缓冲）的扩展：动态缓冲对应
     // BufferAttribute 的 needsUpdate 每帧更新路径。
     // ========================================================================
 
@@ -2214,10 +2458,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         let resultBox: Box<DynamicVertexBufferHandle> = Box(INVALID_DYNAMIC_VERTEX_BUFFER_HANDLE)
         let memRef = mem
         _execBgfx({ =>
-            let memPtr = match (memRef) {
-                case Some(m) => m.get()
-                case None => CPointer<bgfx.Memory>()
-            }
+            let memPtr = if (let Some(m) <- memRef) { m.get() } else { CPointer<bgfx.Memory>() }
             resultBox.value = Box(bgfx.bgfx_create_dynamic_vertex_buffer_mem_cj(memPtr, layout.value, flags))
         })
         return resultBox.value
@@ -2271,10 +2512,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         let resultBox: Box<DynamicIndexBufferHandle> = Box(INVALID_DYNAMIC_INDEX_BUFFER_HANDLE)
         let memRef = mem
         _execBgfx({ =>
-            let memPtr = match (memRef) {
-                case Some(m) => m.get()
-                case None => CPointer<bgfx.Memory>()
-            }
+            let memPtr = if (let Some(m) <- memRef) { m.get() } else { CPointer<bgfx.Memory>() }
             resultBox.value = Box(bgfx.bgfx_create_dynamic_index_buffer_mem_cj(memPtr, flags))
         })
         return resultBox.value
@@ -2379,7 +2617,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // 设计动机：着色器、程序、uniform 的创建/销毁/查询统一经 renderer 高阶
     // API 暴露，外部渲染开发只依赖 ThreeRenderer 一个类，无须 import 内部
     // 管理类（BgfxPrograms / BgfxUniforms 为 renderer 内部实现细节）。
-    // 对照 Three.js：WebGLPrograms / WebGLUniforms 是 renderer 内部组件，
+    // 对照 WebGL 的 program/uniform 管理组件，属 renderer 内部组件，
     // 用户通过 WebGLRenderer 暴露的 API 使用。
     // ========================================================================
 
@@ -2562,7 +2800,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // ========================================================================
     // ===== 瞬态缓冲绑定（渲染命令，per-draw 瞬态） =====
     // ========================================================================
-    // 对照 Three.js: BufferAttribute 的每帧更新路径 —— 瞬态缓冲每帧由
+    // 对照 BufferAttribute 的每帧更新路径 —— 瞬态缓冲每帧由
     // 渲染管线分配、提交后自动回收，适合粒子/动态网格等高频更新数据。
     // ========================================================================
 
@@ -2605,7 +2843,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // ========================================================================
     // ===== 渲染器查询 / 平台控制（信息查询与全局状态） =====
     // ========================================================================
-    // 对照 Three.js: renderer.capabilities / renderer.info / renderer.setSize
+    // 对照 renderer 的 capabilities / info / setSize 三组能力接口
     // —— 渲染后端能力与统计查询、重置与平台数据设置统一经 renderer 暴露。
     // ========================================================================
 
@@ -2758,27 +2996,41 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // ========================================================================
     // ===== 调试文本（on-screen debug text） =====
     // ========================================================================
-    // 对照 Three.js: 无直接对应（bgfx 内置调试文本覆盖层）。
+    // 对照其他引擎：无直接对应（bgfx 内置调试文本覆盖层）。
     // ========================================================================
 
     /**
      * @brief[zh-cn] 清除调试文本
+     * @explain[zh-cn] 单向投递（不等待渲染线程执行）：调试文本是纯输出型调用，
+     *               调用方不读取任何返回值，无需为它承担一次跨线程往返的等待。
      *
      * @brief[en] Clear debug text
+     * @explain[en] Fire-and-forget submission (does not wait for the render thread): debug text
+     *              is an output-only call — the caller reads no result, so it should not pay
+     *              for a cross-thread round trip.
      */
     public func dbgTextClear(attr: UInt8, small: Bool): Unit {
-        _execBgfx({ => bgfx.bgfx_dbg_text_clear_cj(attr, small) })
+        _execBgfxNoWait({ => bgfx.bgfx_dbg_text_clear_cj(attr, small) })
     }
 
     /**
      * @brief[zh-cn] 输出格式化调试文本（C 风格格式字符串）
+     * @explain[zh-cn] 单向投递（不等待渲染线程执行）：调试文本是纯输出型调用。
+     *               C 字符串的分配与释放都在渲染线程上完成（闭包内部）——
+     *               若在提交方分配并提前释放，渲染线程稍后执行时会读到已释放内存。
      *
      * @brief[en] Output formatted debug text (C-style format string)
+     * @explain[en] Fire-and-forget submission (does not wait for the render thread): debug text
+     *              is an output-only call. The C string is allocated and freed inside the
+     *              closure (i.e. on the render thread) — allocating it on the submitting
+     *              thread and freeing it early would make the render thread read freed memory.
      */
     public func dbgTextPrintf(x: UInt16, y: UInt16, attr: UInt8, format: String): Unit {
-        let cFormat = unsafe { LibC.mallocCString(format) }
-        _execBgfx({ => bgfx.bgfx_dbg_text_printf_cj(x, y, attr, cFormat) })
-        unsafe { LibC.free(cFormat) }
+        _execBgfxNoWait({ =>
+            let cFormat = unsafe { LibC.mallocCString(format) }
+            bgfx.bgfx_dbg_text_printf_cj(x, y, attr, cFormat)
+            unsafe { LibC.free(cFormat) }
+        })
     }
 
     /**
@@ -2804,7 +3056,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // ========================================================================
     // ===== 纹理补充：通用创建 / 直接访问 / 内部覆盖 =====
     // ========================================================================
-    // 对照 Three.js WebGLTextures —— 纹理的通用创建（按 TextureInfo）、
+    // 对照 WebGL 纹理管理模型 —— 纹理的通用创建（按 TextureInfo）、
     // 直接访问指针与内部存储覆盖属高级纹理集成能力，统一经 renderer 暴露。
     // ========================================================================
 
@@ -2829,10 +3081,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         let resultBox: Box<TextureHandle> = Box(INVALID_TEXTURE_HANDLE)
         let memRef = mem
         _execBgfx({ =>
-            let memPtr = match (memRef) {
-                case Some(m) => m.get()
-                case None => CPointer<bgfx.Memory>()
-            }
+            let memPtr = if (let Some(m) <- memRef) { m.get() } else { CPointer<bgfx.Memory>() }
             resultBox.value = Box(bgfx.bgfx_create_texture_cj(memPtr, flags, skip, info.value))
         })
         return resultBox.value
@@ -2854,7 +3103,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
     // ========================================================================
     // ===== Encoder（多线程编码器） =====
     // ========================================================================
-    // 对照 Three.js: 无直接对应（WebGL 单线程）。bgfx 提供多线程提交能力：
+    // 对照其他引擎：无直接对应（WebGL 单线程）。bgfx 提供多线程提交能力：
     // 每个线程经 encoderBegin 获取独立 encoder，提交 draw 命令后 encoderEnd
     // 合并到渲染队列。经 renderer 暴露，统一走 _execBgfx 线程序列化。
     // ========================================================================

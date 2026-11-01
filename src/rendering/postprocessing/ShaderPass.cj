@@ -52,6 +52,8 @@ import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 通用 shader pass
@@ -116,11 +118,6 @@ public open class ShaderPass <: Pass {
     private var _prog: Option<ProgramHandle> = None
 
     /**
-继续     * uniform 注册表缓存（避免每帧创建新 BgfxUniforms 泄漏 bgfx handle）。
-     */
-    private var _uniforms: Option<BgfxUniforms> = None
-
-    /**
      * @brief[zh-cn] 构造 ShaderPass
      * @brief[en] Constructs ShaderPass
      * @param[zh-cn] shaderName ShaderLibs 已注册的全屏 shader 名
@@ -153,6 +150,7 @@ public open class ShaderPass <: Pass {
      * @param[en] readBuffer Read buffer (bound to the textureID sampler)
      * @param[en] deltaTime Frame delta time
      */
+    @Zone[three.rendering.postprocessing.ShaderPass.render, name=shaderPass]
     public open override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -161,67 +159,56 @@ public open class ShaderPass <: Pass {
     ): Unit {
         // 取 shader + 编译（仅首次）
         // 后处理 shader 已迁移到 postprocessing 内部注册表 PostProcessingShaders
-        match (PostProcessingShaders.get(this.shaderName)) {
-            case Some(sp) =>
-                if (!this._compiled) {
-                    sp.compileBgfx()
-                    this._prog = Some(Box(sp.programHandle))
-                    this._compiled = true
-                }
-            case None => return
+        if (let Some(sp) <- PostProcessingShaders.get(this.shaderName)) {
+            if (!this._compiled) {
+                sp.compileBgfx()
+                this._prog = Some(Box(sp.programHandle))
+                this._compiled = true
+            }
+        } else {
+            return
         }
-        match (this._prog) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) { return }
-                let viewId = this._viewId
-                let rt = this.renderToScreen
-                let w = UInt16(renderer.width)
-                let h = UInt16(renderer.height)
-                let texId = this.textureID
-                // 视口
-                this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
-                // renderToScreen=true 时写 swap chain（无效 FB handle），否则写 writeBuffer
-                let targetFB = if (rt) { INVALID_FRAME_BUFFER_HANDLE } else { writeBuffer }
-                this.setRenderTarget(renderer, viewId, targetFB)
-                // 默认清 view；clearView=false 时保留 writeBuffer 已有内容
-                // （配合 MaskPass 遮罩：非遮罩区域场景保留，仅遮罩区域叠加染色）
-                if (this.clearView) {
-                    this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
-                }
+        if (let Some(prog) <- this._prog) {
+            if (!Handle.isValid(prog)) { return }
+            let viewId = this._viewId
+            let rt = this.renderToScreen
+            let w = UInt16(renderer.width)
+            let h = UInt16(renderer.height)
+            let texId = this.textureID
+            // 视口
+            this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
+            // renderToScreen=true 时写 swap chain（无效 FB handle），否则写 writeBuffer
+            let targetFB = if (rt) { INVALID_FRAME_BUFFER_HANDLE } else { writeBuffer }
+            this.setRenderTarget(renderer, viewId, targetFB)
+            // 默认清 view；clearView=false 时保留 writeBuffer 已有内容
+            // （配合 MaskPass 遮罩：非遮罩区域场景保留，仅遮罩区域叠加染色）
+            if (this.clearView) {
+                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
+            }
 
-                // 绑 readBuffer 的 color attachment 0 到 textureID sampler（stage 0）
-                // 使用缓存的 uniform 注册表，避免每帧创建新 BgfxUniforms 泄漏 bgfx handle
-                let uniforms = match (this._uniforms) {
-                    case Some(u) => u
-                    case None =>
-                        let u = BgfxUniforms()
-                        this._uniforms = Some(u)
-                        u
-                }
-                let uTex = uniforms.createUniform(texId, UniformType.Sampler.value())
-                let readTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 0u8, uTex, readTex, 0u32)
+            // 绑 readBuffer 的 color attachment 0 到 textureID sampler（stage 0）
+            // 句柄按名缓存（首次创建后复用，省去每帧 createUniform 的全局锁 + 字符串哈希）
+            let uTex = this._cachedUniform(texId, UniformType.Sampler.value())
+            let readTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 0u8, uTex, readTex, 0u32)
 
-                // 子类扩展钩子：submit 前绑定额外 uniform（如 FXAAPass 的 u_resolution）
-                this.bindExtraUniforms(renderer, uniforms)
+            // 子类扩展钩子：submit 前绑定额外 uniform（如 FXAAPass 的 u_resolution）
+            this.bindExtraUniforms(renderer, this._passUniforms())
 
-                // 可选 stencil 测试（配合 MaskPass 遮罩语义）：
-                // Some(ref) 时仅在 stencil==ref 区域渲染（TEST_EQUAL + op KEEP）。
-                match (this.stencilTestRef) {
-                    case Some(ref) =>
-                        let stencilState: UInt32 = ((ref & 0xFFu32) << 0) |    // REF
-                                                   (0xFFu32 << 8) |              // RMASK=0xFF
-                                                   BgfxConstants.STENCIL_TEST_EQUAL |   // TEST_EQUAL
-                                                   BgfxConstants.STENCIL_OP_FAIL_S_KEEP | // OP_FAIL_S_KEEP
-                                                   BgfxConstants.STENCIL_OP_FAIL_Z_KEEP | // OP_FAIL_Z_KEEP
-                                                   BgfxConstants.STENCIL_OP_PASS_Z_KEEP   // OP_PASS_Z_KEEP
-                        this.setStencil(renderer, stencilState, stencilState)
-                    case None => ()
-                }
+            // 可选 stencil 测试（配合 MaskPass 遮罩语义）：
+            // Some(ref) 时仅在 stencil==ref 区域渲染（TEST_EQUAL + op KEEP）。
+            if (let Some(ref) <- this.stencilTestRef) {
+                let stencilState: UInt32 = ((ref & 0xFFu32) << 0) |    // REF
+                                           (0xFFu32 << 8) |              // RMASK=0xFF
+                                           BgfxConstants.STENCIL_TEST_EQUAL |   // TEST_EQUAL
+                                           BgfxConstants.STENCIL_OP_FAIL_S_KEEP | // OP_FAIL_S_KEEP
+                                           BgfxConstants.STENCIL_OP_FAIL_Z_KEEP | // OP_FAIL_Z_KEEP
+                                           BgfxConstants.STENCIL_OP_PASS_Z_KEEP   // OP_PASS_Z_KEEP
+                this.setStencil(renderer, stencilState, stencilState)
+            }
 
-                this.submitQuad(viewId, prog)
-                // 不在此调 present：frame 统一由 EffectComposer.render 末尾触发
-            case None => ()
+            this.submitQuad(viewId, prog)
+            // 不在此调 present：frame 统一由 EffectComposer.render 末尾触发
         }
     }
 
@@ -248,10 +235,6 @@ public open class ShaderPass <: Pass {
     public open override func dispose(): Unit {
         this._compiled = false
         this._prog = None
-        match (this._uniforms) {
-            case Some(u) => u.dispose()
-            case None => ()
-        }
-        this._uniforms = None
+        this._disposePassUniforms()
     }
 }

@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] BgfxShadowPass
  * @brief[zh-cn] 阴影深度预 pass — 三类光源（方向/聚光/点）的阴影贴图渲染 + 主 pass 阴影 uniform 绑定
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLShadowMap.js。组合注入 BgfxBackend，覆盖三类阴影光源：方向光（2D 阴影）、聚光灯（2D 阴影）、点光源（cube 阴影 6 face）。
+ * @explain[zh-cn] 组合注入 BgfxBackend，覆盖三类阴影光源：方向光（2D 阴影）、聚光灯（2D 阴影）、点光源（cube 阴影 6 face）。
  *
  * @file[en] BgfxShadowPass
  * @brief[en] Shadow depth pre-pass — shadow map rendering for three light types (directional/spot/point) + main pass shadow uniform binding
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLShadowMap.js. Composed into BgfxBackend, covers three shadow light types: directional (2D shadow), spot (2D shadow), point (cube shadow 6 faces).
+ * @explain[en] Composed into BgfxBackend, covers three shadow light types: directional (2D shadow), spot (2D shadow), point (cube shadow 6 faces).
  */
 package three.rendering.bgfx
 
@@ -51,9 +51,53 @@ import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
+import three.profiler.macros.*
 import bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
+
+// ===== 点光源 cube shadow 的 6 个 face 方向常量 =====
+// 原实现把这三张表定义在 _renderPointShadowDepth 函数体内，每次调用都新建
+// 3 个 Array<Vector3>（共 18 个 Vector3 对象 + 3 个数组）。boxshow 场景 4 个
+// 点光源每帧调用 4 次，即每帧 72 个 Vector3 + 12 个数组的堆分配。
+// 方向表是编译期常量，提升为模块级后只在包加载时分配一次。
+/** face 0..5 的朝向（+X/-X/+Y/-Y/+Z/-Z）。 */
+private let POINT_SHADOW_FACE_DIRS: Array<Vector3> = [
+    Vector3(1.0, 0.0, 0.0),
+    Vector3(-1.0, 0.0, 0.0),
+    Vector3(0.0, 1.0, 0.0),
+    Vector3(0.0, -1.0, 0.0),
+    Vector3(0.0, 0.0, 1.0),
+    Vector3(0.0, 0.0, -1.0)
+]
+
+// D3D11 cube face 约定（MSDN）：每个 face 的 s（right）与 t（up）方向
+//   face 0 (+X): s=-z, t=-y   face 1 (-X): s=+z, t=-y
+//   face 2 (+Y): s=+x, t=+z   face 3 (-Y): s=+x, t=-z
+//   face 4 (+Z): s=+x, t=-y   face 5 (-Z): s=-x, t=-y
+// 手动构造 view 矩阵（right/up/dir 列向量），绕开 lookAt 的左手系手性差异：
+// Three.cj 左手系 lookAt 的 x = cross(up, z) 与 D3D11 的 s 方向相反 →
+// 渲染内容左右镜像（左上↔右下）。用 D3D11 约定直接构建即可严格对齐 bgfx cube 采样方向。
+/** face 0..5 的 right（s）方向。 */
+private let POINT_SHADOW_FACE_RIGHTS: Array<Vector3> = [
+    Vector3(0.0, 0.0, -1.0),
+    Vector3(0.0, 0.0, 1.0),
+    Vector3(1.0, 0.0, 0.0),
+    Vector3(1.0, 0.0, 0.0),
+    Vector3(1.0, 0.0, 0.0),
+    Vector3(-1.0, 0.0, 0.0)
+]
+
+/** face 0..5 的 up（t）方向。 */
+private let POINT_SHADOW_FACE_UPS: Array<Vector3> = [
+    Vector3(0.0, 1.0, 0.0),
+    Vector3(0.0, 1.0, 0.0),
+    Vector3(0.0, 0.0, -1.0),
+    Vector3(0.0, 0.0, 1.0),
+    Vector3(0.0, 1.0, 0.0),
+    Vector3(0.0, 1.0, 0.0)
+]
 
 /**
  * @brief[zh-cn] 阴影深度预 pass
@@ -102,6 +146,55 @@ public class BgfxShadowPass {
      */
     internal var _shadowSlotKind: HashMap<Int64, String> = HashMap<Int64, String>()
 
+    /**
+     * @brief[zh-cn] 帧级阴影绑定缓存（bindShadowUniforms 每 draw 调用，帧内数据恒定）
+     * @explain[zh-cn]
+     * bindShadowUniforms 在绘制循环中逐 draw 调用（submit 用 BGFX_DISCARD_ALL，
+     * 纹理绑定提交即消费，故必须每 draw 重绑），但 slot 列表、bias 矩阵乘结果与
+     * uniform 句柄在帧内完全不变。缓存这些数据后，每 draw 仅剩 set_texture /
+     * set_uniform 的必需调用。beginFrame 时失效重建。
+     */
+    private var _shadowBindCache: ShadowBindCache = ShadowBindCache()
+
+    /**
+     * @brief[zh-cn] 帧级阴影 caster 列表（所有阴影光源共享）
+     * @explain[zh-cn] caster 集合与光源无关：同一帧内 N 个阴影光源需要的是同一份
+     *               caster 列表。此前每个光源（点光源更是每个 cube 面）都重新
+     *               遍历整棵场景树并为每个 Mesh 新建一个 RenderObject，
+     *               10 万对象 × 1 个点光源 = 60 万次全树遍历 + 60 万次
+     *               RenderObject 分配。现改为帧内只收集一次，多光源复用。
+     *
+     * @brief[en] Frame-level shadow caster list (shared by all shadow lights)
+     * @explain[en] The caster set is light-independent: all N shadow lights of a frame
+     *               need the same list. Previously every light (and every cube face
+     *               of a point light) re-walked the whole scene tree and allocated a
+     *               fresh RenderObject per Mesh — 100k objects x 1 point light =
+     *               600k full-tree walks + 600k RenderObject allocations per frame.
+     *               Now it is collected once per frame and shared by all lights.
+     */
+    private var _shadowCasters: ArrayList<RenderObject> = ArrayList<RenderObject>(256)
+    /**
+     * @brief[zh-cn] 帧级阴影 caster 缓存是否有效（beginFrame 时失效）
+     *
+     * @brief[en] Whether the frame-level shadow caster cache is valid (invalidated in beginFrame)
+     */
+    private var _shadowCastersValid: Bool = false
+    /**
+     * @brief[zh-cn] caster 对象池（复用 RenderObject，避免每帧每 Mesh 一次堆分配）
+     * @explain[zh-cn] RenderObject 的构造器会连带分配 RenderContext / Camera / Scene /
+     *               Matrix4 ×2 / Matrix3 / Vector3 / ArrayList ×2（≈10 次堆分配），
+     *               池化后每帧只做字段重置。
+     *
+     * @brief[en] Caster object pool (reuses RenderObject to avoid one heap allocation per Mesh per frame)
+     */
+    private var _casterPool: ArrayList<RenderObject> = ArrayList<RenderObject>(256)
+    /**
+     * @brief[zh-cn] caster 对象池游标（下一待复用位置）
+     *
+     * @brief[en] Caster pool cursor (next slot to reuse)
+     */
+    private var _casterPoolCursor: Int64 = 0
+
     public init() {}
 
     /**
@@ -124,9 +217,37 @@ public class BgfxShadowPass {
      */
     private prop backend: BgfxBackend {
         get() {
-            match (this._backend) {
-                case Some(b) => return b
-                case None => throw Exception("BgfxShadowPass.backend not bound — call bindBackend first")
+            if (let Some(b) <- this._backend) {
+                return b
+            } else {
+                throw Exception("BgfxShadowPass.backend not bound — call bindBackend first")
+            }
+        }
+    }
+
+    // ===== 阴影深度 pass 的复用缓冲 =====
+    // 原实现把 Matrix4 / 16 元素数组 / BgfxMemory 分配在阴影循环体内：
+    //   - 方向光：每光源每帧 1 份（bgfx_alloc ×1 + 矩阵暂存 ×1）；
+    //   - 点光源：每 cube face 1 份（boxshow 4 点光源 × 6 face = 每帧 24 份），
+    //     另有每 face 一个 PerspectiveCamera + 两个 16 元素 view/proj 数组。
+    // 复用安全性：bgfx_set_transform / bgfx_set_view_transform 在调用时即把数据
+    // memcpy 进引擎内部缓冲（bgfx.cpp EncoderImpl::setTransform / View::setTransform），
+    // bgfx_alloc 的缓冲只作数据源，因此同一块内存在两次写入之间必然已被消费。
+    /** 阴影 pass 复用的矩阵暂存（worldMatrix → 上传缓冲的中间数组）。 */
+    private let _shadowMtxScratch: Array<Float64> = Array<Float64>(16, { _ => 0.0 })
+    /** 点光源 face 复用的 view 矩阵。 */
+    private let _shadowViewMtx: Matrix4 = Matrix4()
+    private var _shadowMtxMemStore: Option<BgfxMemory> = None
+
+    /** 阴影 pass 复用的模型矩阵上传缓冲（惰性分配：bgfx 初始化后才可分配）。 */
+    private prop _shadowMtxMem: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._shadowMtxMemStore) {
+                m
+            } else {
+                let m = BgfxMemory(64u32)
+                this._shadowMtxMemStore = Some(m)
+                m
             }
         }
     }
@@ -139,7 +260,51 @@ public class BgfxShadowPass {
     public func beginFrame(): Unit {
         this._shadowSlots.clear()
         this._shadowSlotKind.clear()
+        // 帧级阴影绑定缓存在每帧开始时失效，下一帧首个 draw 重建（见 _shadowBindCache 注释）
+        this._shadowBindCache.valid = false
+        // 帧级 caster 缓存同样按帧失效：场景内容可能变化（增删 Mesh / 变换）
+        this._shadowCastersValid = false
         this._nextShadowViewId = BgfxShadowPass.SHADOW_VIEW_ID_BASE
+    }
+
+    /**
+     * @brief[zh-cn] 获取本帧的阴影 caster 列表（帧内首次调用时收集，后续光源复用）
+     * @explain[zh-cn] caster 集合与光源无关，因此整帧只收集一次。返回值是内部列表
+     *               引用（不做拷贝），调用方只读遍历即可。
+     * @param[zh-cn] scene 场景
+     * @return[zh-cn] 本帧阴影 caster 列表
+     *
+     * @brief[en] Get this frame's shadow caster list (collected on first use, shared by all lights)
+     * @explain[en] The caster set is light-independent, so it is collected only once per
+     *               frame. The returned value is the internal list reference (no copy);
+     *               callers only need to traverse it read-only.
+     * @param[en] scene Scene
+     * @return[en] This frame's shadow caster list
+     */
+    public func _getShadowCasters(scene: Scene): ArrayList<RenderObject> {
+        if (!this._shadowCastersValid) {
+            this._shadowCasters.clear()
+            this._casterPoolCursor = 0
+            this._collectShadowCasters(scene, this._shadowCasters)
+            this._shadowCastersValid = true
+        }
+        return this._shadowCasters
+    }
+
+    /**
+     * @brief[zh-cn] 当前帧是否存在需要绑定的阴影槽（无阴影光源时为 false）
+     * @explain[zh-cn] 供 BgfxBackend.bindShadowUniforms 提前返回：无 castShadow 光源时逐 draw
+     * 调用完全是空转（submit 用 BGFX_DISCARD_ALL 消费绑定的前提是确有绑定需要重做）。
+     * 槽表在 beginFrame 清空、由 prepareShadowMap 阶段的 renderXxxShadowMap 填充，
+     * 主 pass draw 时读取即为当帧有效槽。
+     *
+     * @brief[en] Whether the current frame has any shadow slots to bind (false when no shadow-casting light)
+     *
+     * @param[zh-cn] 当前帧是否有阴影槽
+     * @param[en] True if the current frame has shadow slots
+     */
+    public func hasShadowSlots(): Bool {
+        return !this._shadowSlots.isEmpty()
     }
 
     // ===== 方向光阴影 =====
@@ -155,6 +320,7 @@ public class BgfxShadowPass {
      * @param[en] light Directional light (with shadow.camera orthographic camera + shadow.mapSize)
      * scene Scene (collects caster geometry)
      */
+    @Zone[three.rendering.bgfx.BgfxShadowPass.renderShadowMap]
     public func renderShadowMap(light: DirectionalLight, scene: Scene): Unit {
         let shadowSize = Int64(light.shadow.mapSize.x)
         @LogTrace(["shadow", "renderShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
@@ -164,22 +330,21 @@ public class BgfxShadowPass {
         let isVsm = backend.shadowMap.getShadowType() == VSM_SHADOW_MAP
 
         // 持久资源：尺寸不变则跨帧复用；变更则销毁重建
-        var slot = match (this._shadowResources.get(lightId)) {
-            case Some(s) =>
-                if (s.size != shadowSize) {
-                    this._destroySlot(s)
-                    let fresh = ShadowSlot()
-                    fresh.size = shadowSize
-                    this._shadowResources.add(lightId, fresh)
-                    fresh
-                } else {
-                    s
-                }
-            case None =>
+        var slot = if (let Some(s) <- this._shadowResources.get(lightId)) {
+            if (s.size != shadowSize) {
+                this._destroySlot(s)
                 let fresh = ShadowSlot()
                 fresh.size = shadowSize
                 this._shadowResources.add(lightId, fresh)
                 fresh
+            } else {
+                s
+            }
+        } else {
+            let fresh = ShadowSlot()
+            fresh.size = shadowSize
+            this._shadowResources.add(lightId, fresh)
+            fresh
         }
 
         if (slot.texture.idx == 65535u16) {
@@ -285,18 +450,14 @@ public class BgfxShadowPass {
         shadowCamera.updateMatrixWorld(true)
         // 正交相机 bounds 已含 [-5,5]×[-5,5]×[0.5,500]，updateProjectionMatrix 确保 projectionMatrix 已算
         // updateProjectionMatrix 是 OrthographicCamera 子类独有方法（Camera 基类无），需 cast 调
-        match (shadowCamera as OrthographicCamera) {
-            case Some(ortho) => ortho.updateProjectionMatrix()
-            case None => ()
-        }
+        if (let Some(ortho) <- (shadowCamera as OrthographicCamera)) { ortho.updateProjectionMatrix() }
 
         // 从光源视角设置 view/proj 矩阵：用 shadowCamera 自己的 matrixWorldInverse + projectionMatrix
         // （不再手算 lookAt —— shadowCamera.matrixWorldInverse 已含位置/朝向，projectionMatrix 已含正交 bounds）
         let lightView = shadowCamera.matrixWorldInverse
         let lightProj = shadowCamera.projectionMatrix
-        let viewArr = lightView.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let projArr = lightProj.toArray(Array<Float64>(16, { _ => 0.0 }))
-        backend._setViewTransform(shadowViewId, viewArr, projArr)
+        // 直接传 elements（_setViewTransform 调用时即 memcpy），省去每光源两个 16 元素数组
+        backend._setViewTransform(shadowViewId, lightView.elements, lightProj.elements)
 
         // 计算阴影矩阵（lightViewProj → 用于主 pass 的阴影坐标变换）
         let lightViewProj = lightProj.clone().multiply(lightView)
@@ -309,45 +470,46 @@ public class BgfxShadowPass {
 
         // 确保 depth shader 已编译
         let depthProgOpt = ShaderLibs.get("depth")
-        @LogTrace(["shadow", "_renderShadowDepth depthProgOpt=${match (depthProgOpt) { case Some(_) => "Some" case None => "None" }}"])
-        match (depthProgOpt) {
-            case Some(depthSp) =>
-                if (depthSp.programHandle.idx == 65535u16) {
-                    depthSp.compileBgfx()
-                }
-                let depthProg = depthSp.programHandle
-                @LogTrace(["shadow", "_renderShadowDepth depthProg.idx=${depthProg.idx}"])
-                if (depthProg.idx == 65535u16) { @LogTrace(["shadow", "_renderShadowDepth SKIP: depthProg compile failed"]); return }
+        @LogTrace(["shadow", "_renderShadowDepth depthProgOpt=${if (let Some(_) <- depthProgOpt) { "Some" } else { "None" }}"])
+        if (let Some(depthSp) <- depthProgOpt) {
+            if (depthSp.programHandle.idx == 65535u16) {
+                depthSp.compileBgfx()
+            }
+            let depthProg = depthSp.programHandle
+            @LogTrace(["shadow", "_renderShadowDepth depthProg.idx=${depthProg.idx}"])
+            if (depthProg.idx == 65535u16) { @LogTrace(["shadow", "_renderShadowDepth SKIP: depthProg compile failed"]); return }
 
-                // 遍历场景几何体 submit（简化：复用 _collectRenderObjects 的几何体收集逻辑）
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectShadowCasters(scene, renderObjects)
-                @LogTrace(["shadow", "_renderShadowDepth casters.size=${renderObjects.size}"])
-                let layout = backend._getOrCreateLayout()
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = backend._createVB(ro.geometry)
-                    if (vb.idx == 65535u16) { @LogTrace(["shadow", "_renderShadowDepth caster SKIP: vb invalid geom=${ro.mesh.name}"]); continue }
-                    let posAttrOpt = ro.geometry.getAttribute("position")
-                    match (posAttrOpt) {
-                        case Some(posAttr) =>
-                            let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                            let mtxMem = BgfxMemory(64u32)
-                            mtxMem.writeFloats(mtxArr, 16)
-                            bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxMem.data()) }, 1u16)
-                            bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, UInt32(posAttr.count), layout)
-                            let ib = backend._createIB(ro.geometry)
-                            if (ib.idx != 65535u16) {
-                                bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
-                            }
-                            bgfx_set_state_cj(depthState, 0x00000000u32)
-                            bgfx_submit_cj(shadowViewId, depthProg, 0u32, 0xFFu8)
-                            submitCnt += 1
-                        case None => ()
+            // 帧内共享的 caster 列表（所有阴影光源复用，避免每光源/每 cube 面全树遍历）
+            let renderObjects = this._getShadowCasters(scene)
+            @LogTrace(["shadow", "_renderShadowDepth casters.size=${renderObjects.size}"])
+            let layout = backend._getOrCreateLayout()
+            // 复用的矩阵暂存与 bgfx 上传缓冲：原实现每次调用都新建
+            // Array<Float64>(16) + BgfxMemory(64)（后者走 bgfx_alloc，
+            // 内存交给 bgfx 后不会被归还，逐帧新建等于持续泄漏）。
+            let mtxScratch = this._shadowMtxScratch
+            let mtxMem = this._shadowMtxMem
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = backend._createVB(ro.geometry)
+                if (vb.idx == 65535u16) { @LogTrace(["shadow", "_renderShadowDepth caster SKIP: vb invalid geom=${ro.mesh.name}"]); continue }
+                let posAttrOpt = ro.geometry.getAttribute("position")
+                if (let Some(posAttr) <- posAttrOpt) {
+                    ro.worldMatrix.toArray(mtxScratch)
+                    mtxMem.writeFloats(mtxScratch, 16)
+                    bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxMem.data()) }, 1u16)
+                    bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, UInt32(posAttr.count), layout)
+                    let ib = backend._createIB(ro.geometry)
+                    if (ib.idx != 65535u16) {
+                        bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
                     }
+                    bgfx_set_state_cj(depthState, 0x00000000u32)
+                    bgfx_submit_cj(shadowViewId, depthProg, 0u32, 0xFFu8)
+                    submitCnt += 1
                 }
-                @LogTrace(["shadow", "_renderShadowDepth done submitCnt=${submitCnt}"])
-            case None => @LogTrace(["shadow", "_renderShadowDepth SKIP: depth shader not registered"])
+            }
+            @LogTrace(["shadow", "_renderShadowDepth done submitCnt=${submitCnt}"])
+        } else {
+            @LogTrace(["shadow", "_renderShadowDepth SKIP: depth shader not registered"])
         }
     }
 
@@ -367,68 +529,68 @@ public class BgfxShadowPass {
         @LogTrace(["shadow", "_vsmBlurPass ENTER blurViewId=${blurViewId} size=${slot.size}"])
 
         let vsmOpt = ShaderLibs.get("vsm")
-        match (vsmOpt) {
-            case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm shader not registered"]); return
-            case Some(vsmSp) =>
-                // 垂直变体（无 HORIZONTAL_PASS）
-                if (vsmSp.programHandle.idx == 65535u16) {
-                    vsmSp.compileBgfx()
+        if (let Some(vsmSp) <- vsmOpt) {
+            // 垂直变体（无 HORIZONTAL_PASS）
+            if (vsmSp.programHandle.idx == 65535u16) {
+                vsmSp.compileBgfx()
+            }
+            let vProg = vsmSp.programHandle
+            if (vProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm vertical compile failed"]); return }
+            // 水平变体（HORIZONTAL_PASS=1）
+            let hVariant = ShaderProgram.createVariant("vsm_h", vsmSp)
+            let defStrings = ArrayList<String>()
+            defStrings.add("HORIZONTAL_PASS=1")
+            hVariant.compileBgfx(extraDefines: defStrings.toArray())
+            let hProg = hVariant.programHandle
+            if (hProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm horizontal compile failed"]); return }
+
+            // 全屏四边形 VB（与 vsmVaryingDef 对齐：position + texcoord0）
+            backend.blitQuad.ensureBlitVB()
+            let uniforms = backend.uniforms
+            let shadowSampler = uniforms.createUniform("s_shadowPass", UniformType.Sampler.value())
+            let uResolution = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
+            let uRadius = uniforms.createUniform("u_radius", UniformType.Vec4.value())
+            let blurState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A | BgfxConstants.FRONT_CCW
+
+            // ── ① 垂直 blur：vsmDepthTexture → vsmPassFrameBuffer ──
+            bgfx_set_view_rect_cj(blurViewId, 0u16, 0u16, w, h)
+            bgfx_set_view_frame_buffer_cj(blurViewId, slot.vsmPassFrameBuffer)
+            bgfx_set_view_clear_cj(blurViewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, 1.0f32, 0)
+            bgfx_set_texture_cj(0u8, shadowSampler.value, slot.vsmDepthTexture, 0u32)
+            let resMem = BgfxMemory(16u32)
+            resMem.writeFloats([Float64(w), Float64(h), 0.0, 0.0], 4)
+            bgfx_set_uniform_cj(uResolution.value, unsafe { CPointer<Unit>(resMem.data()) }, 1u16)
+            let radMem = BgfxMemory(16u32)
+            radMem.writeFloats([4.0, 0.0, 0.0, 0.0], 4)
+            bgfx_set_uniform_cj(uRadius.value, unsafe { CPointer<Unit>(radMem.data()) }, 1u16)
+            if (let Some(vb) <- backend.blitQuad._blitVB) {
+                if (let Some(ib) <- backend.blitQuad._blitIB) {
+                    if (let Some(layout) <- backend.blitQuad._blitLayout) {
+                        bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, 0xFFFFFFFFu32, layout)
+                        bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
+                        bgfx_set_state_cj(blurState, 0x00000000u32)
+                        bgfx_submit_cj(blurViewId, vProg, 0u32, 0xFFu8)
+                        @LogTrace(["shadow", "_vsmBlurPass vertical submit done"])
+
+                        // ── ② 水平 blur：vsmPassTexture → vsmFinalFrameBuffer ──
+                        bgfx_set_view_frame_buffer_cj(blurViewId, slot.vsmFinalFrameBuffer)
+                        bgfx_set_view_clear_cj(blurViewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, 1.0f32, 0)
+                        bgfx_set_texture_cj(0u8, shadowSampler.value, slot.vsmPassTexture, 0u32)
+                        // resolution/radius 不变（同一帧 blur 参数固定）
+                        bgfx_set_state_cj(blurState, 0x00000000u32)
+                        bgfx_submit_cj(blurViewId, hProg, 0u32, 0xFFu8)
+                        @LogTrace(["shadow", "_vsmBlurPass horizontal submit done"])
+                    } else {
+                        @LogTrace(["shadow", "_vsmBlurPass SKIP: blitLayout None"])
+                    }
+                } else {
+                    @LogTrace(["shadow", "_vsmBlurPass SKIP: blitIB None"])
                 }
-                let vProg = vsmSp.programHandle
-                if (vProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm vertical compile failed"]); return }
-                // 水平变体（HORIZONTAL_PASS=1）
-                let hVariant = ShaderProgram.createVariant("vsm_h", vsmSp)
-                let defStrings = ArrayList<String>()
-                defStrings.add("HORIZONTAL_PASS=1")
-                hVariant.compileBgfx(extraDefines: defStrings.toArray())
-                let hProg = hVariant.programHandle
-                if (hProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm horizontal compile failed"]); return }
-
-                // 全屏四边形 VB（与 vsmVaryingDef 对齐：position + texcoord0）
-                backend.blitQuad.ensureBlitVB()
-                let uniforms = backend.uniforms
-                let shadowSampler = uniforms.createUniform("s_shadowPass", UniformType.Sampler.value())
-                let uResolution = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                let uRadius = uniforms.createUniform("u_radius", UniformType.Vec4.value())
-                let blurState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A | BgfxConstants.FRONT_CCW
-
-                // ── ① 垂直 blur：vsmDepthTexture → vsmPassFrameBuffer ──
-                bgfx_set_view_rect_cj(blurViewId, 0u16, 0u16, w, h)
-                bgfx_set_view_frame_buffer_cj(blurViewId, slot.vsmPassFrameBuffer)
-                bgfx_set_view_clear_cj(blurViewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, 1.0f32, 0)
-                bgfx_set_texture_cj(0u8, shadowSampler.value, slot.vsmDepthTexture, 0u32)
-                let resMem = BgfxMemory(16u32)
-                resMem.writeFloats([Float64(w), Float64(h), 0.0, 0.0], 4)
-                bgfx_set_uniform_cj(uResolution.value, unsafe { CPointer<Unit>(resMem.data()) }, 1u16)
-                let radMem = BgfxMemory(16u32)
-                radMem.writeFloats([4.0, 0.0, 0.0, 0.0], 4)
-                bgfx_set_uniform_cj(uRadius.value, unsafe { CPointer<Unit>(radMem.data()) }, 1u16)
-                match (backend.blitQuad._blitVB) {
-                    case Some(vb) =>
-                        match (backend.blitQuad._blitIB) {
-                            case Some(ib) =>
-                                match (backend.blitQuad._blitLayout) {
-                                    case Some(layout) =>
-                                        bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, 0xFFFFFFFFu32, layout)
-                                        bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
-                                        bgfx_set_state_cj(blurState, 0x00000000u32)
-                                        bgfx_submit_cj(blurViewId, vProg, 0u32, 0xFFu8)
-                                        @LogTrace(["shadow", "_vsmBlurPass vertical submit done"])
-
-                                        // ── ② 水平 blur：vsmPassTexture → vsmFinalFrameBuffer ──
-                                        bgfx_set_view_frame_buffer_cj(blurViewId, slot.vsmFinalFrameBuffer)
-                                        bgfx_set_view_clear_cj(blurViewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, 1.0f32, 0)
-                                        bgfx_set_texture_cj(0u8, shadowSampler.value, slot.vsmPassTexture, 0u32)
-                                        // resolution/radius 不变（同一帧 blur 参数固定）
-                                        bgfx_set_state_cj(blurState, 0x00000000u32)
-                                        bgfx_submit_cj(blurViewId, hProg, 0u32, 0xFFu8)
-                                        @LogTrace(["shadow", "_vsmBlurPass horizontal submit done"])
-                                    case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: blitLayout None"])
-                                }
-                            case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: blitIB None"])
-                        }
-                    case None => @LogTrace(["shadow", "_vsmBlurPass SKIP: blitVB None"])
-                }
+            } else {
+                @LogTrace(["shadow", "_vsmBlurPass SKIP: blitVB None"])
+            }
+        } else {
+            @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm shader not registered"]); return
         }
     }
 
@@ -445,27 +607,27 @@ public class BgfxShadowPass {
      * @param[en] light Spot light (with shadow.camera perspective camera + shadow.mapSize)
      * scene Scene (collects caster geometry)
      */
+    @Zone[three.rendering.bgfx.BgfxShadowPass.renderSpotShadowMap]
     public func renderSpotShadowMap(light: SpotLight, scene: Scene): Unit {
         let shadowSize = Int64(light.shadow.mapSize.x)
         @LogTrace(["shadow", "renderSpotShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
         let lightId = Int64(light.id)
 
-        var slot = match (this._shadowResources.get(lightId)) {
-            case Some(s) =>
-                if (s.size != shadowSize) {
-                    this._destroySlot(s)
-                    let fresh = ShadowSlot()
-                    fresh.size = shadowSize
-                    this._shadowResources.add(lightId, fresh)
-                    fresh
-                } else {
-                    s
-                }
-            case None =>
+        var slot = if (let Some(s) <- this._shadowResources.get(lightId)) {
+            if (s.size != shadowSize) {
+                this._destroySlot(s)
                 let fresh = ShadowSlot()
                 fresh.size = shadowSize
                 this._shadowResources.add(lightId, fresh)
                 fresh
+            } else {
+                s
+            }
+        } else {
+            let fresh = ShadowSlot()
+            fresh.size = shadowSize
+            this._shadowResources.add(lightId, fresh)
+            fresh
         }
 
         if (slot.texture.idx == 65535u16) {
@@ -535,9 +697,8 @@ public class BgfxShadowPass {
         // 从光源视角设置 view/proj 矩阵：用 shadowCamera 自己的 matrixWorldInverse + projectionMatrix
         let lightView = shadowCamera.matrixWorldInverse
         let lightProj = shadowCamera.projectionMatrix
-        let viewArr = lightView.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let projArr = lightProj.toArray(Array<Float64>(16, { _ => 0.0 }))
-        backend._setViewTransform(shadowViewId, viewArr, projArr)
+        // 直接传 elements（_setViewTransform 调用时即 memcpy），省去每光源两个 16 元素数组
+        backend._setViewTransform(shadowViewId, lightView.elements, lightProj.elements)
 
         // 计算阴影矩阵（lightViewProj → 用于主 pass 的阴影坐标变换）
         let lightViewProj = lightProj.clone().multiply(lightView)
@@ -549,41 +710,38 @@ public class BgfxShadowPass {
                          BgfxConstants.DEPTH_TEST_LESS | BgfxConstants.FRONT_CCW
 
         let depthProgOpt = ShaderLibs.get("depth")
-        match (depthProgOpt) {
-            case Some(depthSp) =>
-                if (depthSp.programHandle.idx == 65535u16) {
-                    depthSp.compileBgfx()
-                }
-                let depthProg = depthSp.programHandle
-                if (depthProg.idx == 65535u16) { return }
+        if (let Some(depthSp) <- depthProgOpt) {
+            if (depthSp.programHandle.idx == 65535u16) {
+                depthSp.compileBgfx()
+            }
+            let depthProg = depthSp.programHandle
+            if (depthProg.idx == 65535u16) { return }
 
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectShadowCasters(scene, renderObjects)
-                let layout = backend._getOrCreateLayout()
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = backend._createVB(ro.geometry)
-                    if (vb.idx == 65535u16) { continue }
-                    let posAttrOpt = ro.geometry.getAttribute("position")
-                    match (posAttrOpt) {
-                        case Some(posAttr) =>
-                            let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                            let mtxMem = BgfxMemory(64u32)
-                            mtxMem.writeFloats(mtxArr, 16)
-                            bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxMem.data()) }, 1u16)
-                            bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, UInt32(posAttr.count), layout)
-                            let ib = backend._createIB(ro.geometry)
-                            if (ib.idx != 65535u16) {
-                                bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
-                            }
-                            bgfx_set_state_cj(depthState, 0x00000000u32)
-                            bgfx_submit_cj(shadowViewId, depthProg, 0u32, 0xFFu8)
-                            submitCnt += 1
-                        case None => ()
+            let renderObjects = this._getShadowCasters(scene)
+            let layout = backend._getOrCreateLayout()
+            // 复用的矩阵暂存与 bgfx 上传缓冲（原实现每次调用新建，含一次 bgfx_alloc 泄漏）
+            let mtxScratch = this._shadowMtxScratch
+            let mtxMem = this._shadowMtxMem
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = backend._createVB(ro.geometry)
+                if (vb.idx == 65535u16) { continue }
+                let posAttrOpt = ro.geometry.getAttribute("position")
+                if (let Some(posAttr) <- posAttrOpt) {
+                    ro.worldMatrix.toArray(mtxScratch)
+                    mtxMem.writeFloats(mtxScratch, 16)
+                    bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxMem.data()) }, 1u16)
+                    bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, UInt32(posAttr.count), layout)
+                    let ib = backend._createIB(ro.geometry)
+                    if (ib.idx != 65535u16) {
+                        bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
                     }
+                    bgfx_set_state_cj(depthState, 0x00000000u32)
+                    bgfx_submit_cj(shadowViewId, depthProg, 0u32, 0xFFu8)
+                    submitCnt += 1
                 }
-                @LogTrace(["shadow", "_renderSpotShadowDepth done submitCnt=${submitCnt}"])
-            case None => ()
+            }
+            @LogTrace(["shadow", "_renderSpotShadowDepth done submitCnt=${submitCnt}"])
         }
     }
 
@@ -600,29 +758,29 @@ public class BgfxShadowPass {
      * @param[en] light Point light (with shadow.camera PerspectiveCamera fov=90 + shadow.mapSize)
      * scene Scene (collects caster geometry)
      */
+    @Zone[three.rendering.bgfx.BgfxShadowPass.renderPointShadowMap]
     public func renderPointShadowMap(light: PointLight, scene: Scene): Unit {
         let shadowSize = Int64(light.shadow.mapSize.x)
         @LogTrace(["shadow", "renderPointShadowMap ENTER shadowSize=${shadowSize} lightId=${light.id}"])
         let lightId = Int64(light.id)
 
-        var slot = match (this._shadowResources.get(lightId)) {
-            case Some(s) =>
-                if (s.size != shadowSize) {
-                    this._destroySlot(s)
-                    let fresh = ShadowSlot()
-                    fresh.size = shadowSize
-                    fresh.isCube = true
-                    this._shadowResources.add(lightId, fresh)
-                    fresh
-                } else {
-                    s
-                }
-            case None =>
+        var slot = if (let Some(s) <- this._shadowResources.get(lightId)) {
+            if (s.size != shadowSize) {
+                this._destroySlot(s)
                 let fresh = ShadowSlot()
                 fresh.size = shadowSize
                 fresh.isCube = true
                 this._shadowResources.add(lightId, fresh)
                 fresh
+            } else {
+                s
+            }
+        } else {
+            let fresh = ShadowSlot()
+            fresh.size = shadowSize
+            fresh.isCube = true
+            this._shadowResources.add(lightId, fresh)
+            fresh
         }
 
         // 创建 cube 阴影纹理（6 face cube）+ 6 个 face framebuffer
@@ -659,11 +817,9 @@ public class BgfxShadowPass {
 
         // 缓存点光源世界坐标（主 pass 绑定 u_pointShadowLightPos[i] 用）+ near/far（u_pointShadowNearFar[i]）
         slot.lightPos = light.position.clone()
-        match (light.shadow.camera as PerspectiveCamera) {
-            case Some(persp) =>
-                slot.near = persp.near
-                slot.far = persp.far
-            case None => ()
+        if (let Some(persp) <- (light.shadow.camera as PerspectiveCamera)) {
+            slot.near = persp.near
+            slot.far = persp.far
         }
 
         if (slot.frameBuffer.idx == 65535u16) { return }
@@ -691,37 +847,28 @@ public class BgfxShadowPass {
         let lightPos = slot.lightPos
         @LogTrace(["shadow", "_renderPointShadowDepth ENTER baseViewId=${baseViewId} lightPos=${lightPos.x},${lightPos.y},${lightPos.z}"])
 
-        let faceDirs: Array<Vector3> = [
-            Vector3(1.0, 0.0, 0.0),    // face 0: +X
-            Vector3(-1.0, 0.0, 0.0),   // face 1: -X
-            Vector3(0.0, 1.0, 0.0),    // face 2: +Y
-            Vector3(0.0, -1.0, 0.0),   // face 3: -Y
-            Vector3(0.0, 0.0, 1.0),    // face 4: +Z
-            Vector3(0.0, 0.0, -1.0)    // face 5: -Z
-        ]
-        // D3D11 cube face 约定（MSDN）：每个 face 的 s（right）与 t（up）方向
-        //   face 0 (+X): s=-z, t=-y   face 1 (-X): s=+z, t=-y
-        //   face 2 (+Y): s=+x, t=+z   face 3 (-Y): s=+x, t=-z
-        //   face 4 (+Z): s=+x, t=-y   face 5 (-Z): s=-x, t=-y
-        // 手动构造 view 矩阵（right/up/dir 列向量），绕开 lookAt 的左手系手性差异：
-        // Three.cj 左手系 lookAt 的 x = cross(up, z) 与 D3D11 的 s 方向相反 →
-        // 渲染内容左右镜像（左上↔右下）。用 D3D11 约定直接构建即可严格对齐 bgfx cube 采样方向。
-        let faceRights: Array<Vector3> = [
-            Vector3(0.0, 0.0, -1.0),   // +X: right = -Z
-            Vector3(0.0, 0.0, 1.0),    // -X: right = +Z
-            Vector3(1.0, 0.0, 0.0),    // +Y: right = +X
-            Vector3(1.0, 0.0, 0.0),    // -Y: right = +X
-            Vector3(1.0, 0.0, 0.0),    // +Z: right = +X
-            Vector3(-1.0, 0.0, 0.0)    // -Z: right = -X
-        ]
-        let faceUps: Array<Vector3> = [
-            Vector3(0.0, 1.0, 0.0),    // +X: up = +Y
-            Vector3(0.0, 1.0, 0.0),    // -X: up = +Y
-            Vector3(0.0, 0.0, -1.0),   // +Y: up = -Z
-            Vector3(0.0, 0.0, 1.0),    // -Y: up = +Z
-            Vector3(0.0, 1.0, 0.0),    // +Z: up = +Y
-            Vector3(0.0, 1.0, 0.0)     // -Z: up = +Y
-        ]
+        // 三张方向表是模块级常量（见文件头），此处只做引用，不再每次调用新建 18 个 Vector3。
+        let faceDirs = POINT_SHADOW_FACE_DIRS
+        let faceRights = POINT_SHADOW_FACE_RIGHTS
+        let faceUps = POINT_SHADOW_FACE_UPS
+
+        // 投影：fov=90 透视（左手系，与 view 匹配）。
+        // 6 个 face 的 fov/aspect/near/far 完全相同，原实现每 face 新建一个
+        // PerspectiveCamera 并 updateProjectionMatrix（boxshow 每帧 24 次矩阵重算）；
+        // 现每次调用只建一个，6 个 face 共用同一份投影矩阵。
+        let shadowCamera = PerspectiveCamera(fov: 90.0, aspect: 1.0, near: slot.near, far: slot.far)
+        shadowCamera.updateProjectionMatrix()
+        // 直接取投影矩阵的 elements（与 toArray 的结果逐元素一致，省去每 face 一个 16 元素数组）
+        let projArr = shadowCamera.projectionMatrix.elements
+
+        // 复用的 view 矩阵与上传缓冲：下方 _setViewTransform / set_transform 在调用时即
+        // 把数据 memcpy 进 bgfx 内部缓冲，因此同一块内存在两次写入之间必然已被消费，
+        // 可安全地逐 face 复用（原实现每 face 新建 Matrix4 + 两个 16 元素数组 + BgfxMemory）。
+        let viewMtx = this._shadowViewMtx
+        let mtxScratch = this._shadowMtxScratch
+        let mtxMem = this._shadowMtxMem
+        let renderObjects = this._getShadowCasters(scene)
+        let layout = backend._getOrCreateLayout()
 
         for (faceIdx in 0..6) {
             let faceViewId = UInt16(UInt16(baseViewId) + UInt16(faceIdx))
@@ -740,63 +887,51 @@ public class BgfxShadowPass {
             let dir = faceDirs[faceIdx]
             let right = faceRights[faceIdx]
             let up = faceUps[faceIdx]
-            let viewMtx = Matrix4().set(
+            // 就地写复用的 Matrix4（原实现每 face 新建一个 Matrix4）
+            viewMtx.set(
                 right.x, right.y, right.z, -right.dot(lightPos),
                 up.x,    up.y,    up.z,    -up.dot(lightPos),
                 dir.x,   dir.y,   dir.z,   -dir.dot(lightPos),
                 0.0, 0.0, 0.0, 1.0
             )
-            // 投影：fov=90 透视（左手系，与 view 匹配）
-            let shadowCamera = PerspectiveCamera(fov: 90.0, aspect: 1.0, near: slot.near, far: slot.far)
-            shadowCamera.updateProjectionMatrix()
             @LogTrace(["shadow", "_renderPointShadowDepth face ${faceIdx} camPos=${lightPos.x},${lightPos.y},${lightPos.z} dir=${dir.x},${dir.y},${dir.z}"])
-
-            let lightView = viewMtx
-            let lightProj = shadowCamera.projectionMatrix
-            let viewArr = lightView.toArray(Array<Float64>(16, { _ => 0.0 }))
-            let projArr = lightProj.toArray(Array<Float64>(16, { _ => 0.0 }))
-            backend._setViewTransform(faceViewId, viewArr, projArr)
+            // 直接传 elements：_setViewTransform 调用时即 memcpy 进 bgfx，
+            // 无需每 face 复制成新数组（原实现每 face 两个 16 元素数组）
+            backend._setViewTransform(faceViewId, viewMtx.elements, projArr)
 
             bgfx_set_view_clear_cj(faceViewId, CLEAR_COLOR | CLEAR_DEPTH, 0x00000000u32, 1.0f32, 0)
             let depthState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A | BgfxConstants.WRITE_Z |
                              BgfxConstants.DEPTH_TEST_LESS | BgfxConstants.FRONT_CCW
 
             let depthProgOpt = ShaderLibs.get("depth")
-            match (depthProgOpt) {
-                case Some(depthSp) =>
-                    if (depthSp.programHandle.idx == 65535u16) {
-                        depthSp.compileBgfx()
-                    }
-                    let depthProg = depthSp.programHandle
-                    if (depthProg.idx == 65535u16) { continue }
+            if (let Some(depthSp) <- depthProgOpt) {
+                if (depthSp.programHandle.idx == 65535u16) {
+                    depthSp.compileBgfx()
+                }
+                let depthProg = depthSp.programHandle
+                if (depthProg.idx == 65535u16) { continue }
 
-                    let renderObjects = ArrayList<RenderObject>()
-                    this._collectShadowCasters(scene, renderObjects)
-                    let layout = backend._getOrCreateLayout()
-                    var submitCnt: Int64 = 0
-                    for (ro in renderObjects) {
-                        let vb = backend._createVB(ro.geometry)
-                        if (vb.idx == 65535u16) { continue }
-                        let posAttrOpt = ro.geometry.getAttribute("position")
-                        match (posAttrOpt) {
-                            case Some(posAttr) =>
-                                let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                                let mtxMem = BgfxMemory(64u32)
-                                mtxMem.writeFloats(mtxArr, 16)
-                                bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxMem.data()) }, 1u16)
-                                bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, UInt32(posAttr.count), layout)
-                                let ib = backend._createIB(ro.geometry)
-                                if (ib.idx != 65535u16) {
-                                    bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
-                                }
-                                bgfx_set_state_cj(depthState, 0x00000000u32)
-                                bgfx_submit_cj(faceViewId, depthProg, 0u32, 0xFFu8)
-                                submitCnt += 1
-                            case None => ()
+                // caster 列表与 layout 已在 face 循环外取好（原实现每 face 重复查询 + 重复分配）
+                var submitCnt: Int64 = 0
+                for (ro in renderObjects) {
+                    let vb = backend._createVB(ro.geometry)
+                    if (vb.idx == 65535u16) { continue }
+                    let posAttrOpt = ro.geometry.getAttribute("position")
+                    if (let Some(posAttr) <- posAttrOpt) {
+                        ro.worldMatrix.toArray(mtxScratch)
+                        mtxMem.writeFloats(mtxScratch, 16)
+                        bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxMem.data()) }, 1u16)
+                        bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, UInt32(posAttr.count), layout)
+                        let ib = backend._createIB(ro.geometry)
+                        if (ib.idx != 65535u16) {
+                            bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
                         }
+                        bgfx_set_state_cj(depthState, 0x00000000u32)
+                        bgfx_submit_cj(faceViewId, depthProg, 0u32, 0xFFu8)
+                        submitCnt += 1
                     }
-                    @LogTrace(["shadow", "_renderPointShadowDepth face ${faceIdx} done submitCnt=${submitCnt}"])
-                case None => ()
+                }
+                @LogTrace(["shadow", "_renderPointShadowDepth face ${faceIdx} done submitCnt=${submitCnt}"])
             }
         }
         @LogTrace(["shadow", "_renderPointShadowDepth ALL 6 faces done"])
@@ -877,6 +1012,7 @@ public class BgfxShadowPass {
      * @param[en] obj Scene object
      * renderObjects Render object list
      */
+    @Zone[three.rendering.bgfx.BgfxShadowPass._collectShadowCasters]
     public func _collectShadowCasters(obj: Object3D, renderObjects: ArrayList<RenderObject>): Unit {
         for (child in obj.children) {
             if (child.children.size > 0) {
@@ -887,13 +1023,25 @@ public class BgfxShadowPass {
             // 改用 kind 字段判断（对照 Renderer._collectRenderObjects 既有风格），
             // 然后用 match (child as Mesh) 解构 Option<Mesh> 拿 Mesh 实例（child.kind=Mesh 已保证安全）。
             if (child.kind == "Mesh") {
-                match (child as Mesh) {
-                    case Some(mesh) =>
-                        // Mesh.material 字段类型是 Material（非 Option<Material>），直接用
-                        let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
-                        renderObjects.add(ro)
-                        @LogTrace(["shadow", "_collectShadowCasters ADD caster name=${mesh.name}"])
-                    case None => @LogTrace(["shadow", "_collectShadowCasters cast FAILED kind=${child.kind}"])
+                if (let Some(mesh) <- (child as Mesh)) {
+                    // Mesh.material 字段类型是 Material（非 Option<Material>），直接用
+                    // 池化复用 RenderObject：避免每个 caster 每帧新建一个
+                    // RenderObject（连带分配 RenderContext/Camera/Scene/Matrix 等）
+                    let ro = if (this._casterPoolCursor < this._casterPool.size) {
+                        let pooled = this._casterPool[this._casterPoolCursor]
+                        this._casterPoolCursor += 1
+                        pooled.resetFor(mesh, mesh.geometry, mesh.material)
+                        pooled
+                    } else {
+                        let created = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
+                        this._casterPool.add(created)
+                        this._casterPoolCursor += 1
+                        created
+                    }
+                    renderObjects.add(ro)
+                    @LogTrace(["shadow", "_collectShadowCasters ADD caster name=${mesh.name}"])
+                } else {
+                    @LogTrace(["shadow", "_collectShadowCasters cast FAILED kind=${child.kind}"])
                 }
             }
         }
@@ -908,6 +1056,7 @@ public class BgfxShadowPass {
      * @brief[en] Bind shadow uniforms to main pass draw (called in _drawRenderObject)
      * @explain[en] Corresponds to bgfx4cj-last ThreeRenderer.draw lines 788-819 + bindMultiSpotShadows/bindMultiPointShadows: directionalShadowMap texture bound to sampler stage 0..numDir-1, spotShadowMap to stage numDir.., pointShadowMap to stage numDir+numSpot.., each ShadowMatrix = bias × lightViewProj. Key fix: original implementation only bound directional light shadows, spot/point light shadow maps were never sampled → no shadows
      */
+    @Zone[three.rendering.bgfx.BgfxShadowPass.bindShadowUniforms]
     public func bindShadowUniforms(): Unit {
         // 多光源阴影支持：按当前帧 _shadowSlots 逐光源绑定数组化 uniform。
         // shader 端已数组化（uniform sampler2DShadow directionalShadowMap[NUM_DIR_LIGHT_SHADOWS] 等），
@@ -924,6 +1073,32 @@ public class BgfxShadowPass {
         //
         // 旧实现仅绑定方向光阴影，聚光灯/点光源阴影贴图从未被采样 → 无阴影。
         // 现按三类光源独立 framebuffer（_shadowFB/_spotShadowFB/_pointShadowFB）分别绑定。
+        //
+        // 性能：本方法在绘制循环中逐 draw 调用（submit 用 BGFX_DISCARD_ALL，纹理
+        // 绑定提交即消费，故必须每 draw 重绑）。其中 slot 分类、bias 矩阵乘与
+        // uniform 句柄在帧内恒定，已缓存到 _shadowBindCache（beginFrame 失效）；
+        // 每 draw 仅执行必需的 set_texture / set_uniform。
+        if (!this._shadowBindCache.valid) {
+            this._buildShadowBindCache()
+        }
+        this._submitShadowBindings()
+    }
+
+    /**
+     * @brief[zh-cn] 构建帧级阴影绑定缓存（slot 分类 + 矩阵乘 + uniform 句柄）
+     * @explain[zh-cn]
+     * 每帧仅执行一次（首次 bindShadowUniforms 时），结果存入 _shadowBindCache。
+     *
+     * @brief[en] Build the frame-level shadow binding cache (slot categorization +
+     *            matrix premultiply + uniform handles)
+     * @explain[en]
+     * Runs once per frame (on the first bindShadowUniforms call); the result is
+     * stored in _shadowBindCache.
+     */
+    private func _buildShadowBindCache(): Unit {
+        let cache = this._shadowBindCache
+        let backend = this._backend.getOrThrow()
+        let uniforms = backend.uniforms
 
         // bias 矩阵：NDC [-1,1] → 纹理 UV [0,1]，D3D11 Y-flip 风格（-0.5）。
         let biasMtx = Matrix4().set(
@@ -935,9 +1110,9 @@ public class BgfxShadowPass {
         let cmpFlags = BgfxConstants.SAMPLER_COMPARE_LEQUAL | BgfxConstants.SAMPLER_MIN_ANISOTROPIC | BgfxConstants.SAMPLER_MAG_ANISOTROPIC
 
         // 收集三类阴影光源的 slot（按 lightId 排序保证帧间一致）
-        let dirSlots = ArrayList<ShadowSlot>()
-        let spotSlots = ArrayList<ShadowSlot>()
-        let pointSlots = ArrayList<ShadowSlot>()
+        cache.dirSlots.clear()
+        cache.spotSlots.clear()
+        cache.pointSlots.clear()
         let lightIds = ArrayList<Int64>()
         for ((lid, _) in this._shadowSlots) {
             lightIds.add(lid)
@@ -953,153 +1128,109 @@ public class BgfxShadowPass {
             }
         }
         for (lid in lightIds) {
-            match (this._shadowSlots.get(lid)) {
-                case Some(slot) =>
-                    // 区分类型：cube → point；2D 中按 texture 是否带 cube 标记再次区分
-                    if (slot.isCube) {
-                        pointSlots.add(slot)
-                    } else {
-                        // 这里无法直接区分 directional/spot，需通过 _shadowSlotKind 查询
-                        match (this._shadowSlotKind.get(lid)) {
-                            case Some("dir") => dirSlots.add(slot)
-                            case Some("spot") => spotSlots.add(slot)
-                            case _ => dirSlots.add(slot)
+            if (let Some(slot) <- this._shadowSlots.get(lid)) {
+                // 区分类型：cube → point；2D 中按 texture 是否带 cube 标记再次区分
+                if (slot.isCube) {
+                    cache.pointSlots.add(slot)
+                } else {
+                    // 这里无法直接区分 directional/spot，需通过 _shadowSlotKind 查询
+                    if (let Some(kind) <- this._shadowSlotKind.get(lid)) {
+                        if (kind == "dir") {
+                            cache.dirSlots.add(slot)
+                        } else if (kind == "spot") {
+                            cache.spotSlots.add(slot)
+                        } else {
+                            cache.dirSlots.add(slot)
                         }
+                    } else {
+                        cache.dirSlots.add(slot)
                     }
-                case None => ()
+                }
             }
         }
 
-        let uniforms = backend.uniforms
+        let dirSlots = cache.dirSlots
+        let spotSlots = cache.spotSlots
+        let pointSlots = cache.pointSlots
 
-        // ===== 1. 方向光阴影（数组 sampler stage 0..numDir-1 + 数组 uniform directionalShadowMatrix）=====
+        // ===== 1. 方向光阴影 =====
         if (dirSlots.size > 0) {
             let numDir = UInt16(dirSlots.size)
             // VSM：RG16F mean/variance 纹理用普通采样（texture2D 读 .rg，无比较），
             // 与 PCF/BASIC 的 D24 比较采样器（shadow2D 硬件比较）区分。
             let isVsm = backend.shadowMap.getShadowType() == VSM_SHADOW_MAP
-            let dirFlags = if (isVsm) {
+            cache.dirSamplerFlags = if (isVsm) {
                 UInt32(SAMPLER_U_CLAMP) | UInt32(SAMPLER_V_CLAMP)
             } else {
-                cmpFlags
+                UInt32(cmpFlags)
             }
-            // 数组 sampler：一次创建，逐 stage 绑定（dir 从 stage 0 起）
-            let shadowSampler = uniforms.createUniform("directionalShadowMap", UniformType.Sampler.value(), numDir)
-            for (i in 0..dirSlots.size) {
-                bgfx_set_texture_cj(UInt8(UInt32(i)), shadowSampler.value, dirSlots[i].texture, dirFlags)
-            }
-            // 数组 uniform：一次 setUniform 传整个数组（bias × lightViewProj）
-            let uShadowMatrix = uniforms.createUniform("directionalShadowMatrix", UniformType.Mat4.value(), numDir)
-            let smMem = BgfxMemory(UInt32(dirSlots.size * 64))
+            cache.dirSampler = uniforms.createUniform("directionalShadowMap", UniformType.Sampler.value(), numDir).value
+            cache.dirMatUniform = uniforms.createUniform("directionalShadowMatrix", UniformType.Mat4.value(), numDir).value
+            cache.dirParamUniform = uniforms.createUniform("u_dirShadowParams", UniformType.Vec4.value(), numDir).value
+
+            cache.dirMats = Array<Float32>(dirSlots.size * 16, { _ => 0.0f32 })
+            cache.dirParams = Array<Float32>(dirSlots.size * 4, { _ => 0.0f32 })
             for (i in 0..dirSlots.size) {
                 let shadowMtx = biasMtx.multiply(dirSlots[i].shadowMatrix)
                 let smArr = shadowMtx.toArray(Array<Float64>(16, { _ => 0.0 }))
-                for (k in 0..16) { smMem.writeFloat(Int64(i * 16 + k), Float32(smArr[k])) }
+                for (k in 0..16) { cache.dirMats[i * 16 + k] = Float32(smArr[k]) }
+                cache.dirParams[i * 4 + 0] = Float32(dirSlots[i].bias)
+                cache.dirParams[i * 4 + 1] = Float32(dirSlots[i].normalBias)
             }
-            bgfx_set_uniform_cj(uShadowMatrix.value, unsafe { CPointer<Unit>(smMem.data()) }, numDir)
-            // per-light bias/normalBias（对齐 three.js light.shadow.bias/normalBias）：
-            // x=bias, y=normalBias（vertex 端法线偏移用，方向光接缝靠 normalBias 而非 depth bias）
-            let uDirP = uniforms.createUniform("u_dirShadowParams", UniformType.Vec4.value(), numDir)
-            let dirPMem = BgfxMemory(UInt32(dirSlots.size * 16))
-            for (i in 0..dirSlots.size) {
-                dirPMem.writeFloat(Int64(i * 4 + 0), Float32(dirSlots[i].bias))
-                dirPMem.writeFloat(Int64(i * 4 + 1), Float32(dirSlots[i].normalBias))
-                dirPMem.writeFloat(Int64(i * 4 + 2), 0.0f32)
-                dirPMem.writeFloat(Int64(i * 4 + 3), 0.0f32)
-            }
-            bgfx_set_uniform_cj(uDirP.value, unsafe { CPointer<Unit>(dirPMem.data()) }, numDir)
         }
 
-        // ===== 2. 聚光灯阴影（数组 sampler stage numDir..numDir+numSpot-1 + 数组 uniform spotLightMatrix）=====
-        // stage 顺延：dir 占 0..numDir-1，spot 从 numDir 起（D3D11 纹理单元上限 16）
+        // ===== 2. 聚光灯阴影（spotLightMatrix 已在生成侧预乘 bias）=====
         if (spotSlots.size > 0) {
             let numSpot = UInt16(spotSlots.size)
-            let spotStageBase = dirSlots.size
-            let spotSampler = uniforms.createUniform("spotShadowMap", UniformType.Sampler.value(), numSpot)
-            for (i in 0..spotSlots.size) {
-                bgfx_set_texture_cj(UInt8(UInt32(spotStageBase) + UInt32(i)), spotSampler.value, spotSlots[i].texture, cmpFlags)
-            }
-            // spotLightMatrix（已在 renderSpotShadowMap 内预乘 bias）
-            let uSM = uniforms.createUniform("spotLightMatrix", UniformType.Mat4.value(), numSpot)
-            let smMem = BgfxMemory(UInt32(spotSlots.size * 64))
+            cache.spotSampler = uniforms.createUniform("spotShadowMap", UniformType.Sampler.value(), numSpot).value
+            cache.spotMatUniform = uniforms.createUniform("spotLightMatrix", UniformType.Mat4.value(), numSpot).value
+            cache.spotParamUniform = uniforms.createUniform("u_spotShadowParams", UniformType.Vec4.value(), numSpot).value
+
+            cache.spotMats = Array<Float32>(spotSlots.size * 16, { _ => 0.0f32 })
+            cache.spotParams = Array<Float32>(spotSlots.size * 4, { _ => 0.0f32 })
             for (i in 0..spotSlots.size) {
                 let smArr = spotSlots[i].shadowMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                for (k in 0..16) { smMem.writeFloat(Int64(i * 16 + k), Float32(smArr[k])) }
+                for (k in 0..16) { cache.spotMats[i * 16 + k] = Float32(smArr[k]) }
+                cache.spotParams[i * 4 + 0] = Float32(spotSlots[i].bias)
+                cache.spotParams[i * 4 + 1] = Float32(spotSlots[i].normalBias)
             }
-            bgfx_set_uniform_cj(uSM.value, unsafe { CPointer<Unit>(smMem.data()) }, numSpot)
-            // per-light bias/normalBias（对齐 three.js light.shadow.bias/normalBias）
-            let uSpotP = uniforms.createUniform("u_spotShadowParams", UniformType.Vec4.value(), numSpot)
-            let spotPMem = BgfxMemory(UInt32(spotSlots.size * 16))
-            for (i in 0..spotSlots.size) {
-                spotPMem.writeFloat(Int64(i * 4 + 0), Float32(spotSlots[i].bias))
-                spotPMem.writeFloat(Int64(i * 4 + 1), Float32(spotSlots[i].normalBias))
-                spotPMem.writeFloat(Int64(i * 4 + 2), 0.0f32)
-                spotPMem.writeFloat(Int64(i * 4 + 3), 0.0f32)
-            }
-            bgfx_set_uniform_cj(uSpotP.value, unsafe { CPointer<Unit>(spotPMem.data()) }, numSpot)
         }
 
-        // ===== 3. 点光源阴影（数组 cube sampler stage numDir+numSpot.. + 数组 uniform）=====
-        // stage 顺延：dir 占 0..numDir-1，spot 占 numDir..numDir+numSpot-1，point 从 numDir+numSpot 起
+        // ===== 3. 点光源阴影（cube sampler + 位置/近远平面数组）=====
         if (pointSlots.size > 0) {
             let numPoint = UInt16(pointSlots.size)
-            let pointStageBase = dirSlots.size + spotSlots.size
-            // 绑定 cube 纹理本身（不是 face framebuffer 的 get_texture 结果）
-            let pointSampler = uniforms.createUniform("pointShadowMap", UniformType.Sampler.value(), numPoint)
-            for (i in 0..pointSlots.size) {
-                @LogTrace(["shadow", "bindShadowUniforms POINT[${i}] cubeTex.idx=${pointSlots[i].texture.idx} stage=${pointStageBase + i}"])
-                bgfx_set_texture_cj(UInt8(UInt32(pointStageBase) + UInt32(i)), pointSampler.value, pointSlots[i].texture, cmpFlags)
-            }
+            cache.pointSampler = uniforms.createUniform("pointShadowMap", UniformType.Sampler.value(), numPoint).value
+            cache.pointPosUniform = uniforms.createUniform("u_pointShadowLightPos", UniformType.Vec4.value(), numPoint).value
+            cache.pointRangeUniform = uniforms.createUniform("u_pointShadowNearFar", UniformType.Vec4.value(), numPoint).value
+            cache.pointParamUniform = uniforms.createUniform("u_pointShadowParams", UniformType.Vec4.value(), numPoint).value
 
-            // u_pointShadowLightPos 数组（fragment 端算 worldPos - lightPos[i] 时需要）
-            let uPLP = uniforms.createUniform("u_pointShadowLightPos", UniformType.Vec4.value(), numPoint)
-            let plpMem = BgfxMemory(UInt32(pointSlots.size * 16))
+            cache.pointLightPos = Array<Float32>(pointSlots.size * 4, { _ => 0.0f32 })
+            cache.pointNearFar = Array<Float32>(pointSlots.size * 4, { _ => 0.0f32 })
+            cache.pointParams = Array<Float32>(pointSlots.size * 4, { _ => 0.0f32 })
             for (i in 0..pointSlots.size) {
-                plpMem.writeFloat(Int64(i * 4 + 0), Float32(pointSlots[i].lightPos.x))
-                plpMem.writeFloat(Int64(i * 4 + 1), Float32(pointSlots[i].lightPos.y))
-                plpMem.writeFloat(Int64(i * 4 + 2), Float32(pointSlots[i].lightPos.z))
-                plpMem.writeFloat(Int64(i * 4 + 3), 0.0f32)
+                cache.pointLightPos[i * 4 + 0] = Float32(pointSlots[i].lightPos.x)
+                cache.pointLightPos[i * 4 + 1] = Float32(pointSlots[i].lightPos.y)
+                cache.pointLightPos[i * 4 + 2] = Float32(pointSlots[i].lightPos.z)
+                cache.pointNearFar[i * 4 + 0] = Float32(pointSlots[i].near)
+                cache.pointNearFar[i * 4 + 1] = Float32(pointSlots[i].far)
+                cache.pointParams[i * 4 + 0] = Float32(pointSlots[i].bias)
             }
-            bgfx_set_uniform_cj(uPLP.value, unsafe { CPointer<Unit>(plpMem.data()) }, numPoint)
-
-            // u_pointShadowNearFar 数组（fragment 端 getPointShadow 深度重构用）
-            let uPNF = uniforms.createUniform("u_pointShadowNearFar", UniformType.Vec4.value(), numPoint)
-            let pnfMem = BgfxMemory(UInt32(pointSlots.size * 16))
-            for (i in 0..pointSlots.size) {
-                pnfMem.writeFloat(Int64(i * 4 + 0), Float32(pointSlots[i].near))
-                pnfMem.writeFloat(Int64(i * 4 + 1), Float32(pointSlots[i].far))
-                pnfMem.writeFloat(Int64(i * 4 + 2), 0.0f32)
-                pnfMem.writeFloat(Int64(i * 4 + 3), 0.0f32)
-            }
-            bgfx_set_uniform_cj(uPNF.value, unsafe { CPointer<Unit>(pnfMem.data()) }, numPoint)
-            // per-light bias（对齐 three.js light.shadow.bias）：x=bias
-            let uPointP = uniforms.createUniform("u_pointShadowParams", UniformType.Vec4.value(), numPoint)
-            let pointPMem = BgfxMemory(UInt32(pointSlots.size * 16))
-            for (i in 0..pointSlots.size) {
-                pointPMem.writeFloat(Int64(i * 4 + 0), Float32(pointSlots[i].bias))
-                pointPMem.writeFloat(Int64(i * 4 + 1), 0.0f32)
-                pointPMem.writeFloat(Int64(i * 4 + 2), 0.0f32)
-                pointPMem.writeFloat(Int64(i * 4 + 3), 0.0f32)
-            }
-            bgfx_set_uniform_cj(uPointP.value, unsafe { CPointer<Unit>(pointPMem.data()) }, numPoint)
         }
 
         // ===== 4. 全局阴影参数（三类光源共用）=====
         // shadowParams: x=intensity, y=bias, z=normalBias, w=radius
-        // 注意：PcfVizMaterial 的 "pcf" 调试 shader（ShaderLibs 16c）仍在读 shadowParams.y/z
-        // 作为 bias/threshold（pcf shader 自注释"用 shadowParams.z 作为阈值"），
-        // 故此处从第一个方向光 slot 填入实际 bias/normalBias，避免 pcf 可视化出现 self-shadow acne 斑马纹。
-        // 主渲染 shader 走 per-light 数组（u_dirShadowParams[i]），不受此 y/z 影响。
-        // 本实现比较语义下 bias 为负（正 bias 实测导致全画面反转成阴影）。
-        let uShadowParams = uniforms.createUniform("shadowParams", UniformType.Vec4.value())
-        let spMem = BgfxMemory(16u32)
+        // PcfVizMaterial 的 "pcf" 调试 shader 仍读 shadowParams.y/z 作为
+        // bias/threshold，故从第一个方向光 slot 填入实际 bias/normalBias。
         let spBias = if (dirSlots.size > 0) { dirSlots[0].bias } else { 0.0 }
         let spNormalBias = if (dirSlots.size > 0) { dirSlots[0].normalBias } else { 0.0 }
-        spMem.writeFloats([1.0, spBias, spNormalBias, 1.0], 4)
-        bgfx_set_uniform_cj(uShadowParams.value, unsafe { CPointer<Unit>(spMem.data()) }, 1u16)
+        cache.shadowParams = Array<Float32>(4, { _ => 0.0f32 })
+        cache.shadowParams[0] = 1.0f32
+        cache.shadowParams[1] = Float32(spBias)
+        cache.shadowParams[2] = Float32(spNormalBias)
+        cache.shadowParams[3] = 1.0f32
+        cache.shadowParamsUniform = uniforms.createUniform("shadowParams", UniformType.Vec4.value()).value
 
-        // shadowMapSize（vec4 打包，xyz=size, w=0）
-        // 取三类 framebuffer 尺寸中非零者（同一场景通常尺寸一致）。
+        // shadowMapSize（xyz=size, w=0），取三类 framebuffer 尺寸中非零者
         let activeSize = if (dirSlots.size > 0) {
             dirSlots[0].size
         } else if (spotSlots.size > 0) {
@@ -1109,11 +1240,133 @@ public class BgfxShadowPass {
         } else {
             0
         }
-        let uShadowMapSize = uniforms.createUniform("shadowMapSize", UniformType.Vec4.value())
-        let smSizeMem = BgfxMemory(16u32)
-        let smSizeVal = Float64(activeSize)
-        smSizeMem.writeFloats([smSizeVal, smSizeVal, smSizeVal, 0.0], 4)
-        bgfx_set_uniform_cj(uShadowMapSize.value, unsafe { CPointer<Unit>(smSizeMem.data()) }, 1u16)
+        let smSizeVal = Float32(activeSize)
+        cache.mapSize = Array<Float32>(4, { _ => 0.0f32 })
+        cache.mapSize[0] = smSizeVal
+        cache.mapSize[1] = smSizeVal
+        cache.mapSize[2] = smSizeVal
+        cache.mapSizeUniform = uniforms.createUniform("shadowMapSize", UniformType.Vec4.value()).value
+
+        cache.valid = true
+    }
+
+    private var _bindMemStore: Option<BgfxMemory> = None
+    private var _bindMemSize: UInt32 = 0
+
+    /**
+     * @brief[zh-cn] 取一块至少 need 字节的复用上传缓冲（容量不足时才重新分配）
+     * @explain[zh-cn] _submitShadowBindings 逐 draw 调用，原实现每次新建 7 个
+     *                BgfxMemory（boxshow 25s 采集 3995 draw ≈ 2.8 万次 bgfx_alloc）。
+     *                bgfx_alloc 的缓冲只作 set_uniform 的数据源：调用时即 memcpy 进
+     *                引擎内部 uniform buffer，且该内存不会被归还 → 逐 draw 新建等于
+     *                持续泄漏原生内存（实测工作集每秒增长约 1MB）。
+     *                所有 uniform 都是"写入 → 立刻 set_uniform"的顺序消费，
+     *                故单块缓冲即可安全复用。
+     *
+     * @brief[en] Returns a reusable upload buffer of at least `need` bytes (reallocates only when it must grow)
+     * @param[en] need Required capacity in bytes
+     * @return[en] The reusable buffer
+     */
+    private func _bindMem(need: UInt32): BgfxMemory {
+        if (let Some(m) <- this._bindMemStore) {
+            if (this._bindMemSize >= need) { return m }
+        }
+        let m = BgfxMemory(need)
+        this._bindMemStore = Some(m)
+        this._bindMemSize = need
+        return m
+    }
+
+    /**
+     * @brief[zh-cn] 逐 draw 提交帧级缓存的阴影绑定（set_texture / set_uniform）
+     * @explain[zh-cn]
+     * 提交使用 BGFX_DISCARD_ALL，纹理与 uniform 绑定在 submit 时被消费，因此这一步
+     * 必须每个 draw 重复执行；数据来源为帧级缓存，不再重算矩阵与查表。
+     *
+     * @brief[en] Submit the frame-level cached shadow bindings per draw
+     * @explain[en]
+     * Submit uses BGFX_DISCARD_ALL, so texture and uniform bindings are consumed at
+     * submit time and this step must repeat for every draw; the data now comes from
+     * the frame-level cache instead of being recomputed.
+     */
+    private func _submitShadowBindings(): Unit {
+        let cache = this._shadowBindCache
+        let dirSlots = cache.dirSlots
+        let spotSlots = cache.spotSlots
+        let pointSlots = cache.pointSlots
+        let cmpFlags = BgfxConstants.SAMPLER_COMPARE_LEQUAL | BgfxConstants.SAMPLER_MIN_ANISOTROPIC | BgfxConstants.SAMPLER_MAG_ANISOTROPIC
+
+        // ===== 1. 方向光阴影（stage 0..numDir-1）=====
+        if (dirSlots.size > 0) {
+            let numDir = UInt16(dirSlots.size)
+            for (i in 0..dirSlots.size) {
+                bgfx_set_texture_cj(UInt8(UInt32(i)), cache.dirSampler, dirSlots[i].texture, cache.dirSamplerFlags)
+            }
+            let smMem = this._bindMem(UInt32(dirSlots.size * 64))
+            for (i in 0..cache.dirMats.size) {
+                smMem.writeFloat(Int64(i), cache.dirMats[i])
+            }
+            bgfx_set_uniform_cj(cache.dirMatUniform, unsafe { CPointer<Unit>(smMem.data()) }, numDir)
+            let dirPMem = this._bindMem(UInt32(dirSlots.size * 16))
+            for (i in 0..cache.dirParams.size) {
+                dirPMem.writeFloat(Int64(i), cache.dirParams[i])
+            }
+            bgfx_set_uniform_cj(cache.dirParamUniform, unsafe { CPointer<Unit>(dirPMem.data()) }, numDir)
+        }
+
+        // ===== 2. 聚光灯阴影（stage 顺延：dir 占 0..numDir-1）=====
+        if (spotSlots.size > 0) {
+            let numSpot = UInt16(spotSlots.size)
+            let spotStageBase = dirSlots.size
+            for (i in 0..spotSlots.size) {
+                bgfx_set_texture_cj(UInt8(UInt32(spotStageBase) + UInt32(i)), cache.spotSampler, spotSlots[i].texture, UInt32(cmpFlags))
+            }
+            let smMem = this._bindMem(UInt32(spotSlots.size * 64))
+            for (i in 0..cache.spotMats.size) {
+                smMem.writeFloat(Int64(i), cache.spotMats[i])
+            }
+            bgfx_set_uniform_cj(cache.spotMatUniform, unsafe { CPointer<Unit>(smMem.data()) }, numSpot)
+            let spotPMem = this._bindMem(UInt32(spotSlots.size * 16))
+            for (i in 0..cache.spotParams.size) {
+                spotPMem.writeFloat(Int64(i), cache.spotParams[i])
+            }
+            bgfx_set_uniform_cj(cache.spotParamUniform, unsafe { CPointer<Unit>(spotPMem.data()) }, numSpot)
+        }
+
+        // ===== 3. 点光源阴影（stage 顺延：dir+spot 之后）=====
+        if (pointSlots.size > 0) {
+            let numPoint = UInt16(pointSlots.size)
+            let pointStageBase = dirSlots.size + spotSlots.size
+            for (i in 0..pointSlots.size) {
+                bgfx_set_texture_cj(UInt8(UInt32(pointStageBase) + UInt32(i)), cache.pointSampler, pointSlots[i].texture, UInt32(cmpFlags))
+            }
+            let plpMem = this._bindMem(UInt32(pointSlots.size * 16))
+            for (i in 0..cache.pointLightPos.size) {
+                plpMem.writeFloat(Int64(i), cache.pointLightPos[i])
+            }
+            bgfx_set_uniform_cj(cache.pointPosUniform, unsafe { CPointer<Unit>(plpMem.data()) }, numPoint)
+
+            let pnfMem = this._bindMem(UInt32(pointSlots.size * 16))
+            for (i in 0..cache.pointNearFar.size) {
+                pnfMem.writeFloat(Int64(i), cache.pointNearFar[i])
+            }
+            bgfx_set_uniform_cj(cache.pointRangeUniform, unsafe { CPointer<Unit>(pnfMem.data()) }, numPoint)
+
+            let pointPMem = this._bindMem(UInt32(pointSlots.size * 16))
+            for (i in 0..cache.pointParams.size) {
+                pointPMem.writeFloat(Int64(i), cache.pointParams[i])
+            }
+            bgfx_set_uniform_cj(cache.pointParamUniform, unsafe { CPointer<Unit>(pointPMem.data()) }, numPoint)
+        }
+
+        // ===== 4. 全局阴影参数 =====
+        let spMem = this._bindMem(16u32)
+        for (i in 0..4) { spMem.writeFloat(Int64(i), cache.shadowParams[i]) }
+        bgfx_set_uniform_cj(cache.shadowParamsUniform, unsafe { CPointer<Unit>(spMem.data()) }, 1u16)
+
+        let smSizeMem = this._bindMem(16u32)
+        for (i in 0..4) { smSizeMem.writeFloat(Int64(i), cache.mapSize[i]) }
+        bgfx_set_uniform_cj(cache.mapSizeUniform, unsafe { CPointer<Unit>(smSizeMem.data()) }, 1u16)
     }
 
     /**
@@ -1129,4 +1382,82 @@ public class BgfxShadowPass {
         this._shadowSlots.clear()
         this._shadowSlotKind.clear()
     }
+}
+
+/**
+ * @brief[zh-cn] 帧级阴影绑定缓存
+ * @explain[zh-cn]
+ * 缓存 bindShadowUniforms 中"帧内恒定"的部分：分类后的 slot 列表、预乘 bias 的
+ * 矩阵数据、逐光源参数数据、以及 createUniform 得到的 uniform 句柄。
+ * 由于绘制循环中每个 draw 都要重新调用 bindShadowUniforms（submit 使用
+ * BGFX_DISCARD_ALL，纹理绑定提交即被消费），这部分重复计算占用了可观的每 draw 开销。
+ *
+ * @brief[en] Frame-level shadow binding cache
+ * @explain[en]
+ * Holds the parts of bindShadowUniforms that are constant within a frame: the
+ * categorized slot lists, the bias-premultiplied matrix data, the per-light
+ * parameter data, and the uniform handles returned by createUniform. Every draw
+ * calls bindShadowUniforms again (submit uses BGFX_DISCARD_ALL, so texture
+ * bindings are consumed per submit), which made this recomputation a notable
+ * per-draw cost.
+ */
+public class ShadowBindCache {
+    /** 缓存是否有效（beginFrame 时置 false） */
+    public var valid: Bool = false
+
+    /** 分类后的方向光 slot（按 lightId 升序，帧间稳定） */
+    public var dirSlots: ArrayList<ShadowSlot> = ArrayList<ShadowSlot>()
+    /** 分类后的聚光灯 slot */
+    public var spotSlots: ArrayList<ShadowSlot> = ArrayList<ShadowSlot>()
+    /** 分类后的点光源 slot */
+    public var pointSlots: ArrayList<ShadowSlot> = ArrayList<ShadowSlot>()
+
+    /** 方向光阴影矩阵（bias 已预乘），长度 = dirSlots.size * 16 */
+    public var dirMats: Array<Float32> = Array<Float32>()
+    /** 聚光灯阴影矩阵（bias 已在生成侧预乘），长度 = spotSlots.size * 16 */
+    public var spotMats: Array<Float32> = Array<Float32>()
+    /** 方向光逐光源参数 [bias, normalBias, 0, 0]，长度 = dirSlots.size * 4 */
+    public var dirParams: Array<Float32> = Array<Float32>()
+    /** 聚光灯逐光源参数，长度 = spotSlots.size * 4 */
+    public var spotParams: Array<Float32> = Array<Float32>()
+    /** 点光源位置 [x, y, z, 0]，长度 = pointSlots.size * 4 */
+    public var pointLightPos: Array<Float32> = Array<Float32>()
+    /** 点光源近远平面 [near, far, 0, 0]，长度 = pointSlots.size * 4 */
+    public var pointNearFar: Array<Float32> = Array<Float32>()
+    /** 点光源逐光源参数 [bias, 0, 0, 0]，长度 = pointSlots.size * 4 */
+    public var pointParams: Array<Float32> = Array<Float32>()
+    /** 全局阴影参数 [intensity, bias, normalBias, radius] */
+    public var shadowParams: Array<Float32> = Array<Float32>(4, { _ => 0.0f32 })
+    /** 阴影贴图尺寸 [size, size, size, 0] */
+    public var mapSize: Array<Float32> = Array<Float32>(4, { _ => 0.0f32 })
+
+    /** 方向光阴影贴图 sampler 句柄 */
+    public var dirSampler: UniformHandle = UniformHandle()
+    /** 方向光阴影矩阵 uniform 句柄 */
+    public var dirMatUniform: UniformHandle = UniformHandle()
+    /** 方向光逐光源参数 uniform 句柄 */
+    public var dirParamUniform: UniformHandle = UniformHandle()
+    /** 聚光灯阴影贴图 sampler 句柄 */
+    public var spotSampler: UniformHandle = UniformHandle()
+    /** 聚光灯阴影矩阵 uniform 句柄 */
+    public var spotMatUniform: UniformHandle = UniformHandle()
+    /** 聚光灯逐光源参数 uniform 句柄 */
+    public var spotParamUniform: UniformHandle = UniformHandle()
+    /** 点光源阴影贴图 sampler 句柄 */
+    public var pointSampler: UniformHandle = UniformHandle()
+    /** 点光源位置 uniform 句柄 */
+    public var pointPosUniform: UniformHandle = UniformHandle()
+    /** 点光源近远平面 uniform 句柄 */
+    public var pointRangeUniform: UniformHandle = UniformHandle()
+    /** 点光源逐光源参数 uniform 句柄 */
+    public var pointParamUniform: UniformHandle = UniformHandle()
+    /** 全局阴影参数 uniform 句柄 */
+    public var shadowParamsUniform: UniformHandle = UniformHandle()
+    /** 阴影贴图尺寸 uniform 句柄 */
+    public var mapSizeUniform: UniformHandle = UniformHandle()
+
+    /** 方向光 sampler 的比较/各向异性标志（VSM 时为普通采样标志） */
+    public var dirSamplerFlags: UInt32 = 0
+
+    public init() {}
 }

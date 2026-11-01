@@ -48,7 +48,7 @@ public const shadowmap_pars_fragment: String = #"
 
 	#if NUM_DIR_LIGHT_SHADOWS > 0
 
-		// bgfx4cj: 数组化方向光阴影 sampler（对齐 Three.js directionalShadowMap[NUM_DIR_LIGHT_SHADOWS]）
+		// bgfx4cj: 数组化方向光阴影 sampler（对齐参考实现 directionalShadowMap[NUM_DIR_LIGHT_SHADOWS]）
 		// bgfx 数组 sampler 通过 setTexture(stage+i, uniform, tex) 逐个绑定连续寄存器
 		// ★类型按 SHADOWMAP_TYPE 区分（对照参考版 SAMPLER2DSHADOW/SAMPLER2D 分支）：
 		//   - PCF：sampler2DShadow（shadow2D 硬件比较采样）
@@ -66,7 +66,7 @@ public const shadowmap_pars_fragment: String = #"
  // 声明在所有 #if NUM_XXX_LIGHT_SHADOWS 之外，确保任何类型启用阴影时均可访问。
  uniform vec4 shadowParams;   // x=intensity, y=bias(保留备用), z=normalBias(保留备用), w=radius
  uniform vec4 shadowMapSize;  // x=width, y=height
- // per-light 独立 bias/normalBias（对齐 three.js：每个 light.shadow.bias/normalBias 独立）：
+ // per-light 独立 bias/normalBias（对齐参考实现：每个 light.shadow.bias/normalBias 独立）：
  // 方向光/聚光阴影沿投影深度方向偏移，过大 bias 导致盒子内壁棱线处阴影错位（接缝缝隙），
  // 抗 acne 主要靠 normalBias（沿世界法线偏移 shadowWorldPosition，棱线处连续，不产生接缝）；
  // 点光源自阴影（acne）在 fragment 端 dp += bias，需要更大负 bias。
@@ -83,7 +83,7 @@ public const shadowmap_pars_fragment: String = #"
 
 	#if NUM_SPOT_LIGHT_SHADOWS > 0
 
-		// bgfx4cj: 数组化聚光灯阴影 sampler（对齐 Three.js spotShadowMap[NUM_SPOT_LIGHT_SHADOWS]）
+		// bgfx4cj: 数组化聚光灯阴影 sampler（对齐参考实现 spotShadowMap[NUM_SPOT_LIGHT_SHADOWS]）
 		uniform sampler2DShadow spotShadowMap[ NUM_SPOT_LIGHT_SHADOWS ];
 
 		// bgfx4cj: spot 阴影暂用 shadowParams/shadowMapSize 全局参数
@@ -92,7 +92,7 @@ public const shadowmap_pars_fragment: String = #"
 
 	#if NUM_POINT_LIGHT_SHADOWS > 0
 
-	 // bgfx4cj: 数组化点光源阴影 cube sampler（对齐 Three.js pointShadowMap[NUM_POINT_LIGHT_SHADOWS]）
+	 // bgfx4cj: 数组化点光源阴影 cube sampler（对齐参考实现 pointShadowMap[NUM_POINT_LIGHT_SHADOWS]）
 	 uniform samplerCubeShadow pointShadowMap[ NUM_POINT_LIGHT_SHADOWS ];
 
 		// bgfx4cj: point 阴影采样的光源世界坐标数组（fragment 端算 worldPos - lightPos[i] 用）

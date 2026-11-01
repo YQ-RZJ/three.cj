@@ -78,6 +78,8 @@ import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
 import std.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 体积云后处理 pass（全屏 ray marching）
@@ -150,6 +152,11 @@ public class VolumeCloudPass <: ShaderPass {
      * 挂载的渲染器（onAttach 时从 composer 持有，dispose 销毁自建纹理用）。
      */
     private var _renderer: Option<ThreeRenderer> = None
+
+    /**
+     * 矩阵上传暂存数组（替代每帧新建 Array<Float64>(16)）。
+     */
+    private var _invScratch: Array<Float64> = Array<Float64>(16, { _ => 0.0 })
 
     /**
      * 构造 VolumeCloudPass。
@@ -226,40 +233,44 @@ public class VolumeCloudPass <: ShaderPass {
             this._createNoiseTexture(renderer)
         }
         // 3D 噪声纹理绑定（stage 1，SAMPLER3D(u_cloudMap, 1)）
-        let uCloudMap = uniforms.createUniform("u_cloudMap", UniformType.Sampler.value())
+        let uCloudMap = this._cachedUniform("u_cloudMap", UniformType.Sampler.value())
         this.bindTexture(
             renderer, 1u8, uCloudMap, this._noiseTex,
             BgfxConstants.SAMPLER_U_CLAMP | BgfxConstants.SAMPLER_V_CLAMP | BgfxConstants.SAMPLER_W_CLAMP
         )
 
         // 逆视图投影矩阵（重建世界射线：world = invViewProj × ndc）
-        let uInvViewProj = uniforms.createUniform("u_cloudInvViewProj", UniformType.Mat4.value())
+        let uInvViewProj = this._cachedUniform("u_cloudInvViewProj", UniformType.Mat4.value())
         let viewProj = Matrix4()
         viewProj.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse)
         viewProj.invert()
-        let invArr = viewProj.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let invMem = BgfxMemory(64u32)
-        invMem.writeFloats(invArr, 16)
+        viewProj.toArray(this._invScratch)
+        let invMem = this._uploadMem(0, 64u32)
+        invMem.writeFloats(this._invScratch, 16)
         this.setUniform(renderer, uInvViewProj, invMem)
 
         // 相机世界位置
         let camPos = this.camera.matrixWorld.getPosition()
-        this.setUniformVec4(renderer, uniforms, "u_cameraPos", [camPos.x, camPos.y, camPos.z, 1.0])
+        let uCamPos = this._cachedUniform("u_cameraPos", UniformType.Vec4.value())
+        this._setVec4Uniform(renderer, uCamPos, 1, camPos.x, camPos.y, camPos.z, 1.0)
 
         // 云盒中心/半尺寸
-        this.setUniformVec4(renderer, uniforms, "u_boxCenter", [this.cloudCenter.x, this.cloudCenter.y, this.cloudCenter.z, 1.0])
-        this.setUniformVec4(renderer, uniforms, "u_boxHalfSize", [this.cloudHalfSize.x, this.cloudHalfSize.y, this.cloudHalfSize.z, 1.0])
+        let uBoxCenter = this._cachedUniform("u_boxCenter", UniformType.Vec4.value())
+        this._setVec4Uniform(renderer, uBoxCenter, 2, this.cloudCenter.x, this.cloudCenter.y, this.cloudCenter.z, 1.0)
+        let uBoxHalfSize = this._cachedUniform("u_boxHalfSize", UniformType.Vec4.value())
+        this._setVec4Uniform(renderer, uBoxHalfSize, 3, this.cloudHalfSize.x, this.cloudHalfSize.y, this.cloudHalfSize.z, 1.0)
 
         // 云基准色
-        this.setUniformVec4(renderer, uniforms, "u_base", [this.base.r, this.base.g, this.base.b, 1.0])
+        let uBase = this._cachedUniform("u_base", UniformType.Vec4.value())
+        this._setVec4Uniform(renderer, uBase, 4, this.base.r, this.base.g, this.base.b, 1.0)
 
         // 参数（threshold/range/opacity/steps/frame）
-        this.setUniformVec4(renderer, uniforms, "u_threshold", [this.threshold, 0.0, 0.0, 0.0])
-        this.setUniformVec4(renderer, uniforms, "u_range",     [this.range,     0.0, 0.0, 0.0])
-        this.setUniformVec4(renderer, uniforms, "u_opacity",   [this.opacity,   0.0, 0.0, 0.0])
-        this.setUniformVec4(renderer, uniforms, "u_steps",     [this.steps,     0.0, 0.0, 0.0])
-        this.setUniformVec4(renderer, uniforms, "u_frame",     [Float64(this.frame), 0.0, 0.0, 0.0])
-        this.setUniformVec4(renderer, uniforms, "u_texSize",   [Float64(this.texSize), 0.0, 0.0, 0.0])
+        this._setScalarUniform(renderer, this._cachedUniform("u_threshold", UniformType.Vec4.value()), 5, this.threshold)
+        this._setScalarUniform(renderer, this._cachedUniform("u_range", UniformType.Vec4.value()), 6, this.range)
+        this._setScalarUniform(renderer, this._cachedUniform("u_opacity", UniformType.Vec4.value()), 7, this.opacity)
+        this._setScalarUniform(renderer, this._cachedUniform("u_steps", UniformType.Vec4.value()), 8, this.steps)
+        this._setScalarUniform(renderer, this._cachedUniform("u_frame", UniformType.Vec4.value()), 9, Float64(this.frame))
+        this._setScalarUniform(renderer, this._cachedUniform("u_texSize", UniformType.Vec4.value()), 10, Float64(this.texSize))
         @LogTrace(["volumecloud", "bindExtraUniforms: frame=" + this.frame.toString() +
                       " texIdx=" + Handle.idx(this._noiseTex).toString() +
                       " steps=" + this.steps.toString()])
@@ -268,6 +279,7 @@ public class VolumeCloudPass <: ShaderPass {
     /**
      * 执行体积云 pass：帧号自增后委托基类（绑定 tDiffuse + submit quad）。
      */
+    @Zone[three.rendering.postprocessing.VolumeCloudPass.render, name=volumeCloudPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -285,13 +297,14 @@ public class VolumeCloudPass <: ShaderPass {
      */
     public override func dispose(): Unit {
         if (Handle.isValid(this._noiseTex)) {
-            match (this._renderer) {
-                case Some(r) => r.destroyTexture(this._noiseTex)
-                case None => ()
+            if (let Some(r) <- this._renderer) {
+                r.destroyTexture(this._noiseTex)
             }
             this._noiseTex = INVALID_TEXTURE_HANDLE
             this._noiseTexCreated = false
         }
+        // 释放本 pass 私有 uniform 句柄缓存（ShaderPass 已有清理，此处兜底）
+        this._disposePassUniforms()
     }
 
     // ========================================================================
@@ -346,20 +359,5 @@ public class VolumeCloudPass <: ShaderPass {
         this._noiseTexCreated = true
         @LogTrace(["volumecloud", "createNoiseTexture: size=" + size.toString() +
                       " texIdx=" + Handle.idx(this._noiseTex).toString()])
-    }
-
-    /**
-     * 设置单个 vec4 uniform（xyzw 全量传入）。辅助方法，简化 uniforms 设置。
-     */
-    private func setUniformVec4(
-        renderer: ThreeRenderer,
-        uniforms: BgfxUniforms,
-        name: String,
-        values: Array<Float64>
-    ): Unit {
-        let handle = uniforms.createUniform(name, UniformType.Vec4.value())
-        let mem = BgfxMemory(16u32)
-        mem.writeFloats(values, 4)
-        this.setUniform(renderer, handle, mem, num: 1u16)
     }
 }

@@ -23,12 +23,10 @@
  *
  * @file[zh-cn] XRController XR 控制器
  * @brief[zh-cn] 对照 WebXRController.js，管理 XR 控制器输入
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webxr/WebXRController.js
  * WebXRController 管理控制器的目标射线空间、握持空间和手部空间。
  *
  * @file[en] XRController XR controller
  * @brief[en] Manages XR controller input, corresponding to WebXRController.js
- * @explain[en] Reference source: three.js/src/renderers/webxr/WebXRController.js
  * WebXRController manages the controller's target ray space, grip space, and hand space.
  *
  * @package three.rendering.xr
@@ -106,18 +104,18 @@ public class XRControllerSpace {
      */
     public var hasInputSource: Bool = false
     /**
-     * @brief[zh-cn] 线速度（参照 Three.js targetRay/grip 的 linearVelocity）
+     * @brief[zh-cn] 线速度（对应 targetRay/grip 的 linearVelocity）
      *
-     * @brief[en] Linear velocity (referring to Three.js targetRay/grip linearVelocity)
+     * @brief[en] Linear velocity (corresponding to targetRay/grip linearVelocity)
      */
     public var linearVelocityX: Float64 = 0.0
     public var linearVelocityY: Float64 = 0.0
     public var linearVelocityZ: Float64 = 0.0
     public var hasLinearVelocity: Bool = false
     /**
-     * @brief[zh-cn] 角速度（参照 Three.js targetRay/grip 的 angularVelocity）
+     * @brief[zh-cn] 角速度（对应 targetRay/grip 的 angularVelocity）
      *
-     * @brief[en] Angular velocity (referring to Three.js targetRay/grip angularVelocity)
+     * @brief[en] Angular velocity (corresponding to targetRay/grip angularVelocity)
      */
     public var angularVelocityX: Float64 = 0.0
     /**
@@ -139,21 +137,21 @@ public class XRControllerSpace {
      */
     public var hasAngularVelocity: Bool = false
     /**
-     * @brief[zh-cn] 手部关节映射（参照 Three.js hand.joints）
+     * @brief[zh-cn] 手部关节映射（对应 hand.joints）
      *
-     * @brief[en] Hand joint mapping (referring to Three.js hand.joints)
+     * @brief[en] Hand joint mapping (corresponding to hand.joints)
      */
     public var joints: HashMap<String, XRControllerSpace>
     /**
-     * @brief[zh-cn] 输入状态（参照 Three.js hand.inputState）
+     * @brief[zh-cn] 输入状态（对应 hand.inputState）
      *
-     * @brief[en] Input state (referring to Three.js hand.inputState)
+     * @brief[en] Input state (corresponding to hand.inputState)
      */
     public var inputState: HashMap<String, Any>
     /**
-     * @brief[zh-cn] 事件是否启用（参照 Three.js grip.eventsEnabled）
+     * @brief[zh-cn] 事件是否启用（对应 grip.eventsEnabled）
      *
-     * @brief[en] Whether events are enabled (referring to Three.js grip.eventsEnabled)
+     * @brief[en] Whether events are enabled (corresponding to grip.eventsEnabled)
      */
     public var eventsEnabled: Bool = true
 
@@ -224,13 +222,13 @@ public class XRController {
      * @return[en] Target ray space
      */
     public func getTargetRaySpace(): XRControllerSpace {
-        match (_targetRay) {
-            case Some(space) => return space
-            case None =>
-                let space = XRControllerSpace()
-                space.spaceType = "targetRay"
-                _targetRay = Some(space)
-                return space
+        if (let Some(space) <- _targetRay) {
+            return space
+        } else {
+            let space = XRControllerSpace()
+            space.spaceType = "targetRay"
+            _targetRay = Some(space)
+            return space
         }
     }
 
@@ -244,13 +242,13 @@ public class XRController {
      * @return[en] Grip space
      */
     public func getGripSpace(): XRControllerSpace {
-        match (_grip) {
-            case Some(space) => return space
-            case None =>
-                let space = XRControllerSpace()
-                space.spaceType = "grip"
-                _grip = Some(space)
-                return space
+        if (let Some(space) <- _grip) {
+            return space
+        } else {
+            let space = XRControllerSpace()
+            space.spaceType = "grip"
+            _grip = Some(space)
+            return space
         }
     }
 
@@ -264,13 +262,13 @@ public class XRController {
      * @return[en] Hand space
      */
     public func getHandSpace(): XRControllerSpace {
-        match (_hand) {
-            case Some(space) => return space
-            case None =>
-                let space = XRControllerSpace()
-                space.spaceType = "hand"
-                _hand = Some(space)
-                return space
+        if (let Some(space) <- _hand) {
+            return space
+        } else {
+            let space = XRControllerSpace()
+            space.spaceType = "hand"
+            _hand = Some(space)
+            return space
         }
     }
 
@@ -310,17 +308,14 @@ public class XRController {
      * @param[en] event Event data
      */
     public func dispatchEvent(event: HashMap<String, Any>): Unit {
-        match (_targetRay) {
-            case Some(space) => space.dispatchEvent(event)
-            case None => ()
+        if (let Some(space) <- _targetRay) {
+            space.dispatchEvent(event)
         }
-        match (_grip) {
-            case Some(space) => space.dispatchEvent(event)
-            case None => ()
+        if (let Some(space) <- _grip) {
+            space.dispatchEvent(event)
         }
-        match (_hand) {
-            case Some(space) => space.dispatchEvent(event)
-            case None => ()
+        if (let Some(space) <- _hand) {
+            space.dispatchEvent(event)
         }
     }
 
@@ -335,7 +330,7 @@ public class XRController {
      */
     public func connect(inputSource: Any): Unit {
         // 初始化手部关节（如果输入源包含手部数据）
-        // 参照 Three.js: 遍历 inputSource.hand 创建关节组
+        // 遍历 inputSource.hand 创建关节组
         // Three.cj 暂不实现完整的手部追踪
         let evt = HashMap<String, Any>()
         evt.add("type", "connected")
@@ -358,17 +353,14 @@ public class XRController {
         evt.add("data", inputSource)
         this.dispatchEvent(evt)
         _inputSource = None
-        match (_targetRay) {
-            case Some(space) => space.visible = false
-            case None => ()
+        if (let Some(space) <- _targetRay) {
+            space.visible = false
         }
-        match (_grip) {
-            case Some(space) => space.visible = false
-            case None => ()
+        if (let Some(space) <- _grip) {
+            space.visible = false
         }
-        match (_hand) {
-            case Some(space) => space.visible = false
-            case None => ()
+        if (let Some(space) <- _hand) {
+            space.visible = false
         }
     }
 
@@ -388,7 +380,7 @@ public class XRController {
      * referenceSpace Reference space
      */
     public func update(inputSource: Any, frame: Any, referenceSpace: Any): Unit {
-        // 更新各空间位姿（参照 Three.js WebXRController.update）
+        // 更新各空间位姿
         // 需要根据具体的 XR 运行时实现
         // Three.cj 暂不实现完整 XR 更新逻辑
     }
@@ -407,24 +399,21 @@ public class XRController {
      * @return[en] Joint space
      */
     private func _getHandJoint(hand: XRControllerSpace, inputjoint: Any): XRControllerSpace {
-        // 参照 Three.js: 创建/获取手部关节空间
+        // 创建/获取手部关节空间
         // Three.cj 暂不实现完整手部追踪
         let jointId = "joint"
         match (inputjoint) {
             case obj: HashMap<String, Any> =>
-                match (obj.get("jointName")) {
-                    case Some(name) => () // name 是 String
-                    case None => ()
-                }
+                if (let Some(_) <- obj.get("jointName")) { () } // name 是 String
             case _ => ()
         }
-        match (hand.joints.get("default")) {
-            case Some(joint) => return joint
-            case None =>
-                let joint = XRControllerSpace()
-                joint.spaceType = "joint"
-                hand.joints.add("default", joint)
-                return joint
+        if (let Some(joint) <- hand.joints.get("default")) {
+            return joint
+        } else {
+            let joint = XRControllerSpace()
+            joint.spaceType = "joint"
+            hand.joints.add("default", joint)
+            return joint
         }
     }
 

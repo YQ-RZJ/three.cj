@@ -61,6 +61,8 @@ import three.audio.device.*
 import three.audio.listener.*
 import three.audio.mixer.*
 import three.audio.interfaces.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 非位置音频基类，继承 Object3D
@@ -262,36 +264,34 @@ public open class Audio <: Object3D {
      * @param[en] offset Playback start offset (seconds); -1 starts from the current position
      * @return[en] this (for chaining)
      */
+    @Zone[three.audio.source.Audio.play, name=audioPlay]
     public open func play(offset: Float64): Audio {
         if (!this.context.initialized) { return this }
 
-        match (this.buffer) {
-            case Some(buf) =>
-                if (this.isPlaying) { return this }
-                if (!this.hasPlaybackControl) { return this }
+        if (let Some(buf) <- this.buffer) {
+            if (this.isPlaying) { return this }
+            if (!this.hasPlaybackControl) { return this }
 
-                // 确保源已创建且缓冲已绑定
-                if (this.sourceId == 0u32) {
-                    this._createSource()
-                }
+            // 确保源已创建且缓冲已绑定
+            if (this.sourceId == 0u32) {
+                this._createSource()
+            }
 
-                // 捕获闭包所需值（execAudio 闭包内不应访问可变 this 状态）
-                let srcId = this.sourceId
-                let gainVal = Float32(this.gain * this.listener.gain)
-                let pitchVal = Float32(this.playbackRate)
-                let loopVal = Int32(if (this.loop) { 1 } else { 0 })
-                let offsetVal = Float32(if (offset >= 0.0) { offset } else { this.offset })
+            // 捕获闭包所需值（execAudio 闭包内不应访问可变 this 状态）
+            let srcId = this.sourceId
+            let gainVal = Float32(this.gain * this.listener.gain)
+            let pitchVal = Float32(this.playbackRate)
+            let loopVal = Int32(if (this.loop) { 1 } else { 0 })
+            let offsetVal = Float32(if (offset >= 0.0) { offset } else { this.offset })
 
-                this.isPlaying = true
-                this.context.execAudio({ =>
-                    alSourcef_cj(srcId, AL_GAIN, gainVal)
-                    alSourcef_cj(srcId, AL_PITCH, pitchVal)
-                    alSourcei_cj(srcId, AL_LOOPING, loopVal)
-                    alSourcef_cj(srcId, AL_SEC_OFFSET, offsetVal)
-                    alSourcePlay_cj(srcId)
-                })
-
-            case None => ()
+            this.isPlaying = true
+            this.context.execAudio({ =>
+                alSourcef_cj(srcId, AL_GAIN, gainVal)
+                alSourcef_cj(srcId, AL_PITCH, pitchVal)
+                alSourcei_cj(srcId, AL_LOOPING, loopVal)
+                alSourcef_cj(srcId, AL_SEC_OFFSET, offsetVal)
+                alSourcePlay_cj(srcId)
+            })
         }
 
         return this
@@ -356,11 +356,28 @@ public open class Audio <: Object3D {
                 unsafe { delPtr.write(srcId) }
                 alDeleteSources_cj(1, delPtr)
                 unsafe { LibC.free(delPtr) }
+                // 源已在音频线程上删除：通知子类清理与之绑定的状态
+                this._onSourceReleased()
             })
             this.sourceId = 0u32
         }
         this.isPlaying = false
         return this
+    }
+
+    /**
+     * @brief[zh-cn] OpenAL 源被释放后的钩子（子类可重写以清理自身状态）
+     * @explain[zh-cn] 在 disconnect() 的音频线程闭包内、源删除之后调用。子类若持有
+     *               与该源绑定的异步下发数据（如变换槽），应在此失效，避免向已删除
+     *               的源继续下发参数。
+     *
+     * @brief[en] Hook invoked after the OpenAL source was released (subclasses may override)
+     * @explain[en] Called inside disconnect()'s audio-thread closure, right after the
+     *               source was deleted. Subclasses holding asynchronous submission data
+     *               bound to that source (e.g. a transform slot) should invalidate it
+     *               here, so that no further parameters are submitted to a deleted source.
+     */
+    protected open func _onSourceReleased(): Unit {
     }
 
     /**
@@ -469,7 +486,7 @@ public open class Audio <: Object3D {
         if (this.context.initialized && this.sourceId != 0u32) {
             let srcId = this.sourceId
             let pitch = Float32(this.playbackRate * pow(2.0, this.detune / 1200.0))
-            this.context.execAudio({ => alSourcef_cj(srcId, AL_PITCH, pitch) })
+            this.context.postAudio({ => alSourcef_cj(srcId, AL_PITCH, pitch) })
         }
         return this
     }
@@ -517,25 +534,23 @@ public open class Audio <: Object3D {
     protected open func _createSource(): Unit {
         if (!this.context.initialized) { return }
 
-        match (this.buffer) {
-            case Some(buf) =>
-                let bufId = buf.bufferId
-                this.context.execAudio({ =>
-                    // 生成源
-                    let srcPtr = unsafe { LibC.malloc<UInt32>() }
-                    alGenSources_cj(1, srcPtr)
-                    let id = unsafe { srcPtr.read() }
-                    unsafe { LibC.free(srcPtr) }
+        if (let Some(buf) <- this.buffer) {
+            let bufId = buf.bufferId
+            this.context.execAudio({ =>
+                // 生成源
+                let srcPtr = unsafe { LibC.malloc<UInt32>() }
+                alGenSources_cj(1, srcPtr)
+                let id = unsafe { srcPtr.read() }
+                unsafe { LibC.free(srcPtr) }
 
-                    // 绑定缓冲区
-                    alSourcei_cj(id, AL_BUFFER, Int32(bufId))
-                    // 设置默认距离模型为无衰减（非位置音频）
-                    alSourcef_cj(id, AL_ROLLOFF_FACTOR, 0.0f32)
-                    alSourcei_cj(id, AL_SOURCE_RELATIVE, 1)  // 相对监听器
+                // 绑定缓冲区
+                alSourcei_cj(id, AL_BUFFER, Int32(bufId))
+                // 设置默认距离模型为无衰减（非位置音频）
+                alSourcef_cj(id, AL_ROLLOFF_FACTOR, 0.0f32)
+                alSourcei_cj(id, AL_SOURCE_RELATIVE, 1)  // 相对监听器
 
-                    this.sourceId = id
-                })
-            case None => ()
+                this.sourceId = id
+            })
         }
     }
 
@@ -559,7 +574,7 @@ public open class Audio <: Object3D {
         if (this.context.initialized && this.sourceId != 0u32) {
             let srcId = this.sourceId
             let fid = filter.filterId
-            this.context.execAudio({ => alSourcei_cj(srcId, AL_DIRECT_FILTER, Int32(fid)) })
+            this.context.postAudio({ => alSourcei_cj(srcId, AL_DIRECT_FILTER, Int32(fid)) })
         }
         return this
     }
@@ -574,7 +589,7 @@ public open class Audio <: Object3D {
     public func removeDirectFilter(): Audio {
         if (this.context.initialized && this.sourceId != 0u32) {
             let srcId = this.sourceId
-            this.context.execAudio({ => alSourcei_cj(srcId, AL_DIRECT_FILTER, 0) })
+            this.context.postAudio({ => alSourcei_cj(srcId, AL_DIRECT_FILTER, 0) })
         }
         return this
     }
@@ -600,11 +615,8 @@ public open class Audio <: Object3D {
         if (this.context.initialized && this.sourceId != 0u32) {
             let srcId = this.sourceId
             let slotId = slot.getSlotId()
-            let filterId = match (filter) {
-                case Some(f) => f.getFilterId()
-                case None => 0u32
-            }
-            this.context.execAudio({ =>
+            let filterId = if (let Some(f) <- filter) { f.getFilterId() } else { 0u32 }
+            this.context.postAudio({ =>
                 alSource3i_cj(srcId, AL_AUXILIARY_SEND_FILTER, Int32(slotId), send, Int32(filterId))
             })
         }
@@ -623,7 +635,7 @@ public open class Audio <: Object3D {
     public func disconnectEffectSlot(send: Int32): Audio {
         if (this.context.initialized && this.sourceId != 0u32) {
             let srcId = this.sourceId
-            this.context.execAudio({ =>
+            this.context.postAudio({ =>
                 alSource3i_cj(srcId, AL_AUXILIARY_SEND_FILTER, 0, send, 0)
             })
         }

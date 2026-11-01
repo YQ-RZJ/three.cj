@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] Backend
  * @brief[zh-cn] 渲染后端抽象基类 — 即时命令模型
- * @explain[zh-cn] 定义即时命令模型：beginRender → draw → finishRender，每个调用立即转为 GPU 命令。bgfx 适配：bgfx 是延迟命令缓冲，Backend 的即时命令方法在内部映射为 bgfx 延迟调用。对照源码: three.js/src/renderers/common/Backend.js
+ * @explain[zh-cn] 定义即时命令模型：beginRender → draw → finishRender，每个调用立即转为 GPU 命令。bgfx 适配：bgfx 是延迟命令缓冲，Backend 的即时命令方法在内部映射为 bgfx 延迟调用。
  *
  * @file[en] Backend
  * @brief[en] Render backend abstract base class — immediate command model
- * @explain[en] Defines the immediate command model: beginRender → draw → finishRender, each call is immediately converted to a GPU command. bgfx adaptation: bgfx uses deferred command buffering, Backend's immediate command methods are internally mapped to bgfx deferred calls. Reference: three.js/src/renderers/common/Backend.js
+ * @explain[en] Defines the immediate command model: beginRender → draw → finishRender, each call is immediately converted to a GPU command. bgfx adaptation: bgfx uses deferred command buffering, Backend's immediate command methods are internally mapped to bgfx deferred calls.
  *
  * @package three.rendering.common
  */

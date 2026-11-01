@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] Cache 资源缓存
  * @brief[zh-cn] 资源缓存类，为加载器提供已加载资源的全局缓存
- * @explain[zh-cn] Cache 以键值对形式缓存已加载的资源（ILoadResult），加载器首次加载后存入缓存，后续相同 URL 的请求直接返回缓存结果。对应 Three.js 的 Cache 对象，通过 enabled 开关控制是否启用缓存。
+ * @explain[zh-cn] Cache 以键值对形式缓存已加载的资源（ILoadResult），加载器首次加载后存入缓存，后续相同 URL 的请求直接返回缓存结果。提供与主流引擎一致的 Cache 语义，通过 enabled 开关控制是否启用缓存。
  *
  * @file[en] Cache  Resource caching
  * @brief[en] Resource cache class providing global caching for loaders
- * @explain[en] Cache stores loaded resources (ILoadResult) as key-value pairs. After the first load, subsequent requests for the same URL return the cached result. Mirrors the Three.js Cache object with an enabled toggle.
+ * @explain[en] Cache stores loaded resources (ILoadResult) as key-value pairs. After the first load, subsequent requests for the same URL return the cached result. Provides Cache semantics consistent with mainstream engines, with an enabled toggle.
  */
 package three.resource.cache
 

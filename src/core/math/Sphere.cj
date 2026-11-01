@@ -278,9 +278,10 @@ public class Sphere {
      * @return[en] This instance
      */
     public func setFromPoints(points: ArrayList<Vector3>, optionalCenter!: Option<Vector3> = None): Sphere {
-        let center = match (optionalCenter) {
-            case Some(c) => c
-            case None => this.center
+        let center = if (let Some(c) <- optionalCenter) {
+            c
+        } else {
+            this.center
         }
         var maxRadiusSq = 0.0
         for (p in points) {
@@ -393,32 +394,28 @@ public class Sphere {
      * @return[en] Reference to this instance
      */
     public func fromJSON(json: HashMap<String, Any>): Sphere {
-        match (json.get("radius")) {
-            case Some(r) =>
-                match (r) {
-                    case v: Float64 => this.radius = v
-                    case i: Int64 => this.radius = Float64(i)
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(r) <- json.get("radius")) {
+            match (r) {
+                case v: Float64 => this.radius = v
+                case i: Int64 => this.radius = Float64(i)
+                case _ => ()
+            }
         }
-        match (json.get("center")) {
-            case Some(c) =>
-                match (c) {
-                    case arr: Array<Float64> => this.center.fromArray(arr)
-                    case list: ArrayList<Any> =>
-                        let a = Array<Float64>(list.size, { _ => 0.0 })
-                        for (i in 0..list.size) {
-                            match (list[i]) {
-                                case v: Float64 => a[i] = v
-                                case n: Int64 => a[i] = Float64(n)
-                                case _ => ()
-                            }
+        if (let Some(c) <- json.get("center")) {
+            match (c) {
+                case arr: Array<Float64> => this.center.fromArray(arr)
+                case list: ArrayList<Any> =>
+                    let a = Array<Float64>(list.size, { _ => 0.0 })
+                    for (i in 0..list.size) {
+                        match (list[i]) {
+                            case v: Float64 => a[i] = v
+                            case n: Int64 => a[i] = Float64(n)
+                            case _ => ()
                         }
-                        this.center.fromArray(a)
-                    case _ => ()
-                }
-            case None => ()
+                    }
+                    this.center.fromArray(a)
+                case _ => ()
+            }
         }
         return this
     }

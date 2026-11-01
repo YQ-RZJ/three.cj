@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] STLLoader STL 格式加载器
- * @brief[zh-cn] 对应 Three.js examples/jsm/loaders/STLLoader.js 的仓颉侧实现
+ * @brief[zh-cn] STL 模型的仓颉侧实现
  * @explain[zh-cn] STL 格式加载器：支持二进制 STL 与 ASCII STL，输出 BufferGeometry（position/normal，可选顶点色）。仓颉侧使用 std 字节/字符串解析，无浏览器依赖。
  *
  * @file[en] STLLoader  STL format loader
- * @brief[en] Cangjie implementation corresponding to Three.js examples/jsm/loaders/STLLoader.js
+ * @brief[en] Cangjie implementation of the STL model loader
  * @explain[en] STL format loader: supports binary STL and ASCII STL, outputting BufferGeometry (position/normal, optional vertex colors). Cangjie side uses std byte/string parsing with no browser dependency.
  */
 package three.resource.loader

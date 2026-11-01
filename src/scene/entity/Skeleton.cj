@@ -179,12 +179,11 @@ public class Skeleton <: IPropertyBindingRoot {
         }
         for (i in 0..this.bones.size) {
             let bone = this.bones[i]
-            match (bone.parent) {
-                case Some(parent) =>
-                    bone.matrix.copy(parent.matrixWorld).invert()
-                    bone.matrix.multiply(bone.matrixWorld)
-                case None =>
-                    bone.matrix.copy(bone.matrixWorld)
+            if (let Some(parent) <- bone.parent) {
+                bone.matrix.copy(parent.matrixWorld).invert()
+                bone.matrix.multiply(bone.matrixWorld)
+            } else {
+                bone.matrix.copy(bone.matrixWorld)
             }
             bone.matrix.decompose(bone.position, bone.quaternion, bone.scale)
         }
@@ -199,9 +198,10 @@ public class Skeleton <: IPropertyBindingRoot {
      */
     public func update(): Unit {
         // 与 JS side 一致：复用已分配的 boneMatrices 数组（避免每帧重分配）。
-        let boneMatricesArr = match (this.boneMatrices) {
-            case Some(arr) => arr
-            case None => Array<Float64>(this.bones.size * 16, { _ => 0.0 })
+        let boneMatricesArr = if (let Some(arr) <- this.boneMatrices) {
+            arr
+        } else {
+            Array<Float64>(this.bones.size * 16, { _ => 0.0 })
         }
         for (i in 0..this.bones.size) {
             let matrix = this.bones[i].matrixWorld
@@ -225,28 +225,31 @@ public class Skeleton <: IPropertyBindingRoot {
      * @return[en] Returns this for method chaining
      */
     public func fromJSON(json: HashMap<String, Any>, bones: HashMap<String, Bone>): Skeleton {
-        this.uuid = match (json.get("uuid")) {
-            case Some(u) => match (u) { case s: String => s; case _ => MathUtils.generateUUID() }
-            case None => MathUtils.generateUUID()
+        this.uuid = if (let Some(u) <- json.get("uuid")) {
+            match (u) { case s: String => s; case _ => MathUtils.generateUUID() }
+        } else {
+            MathUtils.generateUUID()
         }
         this.bones.clear()
         this.boneInverses.clear()
-        let boneList = match (json.get("bones")) {
-            case Some(arr) => match (arr) { case a: ArrayList<Any> => a; case _ => ArrayList<Any>() }
-            case None => ArrayList<Any>()
+        let boneList = if (let Some(arr) <- json.get("bones")) {
+            match (arr) { case a: ArrayList<Any> => a; case _ => ArrayList<Any>() }
+        } else {
+            ArrayList<Any>()
         }
-        let inverseList = match (json.get("boneInverses")) {
-            case Some(arr) => match (arr) { case a: ArrayList<Any> => a; case _ => ArrayList<Any>() }
-            case None => ArrayList<Any>()
+        let inverseList = if (let Some(arr) <- json.get("boneInverses")) {
+            match (arr) { case a: ArrayList<Any> => a; case _ => ArrayList<Any>() }
+        } else {
+            ArrayList<Any>()
         }
         for (i in 0..boneList.size) {
             let uuid = match (boneList[i]) { case s: String => s; case _ => "" }
             
-            var bone = match (bones.get(uuid)) {
-                case Some(b) => b
-                case None =>
-                    // 骨骼未找到，创建默认骨骼
-                    Bone()
+            var bone = if (let Some(b) <- bones.get(uuid)) {
+                b
+            } else {
+                // 骨骼未找到，创建默认骨骼
+                Bone()
             }
             this.bones.add(bone)
             // 解析 boneInverses
@@ -286,11 +289,9 @@ public class Skeleton <: IPropertyBindingRoot {
         
         let totalFloats = sizeI * sizeI * 4
         let boneMatricesArr = Array<Float64>(totalFloats, { _ => 0.0 })
-        match (this.boneMatrices) {
-            case Some(src) =>
-                let copyLen = if (Int64(src.size) < totalFloats) { Int64(src.size) } else { totalFloats }
-                for (i in 0..copyLen) { boneMatricesArr[i] = src[i] }
-            case None => ()
+        if (let Some(src) <- this.boneMatrices) {
+            let copyLen = if (Int64(src.size) < totalFloats) { Int64(src.size) } else { totalFloats }
+            for (i in 0..copyLen) { boneMatricesArr[i] = src[i] }
         }
 
         // Float32 → UInt8 字节视图：每 float 4 字节（little-endian IEEE754）
@@ -356,9 +357,8 @@ public class Skeleton <: IPropertyBindingRoot {
      * @brief[en] Release GPU-related resources allocated by this instance (boneTexture)
      */
     public func dispose(): Unit {
-        match (this.boneTexture) {
-            case Some(_) => this.boneTexture = None
-            case None => ()
+        if (let Some(_) <- this.boneTexture) {
+            this.boneTexture = None
         }
     }
 

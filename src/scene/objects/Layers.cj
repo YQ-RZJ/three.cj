@@ -22,12 +22,12 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] 图层
- * @brief[zh-cn] 将 3D 对象分配到 0~31 共 32 个图层中，对应 Three.js Layers.js
+ * @brief[zh-cn] 将 3D 对象分配到 0~31 共 32 个图层中
  * @explain[zh-cn] 图层使用位掩码存储，默认所有对象属于图层 0。
  * 对象必须与相机共享至少一个图层才能在该相机的视图中可见。
  *
  * @file[en] Layers
- * @brief[en] Assign 3D objects to 32 layers (0~31), corresponding to Three.js Layers.js
+ * @brief[en] Assign 3D objects to 32 layers (0~31)
  * @explain[en] Layers use bitmask storage, default all objects belong to layer 0.
  * An object must share at least one layer with the camera to be visible in that camera's view.
  */

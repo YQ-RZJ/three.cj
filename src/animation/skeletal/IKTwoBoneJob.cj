@@ -121,12 +121,10 @@ public class IKTwoBoneJob {
      * @brief[en] Validates the inputs
      */
     public func validate(): Bool {
-        match (this.startJointCorrection) {
-            case Some(_) => match (this.midJointCorrection) {
-                case Some(_) => true
-                case None => false
-            }
-            case None => false
+        if (let Some(_) <- this.startJointCorrection && let Some(_) <- this.midJointCorrection) {
+            true
+        } else {
+            false
         }
     }
 
@@ -156,14 +154,8 @@ public class IKTwoBoneJob {
     public func run(): Bool {
         if (!this.validate()) { return false }
 
-        let startCorrection = match (this.startJointCorrection) {
-            case Some(q) => q
-            case None => return false
-        }
-        let midCorrection = match (this.midJointCorrection) {
-            case Some(q) => q
-            case None => return false
-        }
+        let startCorrection = if (let Some(q) <- this.startJointCorrection) { q } else { return false }
+        let midCorrection = if (let Some(q) <- this.midJointCorrection) { q } else { return false }
 
         // 提取关节位置
         let startPos = extractPosition(this.startJointMatrix)
@@ -284,35 +276,34 @@ public class IKTwoBoneJob {
         ))
 
         // 应用 pole vector 约束
-        match (this.midJointPoleVector) {
-            case Some(poleVec) =>
-                // mid 关节的弯曲方向应朝向 pole vector
-                let poleDir = normalize(poleVec)
-                let midRotAxis = cross(meDir, poleDir)
-                let midRotAxisLen = sqrt(midRotAxis.x * midRotAxis.x + midRotAxis.y * midRotAxis.y + midRotAxis.z * midRotAxis.z)
-                if (midRotAxisLen > 1e-6f32) {
-                    let midInvLen = 1.0f32/ midRotAxisLen
-                    let midAxisX = midRotAxis.x * midInvLen
-                    let midAxisY = midRotAxis.y * midInvLen
-                    let midAxisZ = midRotAxis.z * midInvLen
+        if (let Some(poleVec) <- this.midJointPoleVector) {
+            // mid 关节的弯曲方向应朝向 pole vector
+            let poleDir = normalize(poleVec)
+            let midRotAxis = cross(meDir, poleDir)
+            let midRotAxisLen = sqrt(midRotAxis.x * midRotAxis.x + midRotAxis.y * midRotAxis.y + midRotAxis.z * midRotAxis.z)
+            if (midRotAxisLen > 1e-6f32) {
+                let midInvLen = 1.0f32/ midRotAxisLen
+                let midAxisX = midRotAxis.x * midInvLen
+                let midAxisY = midRotAxis.y * midInvLen
+                let midAxisZ = midRotAxis.z * midInvLen
 
-                    // 计算 meDir 与 poleDir 的夹角
-                    let meDotPole = meDir.x * poleDir.x + meDir.y * poleDir.y + meDir.z * poleDir.z
-                    let midRotAngle = acos(max(-1.0f32, min(1.0f32, meDotPole)))
-                    let midHalfAngle = midRotAngle * 0.5f32
-                    let midSinHalf = sin(midHalfAngle)
+                // 计算 meDir 与 poleDir 的夹角
+                let meDotPole = meDir.x * poleDir.x + meDir.y * poleDir.y + meDir.z * poleDir.z
+                let midRotAngle = acos(max(-1.0f32, min(1.0f32, meDotPole)))
+                let midHalfAngle = midRotAngle * 0.5f32
+                let midSinHalf = sin(midHalfAngle)
 
-                    midCorrection.set(
-                        midAxisX * midSinHalf,
-                        midAxisY * midSinHalf,
-                        midAxisZ * midSinHalf,
-                        cos(midHalfAngle)
-                    )
-                } else {
-                    midCorrection.set(0.0f32, 0.0f32, 0.0f32, 1.0f32)
-                }
-            case None =>
+                midCorrection.set(
+                    midAxisX * midSinHalf,
+                    midAxisY * midSinHalf,
+                    midAxisZ * midSinHalf,
+                    cos(midHalfAngle)
+                )
+            } else {
                 midCorrection.set(0.0f32, 0.0f32, 0.0f32, 1.0f32)
+            }
+        } else {
+            midCorrection.set(0.0f32, 0.0f32, 0.0f32, 1.0f32)
         }
 
         applyWeight(startCorrection, midCorrection)

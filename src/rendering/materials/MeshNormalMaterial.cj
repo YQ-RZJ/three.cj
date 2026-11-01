@@ -24,13 +24,13 @@
  * @file[zh-cn] 法线材质
  * @brief[zh-cn] 法线材质，将法线向量映射为RGB颜色进行渲染
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshNormalMaterial.js。支持 normalMap/bumpMap/displacementMap、flatShading、wireframe。
+ * 支持 normalMap/bumpMap/displacementMap、flatShading、wireframe。
  * 将法线方向映射为颜色，常用于调试法线方向。
  *
  * @file[en] Mesh Normal Material
  * @brief[en] Normal material, renders normal vectors as RGB colors
  * @explain[en] 
- * Corresponds to Three.js materials/MeshNormalMaterial.js. Supports normalMap/bumpMap/displacementMap, flatShading, wireframe.
+ * Supports normalMap/bumpMap/displacementMap, flatShading, wireframe.
  * Maps normal directions to colors, commonly used for debugging normal directions.
  */
 package three.rendering.materials
@@ -45,11 +45,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 法线材质，将法线向量映射为RGB颜色进行渲染
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshNormalMaterial.js。将法线方向映射为颜色，常用于调试法线方向。
+ * 将法线方向映射为颜色，常用于调试法线方向。
  *
  * @brief[en] Normal material, renders normal vectors as RGB colors
  * @explain[en] 
- * Corresponds to Three.js materials/MeshNormalMaterial.js. Maps normal directions to colors, commonly used for debugging.
+ * Maps normal directions to colors, commonly used for debugging.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]
 public class MeshNormalMaterial <: Material {

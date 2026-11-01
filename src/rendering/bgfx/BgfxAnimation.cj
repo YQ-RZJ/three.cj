@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 动画管理
  * @brief[zh-cn] 替代 WebGLAnimation，管理动画循环
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLAnimation.js。WebGLAnimation 负责管理 requestAnimationFrame 循环。bgfx 版本提供类似的动画循环接口。
+ * @explain[zh-cn] WebGLAnimation 负责管理 requestAnimationFrame 循环。bgfx 版本提供类似的动画循环接口。
  *
  * @file[en] bgfx Animation Manager
  * @brief[en] Replace WebGLAnimation, manage animation loop
- * @explain[en] Mirrors three.js/src/renderers/webgl/WebGLAnimation.js. WebGLAnimation manages the requestAnimationFrame loop. The bgfx version provides a similar animation loop interface.
+ * @explain[en] WebGLAnimation manages the requestAnimationFrame loop. The bgfx version provides a similar animation loop interface.
  */
 package three.rendering.bgfx
 
@@ -125,10 +125,7 @@ public class BgfxAnimation {
      */
     public func tick(): Unit {
         if (running) {
-            match (callback) {
-                case Some(cb) => cb()
-                case None => ()
-            }
+            if (let Some(cb) <- callback) { cb() }
         }
     }
 }

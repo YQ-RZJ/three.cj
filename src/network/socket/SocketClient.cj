@@ -140,17 +140,11 @@ public class SocketClient {
             this._socket = Some(s)
             this._connected = true
             // 通知 onOpen
-            match (this.listener) {
-                case Some(l) => l.onOpen(this)
-                case None => ()
-            }
+            if (let Some(l) <- this.listener) { l.onOpen(this) }
             return true
         } catch (e: Exception) {
             this._connected = false
-            match (this.listener) {
-                case Some(l) => l.onError(this, e.toString())
-                case None => ()
-            }
+            if (let Some(l) <- this.listener) { l.onError(this, e.toString()) }
             return false
         }
     }
@@ -165,18 +159,17 @@ public class SocketClient {
      * @return[en] Returns true on success, false on failure
      */
     public func write(data: Array<UInt8>): Bool {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    s.write(data)
-                    return true
-                } catch (e: Exception) {
-                    this._notifyError(e.toString())
-                    return false
-                }
-            case None =>
-                this._notifyError("Socket not connected")
+        if (let Some(s) <- this._socket) {
+            try {
+                s.write(data)
+                return true
+            } catch (e: Exception) {
+                this._notifyError(e.toString())
                 return false
+            }
+        } else {
+            this._notifyError("Socket not connected")
+            return false
         }
     }
 
@@ -207,28 +200,24 @@ public class SocketClient {
      * @note[en] Fires onMessage when data arrives and onError on failure.
      */
     public func read(buf: Array<UInt8>): Int64 {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    let n = s.read(buf)
-                    if (n > 0) {
-                        let data = Array<UInt8>(n, { _ => 0u8 })
-                        for (i in 0..n) {
-                            data[Int64(i)] = buf[Int64(i)]
-                        }
-                        match (this.listener) {
-                            case Some(l) => l.onMessage(this, data)
-                            case None => ()
-                        }
+        if (let Some(s) <- this._socket) {
+            try {
+                let n = s.read(buf)
+                if (n > 0) {
+                    let data = Array<UInt8>(n, { _ => 0u8 })
+                    for (i in 0..n) {
+                        data[Int64(i)] = buf[Int64(i)]
                     }
-                    return n
-                } catch (e: Exception) {
-                    this._notifyError(e.toString())
-                    return -1
+                    if (let Some(l) <- this.listener) { l.onMessage(this, data) }
                 }
-            case None =>
-                this._notifyError("Socket not connected")
+                return n
+            } catch (e: Exception) {
+                this._notifyError(e.toString())
                 return -1
+            }
+        } else {
+            this._notifyError("Socket not connected")
+            return -1
         }
     }
 
@@ -264,20 +253,15 @@ public class SocketClient {
      * @note[en] Fires onClose after closing.
      */
     public func close(): Unit {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    s.close()
-                } catch (_) {
-                    // 忽略关闭异常
-                }
-                this._socket = None
-                this._connected = false
-                match (this.listener) {
-                    case Some(l) => l.onClose(this)
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(s) <- this._socket) {
+            try {
+                s.close()
+            } catch (_) {
+                // 忽略关闭异常
+            }
+            this._socket = None
+            this._connected = false
+            if (let Some(l) <- this.listener) { l.onClose(this) }
         }
     }
 
@@ -293,10 +277,7 @@ public class SocketClient {
      * @param[en] message Error message
      */
     private func _notifyError(message: String): Unit {
-        match (this.listener) {
-            case Some(l) => l.onError(this, message)
-            case None => ()
-        }
+        if (let Some(l) <- this.listener) { l.onError(this, message) }
     }
 
     /**

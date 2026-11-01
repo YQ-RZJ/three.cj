@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 材质管理
  * @brief[zh-cn] 替代 WebGLMaterials，跟踪材质编译和更新状态
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLMaterials.js。WebGLMaterials 负责刷新材质的 uniform 数据。
+ * @explain[zh-cn] WebGLMaterials 负责刷新材质的 uniform 数据。
  *
  * @file[en] bgfx Material Management
  * @brief[en] Replaces WebGLMaterials, tracks material compilation and update state
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLMaterials.js. WebGLMaterials is responsible for refreshing material uniform data.
+ * @explain[en] WebGLMaterials is responsible for refreshing material uniform data.
  */
 package three.rendering.bgfx
 
@@ -113,12 +113,12 @@ public class BgfxMaterials {
      * @return[en] Material state
      */
     public func getMaterialState(materialId: Int64): MaterialState {
-        match (materialStates.get(materialId)) {
-            case Some(state) => return state
-            case None =>
-                let state = MaterialState(materialId)
-                materialStates.add(materialId, state)
-                return state
+        if (let Some(state) <- materialStates.get(materialId)) {
+            return state
+        } else {
+            let state = MaterialState(materialId)
+            materialStates.add(materialId, state)
+            return state
         }
     }
 
@@ -132,12 +132,9 @@ public class BgfxMaterials {
      * @param[en] materialId Material ID
      */
     public func markNeedsUpdate(materialId: Int64): Unit {
-        match (materialStates.get(materialId)) {
-            case Some(state) =>
-                state.uniformsNeedUpdate = true
-                state.fogNeedsUpdate = true
-            case None =>
-                ()
+        if (let Some(state) <- materialStates.get(materialId)) {
+            state.uniformsNeedUpdate = true
+            state.fogNeedsUpdate = true
         }
     }
 
@@ -151,9 +148,10 @@ public class BgfxMaterials {
      * @return[en] Whether update is needed
      */
     public func needsUpdate(materialId: Int64): Bool {
-        match (materialStates.get(materialId)) {
-            case Some(state) => return state.uniformsNeedUpdate
-            case None => return true
+        if (let Some(state) <- materialStates.get(materialId)) {
+            return state.uniformsNeedUpdate
+        } else {
+            return true
         }
     }
 
@@ -165,12 +163,9 @@ public class BgfxMaterials {
      * @param[en] materialId Material ID
      */
     public func markUpdated(materialId: Int64): Unit {
-        match (materialStates.get(materialId)) {
-            case Some(state) =>
-                state.uniformsNeedUpdate = false
-                state.lastUpdateFrame = info.render.frame
-            case None =>
-                ()
+        if (let Some(state) <- materialStates.get(materialId)) {
+            state.uniformsNeedUpdate = false
+            state.lastUpdateFrame = info.render.frame
         }
     }
 

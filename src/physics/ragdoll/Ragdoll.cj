@@ -709,8 +709,7 @@ public class PhysicsRagdollSettings {
                                     JPH_RagdollSettings_SetPartMassProperties_cj(settings, Int32(i), part.mass)
                                 }
                                 // 到父级的摆动-扭转关节
-                                match (part.toParent) {
-                                    case Some(joint) =>
+                                if (let Some(joint) <- part.toParent) {
                                         let js = unsafe {
                                             LibC.malloc<JPHSwingTwistConstraintSettings>()
                                         }
@@ -756,7 +755,6 @@ public class PhysicsRagdollSettings {
                                         }
                                         JPH_RagdollSettings_SetPartToParent_cj(settings, Int32(i), CPointer<Unit>(js))
                                         unsafe { LibC.free(js) }
-                                    case None => ()
                                 }
                             }
                             if (doStabilize) {

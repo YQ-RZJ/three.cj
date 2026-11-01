@@ -24,12 +24,12 @@
  * @file[zh-cn] 线段基础材质
  * @brief[zh-cn] 线段基础材质，支持线宽、线帽和线连接样式
  * @explain[zh-cn] 
- * 对应 Three.js materials/LineBasicMaterial.js。支持 linewidth/linecap/linejoin 属性。
+ * 支持 linewidth/linecap/linejoin 属性。
  *
  * @file[en] Line Basic Material
  * @brief[en] Basic line material, supporting linewidth, linecap, and linejoin styles
  * @explain[en] 
- * Corresponds to Three.js materials/LineBasicMaterial.js. Supports linewidth, linecap, and linejoin properties.
+ * Supports linewidth, linecap, and linejoin properties.
  */
 package three.rendering.materials
 
@@ -41,11 +41,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 线段基础材质，支持线宽、线帽和线连接样式
  * @explain[zh-cn] 
- * 对应 Three.js materials/LineBasicMaterial.js。支持 linewidth/linecap/linejoin 属性。
+ * 支持 linewidth/linecap/linejoin 属性。
  *
  * @brief[en] Basic line material, supporting linewidth, linecap, and linejoin styles
  * @explain[en] 
- * Corresponds to Three.js materials/LineBasicMaterial.js. Supports linewidth, linecap, and linejoin properties.
+ * Supports linewidth, linecap, and linejoin properties.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]
 public class LineBasicMaterial <: Material {

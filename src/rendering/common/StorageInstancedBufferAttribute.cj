@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 实例化存储缓冲属性
  * @brief[zh-cn] 实例化存储缓冲属性类，用于 GPU 实例化计算的缓冲属性存储资源
- * @explain[zh-cn] StorageInstancedBufferAttribute 继承自 DataMap，表示可在计算着色器中读写的实例化缓冲属性存储资源，支持逐实例数据。对照源码: three.js/src/renderers/common/StorageInstancedBufferAttribute.js
+ * @explain[zh-cn] StorageInstancedBufferAttribute 继承自 DataMap，表示可在计算着色器中读写的实例化缓冲属性存储资源，支持逐实例数据。
  *
  * @file[en] Storage Instanced Buffer Attribute
  * @brief[en] Storage instanced buffer attribute class, used for GPU instanced compute buffer attribute storage resources
- * @explain[en] StorageInstancedBufferAttribute extends DataMap, representing an instanced buffer attribute storage resource that can be read and written in compute shaders, supporting per-instance data. Reference: three.js/src/renderers/common/StorageInstancedBufferAttribute.js
+ * @explain[en] StorageInstancedBufferAttribute extends DataMap, representing an instanced buffer attribute storage resource that can be read and written in compute shaders, supporting per-instance data.
  */
 package three.rendering.common
 

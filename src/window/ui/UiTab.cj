@@ -159,9 +159,10 @@ public class UiTabItem <: UiWidget {
      * @return[en] Whether interaction occurred (always false in this implementation)
      */
     public override func draw(): Bool {
-        let openPtr: CPointer<Int32> = match (this._open) {
-            case Some(p) => p.data()
-            case None => CPointer<Int32>()
+        let openPtr: CPointer<Int32> = if (let Some(p) <- this._open) {
+            p.data()
+        } else {
+            CPointer<Int32>()
         }
         let cs = unsafe { LibC.mallocCString(this._label) }
         let r = igBeginTabItem_cj(cs, openPtr, this._flags) != 0

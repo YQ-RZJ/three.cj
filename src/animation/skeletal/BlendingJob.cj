@@ -47,6 +47,8 @@ package three.animation.skeletal
 import std.math.*
 import three.core.math.*
 import three.core.math.soa.*
+import three.profiler.*
+import three.profiler.macros.*
 import std.collection.*
 
 /**
@@ -150,6 +152,27 @@ public class BlendingJob {
      */
     public var output: Array<SoaTransform>
 
+    /**
+     * @brief[zh-cn] 加权累加器（按关节平铺，逐次运行复用）
+     * @explain[zh-cn] 混合是逐帧热路径，累加器尺寸只随骨骼规模变化，
+     *                  逐次运行重新分配 11 个数组纯属浪费。
+     *
+     * @brief[en] Weighted accumulators (per joint, reused across runs)
+     * @explain[en] Blending runs every frame; the accumulator size only changes with
+     *              the skeleton size, so they are reused instead of reallocated.
+     */
+    private var _accW: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accTx: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accTy: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accTz: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accRx: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accRy: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accRz: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accRw: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accSx: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accSy: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+    private var _accSz: Array<Float32> = Array<Float32>(0, { _ => 0.0f32 })
+
     public init() {
         this.threshold = 0.001f32
         this.layers = ArrayList<BlendLayer>()
@@ -185,12 +208,10 @@ public class BlendingJob {
      */
     private func jointWeight(layer: BlendLayer, joint: Int): Float32 {
         var w = layer.weight
-        match (layer.jointWeights) {
-            case Some(jw) =>
-                if (joint < jw.size) {
-                    w *= jw[joint]
-                }
-            case None => ()
+        if (let Some(jw) <- layer.jointWeights) {
+            if (joint < jw.size) {
+                w *= jw[joint]
+            }
         }
         w
     }
@@ -213,24 +234,52 @@ public class BlendingJob {
      *                     joints below the threshold fall back to the rest pose
      *                  4. Iterates over the additive layers and composites the deltas onto the blended result
      */
+    @Zone[three.animation.skeletal.BlendingJob.run, name=BlendingJob.run]
     public func run(): Bool {
         if (!this.validate()) { return false }
 
         let numSoa = this.restPose.size
         let numJoints = numSoa * 4
 
-        // 加权累加器（按关节平铺）
-        var accW = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accTx = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accTy = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accTz = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accRx = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accRy = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accRz = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accRw = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accSx = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accSy = Array<Float32>(numJoints, { _ => 0.0f32 })
-        var accSz = Array<Float32>(numJoints, { _ => 0.0f32 })
+        // 加权累加器（按关节平铺）：尺寸不变时复用并清零，免逐次分配
+        if (this._accW.size != numJoints) {
+            this._accW = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accTx = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accTy = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accTz = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accRx = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accRy = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accRz = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accRw = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accSx = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accSy = Array<Float32>(numJoints, { _ => 0.0f32 })
+            this._accSz = Array<Float32>(numJoints, { _ => 0.0f32 })
+        } else {
+            for (j in 0..numJoints) {
+                this._accW[j] = 0.0f32
+                this._accTx[j] = 0.0f32
+                this._accTy[j] = 0.0f32
+                this._accTz[j] = 0.0f32
+                this._accRx[j] = 0.0f32
+                this._accRy[j] = 0.0f32
+                this._accRz[j] = 0.0f32
+                this._accRw[j] = 0.0f32
+                this._accSx[j] = 0.0f32
+                this._accSy[j] = 0.0f32
+                this._accSz[j] = 0.0f32
+            }
+        }
+        let accW = this._accW
+        let accTx = this._accTx
+        let accTy = this._accTy
+        let accTz = this._accTz
+        let accRx = this._accRx
+        let accRy = this._accRy
+        let accRz = this._accRz
+        let accRw = this._accRw
+        let accSx = this._accSx
+        let accSy = this._accSy
+        let accSz = this._accSz
 
         // 1. 累加普通层
         for (layer in this.layers) {

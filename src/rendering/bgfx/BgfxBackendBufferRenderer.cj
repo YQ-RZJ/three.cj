@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 后端缓冲绘制
  * @brief[zh-cn] 对照 webgl-fallback/WebGLBufferRenderer.js，后端层缓冲绘制
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLBufferRenderer.js。后端层封装，委托给 bgfx/ 模块的 BgfxBufferRenderer。
+ * @explain[zh-cn] 后端层封装，委托给 bgfx/ 模块的 BgfxBufferRenderer。
  *
  * @file[en] bgfx Backend Buffer Renderer
  * @brief[en] Backend buffer draw call wrapper, mirroring webgl-fallback/WebGLBufferRenderer.js
- * @explain[en] Mirrors three.js/src/renderers/webgl/WebGLBufferRenderer.js. Backend layer wrapper that delegates to BgfxBufferRenderer.
+ * @explain[en] Backend layer wrapper that delegates to BgfxBufferRenderer.
  */
 package three.rendering.bgfx
 

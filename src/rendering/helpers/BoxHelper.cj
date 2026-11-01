@@ -24,13 +24,13 @@
  * @file[zh-cn] 包围盒辅助对象
  * @brief[zh-cn] 包围盒辅助对象，用于可视化 Object3D 的轴对齐包围盒
  * @explain[zh-cn] 
- * 对应 Three.js helpers/BoxHelper.js。以线框绘制对象及其子对象的包围盒，
+ * 以线框绘制对象及其子对象的包围盒，
  * 调用 update() 可刷新包围盒。
  *
  * @file[en] Box Helper
  * @brief[en] Box helper for visualizing the axis-aligned bounding box of an Object3D
  * @explain[en] 
- * Corresponds to Three.js helpers/BoxHelper.js. Draws the bounding box of an object
+ * Draws the bounding box of an object
  * and its children as wireframe, call update() to refresh the bounding box.
  */
 package three.rendering.helpers
@@ -104,8 +104,7 @@ public class BoxHelper <: LineSegments {
         if (box.isEmpty()) { return }
         let min = box.min; let max = box.max
         let position = this.geometry.getAttribute("position")
-        match (position) {
-            case Some(attr) =>
+        if (let Some(attr) <- position) {
                 let array = attr.array
                 array[0] = max.x; array[1] = max.y; array[2] = max.z
                 array[3] = min.x; array[4] = max.y; array[5] = max.z
@@ -116,8 +115,7 @@ public class BoxHelper <: LineSegments {
                 array[18] = min.x; array[19] = min.y; array[20] = min.z
                 array[21] = max.x; array[22] = min.y; array[23] = min.z
                 attr.version += 1
-            case None => ()
-        }
+            }
         this.geometry.computeBoundingSphere()
     }
 
@@ -139,17 +137,13 @@ public class BoxHelper <: LineSegments {
             case l: Line => geomOpt = Some(l.geometry)
             case _ => ()
         }
-        match (geomOpt) {
-            case Some(geom) =>
-                geom.computeBoundingBox()
-                match (geom.boundingBox) {
-                    case Some(bb) =>
-                        
-                        let worldBox = Box3().copy(bb).applyMatrix4(object.matrixWorld)
-                        box.union(worldBox)
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(geom) <- geomOpt) {
+            geom.computeBoundingBox()
+            if (let Some(bb) <- geom.boundingBox) {
+                
+                let worldBox = Box3().copy(bb).applyMatrix4(object.matrixWorld)
+                box.union(worldBox)
+            }
         }
         for (i in 0..object.children.size) {
             this.expandByObject(box, object.children[i])

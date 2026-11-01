@@ -156,13 +156,15 @@ public class BatchedMesh <: Mesh {
         this._geometryId += 1
         this.activeGeometryCount += 1
         // 与 JS side 一致：计几何的顶点/索引数量并填入对应数组
-        match (geometry.getAttribute("position")) {
-            case Some(posAttr) => this.vertexCount[id] = posAttr.count
-            case None => this.vertexCount[id] = 0
+        if (let Some(posAttr) <- geometry.getAttribute("position")) {
+            this.vertexCount[id] = posAttr.count
+        } else {
+            this.vertexCount[id] = 0
         }
-        match (geometry.index) {
-            case Some(idxAttr) => this.indexCount[id] = idxAttr.count
-            case None => this.indexCount[id] = 0
+        if (let Some(idxAttr) <- geometry.index) {
+            this.indexCount[id] = idxAttr.count
+        } else {
+            this.indexCount[id] = 0
         }
         this.instanceCount[id] = 1
         return id
@@ -264,12 +266,10 @@ public class BatchedMesh <: Mesh {
             return
         }
         this.computeBoundingBoxAt(geometryId)
-        match (this.boundingBox[geometryId]) {
-            case Some(box) =>
-                let sphere = Sphere()
-                box.getBoundingSphere(sphere)
-                this.boundingSphere[geometryId] = Some(sphere)
-            case None => ()
+        if (let Some(box) <- this.boundingBox[geometryId]) {
+            let sphere = Sphere()
+            box.getBoundingSphere(sphere)
+            this.boundingSphere[geometryId] = Some(sphere)
         }
     }
 

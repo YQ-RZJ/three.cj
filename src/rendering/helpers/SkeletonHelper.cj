@@ -24,13 +24,13 @@
  * @file[zh-cn] 骨骼辅助对象
  * @brief[zh-cn] 骨骼辅助对象，用于可视化骨骼层级结构
  * @explain[zh-cn] 
- * 对应 Three.js helpers/SkeletonHelper.js。用线段连接父子骨骼，
+ * 用线段连接父子骨骼，
  * 不同颜色区分不同骨骼段。
  *
  * @file[en] Skeleton Helper
  * @brief[en] Skeleton helper for visualizing bone hierarchy
  * @explain[en] 
- * Corresponds to Three.js helpers/SkeletonHelper.js. Connects parent-child bones
+ * Connects parent-child bones
  * with line segments, using different colors for different bone segments.
  */
 package three.rendering.helpers
@@ -75,6 +75,14 @@ public class SkeletonHelper <: LineSegments {
      * @brief[en] Bone list
      */
     public var bones: ArrayList<Bone>
+
+    /// 复用的暂存对象（updateMatrixWorld 每帧调用，避免逐帧新建 Matrix4/Vector3）
+    @JsonIgnore
+    private let _scratchMatrixWorldInv: Matrix4 = Matrix4()
+    @JsonIgnore
+    private let _scratchBoneMatrix: Matrix4 = Matrix4()
+    @JsonIgnore
+    private let _scratchVector: Vector3 = Vector3()
 
     /**
      * @brief[zh-cn] 构造骨骼辅助对象
@@ -132,28 +140,27 @@ public class SkeletonHelper <: LineSegments {
         let bones = this.bones
         let geometry = this.geometry
         let position = geometry.getAttribute("position")
-        let matrixWorldInv = Matrix4().copy(this.root.matrixWorld).invert()
-        let boneMatrix = Matrix4()
-        let vector = Vector3()
+        // 复用暂存对象（原实现每帧新建 2 个 Matrix4 + 1 个 Vector3）
+        let matrixWorldInv = this._scratchMatrixWorldInv.copy(this.root.matrixWorld).invert()
+        let boneMatrix = this._scratchBoneMatrix
+        let vector = this._scratchVector
 
-        match (position) {
-            case Some(pos) =>
-                var j = 0
-                for (i in 0..bones.size) {
-                    let bone = bones[i]
-                    
-                    if (bone.parent.isSome() && isBoneObject(bone.parent.getOrThrow())) {
-                        boneMatrix.multiplyMatrices(matrixWorldInv, bone.matrixWorld)
-                        vector.setFromMatrixPosition(boneMatrix)
-                        pos.setXYZ(j, vector.x, vector.y, vector.z)
-                        boneMatrix.multiplyMatrices(matrixWorldInv, bone.parent.getOrThrow().matrixWorld)
-                        vector.setFromMatrixPosition(boneMatrix)
-                        pos.setXYZ(j + 1, vector.x, vector.y, vector.z)
-                        j += 2
-                    }
+        if (let Some(pos) <- position) {
+            var j = 0
+            for (i in 0..bones.size) {
+                let bone = bones[i]
+                
+                if (bone.parent.isSome() && isBoneObject(bone.parent.getOrThrow())) {
+                    boneMatrix.multiplyMatrices(matrixWorldInv, bone.matrixWorld)
+                    vector.setFromMatrixPosition(boneMatrix)
+                    pos.setXYZ(j, vector.x, vector.y, vector.z)
+                    boneMatrix.multiplyMatrices(matrixWorldInv, bone.parent.getOrThrow().matrixWorld)
+                    vector.setFromMatrixPosition(boneMatrix)
+                    pos.setXYZ(j + 1, vector.x, vector.y, vector.z)
+                    j += 2
                 }
-                pos.version += 1
-            case None => ()
+            }
+            pos.version += 1
         }
         super.updateMatrixWorld(force)
     }
@@ -172,16 +179,14 @@ public class SkeletonHelper <: LineSegments {
     public func setColors(color1: Color, color2: Color): SkeletonHelper {
         let geometry = this.geometry
         let colorAttribute = geometry.getAttribute("color")
-        match (colorAttribute) {
-            case Some(attr) =>
-                var i = 0
-                while (i < attr.count) {
-                    attr.setXYZ(i, color1.r, color1.g, color1.b)
-                    attr.setXYZ(i + 1, color2.r, color2.g, color2.b)
-                    i += 2
-                }
-                attr.version += 1
-            case None => ()
+        if (let Some(attr) <- colorAttribute) {
+            var i = 0
+            while (i < attr.count) {
+                attr.setXYZ(i, color1.r, color1.g, color1.b)
+                attr.setXYZ(i + 1, color2.r, color2.g, color2.b)
+                i += 2
+            }
+            attr.version += 1
         }
         return this
     }

@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 渲染统计信息
  * @brief[zh-cn] 替代 WebGLInfo，跟踪渲染统计信息
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLInfo.js。在 WebGL 中通过 gl.getParameter() 和手动计数跟踪渲染统计，在 bgfx 中通过手动计数跟踪。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.getParameter() 和手动计数跟踪渲染统计，在 bgfx 中通过手动计数跟踪。
  *
  * @file[en] bgfx Rendering Statistics
  * @brief[en] Replaces WebGLInfo, tracks rendering statistics
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLInfo.js. In WebGL, rendering statistics are tracked via gl.getParameter() and manual counting; in bgfx, they are tracked via manual counting.
+ * @explain[en] In WebGL, rendering statistics are tracked via gl.getParameter() and manual counting; in bgfx, they are tracked via manual counting.
  */
 package three.rendering.bgfx
 
@@ -125,10 +125,10 @@ public class BgfxRenderInfo {
 
 /**
  * @brief[zh-cn] bgfx 渲染统计
- * @explain[zh-cn] 对照 WebGLInfo，跟踪内存使用和渲染调用统计。bgfx 内部有自己的统计系统，此类提供 three.js 兼容的统计接口。
+ * @explain[zh-cn] 对照 WebGLInfo，跟踪内存使用和渲染调用统计。bgfx 内部有自己的统计系统，此类提供引擎通用的统计接口。
  *
  * @brief[en] bgfx rendering statistics
- * @explain[en] Corresponds to WebGLInfo, tracks memory usage and render call statistics. bgfx has its own statistics system; this class provides a three.js-compatible statistics interface.
+ * @explain[en] Corresponds to WebGLInfo, tracks memory usage and render call statistics. bgfx has its own statistics system; this class provides a generic engine statistics interface.
  */
 public class BgfxInfo {
     /**

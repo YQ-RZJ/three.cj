@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 裁剪平面管理
  * @brief[zh-cn] 替代 WebGLClipping，管理裁剪平面数据传递给着色器
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLClipping.js。在 WebGL 中通过 uniform 传递裁剪平面数据，在 bgfx 中同样通过 uniform 传递，使用 bgfx_set_uniform_cj。
+ * @explain[zh-cn] 在 WebGL 中通过 uniform 传递裁剪平面数据，在 bgfx 中同样通过 uniform 传递，使用 bgfx_set_uniform_cj。
  *
  * @file[en] bgfx Clipping Plane Management
  * @brief[en] Replaces WebGLClipping, manages clipping plane data passed to shaders
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLClipping.js. In WebGL, clipping plane data is passed via uniforms; in bgfx, the same approach is used with bgfx_set_uniform_cj.
+ * @explain[en] In WebGL, clipping plane data is passed via uniforms; in bgfx, the same approach is used with bgfx_set_uniform_cj.
  */
 package three.rendering.bgfx
 
@@ -217,10 +217,7 @@ public class BgfxClipping {
             case _ => false
         }
 
-        let planesSize: Int64 = match (planesArrOpt) {
-            case Some(arr) => Int64(arr.size)
-            case None => 0
-        }
+        let planesSize: Int64 = if (let Some(arr) <- planesArrOpt) { Int64(arr.size) } else { 0 }
 
         if (!localClippingEnabled || planesSize == 0 ||
             (renderingShadows && !clipShadows)) {
@@ -235,16 +232,14 @@ public class BgfxClipping {
 
             let dstArray = projectPlanes(planesArrOpt, Some(camera), lGlobal, !useCache)
 
-            match (globalState) {
-                case Some(gs) =>
-                    var i = 0
-                    while (i != lGlobal) {
-                        if (i < Int64(dstArray.size) && i < Int64(gs.size)) {
-                            dstArray[Int64(i)] = gs[Int64(i)]
-                        }
-                        i += 1
+            if (let Some(gs) <- globalState) {
+                var i = 0
+                while (i != lGlobal) {
+                    if (i < Int64(dstArray.size) && i < Int64(gs.size)) {
+                        dstArray[Int64(i)] = gs[Int64(i)]
                     }
-                case None => ()
+                    i += 1
+                }
             }
 
             this.numIntersection = if (clipIntersection) { this.numPlanes } else { 0 }
@@ -258,13 +253,12 @@ public class BgfxClipping {
      * @brief[en] Resets global clipping state
      */
     private func resetGlobalState(): Unit {
-        match (globalState) {
-            case Some(state) =>
-                uniform.value = Some(state)
-                uniform.needsUpdate = numGlobalPlanes > 0
-            case None =>
-                uniform.value = None
-                uniform.needsUpdate = false
+        if (let Some(state) <- globalState) {
+            uniform.value = Some(state)
+            uniform.needsUpdate = numGlobalPlanes > 0
+        } else {
+            uniform.value = None
+            uniform.needsUpdate = false
         }
         numPlanes = numGlobalPlanes
         numIntersection = 0
@@ -288,30 +282,24 @@ public class BgfxClipping {
      * @return[en] Destination Float32 array
      */
     private func projectPlanes(planes: Option<ArrayList<Plane>>, camera: Option<Camera>, dstOffset: Int64, skipTransform: Bool): ArrayList<Float32> {
-        let nPlanes: Int64 = match (planes) {
-            case Some(p) => Int64(p.size)
-            case None => 0
-        }
+        let nPlanes: Int64 = if (let Some(p) <- planes) { Int64(p.size) } else { 0 }
 
         let emptyDst = ArrayList<Float32>()
 
         if (nPlanes != 0) {
-            let baseDst: ArrayList<Float32> = match (uniform.value) {
-                case Some(arr) => arr
-                case None => ArrayList<Float32>()
-            }
+            let baseDst: ArrayList<Float32> = if (let Some(arr) <- uniform.value) { arr } else { ArrayList<Float32>() }
 
             let flatSize: Int64 = dstOffset + nPlanes * 4
             let dstArray: ArrayList<Float32>
 
             if (!skipTransform || baseDst.size == 0) {
-                let viewMatrix: Matrix4 = match (camera) {
-                    case Some(cam) =>
-                        match (cam) {
-                            case c: Camera => c.matrixWorldInverse
-                            case _ => Matrix4()
-                        }
-                    case None => Matrix4()
+                let viewMatrix: Matrix4 = if (let Some(cam) <- camera) {
+                    match (cam) {
+                        case c: Camera => c.matrixWorldInverse
+                        case _ => Matrix4()
+                    }
+                } else {
+                    Matrix4()
                 }
                 viewNormalMatrix.getNormalMatrix(viewMatrix)
 
@@ -327,23 +315,21 @@ public class BgfxClipping {
                     dstArray = baseDst
                 }
 
-                match (planes) {
-                    case Some(p) =>
-                        var i = 0
-                        var i4 = dstOffset
-                        while (i != nPlanes) {
-                            if (i < Int64(p.size)) {
-                                let pl = p[Int64(i)]
-                                this.plane.copy(pl).applyMatrix4(viewMatrix, optionalNormalMatrix: Some(viewNormalMatrix))
-                                dstArray[Int64(i4)] = Float32(this.plane.normal.x)
-                                dstArray[Int64(i4 + 1)] = Float32(this.plane.normal.y)
-                                dstArray[Int64(i4 + 2)] = Float32(this.plane.normal.z)
-                                dstArray[Int64(i4 + 3)] = Float32(this.plane.constant)
-                            }
-                            i += 1
-                            i4 += 4
+                if (let Some(p) <- planes) {
+                    var i = 0
+                    var i4 = dstOffset
+                    while (i != nPlanes) {
+                        if (i < Int64(p.size)) {
+                            let pl = p[Int64(i)]
+                            this.plane.copy(pl).applyMatrix4(viewMatrix, optionalNormalMatrix: Some(viewNormalMatrix))
+                            dstArray[Int64(i4)] = Float32(this.plane.normal.x)
+                            dstArray[Int64(i4 + 1)] = Float32(this.plane.normal.y)
+                            dstArray[Int64(i4 + 2)] = Float32(this.plane.normal.z)
+                            dstArray[Int64(i4 + 3)] = Float32(this.plane.constant)
                         }
-                    case None => ()
+                        i += 1
+                        i4 += 4
+                    }
                 }
             } else {
                 dstArray = baseDst

@@ -63,6 +63,8 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * 单级金字塔 RT 资源（水平 + 垂直各一个 RT）。
@@ -82,6 +84,19 @@ public class BloomMipLevel {
     public var height: Int64 = 0
     /** 高斯核半径（6/10/14/18/22） */
     public var kernelRadius: Int64 = 0
+    /**
+     * @brief[zh-cn] 预计算的高斯系数（vec4 数组：x=系数，yzw=padding）
+     * @explain[zh-cn] 系数只取决于 kernelRadius，与帧无关。原实现在每次模糊 pass
+     *               （每帧 5 级 × 2 方向 = 10 次）都重新分配数组并重算系数，
+     *               属纯重复计算 + 堆分配。此处按级别预计算一次并复用。
+     *
+     * @brief[en] Precomputed Gaussian coefficients (vec4 array: x=coefficient, yzw=padding)
+     * @explain[en] The coefficients depend only on kernelRadius and are frame-invariant.
+     *              The previous implementation reallocated the array and recomputed them
+     *              on every blur pass (5 levels × 2 directions = 10 times per frame) —
+     *              pure repeated computation plus heap allocation. Now precomputed per level.
+     */
+    public var gaussCoefs: Array<Float64> = Array<Float64>(0, { _ => 0.0 })
 
     public init() {}
 }
@@ -213,51 +228,62 @@ public class UnrealBloomPass <: Pass {
             return
         }
 
-        match (this._renderer) {
-            case Some(renderer) =>
-                // bright RT：半分辨率 RGBA16F
-                let bw = this._width / 2
-                let bh = this._height / 2
-                this._brightTex = renderer.createTexture2D(
-                    UInt16(bw), UInt16(bh), false, 1u16,
+        if (let Some(renderer) <- this._renderer) {
+            // bright RT：半分辨率 RGBA16F
+            let bw = this._width / 2
+            let bh = this._height / 2
+            this._brightTex = renderer.createTexture2D(
+                UInt16(bw), UInt16(bh), false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
+                None)
+            this._brightFB = this._createFB(renderer, this._brightTex)
+
+            // 5 级金字塔，每级尺寸减半
+            var resx = bw
+            var resy = bh
+            for (i in 0..this.nMips) {
+                let level = BloomMipLevel()
+                level.width = resx
+                level.height = resy
+                level.kernelRadius = this.kernelSizeArray[i]
+                // 预计算该级高斯系数（与帧无关，仅算一次）
+                //   sigma = kernelRadius / 3
+                //   coefficients[i] = 0.39894 * exp(-0.5 * i*i / (sigma*sigma)) / sigma
+                // shader 声明 uniform vec4 bloomGaussCoefs[KERNEL_RADIUS]（bgfx uniform 数组按 vec4 对齐，
+                // 每个 vec4 的 x=系数，yzw=padding）
+                let kr = level.kernelRadius
+                let sigma = Float64(kr) / 3.0
+                let gaussFloats = Array<Float64>(kr * 4, { _ => 0.0 })
+                for (gi in 0..kr) {
+                    let fi = Float64(gi)
+                    gaussFloats[gi * 4 + 0] = 0.39894 * exp(-0.5 * fi * fi / (sigma * sigma)) / sigma
+                }
+                level.gaussCoefs = gaussFloats
+
+                // 水平模糊 RT
+                level.horizontalTex = renderer.createTexture2D(
+                    UInt16(resx), UInt16(resy), false, 1u16,
                     TextureFormat.RGBA16F.value(),
                     BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
                     None)
-                this._brightFB = this._createFB(renderer, this._brightTex)
+                level.horizontalFB = this._createFB(renderer, level.horizontalTex)
 
-                // 5 级金字塔，每级尺寸减半
-                var resx = bw
-                var resy = bh
-                for (i in 0..this.nMips) {
-                    let level = BloomMipLevel()
-                    level.width = resx
-                    level.height = resy
-                    level.kernelRadius = this.kernelSizeArray[i]
+                // 垂直模糊 RT
+                level.verticalTex = renderer.createTexture2D(
+                    UInt16(resx), UInt16(resy), false, 1u16,
+                    TextureFormat.RGBA16F.value(),
+                    BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
+                    None)
+                level.verticalFB = this._createFB(renderer, level.verticalTex)
 
-                    // 水平模糊 RT
-                    level.horizontalTex = renderer.createTexture2D(
-                        UInt16(resx), UInt16(resy), false, 1u16,
-                        TextureFormat.RGBA16F.value(),
-                        BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
-                        None)
-                    level.horizontalFB = this._createFB(renderer, level.horizontalTex)
+                this._mipLevels.add(level)
 
-                    // 垂直模糊 RT
-                    level.verticalTex = renderer.createTexture2D(
-                        UInt16(resx), UInt16(resy), false, 1u16,
-                        TextureFormat.RGBA16F.value(),
-                        BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP),
-                        None)
-                    level.verticalFB = this._createFB(renderer, level.verticalTex)
+                resx = resx / 2
+                resy = resy / 2
+            }
 
-                    this._mipLevels.add(level)
-
-                    resx = resx / 2
-                    resy = resy / 2
-                }
-
-                this._rtsCreated = true
-            case None => ()
+            this._rtsCreated = true
         }
     }
 
@@ -275,36 +301,34 @@ public class UnrealBloomPass <: Pass {
      * 销毁所有 RT。
      */
     private func _destroyRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                if (Handle.isValid(this._brightFB)) {
-                    renderer.destroyFrameBuffer(this._brightFB)
-                    this._brightFB = INVALID_FRAME_BUFFER_HANDLE
+        if (let Some(renderer) <- this._renderer) {
+            if (Handle.isValid(this._brightFB)) {
+                renderer.destroyFrameBuffer(this._brightFB)
+                this._brightFB = INVALID_FRAME_BUFFER_HANDLE
+            }
+            if (Handle.isValid(this._brightTex)) {
+                renderer.destroyTexture(this._brightTex)
+                this._brightTex = INVALID_TEXTURE_HANDLE
+            }
+            for (level in this._mipLevels) {
+                if (Handle.isValid(level.horizontalFB)) {
+                    renderer.destroyFrameBuffer(level.horizontalFB)
+                    level.horizontalFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                if (Handle.isValid(this._brightTex)) {
-                    renderer.destroyTexture(this._brightTex)
-                    this._brightTex = INVALID_TEXTURE_HANDLE
+                if (Handle.isValid(level.horizontalTex)) {
+                    renderer.destroyTexture(level.horizontalTex)
+                    level.horizontalTex = INVALID_TEXTURE_HANDLE
                 }
-                for (level in this._mipLevels) {
-                    if (Handle.isValid(level.horizontalFB)) {
-                        renderer.destroyFrameBuffer(level.horizontalFB)
-                        level.horizontalFB = INVALID_FRAME_BUFFER_HANDLE
-                    }
-                    if (Handle.isValid(level.horizontalTex)) {
-                        renderer.destroyTexture(level.horizontalTex)
-                        level.horizontalTex = INVALID_TEXTURE_HANDLE
-                    }
-                    if (Handle.isValid(level.verticalFB)) {
-                        renderer.destroyFrameBuffer(level.verticalFB)
-                        level.verticalFB = INVALID_FRAME_BUFFER_HANDLE
-                    }
-                    if (Handle.isValid(level.verticalTex)) {
-                        renderer.destroyTexture(level.verticalTex)
-                        level.verticalTex = INVALID_TEXTURE_HANDLE
-                    }
+                if (Handle.isValid(level.verticalFB)) {
+                    renderer.destroyFrameBuffer(level.verticalFB)
+                    level.verticalFB = INVALID_FRAME_BUFFER_HANDLE
                 }
-                this._mipLevels.clear()
-            case None => ()
+                if (Handle.isValid(level.verticalTex)) {
+                    renderer.destroyTexture(level.verticalTex)
+                    level.verticalTex = INVALID_TEXTURE_HANDLE
+                }
+            }
+            this._mipLevels.clear()
         }
         this._rtsCreated = false
     }
@@ -323,6 +347,7 @@ public class UnrealBloomPass <: Pass {
      * @param readBuffer 读 buffer（上一 pass 的场景渲染结果）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.UnrealBloomPass.render, name=unrealBloomPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -368,28 +393,24 @@ public class UnrealBloomPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
 
         let progOpt = PostProcessingShaders.get("bloom_luminosity")
-        match (progOpt) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    sp.compileBgfx()
-                }
-                let prog = Box(sp.programHandle)
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(sp) <- progOpt) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                sp.compileBgfx()
+            }
+            let prog = Box(sp.programHandle)
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
-                let readTex = this.getTexture(renderer, readBuffer, 0u8)
-                let uDiffuse = uniforms.createUniform("bloomDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiffuse, readTex, 0u32)
+            let uniforms = this._passUniforms()
+            let readTex = this.getTexture(renderer, readBuffer, 0u8)
+            let uDiffuse = this._cachedUniform("bloomDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiffuse, readTex, 0u32)
 
-                // bloomParams: x=threshold, y=smoothWidth, z=strength, w=0
-                let uParams = uniforms.createUniform("bloomParams", UniformType.Vec4.value())
-                let pMem = BgfxMemory(16u32)
-                pMem.writeFloats([this.threshold, 0.01, this.strength, 0.0], 4)
-                this.setUniform(renderer, uParams, pMem)
+            // bloomParams: x=threshold, y=smoothWidth, z=strength, w=0
+            let uParams = this._cachedUniform("bloomParams", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uParams, 3, this.threshold, 0.01, this.strength, 0.0)
 
-                @LogTrace(["UnrealBloom", "luminosity view=${viewId} readTex=${Handle.idx(readTex)}brightFB=${Handle.idx(this._brightFB)}}rightTex=${Handle.idx(this._brightTex)} }rams=(threshold=${this.threshold}, smooth=0.01, strength=${this.strength}) viewport=${level0.width}x${level0.height}"])
-                this.submitQuad(viewId, prog)
-            case None => ()
+            @LogTrace(["UnrealBloom", "luminosity view=${viewId} readTex=${Handle.idx(readTex)}brightFB=${Handle.idx(this._brightFB)}}rightTex=${Handle.idx(this._brightTex)} }rams=(threshold=${this.threshold}, smooth=0.01, strength=${this.strength}) viewport=${level0.width}x${level0.height}"])
+            this.submitQuad(viewId, prog)
         }
     }
 
@@ -464,56 +485,50 @@ public class UnrealBloomPass <: Pass {
         // 避免共享单例只按首个 mip 的 KERNEL_RADIUS=6 编译一次、后续各级模糊半径失效。
         let progName = "bloom_blur_k" + level.kernelRadius.toString()
         let progOpt = PostProcessingShaders.get(progName)
-        match (progOpt) {
-            case Some(sp) =>
-                // 带 KERNEL_RADIUS define 编译
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    let defineStr = "KERNEL_RADIUS=" + level.kernelRadius.toString()
-                    sp.compileBgfx(extraDefines: [defineStr])
-                }
-                let prog = Box(sp.programHandle)
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(sp) <- progOpt) {
+            // 带 KERNEL_RADIUS define 编译
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                let defineStr = "KERNEL_RADIUS=" + level.kernelRadius.toString()
+                sp.compileBgfx(extraDefines: [defineStr])
+            }
+            let prog = Box(sp.programHandle)
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
-                // colorTexture（输入纹理）
-                let uColor = uniforms.createUniform("bloomColorTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uColor, inputTex, 0u32)
+            let uniforms = this._passUniforms()
+            // colorTexture（输入纹理）
+            let uColor = this._cachedUniform("bloomColorTexture", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uColor, inputTex, 0u32)
 
-                // invSize（1/width, 1/height, 0, 0）
-                let uInvSize = uniforms.createUniform("bloomInvSize", UniformType.Vec4.value())
-                let invMem = BgfxMemory(16u32)
-                invMem.writeFloats([1.0 / Float64(level.width), 1.0 / Float64(level.height), 0.0, 0.0], 4)
-                this.setUniform(renderer, uInvSize, invMem)
+            // invSize（1/width, 1/height, 0, 0）
+            let uInvSize = this._cachedUniform("bloomInvSize", UniformType.Vec4.value())
+            this._setVec2Uniform(renderer, uInvSize, 0, 1.0 / Float64(level.width), 1.0 / Float64(level.height))
 
-                // direction（X=1,0 或 Y=0,1）
-                let uDir = uniforms.createUniform("bloomDirection", UniformType.Vec4.value())
-                let dirMem = BgfxMemory(16u32)
-                if (horizontal) {
-                    dirMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
-                } else {
-                    dirMem.writeFloats([0.0, 1.0, 0.0, 0.0], 4)
-                }
-                this.setUniform(renderer, uDir, dirMem)
+            // direction（X=1,0 或 Y=0,1）
+            let uDir = this._cachedUniform("bloomDirection", UniformType.Vec4.value())
+            let dirMem = this._uploadMem(1, 16u32)
+            if (horizontal) {
+                dirMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
+            } else {
+                dirMem.writeFloats([0.0, 1.0, 0.0, 0.0], 4)
+            }
+            this.setUniform(renderer, uDir, dirMem)
 
-                // 高斯系数（预计算，按 kernelRadius 生成）：
-                //   sigma = kernelRadius / 3
-                //   coefficients[i] = 0.39894 * exp(-0.5 * i*i / (sigma*sigma)) / sigma
-                // shader 声明 uniform vec4 bloomGaussCoefs[KERNEL_RADIUS]（bgfx uniform 数组按 vec4 对齐，
-                // 每个 vec4 的 x=系数，yzw=padding）
-                let sigma = Float64(level.kernelRadius) / 3.0
-                let gaussFloats: Array<Float64> = Array<Float64>(level.kernelRadius * 4, { _ => 0.0 })
-                for (i in 0..level.kernelRadius) {
-                    let fi = Float64(i)
-                    gaussFloats[i * 4 + 0] = 0.39894 * exp(-0.5 * fi * fi / (sigma * sigma)) / sigma
-                }
-                @LogTrace(["UnrealBloom", "blur view=${viewId} dir=${if (horizontal) { "X" } else { "Y" }} inputTex=${Handle.idx(inputTex)}outFB=${Handle.idx(fb)}}utTex=${Handle.idx(fbTex)} }vSize=(${1.0 / Float64(level.width)}, ${1.0 / Float64(level.height)}) sigma=${sigma} gauss[0]=${gaussFloats[0]} gauss[1]=${gaussFloats[4]} gauss[2]=${gaussFloats[8]}"])
-                let uGauss = uniforms.createUniform("bloomGaussCoefs", UniformType.Vec4.value(), UInt16(level.kernelRadius))
-                let gaussMem = BgfxMemory(UInt32(level.kernelRadius * 16))
-                gaussMem.writeFloats(gaussFloats, Int64(gaussFloats.size))
-                this.setUniform(renderer, uGauss, gaussMem, num: UInt16(level.kernelRadius))
+            // 高斯系数（预计算，按 kernelRadius 生成）：
+            //   sigma = kernelRadius / 3
+            //   coefficients[i] = 0.39894 * exp(-0.5 * i*i / (sigma*sigma)) / sigma
+            // shader 声明 uniform vec4 bloomGaussCoefs[KERNEL_RADIUS]（bgfx uniform 数组按 vec4 对齐，
+            // 每个 vec4 的 x=系数，yzw=padding）
+            // 系数已在建 RT 时按级预计算（level.gaussCoefs），此处直接复用。
+            let gaussFloats = level.gaussCoefs
+            let sigma = Float64(level.kernelRadius) / 3.0
+            @LogTrace(["UnrealBloom", "blur view=${viewId} dir=${if (horizontal) { "X" } else { "Y" }} inputTex=${Handle.idx(inputTex)}outFB=${Handle.idx(fb)}}utTex=${Handle.idx(fbTex)} }vSize=(${1.0 / Float64(level.width)}, ${1.0 / Float64(level.height)}) sigma=${sigma} gauss[0]=${gaussFloats[0]} gauss[1]=${gaussFloats[4]} gauss[2]=${gaussFloats[8]}"])
+            let uGauss = this._cachedUniform("bloomGaussCoefs", UniformType.Vec4.value(), num: UInt16(level.kernelRadius))
+            // 复用上传缓冲（每级 kernelRadius 不同 → 容量按需增长；同一 uniform 提交后立即复用）
+            let gaussMem = this._uploadMem(2, UInt32(level.kernelRadius * 16))
+            gaussMem.writeFloats(gaussFloats, Int64(gaussFloats.size))
+            this.setUniform(renderer, uGauss, gaussMem, num: UInt16(level.kernelRadius))
 
-                this.submitQuad(viewId, prog)
-            case None => ()
+            this.submitQuad(viewId, prog)
         }
     }
 
@@ -531,55 +546,49 @@ public class UnrealBloomPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
 
         let progOpt = PostProcessingShaders.get("bloom_composite")
-        match (progOpt) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    sp.compileBgfx()
-                }
-                let prog = Box(sp.programHandle)
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(sp) <- progOpt) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                sp.compileBgfx()
+            }
+            let prog = Box(sp.programHandle)
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
-                // 5 个 blurTexture（金字塔各级垂直模糊结果）
-                let uBlur1 = uniforms.createUniform("bloomBlur1", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uBlur1, this._mipLevels[0].verticalTex, 0u32)
-                let uBlur2 = uniforms.createUniform("bloomBlur2", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uBlur2, this._mipLevels[1].verticalTex, 0u32)
-                let uBlur3 = uniforms.createUniform("bloomBlur3", UniformType.Sampler.value())
-                this.bindTexture(renderer, 2u8, uBlur3, this._mipLevels[2].verticalTex, 0u32)
-                let uBlur4 = uniforms.createUniform("bloomBlur4", UniformType.Sampler.value())
-                this.bindTexture(renderer, 3u8, uBlur4, this._mipLevels[3].verticalTex, 0u32)
-                let uBlur5 = uniforms.createUniform("bloomBlur5", UniformType.Sampler.value())
-                this.bindTexture(renderer, 4u8, uBlur5, this._mipLevels[4].verticalTex, 0u32)
+            let uniforms = this._passUniforms()
+            // 5 个 blurTexture（金字塔各级垂直模糊结果）
+            let uBlur1 = this._cachedUniform("bloomBlur1", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uBlur1, this._mipLevels[0].verticalTex, 0u32)
+            let uBlur2 = this._cachedUniform("bloomBlur2", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uBlur2, this._mipLevels[1].verticalTex, 0u32)
+            let uBlur3 = this._cachedUniform("bloomBlur3", UniformType.Sampler.value())
+            this.bindTexture(renderer, 2u8, uBlur3, this._mipLevels[2].verticalTex, 0u32)
+            let uBlur4 = this._cachedUniform("bloomBlur4", UniformType.Sampler.value())
+            this.bindTexture(renderer, 3u8, uBlur4, this._mipLevels[3].verticalTex, 0u32)
+            let uBlur5 = this._cachedUniform("bloomBlur5", UniformType.Sampler.value())
+            this.bindTexture(renderer, 4u8, uBlur5, this._mipLevels[4].verticalTex, 0u32)
 
-                // bloomStrength
-                let uStrength = uniforms.createUniform("bloomStrength", UniformType.Vec4.value())
-                let sMem = BgfxMemory(16u32)
-                sMem.writeFloats([this.strength, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uStrength, sMem)
+            // bloomStrength
+            let uStrength = this._cachedUniform("bloomStrength", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uStrength, 4, this.strength)
 
-                // bloomRadius
-                let uBloomRadius = uniforms.createUniform("bloomRadius", UniformType.Vec4.value())
-                let rMem = BgfxMemory(16u32)
-                rMem.writeFloats([this.radius, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uBloomRadius, rMem)
+            // bloomRadius
+            let uBloomRadius = this._cachedUniform("bloomRadius", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uBloomRadius, 5, this.radius)
 
-                // bloomFactors（5 个，传 vec4 数组前 5 个，w=padding）
-                let uFactors = uniforms.createUniform("bloomFactors", UniformType.Vec4.value(), 5u16)
-                let fMem = BgfxMemory(80u32)
-                let fData: Array<Float64> = [
-                    this.bloomFactors[0], 0.0, 0.0, 0.0,
-                    this.bloomFactors[1], 0.0, 0.0, 0.0,
-                    this.bloomFactors[2], 0.0, 0.0, 0.0,
-                    this.bloomFactors[3], 0.0, 0.0, 0.0,
-                    this.bloomFactors[4], 0.0, 0.0, 0.0
-                ]
-                fMem.writeFloats(fData, 20)
-                this.setUniform(renderer, uFactors, fMem, num: 5u16)
+            // bloomFactors（5 个，传 vec4 数组前 5 个，w=padding）
+            let uFactors = this._cachedUniform("bloomFactors", UniformType.Vec4.value(), num: 5u16)
+            let fMem = this._uploadMem(6, 80u32)
+            let fData: Array<Float64> = [
+                this.bloomFactors[0], 0.0, 0.0, 0.0,
+                this.bloomFactors[1], 0.0, 0.0, 0.0,
+                this.bloomFactors[2], 0.0, 0.0, 0.0,
+                this.bloomFactors[3], 0.0, 0.0, 0.0,
+                this.bloomFactors[4], 0.0, 0.0, 0.0
+            ]
+            fMem.writeFloats(fData, 20)
+            this.setUniform(renderer, uFactors, fMem, num: 5u16)
 
-                @LogTrace(["UnrealBloom", "composite view=${viewId} outFB=${Handle.idx(this._mipLevels[0].horizontalFB)} blurTexs=(${Handle.idx(this._mipLevels[0].verticalTex)}, ${Handle.idx(this._mipLevels[1].verticalTex)}, ${Handle.idx(this._mipLevels[2].verticalTex)}, ${Handle.idx(this._mipLevels[3].verticalTex)}, ${Handle.idx(this._mipLevels[4].verticalTex)}) strength=${this.strength} radius=${this.radius} factors=(${this.bloomFactors[0]}, ${this.bloomFactors[1]}, ${this.bloomFactors[2]}, ${this.bloomFactors[3]}, ${this.bloomFactors[4]})"])
-                this.submitQuad(viewId, prog)
-            case None => ()
+            @LogTrace(["UnrealBloom", "composite view=${viewId} outFB=${Handle.idx(this._mipLevels[0].horizontalFB)} blurTexs=(${Handle.idx(this._mipLevels[0].verticalTex)}, ${Handle.idx(this._mipLevels[1].verticalTex)}, ${Handle.idx(this._mipLevels[2].verticalTex)}, ${Handle.idx(this._mipLevels[3].verticalTex)}, ${Handle.idx(this._mipLevels[4].verticalTex)}) strength=${this.strength} radius=${this.radius} factors=(${this.bloomFactors[0]}, ${this.bloomFactors[1]}, ${this.bloomFactors[2]}, ${this.bloomFactors[3]}, ${this.bloomFactors[4]})"])
+            this.submitQuad(viewId, prog)
         }
     }
 
@@ -602,30 +611,28 @@ public class UnrealBloomPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
 
         let progOpt = PostProcessingShaders.get("bloom_blend")
-        match (progOpt) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    sp.compileBgfx()
-                }
-                let prog = Box(sp.programHandle)
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(sp) <- progOpt) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                sp.compileBgfx()
+            }
+            let prog = Box(sp.programHandle)
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
-                // stage 0 = bloom composite 结果（mipLevels[0].horizontalFB 的纹理）
-                let uBloom = uniforms.createUniform("bloomTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uBloom, this._mipLevels[0].horizontalTex, 0u32)
+            let uniforms = this._passUniforms()
+            // stage 0 = bloom composite 结果（mipLevels[0].horizontalFB 的纹理）
+            let uBloom = this._cachedUniform("bloomTexture", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uBloom, this._mipLevels[0].horizontalTex, 0u32)
 
-                // stage 1 = readBuffer 场景颜色
-                let uScene = uniforms.createUniform("bloomScene", UniformType.Sampler.value())
-                let readTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 1u8, uScene, readTex, 0u32)
+            // stage 1 = readBuffer 场景颜色
+            let uScene = this._cachedUniform("bloomScene", UniformType.Sampler.value())
+            let readTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 1u8, uScene, readTex, 0u32)
 
-                @LogTrace(["UnrealBloom", "blend view=${viewId} renderToScreen=${this.renderToScreen} bloomTex=${Handle.idx(this._mipLevels[0].horizontalTex)} sceneTex=${Handle.idx(readTex)} writeBuffer=${Handle.idx(writeBuffer)}"])
-                this.submitQuad(viewId, prog)
+            @LogTrace(["UnrealBloom", "blend view=${viewId} renderToScreen=${this.renderToScreen} bloomTex=${Handle.idx(this._mipLevels[0].horizontalTex)} sceneTex=${Handle.idx(readTex)} writeBuffer=${Handle.idx(writeBuffer)}"])
+            this.submitQuad(viewId, prog)
 
-                // 不在此调 bgfx_frame：frame 统一由 EffectComposer.render 末尾触发
-                // （bgfx_frame 是双缓冲交换，每帧仅一次；pass 只负责 submit）
-            case None => ()
+            // 不在此调 bgfx_frame：frame 统一由 EffectComposer.render 末尾触发
+            // （bgfx_frame 是双缓冲交换，每帧仅一次；pass 只负责 submit）
         }
     }
 

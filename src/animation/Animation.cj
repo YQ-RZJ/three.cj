@@ -29,7 +29,7 @@
  * @brief[en] This file only declares the three.animation package so cjpm can recognize the clip/blend subpackages
  * @explain[en] This package is the anchor of the animation module; the actual implementations live in the subpackages: clip (AnimationClip & utilities), blend (AnimationMixer/AnimationAction/KeyframeTrack/PropertyBinding etc.), tracks (various keyframe tracks) and interfaces (cross-package decoupling contracts).
  *
- * @intro[zh-cn] three.animation 提供完整的动画系统，对应 Three.js 的 animation 模块，涵盖动画剪辑（clip）、混合与动作调度（blend）、关键帧轨道（tracks）以及用于解耦循环依赖的接口（interfaces）。
- * @intro[en] three.animation provides a complete animation system mirroring the Three.js animation module, covering animation clips (clip), blending and action scheduling (blend), keyframe tracks (tracks), and the interfaces (interfaces) used to break circular dependencies.
+ * @intro[zh-cn] three.animation 提供完整的动画系统，涵盖动画剪辑（clip）、混合与动作调度（blend）、关键帧轨道（tracks）以及用于解耦循环依赖的接口（interfaces）。
+ * @intro[en] three.animation provides a complete animation system, covering animation clips (clip), blending and action scheduling (blend), keyframe tracks (tracks), and the interfaces (interfaces) used to break circular dependencies.
  */
 package three.animation

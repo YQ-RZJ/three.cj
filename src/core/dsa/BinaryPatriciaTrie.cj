@@ -130,57 +130,56 @@ public class BinaryPatriciaTrie<V> {
 
         while (i < key.size) {
             let first = key[i]
-            match (node.children.get(first)) {
-                case None =>
-                    let newPart = _slice(key, i, key.size)
-                    let newNode = TrieNode<V>(newPart, value: Some(value))
+            if (let Some(child) <- node.children.get(first)) {
+                let part = child.part
+                let common = _commonPrefixLength(key, i, part)
+
+                if (common == 0) {
+                    let newNode = TrieNode<V>(_slice(key, i, key.size), value: Some(value))
                     node.children.add(first, newNode)
                     _size += 1
                     return
-                case Some(child) =>
-                    let part = child.part
-                    let common = _commonPrefixLength(key, i, part)
+                }
 
-                    if (common == 0) {
-                        let newNode = TrieNode<V>(_slice(key, i, key.size), value: Some(value))
-                        node.children.add(first, newNode)
+                if (common < part.size) {
+                    // 需要分裂
+                    let shared = _slice(part, 0, common)
+                    let suffix = _slice(part, common, part.size)
+
+                    let mid = TrieNode<V>(shared)
+                    child.part = suffix
+                    mid.children.add(suffix[0], child)
+                    node.children.add(shared[0], mid)
+
+                    let consumed = i + common
+                    if (consumed == key.size) {
+                        let had = mid.value.isSome()
+                        mid.value = Some(value)
+                        if (!had) { _size += 1 }
+                        return
+                    } else {
+                        let remaining = _slice(key, consumed, key.size)
+                        let newLeaf = TrieNode<V>(remaining, value: Some(value))
+                        mid.children.add(remaining[0], newLeaf)
                         _size += 1
                         return
                     }
-
-                    if (common < part.size) {
-                        // 需要分裂
-                        let shared = _slice(part, 0, common)
-                        let suffix = _slice(part, common, part.size)
-
-                        let mid = TrieNode<V>(shared)
-                        child.part = suffix
-                        mid.children.add(suffix[0], child)
-                        node.children.add(shared[0], mid)
-
-                        let consumed = i + common
-                        if (consumed == key.size) {
-                            let had = mid.value.isSome()
-                            mid.value = Some(value)
-                            if (!had) { _size += 1 }
-                            return
-                        } else {
-                            let remaining = _slice(key, consumed, key.size)
-                            let newLeaf = TrieNode<V>(remaining, value: Some(value))
-                            mid.children.add(remaining[0], newLeaf)
-                            _size += 1
-                            return
-                        }
-                    } else {
-                        i += common
-                        if (i == key.size) {
-                            let had = child.value.isSome()
-                            child.value = Some(value)
-                            if (!had) { _size += 1 }
-                            return
-                        }
-                        node = child
+                } else {
+                    i += common
+                    if (i == key.size) {
+                        let had = child.value.isSome()
+                        child.value = Some(value)
+                        if (!had) { _size += 1 }
+                        return
                     }
+                    node = child
+                }
+            } else {
+                let newPart = _slice(key, i, key.size)
+                let newNode = TrieNode<V>(newPart, value: Some(value))
+                node.children.add(first, newNode)
+                _size += 1
+                return
             }
         }
     }
@@ -203,15 +202,15 @@ public class BinaryPatriciaTrie<V> {
         }
 
         while (i < key.size) {
-            match (node.children.get(key[i])) {
-                case None => return None
-                case Some(child) =>
-                    let part = child.part
-                    let common = _commonPrefixLength(key, i, part)
-                    if (common != part.size) { return None }
-                    i += common
-                    if (i == key.size) { return child.value }
-                    node = child
+            if (let Some(child) <- node.children.get(key[i])) {
+                let part = child.part
+                let common = _commonPrefixLength(key, i, part)
+                if (common != part.size) { return None }
+                i += common
+                if (i == key.size) { return child.value }
+                node = child
+            } else {
+                return None
             }
         }
         return node.value
@@ -247,15 +246,15 @@ public class BinaryPatriciaTrie<V> {
         }
 
         while (i < key.size) {
-            match (node.children.get(key[i])) {
-                case None => return false
-                case Some(child) =>
-                    let part = child.part
-                    let common = _commonPrefixLength(key, i, part)
-                    if (common != part.size) { return false }
-                    stack.add((node, child))
-                    i += common
-                    node = child
+            if (let Some(child) <- node.children.get(key[i])) {
+                let part = child.part
+                let common = _commonPrefixLength(key, i, part)
+                if (common != part.size) { return false }
+                stack.add((node, child))
+                i += common
+                node = child
+            } else {
+                return false
             }
         }
 
@@ -275,13 +274,11 @@ public class BinaryPatriciaTrie<V> {
                     onlyChild = c
                     break
                 }
-                match (onlyChild) {
-                    case Some(c) =>
-                        let merged = _concat(child.part, c.part)
-                        child.part = merged
-                        child.value = c.value
-                        child.children = c.children
-                    case None => ()
+                if (let Some(c) <- onlyChild) {
+                    let merged = _concat(child.part, c.part)
+                    child.part = merged
+                    child.value = c.value
+                    child.children = c.children
                 }
             }
         }
@@ -312,9 +309,8 @@ public class BinaryPatriciaTrie<V> {
         let results = ArrayList<(Array<UInt8>, V)>()
 
         if (includeEmpty) {
-            match (_root.value) {
-                case Some(v) => results.add((Array<UInt8>(0, { _ => 0u8 }), v))
-                case None => ()
+            if (let Some(v) <- _root.value) {
+                results.add((Array<UInt8>(0, { _ => 0u8 }), v))
             }
         }
 
@@ -322,21 +318,20 @@ public class BinaryPatriciaTrie<V> {
         var i = 0
 
         while (i < query.size) {
-            match (node.children.get(query[i])) {
-                case None => break
-                case Some(child) =>
-                    let part = child.part
-                    let common = _commonPrefixLength(query, i, part)
-                    if (common != part.size) { break }
+            if (let Some(child) <- node.children.get(query[i])) {
+                let part = child.part
+                let common = _commonPrefixLength(query, i, part)
+                if (common != part.size) { break }
 
-                    _pushPart(buf, part)
-                    i += common
+                _pushPart(buf, part)
+                i += common
 
-                    match (child.value) {
-                        case Some(v) => results.add((_bufToArray(buf), v))
-                        case None => ()
-                    }
-                    node = child
+                if (let Some(v) <- child.value) {
+                    results.add((_bufToArray(buf), v))
+                }
+                node = child
+            } else {
+                break
             }
         }
 
@@ -362,27 +357,25 @@ public class BinaryPatriciaTrie<V> {
         var i = 0
         var best: ?(Array<UInt8>, V) = None
 
-        match (_root.value) {
-            case Some(v) => best = (Array<UInt8>(0, { _ => 0u8 }), v)
-            case None => ()
+        if (let Some(v) <- _root.value) {
+            best = (Array<UInt8>(0, { _ => 0u8 }), v)
         }
 
         while (i < query.size) {
-            match (node.children.get(query[i])) {
-                case None => break
-                case Some(child) =>
-                    let part = child.part
-                    let common = _commonPrefixLength(query, i, part)
-                    if (common != part.size) { break }
+            if (let Some(child) <- node.children.get(query[i])) {
+                let part = child.part
+                let common = _commonPrefixLength(query, i, part)
+                if (common != part.size) { break }
 
-                    _pushPart(buf, part)
-                    i += common
+                _pushPart(buf, part)
+                i += common
 
-                    match (child.value) {
-                        case Some(v) => best = (_bufToArray(buf), v)
-                        case None => ()
-                    }
-                    node = child
+                if (let Some(v) <- child.value) {
+                    best = (_bufToArray(buf), v)
+                }
+                node = child
+            } else {
+                break
             }
         }
         return best
@@ -404,30 +397,29 @@ public class BinaryPatriciaTrie<V> {
         var i = 0
 
         if (prefix.size == 0) {
-            match (_root.value) {
-                case Some(v) => out.add((Array<UInt8>(0, { _ => 0u8 }), v))
-                case None => ()
+            if (let Some(v) <- _root.value) {
+                out.add((Array<UInt8>(0, { _ => 0u8 }), v))
             }
             _collectSubtree(_root, buf, out, true)
             return _toResultArray(out)
         }
 
         while (i < prefix.size) {
-            match (node.children.get(prefix[i])) {
-                case None => return _toResultArray(out)
-                case Some(child) =>
-                    let part = child.part
-                    let common = _commonPrefixLength(prefix, i, part)
-                    if (common < part.size) {
-                        if (i + common == prefix.size) {
-                            _pushPart(buf, _slice(part, 0, common))
-                            _collectSubtree(child, buf, out, true)
-                        }
-                        return _toResultArray(out)
+            if (let Some(child) <- node.children.get(prefix[i])) {
+                let part = child.part
+                let common = _commonPrefixLength(prefix, i, part)
+                if (common < part.size) {
+                    if (i + common == prefix.size) {
+                        _pushPart(buf, _slice(part, 0, common))
+                        _collectSubtree(child, buf, out, true)
                     }
-                    _pushPart(buf, part)
-                    i += common
-                    node = child
+                    return _toResultArray(out)
+                }
+                _pushPart(buf, part)
+                i += common
+                node = child
+            } else {
+                return _toResultArray(out)
             }
         }
         _collectSubtree(node, buf, out, true)
@@ -460,10 +452,8 @@ public class BinaryPatriciaTrie<V> {
         let buf = ArrayList<UInt8>()
 
         if (includeEmpty) {
-            match (_root.value) {
-                case Some(v) =>
-                    out.add((Array<UInt8>(0, { _ => 0u8 }), v))
-                case None => ()
+            if (let Some(v) <- _root.value) {
+                out.add((Array<UInt8>(0, { _ => 0u8 }), v))
             }
         }
 
@@ -500,10 +490,8 @@ public class BinaryPatriciaTrie<V> {
         }
 
         // 根（空键）也可视为一个候选（若有值）
-        match (_root.value) {
-            case Some(v) =>
-                tryUpdate(Array<UInt8>(0, { _ => 0u8 }), v)
-            case None => ()
+        if (let Some(v) <- _root.value) {
+            tryUpdate(Array<UInt8>(0, { _ => 0u8 }), v)
         }
 
         _bitLongestSubsetDfs(_root, 0, query, buf, tryUpdate)
@@ -535,10 +523,8 @@ public class BinaryPatriciaTrie<V> {
         let buf = ArrayList<UInt8>()
 
         if (includeEmpty) {
-            match (_root.value) {
-                case Some(v) =>
-                    out.add((Array<UInt8>(0, { _ => 0u8 }), v))
-                case None => ()
+            if (let Some(v) <- _root.value) {
+                out.add((Array<UInt8>(0, { _ => 0u8 }), v))
             }
         }
 
@@ -573,10 +559,8 @@ public class BinaryPatriciaTrie<V> {
             }
         }
 
-        match (_root.value) {
-            case Some(v) =>
-                tryUpdate(Array<UInt8>(0, { _ => 0u8 }), v)
-            case None => ()
+        if (let Some(v) <- _root.value) {
+            tryUpdate(Array<UInt8>(0, { _ => 0u8 }), v)
         }
 
         _fBitLongestSubsetDfs(_root, 0, query, buf, tryUpdate)
@@ -617,10 +601,8 @@ public class BinaryPatriciaTrie<V> {
             }
             _pushPart(buf, part)
             let newDepth = depthBytes + part.size
-            match (child.value) {
-                case Some(v) =>
-                    out.add((_bufToArray(buf), v))
-                case None => ()
+            if (let Some(v) <- child.value) {
+                out.add((_bufToArray(buf), v))
             }
             _bitSubsetDfs(child, newDepth, query, buf, out)
             _popPart(buf, part.size)
@@ -658,10 +640,8 @@ public class BinaryPatriciaTrie<V> {
             }
             _pushPart(buf, part)
             let newDepth = depthBytes + part.size
-            match (child.value) {
-                case Some(v) =>
-                    tryUpdate(_bufToArray(buf), v)
-                case None => ()
+            if (let Some(v) <- child.value) {
+                tryUpdate(_bufToArray(buf), v)
             }
             _bitLongestSubsetDfs(child, newDepth, query, buf, tryUpdate)
             _popPart(buf, part.size)
@@ -710,10 +690,8 @@ public class BinaryPatriciaTrie<V> {
                 }
                 _pushPart(buf, part)
                 let newDepth = depthBytes + part.size
-                match (child.value) {
-                    case Some(v) =>
-                        out.add((_bufToArray(buf), v))
-                    case None => ()
+                if (let Some(v) <- child.value) {
+                    out.add((_bufToArray(buf), v))
                 }
                 _fBitSubsetDfs(child, newDepth, query, buf, out)
                 _popPart(buf, part.size)
@@ -721,35 +699,31 @@ public class BinaryPatriciaTrie<V> {
         } else {
             // 枚举 q0 的所有子掩码，直接用首字节索引命中候选分支
             _forEachSubmask(q0, { sub =>
-                match (node.children.get(sub)) {
-                    case None => ()
-                    case Some(child) =>
-                        let part = child.part
-                        if (depthBytes + part.size > query.size) {
-                            return
+                if (let Some(child) <- node.children.get(sub)) {
+                    let part = child.part
+                    if (depthBytes + part.size > query.size) {
+                        return
+                    }
+                    // 首字节已通过子掩码命中，检查剩余字节
+                    var ok = true
+                    for (j in 1..part.size) {
+                        let q = query[depthBytes + j]
+                        let p = part[j]
+                        if ((p & !q) != 0u8) {
+                            ok = false
+                            break
                         }
-                        // 首字节已通过子掩码命中，检查剩余字节
-                        var ok = true
-                        for (j in 1..part.size) {
-                            let q = query[depthBytes + j]
-                            let p = part[j]
-                            if ((p & !q) != 0u8) {
-                                ok = false
-                                break
-                            }
-                        }
-                        if (!ok) {
-                            return
-                        }
-                        _pushPart(buf, part)
-                        let newDepth = depthBytes + part.size
-                        match (child.value) {
-                            case Some(v) =>
-                                out.add((_bufToArray(buf), v))
-                            case None => ()
-                        }
-                        _fBitSubsetDfs(child, newDepth, query, buf, out)
-                        _popPart(buf, part.size)
+                    }
+                    if (!ok) {
+                        return
+                    }
+                    _pushPart(buf, part)
+                    let newDepth = depthBytes + part.size
+                    if (let Some(v) <- child.value) {
+                        out.add((_bufToArray(buf), v))
+                    }
+                    _fBitSubsetDfs(child, newDepth, query, buf, out)
+                    _popPart(buf, part.size)
                 }
             })
         }
@@ -795,44 +769,38 @@ public class BinaryPatriciaTrie<V> {
                 }
                 _pushPart(buf, part)
                 let newDepth = depthBytes + part.size
-                match (child.value) {
-                    case Some(v) =>
-                        tryUpdate(_bufToArray(buf), v)
-                    case None => ()
+                if (let Some(v) <- child.value) {
+                    tryUpdate(_bufToArray(buf), v)
                 }
                 _fBitLongestSubsetDfs(child, newDepth, query, buf, tryUpdate)
                 _popPart(buf, part.size)
             }
         } else {
             _forEachSubmask(q0, { sub =>
-                match (node.children.get(sub)) {
-                    case None => ()
-                    case Some(child) =>
-                        let part = child.part
-                        if (depthBytes + part.size > query.size) {
-                            return
+                if (let Some(child) <- node.children.get(sub)) {
+                    let part = child.part
+                    if (depthBytes + part.size > query.size) {
+                        return
+                    }
+                    var ok = true
+                    for (j in 1..part.size) {
+                        let q = query[depthBytes + j]
+                        let p = part[j]
+                        if ((p & !q) != 0u8) {
+                            ok = false
+                            break
                         }
-                        var ok = true
-                        for (j in 1..part.size) {
-                            let q = query[depthBytes + j]
-                            let p = part[j]
-                            if ((p & !q) != 0u8) {
-                                ok = false
-                                break
-                            }
-                        }
-                        if (!ok) {
-                            return
-                        }
-                        _pushPart(buf, part)
-                        let newDepth = depthBytes + part.size
-                        match (child.value) {
-                            case Some(v) =>
-                                tryUpdate(_bufToArray(buf), v)
-                            case None => ()
-                        }
-                        _fBitLongestSubsetDfs(child, newDepth, query, buf, tryUpdate)
-                        _popPart(buf, part.size)
+                    }
+                    if (!ok) {
+                        return
+                    }
+                    _pushPart(buf, part)
+                    let newDepth = depthBytes + part.size
+                    if (let Some(v) <- child.value) {
+                        tryUpdate(_bufToArray(buf), v)
+                    }
+                    _fBitLongestSubsetDfs(child, newDepth, query, buf, tryUpdate)
+                    _popPart(buf, part.size)
                 }
             })
         }
@@ -902,12 +870,10 @@ public class BinaryPatriciaTrie<V> {
                 onlyChild = child
                 break
             }
-            match (onlyChild) {
-                case Some(child) =>
-                    _root.part = child.part
-                    _root.value = child.value
-                    _root.children = child.children
-                case None => ()
+            if (let Some(child) <- onlyChild) {
+                _root.part = child.part
+                _root.value = child.value
+                _root.children = child.children
             }
         }
     }
@@ -922,19 +888,16 @@ public class BinaryPatriciaTrie<V> {
         for ((_, childNode) in node.children) {
             _pushPart(buf, childNode.part)
             _collectSubtree(childNode, buf, out, true)
-            match (childNode.value) {
-                case Some(v) => out.add((_bufToArray(buf), v))
-                case None => ()
+            if (let Some(v) <- childNode.value) {
+                out.add((_bufToArray(buf), v))
             }
             _popPart(buf, childNode.part.size)
         }
         if (includeSelf) {
-            match (node.value) {
-                case Some(v) =>
-                    if (node.part.size == 0) {
-                        out.add((_bufToArray(buf), v))
-                    }
-                case None => ()
+            if (let Some(v) <- node.value) {
+                if (node.part.size == 0) {
+                    out.add((_bufToArray(buf), v))
+                }
             }
         }
     }

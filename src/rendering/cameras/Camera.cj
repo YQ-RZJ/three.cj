@@ -216,10 +216,7 @@ public open class Camera <: Object3D & ICamera {
      */
     public override func updateWorldMatrix(updateParents: Bool, updateChildren: Bool, force: Bool): Unit {
         if (updateParents) {
-            match (this.parent) {
-                case Some(p) => p.updateWorldMatrix(true, false, force)
-                case None => ()
-            }
+            if (let Some(p) <- this.parent) { p.updateWorldMatrix(true, false, force) }
         }
         super.updateWorldMatrix(updateParents, updateChildren, force)
         this.matrixWorldInverse.copy(this.matrixWorld).invert()

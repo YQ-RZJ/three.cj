@@ -247,9 +247,8 @@ public class UiMenuItem <: UiWidget {
         unsafe { LibC.free(labelCs); LibC.free(shortcutCs) }
         let clicked = r != 0
         if (clicked) {
-            match (this._onClick) {
-                case Some(f) => f()
-                case None => ()
+            if (let Some(f) <- this._onClick) {
+                f()
             }
         }
         return clicked

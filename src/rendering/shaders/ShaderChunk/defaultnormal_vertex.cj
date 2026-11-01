@@ -70,13 +70,13 @@ vec3 transformedNormal = objectNormal;
 	// non-uniform scaling in the instance matrix is supported
 	// shear transforms are not supported
 
-	mat3 im = mat3( instanceMatrix );
-	transformedNormal /= vec3( dot( im[ 0 ], im[ 0 ] ), dot( im[ 1 ], im[ 1 ] ), dot( im[ 2 ], im[ 2 ] ) );
-	transformedNormal = im * transformedNormal;
+	// i_data0..2 即实例矩阵的上 3x3 三列（原 im[0..2]），逐列长度平方做非均匀缩放补偿
+	transformedNormal /= vec3( dot( i_data0.xyz, i_data0.xyz ), dot( i_data1.xyz, i_data1.xyz ), dot( i_data2.xyz, i_data2.xyz ) );
+	transformedNormal = bgfxApplyInstanceMatrix( vec4( transformedNormal, 0.0 ) ).xyz;
 
 	#ifdef USE_TANGENT
 
-		transformedTangent = im * transformedTangent;
+		transformedTangent = bgfxApplyInstanceMatrix( vec4( transformedTangent, 0.0 ) ).xyz;
 
 	#endif
 

@@ -108,6 +108,14 @@ public class LOD <: Object3D {
     @JsonIgnore
     private var _currentLevel: Int64
 
+    /**
+     * @brief[zh-cn] 复用的暂存向量（update 每帧调用，避免逐帧新建 Vector3）
+     *
+     * @brief[en] Reused scratch vector (update is called every frame, avoids allocating a Vector3 per frame)
+     */
+    @JsonIgnore
+    private let _scratchWorldPos: Vector3 = Vector3()
+
     // 构造一个新的 LOD。
     public init() {
         super()
@@ -216,7 +224,8 @@ public class LOD <: Object3D {
     // camera - 渲染当前相机。
     public func update(camera: Camera): Unit {
         // 与 JS side 一致：用相机世界位置到本对象世界位置的距离判定
-        let dist = this.getWorldPosition(Vector3()).distanceTo(camera.position)
+        // 复用暂存向量：原实现每帧新建 Vector3（堆分配），update 是每帧调用的热路径
+        let dist = this.getWorldPosition(this._scratchWorldPos).distanceTo(camera.position)
         // 计算滞后后的距离阈值
         // 找到第一个 level 的 distance + hysteresis 大于 dist 的索引
         var levelIndex = -1

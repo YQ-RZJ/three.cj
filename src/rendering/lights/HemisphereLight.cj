@@ -24,13 +24,13 @@
  * @file[zh-cn] 半球光
  * @brief[zh-cn] 半球光，从天顶与地底两方向照射的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/HemisphereLight.js。颜色随物体法线方向渐变：
+ * 颜色随物体法线方向渐变：
  * 法线朝上取 skyColor，朝下取 groundColor，其余按法线方向混合。
  *
  * @file[en] Hemisphere Light
  * @brief[en] Hemisphere light illuminating from sky and ground directions
  * @explain[en] 
- * Corresponds to Three.js lights/HemisphereLight.js. Color gradient based on surface normal:
+ * Color gradient based on surface normal:
  * skyColor for upward normals, groundColor for downward, blended in between.
  */
 package three.rendering.lights

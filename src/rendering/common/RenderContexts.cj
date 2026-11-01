@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * RenderContexts 管理多个 RenderContext 实例，按 (scene, camera) 组合键缓存，
  * 避免每帧重复创建 RenderContext。内部 HashMap 使用 scene.id * 100000 + camera.id 作为组合键。
- * 对照源码: three.js/src/renderers/common/RenderContexts.js (131 行)
  *
  * @file[en] RenderContexts
  * @brief[en] Render context cache manager, caching RenderContext by (scene, camera) composite key
  * @explain[en] 
  * RenderContexts manages multiple RenderContext instances, caching them by (scene, camera) composite key,
  * avoiding repeated creation of RenderContext each frame. Internally uses scene.id * 100000 + camera.id as the composite key.
- * Corresponding source: three.js/src/renderers/common/RenderContexts.js (131 lines)
  */
 package three.rendering.common
 
@@ -90,15 +88,15 @@ public open class RenderContexts {
      */
     public func get(scene: Scene, camera: Camera): RenderContext {
         let key = scene.id * 100000 + camera.id
-        match (this.contexts.get(key)) {
-            case Some(ctx) => return ctx
-            case None =>
-                let ctx = RenderContext()
-                ctx.id = key
-                ctx.scene = Some(scene)
-                ctx.camera = Some(camera)
-                this.contexts.add(key, ctx)
-                return ctx
+        if (let Some(ctx) <- this.contexts.get(key)) {
+            return ctx
+        } else {
+            let ctx = RenderContext()
+            ctx.id = key
+            ctx.scene = Some(scene)
+            ctx.camera = Some(camera)
+            this.contexts.add(key, ctx)
+            return ctx
         }
     }
 

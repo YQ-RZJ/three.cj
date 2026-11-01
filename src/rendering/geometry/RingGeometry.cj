@@ -25,13 +25,11 @@
  * @brief[zh-cn] 在 XY 平面上生成的环形（圆环）几何体
  * @explain[zh-cn] 
  * RingGeometry 继承自 BufferGeometry，在 XY 平面上生成环形几何体。
- * 对应 Three.js geometries/RingGeometry.js。
  *
  * @file[en] Ring Geometry
  * @brief[en] Ring (annulus) geometry generated on the XY plane
  * @explain[en] 
  * RingGeometry extends BufferGeometry, generating a ring geometry on the XY plane.
- * Corresponds to Three.js geometries/RingGeometry.js.
  */
 package three.rendering.geometry
 

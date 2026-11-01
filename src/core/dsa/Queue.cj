@@ -147,9 +147,8 @@ public class Queue<T> where T <: Equatable<T> {
     public func contains(element: T): Bool {
         for (i in 0.._size) {
             let idx = (_head + i) % _capacity
-            match (_data[idx]) {
-                case Some(e) => if (e == element) { return true }
-                case None => ()
+            if (let Some(e) <- _data[idx]) {
+                if (e == element) { return true }
             }
         }
         return false
@@ -200,9 +199,8 @@ public class Queue<T> where T <: Equatable<T> {
         let result = ArrayList<T>()
         for (i in 0.._size) {
             let idx = (_head + i) % _capacity
-            match (_data[idx]) {
-                case Some(e) => result.add(e)
-                case None => ()
+            if (let Some(e) <- _data[idx]) {
+                result.add(e)
             }
         }
         let size = result.size

@@ -136,26 +136,21 @@ public open class DataTextureLoader <: Loader {
      */
     public func _applyTexData(texture: DataTexture, texData: HashMap<String, Any>): Unit {
         
-        match (texData.get("image")) {
-            case Some(v) =>
-                match (v) {
-                    case bytes: Array<UInt8> => texture.image = bytes
-                    case hm: HashMap<String, Any> =>
-                        match (hm.get("data")) {
-                            case Some(d) => match (d) { case db: Array<UInt8> => texture.image = db; case _ => () }
-                            case None => ()
-                        }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(v) <- texData.get("image")) {
+            match (v) {
+                case bytes: Array<UInt8> => texture.image = bytes
+                case hm: HashMap<String, Any> =>
+                    if (let Some(d) <- hm.get("data")) {
+                        match (d) { case db: Array<UInt8> => texture.image = db; case _ => () }
+                    }
+                case _ => ()
+            }
         }
-        match (texData.get("data")) {
-            case Some(v) =>
-                match (v) {
-                    case bytes: Array<UInt8> => texture.image = bytes
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(v) <- texData.get("data")) {
+            match (v) {
+                case bytes: Array<UInt8> => texture.image = bytes
+                case _ => ()
+            }
         }
 
         // 宽高
@@ -177,25 +172,21 @@ public open class DataTextureLoader <: Loader {
         _setFromJsonBool(texData, "generateMipmaps", { v => texture.generateMipmaps = v })
 
         
-        match (texData.get("mipmaps")) {
-            case Some(v) =>
-                match (v) {
-                    case list: ArrayList<Any> =>
-                        texture.mipmaps = list
-                        texture.minFilter = LinearMipmapLinearFilter
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(v) <- texData.get("mipmaps")) {
+            match (v) {
+                case list: ArrayList<Any> =>
+                    texture.mipmaps = list
+                    texture.minFilter = LinearMipmapLinearFilter
+                case _ => ()
+            }
         }
 
         
-        match (texData.get("mipmapCount")) {
-            case Some(v) =>
-                match (v) {
-                    case i: Int64 => if (i == 1) { texture.minFilter = LinearFilter }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(v) <- texData.get("mipmapCount")) {
+            match (v) {
+                case i: Int64 => if (i == 1) { texture.minFilter = LinearFilter }
+                case _ => ()
+            }
         }
 
         texture.needsUpdate = true
@@ -205,22 +196,19 @@ public open class DataTextureLoader <: Loader {
 // ===== 数据读取辅助 =====
 
 internal func _setFromJsonInt(map: HashMap<String, Any>, key: String, setter: (Int64) -> Unit): Unit {
-    match (map.get(key)) {
-        case Some(v) => match (v) { case i: Int64 => setter(i); case f: Float64 => setter(Int64(f)); case _ => () }
-        case None => ()
+    if (let Some(v) <- map.get(key)) {
+        match (v) { case i: Int64 => setter(i); case f: Float64 => setter(Int64(f)); case _ => () }
     }
 }
 
 internal func _setFromJsonStr(map: HashMap<String, Any>, key: String, setter: (String) -> Unit): Unit {
-    match (map.get(key)) {
-        case Some(v) => match (v) { case s: String => setter(s); case _ => () }
-        case None => ()
+    if (let Some(v) <- map.get(key)) {
+        match (v) { case s: String => setter(s); case _ => () }
     }
 }
 
 internal func _setFromJsonBool(map: HashMap<String, Any>, key: String, setter: (Bool) -> Unit): Unit {
-    match (map.get(key)) {
-        case Some(v) => match (v) { case b: Bool => setter(b); case _ => () }
-        case None => ()
+    if (let Some(v) <- map.get(key)) {
+        match (v) { case b: Bool => setter(b); case _ => () }
     }
 }

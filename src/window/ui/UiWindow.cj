@@ -102,10 +102,14 @@ public class UiWindow {
      */
     public func begin(): Bool {
         ensureCurrentContext()
-        match (this._open) {
-            case Some(p) => return ImGui_Begin_cj(this._title, p.data(), this._flags)
-            case None => return ImGui_Begin_cj(this._title, CPointer<Int32>(), this._flags)
+        let csTitle = unsafe { LibC.mallocCString(this._title) }
+        let r = if (let Some(p) <- this._open) {
+            ImGui_Begin_cj(csTitle, p.data(), this._flags)
+        } else {
+            ImGui_Begin_cj(csTitle, CPointer<Int32>(), this._flags)
         }
+        unsafe { LibC.free(csTitle) }
+        return r
     }
 
     /**

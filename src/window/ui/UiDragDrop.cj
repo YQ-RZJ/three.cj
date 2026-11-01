@@ -221,9 +221,8 @@ public class UiAcceptDragDropPayload <: UiWidget {
         unsafe { LibC.free(cs) }
         let accepted = !payload.isNull()
         if (accepted) {
-            match (this._onAccept) {
-                case Some(f) => f()
-                case None => ()
+            if (let Some(f) <- this._onAccept) {
+                f()
             }
         }
         return accepted

@@ -25,13 +25,11 @@
  * @brief[zh-cn] 继承 BufferGeometry，支持实例化渲染
  * @explain[zh-cn] 
  * 在 bgfx 渲染后端中，实例化缓冲几何体对应 bgfx 的实例化渲染管线。
- * 对应 Three.js InstancedBufferGeometry.js。
  *
  * @file[en] Instanced Buffer Geometry
  * @brief[en] Extends BufferGeometry, supporting instanced rendering
  * @explain[en] 
  * In the bgfx rendering backend, instanced buffer geometry corresponds to bgfx's instanced rendering pipeline.
- * Corresponds to Three.js InstancedBufferGeometry.js.
  */
 package three.rendering.geometry
 import three.core.math.*

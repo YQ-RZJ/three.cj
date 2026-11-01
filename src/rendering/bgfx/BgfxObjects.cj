@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 场景对象管理
  * @brief[zh-cn] 替代 WebGLObjects，管理 Object3D 的渲染数据更新
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLObjects.js。WebGLObjects 负责在每帧更新几何体和实例化网格的缓冲数据。
+ * @explain[zh-cn] WebGLObjects 负责在每帧更新几何体和实例化网格的缓冲数据。
  *
  * @file[en] bgfx Scene Object Management
  * @brief[en] Replaces WebGLObjects, manages Object3D render data updates
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLObjects.js. WebGLObjects updates geometry and instanced mesh buffer data each frame.
+ * @explain[en] WebGLObjects updates geometry and instanced mesh buffer data each frame.
  */
 package three.rendering.bgfx
 
@@ -94,27 +94,25 @@ public class BgfxObjects {
         let frame = info.render.frame
 
         // 更新几何体（每帧最多一次）
-        match (updateMap.get(geometryId)) {
-            case Some(lastFrame) =>
-                if (lastFrame != frame) {
-                    geometries.update(geometryId)
-                    updateMap.add(geometryId, frame)
-                }
-            case None =>
+        if (let Some(lastFrame) <- updateMap.get(geometryId)) {
+            if (lastFrame != frame) {
                 geometries.update(geometryId)
                 updateMap.add(geometryId, frame)
+            }
+        } else {
+            geometries.update(geometryId)
+            updateMap.add(geometryId, frame)
         }
 
         // 实例化网格需要更新实例矩阵
         if (isInstancedMesh) {
-            match (updateMap.get(objectId)) {
-                case Some(lastFrame) =>
-                    if (lastFrame != frame) {
-                        // 更新实例属性
-                        updateMap.add(objectId, frame)
-                    }
-                case None =>
+            if (let Some(lastFrame) <- updateMap.get(objectId)) {
+                if (lastFrame != frame) {
+                    // 更新实例属性
                     updateMap.add(objectId, frame)
+                }
+            } else {
+                updateMap.add(objectId, frame)
             }
         }
 

@@ -147,7 +147,7 @@ public class AudioFilter <: IAudioFilter {
         if (this.filterId == 0u32) { this.create() }
         let fid = this.filterId
         let v = Int32(filterType.value())
-        this.context.execAudio({ => alFilteri_cj(fid, AL_FILTER_TYPE, v) })
+        this.context.postAudio({ => alFilteri_cj(fid, AL_FILTER_TYPE, v) })
         return this
     }
 
@@ -168,7 +168,7 @@ public class AudioFilter <: IAudioFilter {
     public func setParamf(param: UInt32, value: Float32): AudioFilter {
         if (this.filterId == 0u32) { return this }
         let fid = this.filterId
-        this.context.execAudio({ => alFilterf_cj(fid, param, value) })
+        this.context.postAudio({ => alFilterf_cj(fid, param, value) })
         return this
     }
 

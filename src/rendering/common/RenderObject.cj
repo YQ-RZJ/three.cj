@@ -27,7 +27,6 @@
  * RenderObject 封装 object/geometry/material/context/camera/scene 等 per-draw 状态，
  * 提供 onAdd/onRemove/onUpdate/onDispose 生命周期钩子。
  * 实现 IRenderObject 占位接口。
- * 对照源码: three.js/src/renderers/common/RenderObject.js (975 行)
  *
  * @file[en] RenderObject
  * @brief[en] Render object, encapsulating the complete per-draw state of a draw call
@@ -35,7 +34,6 @@
  * RenderObject encapsulates per-draw state such as object/geometry/material/context/camera/scene,
  * providing onAdd/onRemove/onUpdate/onDispose lifecycle hooks.
  * Implements the IRenderObject placeholder interface.
- * Corresponding source: three.js/src/renderers/common/RenderObject.js (975 lines)
  */
 package three.rendering.common
 
@@ -185,6 +183,37 @@ public open class RenderObject <: IRenderObject {
     public var nodeChain: ArrayList<Object3D> = ArrayList<Object3D>()
 
     /**
+     * @brief[zh-cn] nodeChain 首节点（对象自身）的父引用快照，用于判断节点链是否失效
+     * @explain[zh-cn]
+     * 渲染循环在收集前已全量 updateMatrixWorld，链上的矩阵必然是最新的，
+     * 因此逐 draw 重建 parent 链纯属浪费。此快照用于在"对象换父级"时
+     * 仍能正确重建节点链，其余情况复用已有链。
+     *
+     * @brief[en] Snapshot of the object's parent reference used to detect chain invalidation
+     * @explain[en]
+     * The render loop fully updates the scene graph before collecting, so the chain's
+     * matrices are always current and rebuilding the parent chain per draw is wasted
+     * work. This snapshot still triggers a rebuild when the object is re-parented.
+     */
+    private var _chainParentRef: Int64 = 0
+
+    /**
+     * @brief[zh-cn] worldMatrix 是否为本对象独占
+     * @explain[zh-cn] 简化构造与 resetFor 走的是"直接引用 mesh.matrixWorld"语义
+     *               （matrixWorld 实例在引擎内原地更新，引用始终有效），此时
+     *               worldMatrix 与 mesh 共享同一实例，**不可就地写入**，否则会
+     *               污染 mesh 自身的矩阵。独占时才允许 copy 就地更新。
+     *
+     * @brief[en] Whether worldMatrix is exclusively owned by this object
+     * @explain[en] The simplified constructor and resetFor use the "reference mesh.matrixWorld"
+     *               semantics (the matrixWorld instance is updated in place, so the
+     *               reference stays valid); there worldMatrix shares the mesh's instance
+     *               and must **not** be written in place, or the mesh's own matrix would
+     *               be corrupted. Only an owned matrix may be updated in place.
+     */
+    private var _ownsWorldMatrix: Bool = true
+
+    /**
      * @brief[zh-cn] 位置（从 worldMatrix 提取，用于排序/遮挡查询）
      *
      * @brief[en] Position (extracted from worldMatrix, used for sorting/occlusion queries)
@@ -257,26 +286,80 @@ public open class RenderObject <: IRenderObject {
         this.scene = Scene()
         this.renderOrder = mesh.renderOrder
         this.worldMatrix = worldMatrix
+        this._ownsWorldMatrix = false
         this.position = worldMatrix.getPosition()
         this.sortKey = 0.0
+    }
+
+    /**
+     * @brief[zh-cn] 复用渲染对象：按新的网格/几何体/材质重置各字段（池化路径）
+     * @explain[zh-cn] 阴影深度 pass 与后期处理 pass 每帧都会为场景中每个 Mesh
+     *               新建一个 RenderObject，而 RenderObject 构造器还会连带分配
+     *               RenderContext / Camera / Scene / 多个 Matrix / Vector3 /
+     *               ArrayList（单个对象 ≈ 10 次堆分配）。10 万对象 × 6 个 cube
+     *               阴影面 = 每帧 600 万次分配。改为复用同一批对象：只重置
+     *               引用与标量字段，不重新分配任何辅助对象。
+     *               注意：worldMatrix 保持"引用 mesh.matrixWorld"语义
+     *               （matrixWorld 实例在引擎内是原地更新的，引用始终有效）。
+     *
+     * @brief[en] Reuses this render object: resets it for a new mesh/geometry/material (pooling path)
+     * @explain[en] The shadow depth pass and the post-processing passes create one
+     *               RenderObject per scene Mesh every frame, and the constructor also
+     *               allocates a RenderContext, Camera, Scene, several matrices, a
+     *               Vector3 and ArrayLists (roughly 10 heap allocations per object).
+     *               100k objects x 6 cube shadow faces = 6M allocations per frame.
+     *               Reusing the same objects resets references and scalars only,
+     *               without reallocating any helper object.
+     *               Note: worldMatrix keeps the "references mesh.matrixWorld" semantics
+     *               (the matrixWorld instance is updated in place, so the reference stays valid).
+     *
+     * @param[zh-cn] mesh 新的渲染对象（Mesh/Line/Points 等）
+     * geometry 几何体
+     * material 材质
+     *
+     * @brief[en] mesh The new render object (Mesh/Line/Points etc.)
+     * geometry Geometry
+     * material Material
+     */
+    public func resetFor(mesh: Object3D, geometry: BufferGeometry, material: Material): Unit {
+        this.id = mesh.id
+        this.`object` = mesh
+        this.mesh = mesh
+        this.geometry = geometry
+        this.material = material
+        this.worldMatrix = mesh.matrixWorld
+        this._ownsWorldMatrix = false
+        this.renderOrder = mesh.renderOrder
+        this.sortKey = 0.0
+        // 就地写入位置，避免 getPosition() 每次 new Vector3
+        let e = mesh.matrixWorld.elements
+        this.position.set(e[12], e[13], e[14])
     }
 
     // ===== 变换矩阵 =====
 
     /**
      * @brief[zh-cn] 更新变换矩阵，从根节点逐级计算 world matrix
+     * @explain[zh-cn]
+     * 完整版本：每次都重建 parent 链并从根到叶逐级重算 matrixWorld。
+     * 适用于场景图尚未在本帧更新过的调用方。
      *
      * @brief[en] Update transform matrices, computing world matrix from root node level by level
+     * @explain[en]
+     * Full version: rebuilds the parent chain and recomputes matrixWorld from root
+     * to leaf every time. Intended for callers whose scene graph has not been
+     * updated this frame yet.
      */
     public func updateWorldMatrix(): Unit {
-        var root: Option<Object3D> = Some(this.`object`)
+        let obj = this.`object`
+        var root: Option<Object3D> = Some(obj)
         var chain = ArrayList<Object3D>()
         while (true) {
-            match (root) {
-                case Some(r) =>
-                    chain.add(r)
-                    root = r.parent
-                case None => break
+            if (let Some(r) <- root) {
+                chain.add(r)
+                root = r.parent
+            } else {
+                break
             }
         }
         // 从根到叶逐级计算 world matrix
@@ -284,8 +367,80 @@ public open class RenderObject <: IRenderObject {
             let node = chain[i]
             node.updateWorldMatrix(false, false, false)
         }
-        this.worldMatrix = this.`object`.matrixWorld.clone()
+        // 就地拷贝世界矩阵（原先 clone() 每次都新建一个 Matrix4 —— 主 pass 逐 draw
+        // 调用 syncWorldMatrix，等于每个 draw 一次堆分配）
+        this._syncWorldMatrixValue(obj)
         this.nodeChain = chain
+        this._chainParentRef = RenderObject.parentRefOf(obj)
+    }
+
+    /**
+     * @brief[zh-cn] 同步世界矩阵（场景图已在本帧全量更新过时使用）
+     * @explain[zh-cn]
+     * Renderer.render 在收集前已调用 scene.updateMatrixWorld(true)，链上所有
+     * matrixWorld 均为最新，因此这里只需拷贝对象自身的世界矩阵；parent 链仅在
+     * 对象换父级时才重建。避免每个 draw 重复遍历 parent 链并逐级重算矩阵。
+     *
+     * @brief[en] Sync the world matrix (use when the scene graph was already fully updated this frame)
+     * @explain[en]
+     * Renderer.render calls scene.updateMatrixWorld(true) before collecting, so every
+     * matrixWorld on the chain is already current. Only the object's own world matrix
+     * needs copying, and the parent chain is rebuilt just when the object is
+     * re-parented. This avoids re-walking the parent chain and recomputing matrices
+     * for every draw.
+     */
+    public func syncWorldMatrix(): Unit {
+        let obj = this.`object`
+        let parentRef = RenderObject.parentRefOf(obj)
+        if (this.nodeChain.isEmpty() || this._chainParentRef != parentRef) {
+            var root: Option<Object3D> = Some(obj)
+            let chain = ArrayList<Object3D>()
+            while (true) {
+                if (let Some(r) <- root) {
+                    chain.add(r)
+                    root = r.parent
+                } else {
+                    break
+                }
+            }
+            this.nodeChain = chain
+            this._chainParentRef = parentRef
+        }
+        // 就地拷贝世界矩阵（原先 clone() 每次都新建一个 Matrix4 —— 主 pass 逐 draw
+        // 调用 syncWorldMatrix，等于每个 draw 一次堆分配）
+        this._syncWorldMatrixValue(obj)
+    }
+
+    /**
+     * @brief[zh-cn] 同步世界矩阵的值（独占时就地拷贝，共享时保持引用）
+     * @explain[zh-cn] 独占（_ownsWorldMatrix=true）：直接 copy 16 个元素，零分配。
+     *               共享（与 mesh.matrixWorld 同一实例）：保持引用语义，不做任何写入
+     *               —— 共享实例下就地写入会污染 mesh 自身的矩阵。
+     * @param[zh-cn] obj 渲染对象
+     *
+     * @brief[en] Sync the world matrix value (in-place copy when owned, reference kept when shared)
+     * @explain[en] Owned (_ownsWorldMatrix=true): copies the 16 elements directly, zero
+     *               allocation. Shared (same instance as mesh.matrixWorld): keeps the
+     *               reference semantics and writes nothing — an in-place write on a shared
+     *               instance would corrupt the mesh's own matrix.
+     * @param[en] obj Render object
+     */
+    private func _syncWorldMatrixValue(obj: Object3D): Unit {
+        if (this._ownsWorldMatrix) {
+            this.worldMatrix.copy(obj.matrixWorld)
+        } else if (!refEq(this.worldMatrix, obj.matrixWorld)) {
+            // 共享实例已指向别的 mesh：首次退化为独立拷贝，保持"不污染他人矩阵"的语义。
+            // 拷贝后本实例变为独占，后续同步转为就地 copy，不会每帧重复 clone。
+            this.worldMatrix = obj.matrixWorld.clone()
+            this._ownsWorldMatrix = true
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 取对象父引用的可比较指纹（0 表示无父节点）
+     */
+    private static func parentRefOf(obj: Object3D): Int64 {
+        return if (let Some(p) <- obj.parent) { p.id } else { 0 }
     }
 
     // ===== IRenderObject 实现 =====
@@ -309,18 +464,19 @@ public open class RenderObject <: IRenderObject {
      * @return[en] Geometry hash ID
      */
     public func getGeometryId(): Int64 {
-        return this.geometry.uuid.hashCode()
+        // 用几何体整数 id（原 uuid.hashCode() 每调用对 36 字符字符串重算哈希）
+        return this.geometry.id
     }
 
     /**
      * @brief[zh-cn] 返回材质 ID
-     * @return[zh-cn] 材质哈希 ID
+     * @return[zh-cn] 材质 ID
      *
      * @brief[en] Return material ID
-     * @return[en] Material hash ID
+     * @return[en] Material ID
      */
     public func getMaterialId(): Int64 {
-        return this.material.uuid.hashCode()
+        return this.material.id
     }
 
     /**

@@ -24,13 +24,13 @@
  * @file[zh-cn] 半球光辅助对象
  * @brief[zh-cn] 半球光辅助对象，用于可视化半球光
  * @explain[zh-cn] 
- * 对应 Three.js helpers/HemisphereLightHelper.js。用八面体网格可视化半球光，
+ * 用八面体网格可视化半球光，
  * 当光源变换或属性改变时，需要调用 update() 方法更新。
  *
  * @file[en] Hemisphere Light Helper
  * @brief[en] Hemisphere light helper for visualizing hemisphere lights
  * @explain[en] 
- * Corresponds to Three.js helpers/HemisphereLightHelper.js. Visualizes hemisphere light
+ * Visualizes hemisphere light
  * with an octahedron mesh. Call update() when the light or its properties change.
  */
 package three.rendering.helpers
@@ -119,10 +119,7 @@ public class HemisphereLightHelper <: Object3D {
 
         
         let position = geometry.getAttribute("position")
-        let colorCount = match (position) {
-            case Some(p) => p.count * 3
-            case None => 0
-        }
+        let colorCount = if (let Some(p) <- position) { p.count * 3 } else { 0 }
         geometry.setAttribute("color", BufferAttribute(Array<Float64>(colorCount, { _ => 0.0 }), 3))
 
         let mesh = Mesh(geometry: geometry, material: this.material)
@@ -157,36 +154,30 @@ public class HemisphereLightHelper <: Object3D {
      */
     public func update(): Unit {
         let meshOpt = this.children[0] as Mesh
-        match (this.color) {
-            case Some(c) => this.material.color.copy(c)
-            case None =>
-                match (meshOpt) {
-                    case Some(mesh) =>
-                        match (mesh.geometry.getAttribute("color")) {
-                            case Some(colors) =>
-                                let sky = this.light.color
-                                let ground = match (this.light) {
-                                    case hl: HemisphereLight => hl.groundColor
-                                    case _ => Color(0x000000)
-                                }
-                                for (i in 0..colors.count) {
-                                    let c = if (i < (colors.count / 2)) { sky } else { ground }
-                                    colors.setXYZ(i, c.r, c.g, c.b)
-                                }
-                                colors.version += 1
-                            case None => ()
-                        }
-                    case None => ()
+        if (let Some(c) <- this.color) {
+            this.material.color.copy(c)
+        } else {
+            if (let Some(mesh) <- meshOpt) {
+                if (let Some(colors) <- mesh.geometry.getAttribute("color")) {
+                    let sky = this.light.color
+                    let ground = match (this.light) {
+                        case hl: HemisphereLight => hl.groundColor
+                        case _ => Color(0x000000)
+                    }
+                    for (i in 0..colors.count) {
+                        let c = if (i < (colors.count / 2)) { sky } else { ground }
+                        colors.setXYZ(i, c.r, c.g, c.b)
+                    }
+                    colors.version += 1
                 }
+            }
         }
         this.matrixWorldNeedsUpdate = true
         this.light.updateWorldMatrix(true, false, false)
         
-        match (meshOpt) {
-            case Some(mesh) =>
-                let v = Vector3().setFromMatrixPosition(this.light.matrixWorld).negate()
-                mesh.lookAt(v)
-            case None => ()
+        if (let Some(mesh) <- meshOpt) {
+            let v = Vector3().setFromMatrixPosition(this.light.matrixWorld).negate()
+            mesh.lookAt(v)
         }
     }
 }

@@ -23,29 +23,32 @@
  *
  * @file[zh-cn] cube_uv_reflection_fragment  ShaderChunk GLSL 片段
  * @brief[zh-cn] ShaderChunk GLSL 片段: cube_uv_reflection_fragment
- *
+ * @explain[zh-cn] PMREM CubeUV 环境贴图采样（方向 → 面/UV → 2D 图集纹理）。
+ *         布局必须与 PMREMGenerator 生成器严格一致（见下），否则反射方向错位。
+ *         本片段由 ShaderLib 在构建完整着色器程序时按需拼接。
+
  * @file[en] cube_uv_reflection_fragment  ShaderChunk GLSL fragment
  * @brief[en] ShaderChunk GLSL fragment: cube_uv_reflection_fragment
- * 该 GLSL 片段由 ShaderLib 在构建完整着色器程序时按需拼接。
- * 在 bgfx4cj 渲染后端中,由 BgfxShader/BgfxShaderCache 在运行时
- * 拼接为完整 GLSL 源码后交给 bgfx4j 封装的 shaderc API 编译。
+ * @explain[en] PMREM CubeUV environment map sampling (direction -> face/UV -> 2D atlas texture).
+ *         The layout must match PMREMGenerator exactly (see below), otherwise reflections are misaligned.
  */
 package three.rendering.shaders.ShaderChunk
 
 /**
  * cube_uv_reflection_fragment GLSL 片段字符串
- * 
+ *
+ * ★CubeUV 图集布局（与 PMREMGenerator 的常量一一对应，改动必须两边同步）：
+ *   - 共 5 个 mip 层级，面尺寸 faceSize = 256 / 128 / 64 / 32 / 16（level 0 最清晰）；
+ *   - 每层平面为 3 列 × 2 行 的 faceSize 方块（face 0,1,2 → 第 0 行；face 3,4,5 → 第 1 行）；
+ *   - 各层自上而下堆叠，y 偏移依次为 0 / 512 / 768 / 896 / 960；
+ *   - 图集总尺寸 768 × 992；
+ *   - 单像素采样点为 texel 中心（uv * (faceSize - 1) + 0.5），配合 ClampToEdge + LinearFilter。
  * 使用仓颉三引号多行字符串语法 `"""..."""`。
  */
 public const cube_uv_reflection_fragment: String = #"
 #ifdef ENVMAP_TYPE_CUBE_UV
 
-	#define cubeUV_minMipLevel 4.0
-	#define cubeUV_minTileSize 16.0
-
-	// These shader functions convert between the UV coordinates of a single face of
-	// a cubemap, the 0-5 integer index of a cube face, and the direction vector for
-	// sampling a textureCube (not generally normalized ).
+	// 这些函数在"立方体单面 UV 坐标 / 0-5 面索引 / 方向向量"之间转换。
 
 	float getFace( vec3 direction ) {
 
@@ -79,7 +82,7 @@ public const cube_uv_reflection_fragment: String = #"
 
 	}
 
-	// RH coordinate system; PMREM face-indexing convention
+	// 面内 UV（0-1 范围）
 	vec2 getUV( vec3 direction, float face ) {
 
 		vec2 uv;
@@ -114,110 +117,64 @@ public const cube_uv_reflection_fragment: String = #"
 
 	}
 
-	vec3 bilinearCubeUV( sampler2D envMap, vec3 direction, float mipInt ) {
+	// 采样某一 mip 层级（level：0=256px 面，1=128，2=64，3=32，4=16）
+	// 直接引用全局 u_envMap（envmap_common_pars_fragment 声明），避免把 sampler 作为函数参数
+	// 传递（HLSL 下 sampler 参数经 glslang 翻译易出错）。
+	vec3 sampleCubeUVLevel( vec3 direction, float level ) {
 
 		float face = getFace( direction );
 
-		float filterInt = max( cubeUV_minMipLevel - mipInt, 0.0 );
+		// faceSize = 256 / 2^level
+		float faceSize = 256.0 / exp2( level );
 
-		mipInt = max( mipInt, cubeUV_minMipLevel );
+		// 面内像素坐标（中心对齐）
+		vec2 uv = getUV( direction, face ) * ( faceSize - 1.0 ) + 0.5;
 
-		float faceSize = exp2( mipInt );
+		float row = face >= 3.0 ? 1.0 : 0.0;
+		float col = face - row * 3.0;
 
-		highp vec2 uv = getUV( direction, face ) * ( faceSize - 2.0 ) + 1.0; // #25071
+		// 各层 y 偏移（与生成器一致）
+		float yOffset = 0.0;
+		if ( level > 3.5 ) {
 
-		if ( face > 2.0 ) {
+			yOffset = 960.0;
 
-			uv.y += faceSize;
+		} else if ( level > 2.5 ) {
 
-			face -= 3.0;
+			yOffset = 896.0;
+
+		} else if ( level > 1.5 ) {
+
+			yOffset = 768.0;
+
+		} else if ( level > 0.5 ) {
+
+			yOffset = 512.0;
 
 		}
 
-		uv.x += face * faceSize;
+		uv.x += col * faceSize;
+		uv.y += row * faceSize + yOffset;
 
-		uv.x += filterInt * 3.0 * cubeUV_minTileSize;
+		uv /= vec2( 768.0, 992.0 );
 
-		uv.y += 4.0 * ( exp2( CUBEUV_MAX_MIP ) - faceSize );
-
-		uv.x *= CUBEUV_TEXEL_WIDTH;
-		uv.y *= CUBEUV_TEXEL_HEIGHT;
-
-		#ifdef texture2DGradEXT
-
-			return texture2DGradEXT( envMap, uv, vec2( 0.0 ), vec2( 0.0 ) ).rgb; // disable anisotropic filtering
-
-		#else
-
-			return texture2D( envMap, uv ).rgb;
-
-		#endif
+		return texture2D( u_envMap, uv ).rgb;
 
 	}
 
-	// These defines must match with PMREMGenerator
+	// roughness(0-1) → CubeUV 层级（0=最清晰，4=最模糊），并在相邻层级间线性插值
+	vec3 textureCubeUV( vec3 direction, float roughness ) {
 
-	#define cubeUV_r0 1.0
-	#define cubeUV_m0 - 2.0
-	#define cubeUV_r1 0.8
-	#define cubeUV_m1 - 1.0
-	#define cubeUV_r4 0.4
-	#define cubeUV_m4 2.0
-	#define cubeUV_r5 0.305
-	#define cubeUV_m5 3.0
-	#define cubeUV_r6 0.21
-	#define cubeUV_m6 4.0
+		float m = clamp( roughness, 0.0, 1.0 ) * 4.0;
 
-	float roughnessToMip( float roughness ) {
+		float l0 = floor( m );
+		float l1 = min( l0 + 1.0, 4.0 );
+		float f = m - l0;
 
-		float mip = 0.0;
+		vec3 color0 = sampleCubeUVLevel( direction, l0 );
+		vec3 color1 = sampleCubeUVLevel( direction, l1 );
 
-		if ( roughness >= cubeUV_r1 ) {
-
-			mip = ( cubeUV_r0 - roughness ) * ( cubeUV_m1 - cubeUV_m0 ) / ( cubeUV_r0 - cubeUV_r1 ) + cubeUV_m0;
-
-		} else if ( roughness >= cubeUV_r4 ) {
-
-			mip = ( cubeUV_r1 - roughness ) * ( cubeUV_m4 - cubeUV_m1 ) / ( cubeUV_r1 - cubeUV_r4 ) + cubeUV_m1;
-
-		} else if ( roughness >= cubeUV_r5 ) {
-
-			mip = ( cubeUV_r4 - roughness ) * ( cubeUV_m5 - cubeUV_m4 ) / ( cubeUV_r4 - cubeUV_r5 ) + cubeUV_m4;
-
-		} else if ( roughness >= cubeUV_r6 ) {
-
-			mip = ( cubeUV_r5 - roughness ) * ( cubeUV_m6 - cubeUV_m5 ) / ( cubeUV_r5 - cubeUV_r6 ) + cubeUV_m5;
-
-		} else {
-
-			mip = - 2.0 * log2( 1.16 * roughness ); // 1.16 = 1.79^0.25
-		}
-
-		return mip;
-
-	}
-
-	vec4 textureCubeUV( sampler2D envMap, vec3 sampleDir, float roughness ) {
-
-		float mip = clamp( roughnessToMip( roughness ), cubeUV_m0, CUBEUV_MAX_MIP );
-
-		float mipF = fract( mip );
-
-		float mipInt = floor( mip );
-
-		vec3 color0 = bilinearCubeUV( envMap, sampleDir, mipInt );
-
-		if ( mipF == 0.0 ) {
-
-			return vec4( color0, 1.0 );
-
-		} else {
-
-			vec3 color1 = bilinearCubeUV( envMap, sampleDir, mipInt + 1.0 );
-
-			return vec4( mix( color0, color1, mipF ), 1.0 );
-
-		}
+		return mix( color0, color1, f );
 
 	}
 

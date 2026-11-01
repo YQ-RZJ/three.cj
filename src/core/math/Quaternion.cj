@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] Quaternion
  * @brief[zh-cn] 四元数
- * @explain[zh-cn] 表示三维空间中的旋转，使用四元数 (x, y, z, w) 表示，其中 w 为标量部分。Three.js 假设四元数始终为单位四元数（长度为 1）。
+ * @explain[zh-cn] 表示三维空间中的旋转，使用四元数 (x, y, z, w) 表示，其中 w 为标量部分。本引擎假设四元数始终为单位四元数（长度为 1）。
  *
  * @file[en] Quaternion
  * @brief[en] Quaternion
- * @explain[en] Represents rotation in 3D space using quaternion (x, y, z, w), where w is the scalar part. Three.js assumes quaternions are always unit quaternions (length 1).
+ * @explain[en] Represents rotation in 3D space using quaternion (x, y, z, w), where w is the scalar part. This engine assumes quaternions are always unit quaternions (length 1).
  */
 package three.core.math
 

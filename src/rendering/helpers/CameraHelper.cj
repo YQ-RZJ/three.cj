@@ -24,13 +24,13 @@
  * @file[zh-cn] 相机辅助对象
  * @brief[zh-cn] 相机视锥体辅助对象，用于可视化相机的视锥体
  * @explain[zh-cn] 
- * 对应 Three.js helpers/CameraHelper.js。显示相机的近平面、远平面以及视锥体轮廓线，
+ * 显示相机的近平面、远平面以及视锥体轮廓线，
  * 帮助调试相机参数。支持自定义视锥、锥体、上方向、目标和十字线的颜色。
  *
  * @file[en] Camera Helper
  * @brief[en] Camera frustum helper for visualizing camera frustums
  * @explain[en] 
- * Corresponds to Three.js helpers/CameraHelper.js. Displays camera near/far planes and
+ * Displays camera near/far planes and
  * frustum outline lines for debugging camera parameters. Supports custom colors for
  * frustum, cone, up, target and cross lines.
  */
@@ -141,31 +141,29 @@ public class CameraHelper <: LineSegments {
     public func setColors(frustum: Color, cone: Color, up: Color, target: Color, cross: Color): CameraHelper {
         let geometry = this.geometry
         let colorAttribute = geometry.getAttribute("color")
-        match (colorAttribute) {
-            case Some(attr) =>
-                // 前 24 个顶点（near4+far4+sides4 共 12 条线 × 2）为视锥
-                for (i in 0..24) {
-                    attr.setXYZ(i, frustum.r, frustum.g, frustum.b)
-                }
-                // cone: 顶点 24-31（p,n1..n4 四条线）
-                for (i in 24..32) {
-                    attr.setXYZ(i, cone.r, cone.g, cone.b)
-                }
-                // up: 顶点 32-37（u1,u2,u3 三角）
-                for (i in 32..38) {
-                    attr.setXYZ(i, up.r, up.g, up.b)
-                }
-                // target: 顶点 38-39（c,t 线）与 40-41（p,c 线，JS 实际用 cross 色）
-                attr.setXYZ(38, target.r, target.g, target.b)
-                attr.setXYZ(39, target.r, target.g, target.b)
-                attr.setXYZ(40, cross.r, cross.g, cross.b)
-                attr.setXYZ(41, cross.r, cross.g, cross.b)
-                // cross: 顶点 42-49（cn1..cn4, cf1..cf4）
-                for (i in 42..50) {
-                    attr.setXYZ(i, cross.r, cross.g, cross.b)
-                }
-                attr.version += 1
-            case None => ()
+        if (let Some(attr) <- colorAttribute) {
+            // 前 24 个顶点（near4+far4+sides4 共 12 条线 × 2）为视锥
+            for (i in 0..24) {
+                attr.setXYZ(i, frustum.r, frustum.g, frustum.b)
+            }
+            // cone: 顶点 24-31（p,n1..n4 四条线）
+            for (i in 24..32) {
+                attr.setXYZ(i, cone.r, cone.g, cone.b)
+            }
+            // up: 顶点 32-37（u1,u2,u3 三角）
+            for (i in 32..38) {
+                attr.setXYZ(i, up.r, up.g, up.b)
+            }
+            // target: 顶点 38-39（c,t 线）与 40-41（p,c 线，JS 实际用 cross 色）
+            attr.setXYZ(38, target.r, target.g, target.b)
+            attr.setXYZ(39, target.r, target.g, target.b)
+            attr.setXYZ(40, cross.r, cross.g, cross.b)
+            attr.setXYZ(41, cross.r, cross.g, cross.b)
+            // cross: 顶点 42-49（cn1..cn4, cf1..cf4）
+            for (i in 42..50) {
+                attr.setXYZ(i, cross.r, cross.g, cross.b)
+            }
+            attr.version += 1
         }
         return this
     }
@@ -189,12 +187,12 @@ public class CameraHelper <: LineSegments {
         func addPoint(id: String): Unit {
             vertices.add(0.0); vertices.add(0.0); vertices.add(0.0)
             colors.add(0.0); colors.add(0.0); colors.add(0.0)
-            match (this.pointMap.get(id)) {
-                case Some(arr) => arr.add((vertices.size / 3) - 1)
-                case None =>
-                    let arr = ArrayList<Int64>()
-                    arr.add((vertices.size / 3) - 1)
-                    this.pointMap.add(id, arr)
+            if (let Some(arr) <- this.pointMap.get(id)) {
+                arr.add((vertices.size / 3) - 1)
+            } else {
+                let arr = ArrayList<Int64>()
+                arr.add((vertices.size / 3) - 1)
+                this.pointMap.add(id, arr)
             }
         }
 
@@ -238,17 +236,13 @@ public class CameraHelper <: LineSegments {
      */
     private func setPoint(point: String, x: Float64, y: Float64, z: Float64): Unit {
         CameraHelper._vector.set(x, y, z).unproject(this.camera.projectionMatrixInverse)
-        match (this.pointMap.get(point)) {
-            case Some(points) =>
-                match (this.geometry.getAttribute("position")) {
-                    case Some(position) =>
-                        for (i in 0..points.size) {
-                            position.setXYZ(points[i], CameraHelper._vector.x, CameraHelper._vector.y, CameraHelper._vector.z)
-                        }
-                    case None => ()
+        if (let Some(points) <- this.pointMap.get(point)) {
+                if (let Some(position) <- this.geometry.getAttribute("position")) {
+                    for (i in 0..points.size) {
+                        position.setXYZ(points[i], CameraHelper._vector.x, CameraHelper._vector.y, CameraHelper._vector.z)
+                    }
                 }
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -303,10 +297,7 @@ public class CameraHelper <: LineSegments {
         setPoint("cn3", 0.0, -h, nearZ)
         setPoint("cn4", 0.0, h, nearZ)
         // 标记 position 属性需更新
-        match (this.geometry.getAttribute("position")) {
-            case Some(position) => position.markNeedsUpdate()
-            case None => ()
-        }
+        if (let Some(position) <- this.geometry.getAttribute("position")) { position.markNeedsUpdate() }
         this.geometry.computeBoundingSphere()
     }
 

@@ -27,7 +27,6 @@
  * 对齐 JS 继承链：OctahedronGeometry → PolyhedronGeometry → BufferGeometry。
  * 通过 super(vertices, indices, radius, detail) 复用 PolyhedronGeometry 构建
  * （顶点投影球面 + 细分 + UV 生成）。
- * 对应 Three.js geometries/OctahedronGeometry.js。
  *
  * @file[en] Octahedron Geometry
  * @brief[en] Octahedron geometry, a polyhedron special case
@@ -35,7 +34,6 @@
  * Aligned with JS inheritance: OctahedronGeometry → PolyhedronGeometry → BufferGeometry.
  * Reuses PolyhedronGeometry construction via super(vertices, indices, radius, detail)
  * (vertex projection onto sphere + subdivision + UV generation).
- * Corresponds to Three.js geometries/OctahedronGeometry.js.
  */
 package three.rendering.geometry
 
@@ -91,8 +89,8 @@ public class OctahedronGeometry <: PolyhedronGeometry {
     public static func fromJSON(data: HashMap<String, Any>): OctahedronGeometry {
         var r: Float64 = 1.0
         var d: Int64 = 0
-        match (data.get("radius")) { case Some(v: Float64) => r = v; case _ => () }
-        match (data.get("detail")) { case Some(v: Int64) => d = v; case _ => () }
+        if (let Some(v) <- data.get("radius")) { if (v is Float64) { r = (v as Float64).getOrThrow() } }
+        if (let Some(v) <- data.get("detail")) { if (v is Int64) { d = (v as Int64).getOrThrow() } }
         return OctahedronGeometry(radius: r, detail: d)
     }
 }

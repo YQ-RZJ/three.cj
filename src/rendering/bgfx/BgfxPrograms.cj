@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 着色器程序管理
  * @brief[zh-cn] 替代 WebGLPrograms，管理着色器程序的创建、缓存和获取
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLPrograms.js。WebGLPrograms 管理所有着色器程序的缓存和参数获取。bgfx 版本同样管理程序缓存，但着色器编译方式不同。
+ * @explain[zh-cn] WebGLPrograms 管理所有着色器程序的缓存和参数获取。bgfx 版本同样管理程序缓存，但着色器编译方式不同。
  *
  * @file[en] bgfx Shader Program Management
  * @brief[en] Replaces WebGLPrograms, manages shader program creation, caching and retrieval
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLPrograms.js. WebGLPrograms manages shader program caching and parameter retrieval. The bgfx version also manages program caching, but shader compilation differs.
+ * @explain[en] WebGLPrograms manages shader program caching and parameter retrieval. The bgfx version also manages program caching, but shader compilation differs.
  */
 package three.rendering.bgfx
 
@@ -99,16 +99,15 @@ public class BgfxPrograms {
      * @return[en] Program data
      */
     public func getProgram(paramKey: String, vertexShader: ShaderHandle, fragmentShader: ShaderHandle, name: String): BgfxProgramData {
-        match (programsMap.get(paramKey)) {
-            case Some(data) =>
-                data.usedTimes += 1
-                return data
-            case None =>
-                let data = program.createProgram(vertexShader, fragmentShader, name)
-                data.usedTimes = 1
-                programs.add(data)
-                programsMap.add(paramKey, data)
-                return data
+        if (let Some(data) <- programsMap.get(paramKey)) {
+            data.usedTimes += 1
+            return data
+        } else {
+            let data = program.createProgram(vertexShader, fragmentShader, name)
+            data.usedTimes = 1
+            programs.add(data)
+            programsMap.add(paramKey, data)
+            return data
         }
     }
 

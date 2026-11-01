@@ -24,13 +24,11 @@
  * @file[zh-cn] 3D Catmull-Rom 样条曲线
  * @brief[zh-cn] 由 3D 点数组定义的 Catmull-Rom 样条曲线，支持 centripetal/chordal/catmullrom 三种类型
  * @explain[zh-cn] 
- * 对应 Three.js extras/curves/CatmullRomCurve3.js。
  * curveType 接受以下值：centripetal（默认，向心参数化，避免尖点和自相交）、chordal（弦长参数化）、catmullrom（经典 Catmull-Rom，使用 tension 参数）。
  *
  * @file[en] 3D Catmull-Rom Spline Curve
  * @brief[en] 3D Catmull-Rom spline curve defined by an array of 3D points, supporting centripetal/chordal/catmullrom types
  * @explain[en] 
- * Corresponds to Three.js extras/curves/CatmullRomCurve3.js.
  * curveType accepts: centripetal (default, centripetal parameterization, avoids cusps and self-intersections), chordal (chord-length parameterization), catmullrom (classic Catmull-Rom using tension parameter).
  */
 package three.rendering.geometry

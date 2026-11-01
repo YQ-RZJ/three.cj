@@ -24,13 +24,13 @@
  * @file[zh-cn] 光源基类
  * @brief[zh-cn] 光源抽象基类，所有具体光源类型继承本类
  * @explain[zh-cn] 
- * 对应 Three.js lights/Light.js。继承自 Object3D，故光源本身可参与场景图（携带位置/朝向/变换）。
+ * 继承自 Object3D，故光源本身可参与场景图（携带位置/朝向/变换）。
  * 定义光源颜色、强度等通用属性。
  *
  * @file[en] Light Base Class
  * @brief[en] Abstract base class for all light types
  * @explain[en] 
- * Corresponds to Three.js lights/Light.js. Inherits from Object3D so lights can participate
+ * Inherits from Object3D so lights can participate
  * in the scene graph (carrying position/orientation/transform). Defines common properties like color and intensity.
  */
 package three.rendering.lights

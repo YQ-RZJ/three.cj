@@ -22,15 +22,15 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] 缓冲区属性
- * @brief[zh-cn] 存储顶点属性数据（位置、法线、UV、颜色等），对应 Three.js BufferAttribute.js
- * @explain[zh-cn] 这是 Three.js 中最核心的数据结构之一。
+ * @brief[zh-cn] 存储顶点属性数据（位置、法线、UV、颜色等）
+ * @explain[zh-cn] 这是顶点属性数据模型中最核心的数据结构之一。
  * 每个属性持有一个 Array<Float64> 数据，按 itemSize 划分顶点。
  * 支持归一化、applyMatrix3/4、setXYZW、copyArray 等操作。
  * 在 bgfx 渲染后端中，对应 bgfx 顶点缓冲区。
  *
  * @file[en] Buffer Attribute
- * @brief[en] Stores vertex attribute data (position, normal, UV, color, etc.), corresponding to Three.js BufferAttribute.js
- * @explain[en] This is one of the most core data structures in Three.js.
+ * @brief[en] Stores vertex attribute data (position, normal, UV, color, etc.)
+ * @explain[en] This is one of the most core data structures in the vertex attribute data model.
  * Each attribute holds an Array<Float64> data array, partitioned by itemSize per vertex.
  * Supports normalization, applyMatrix3/4, setXYZW, copyArray, etc.
  * In the bgfx rendering backend, corresponds to bgfx vertex buffer.

@@ -418,9 +418,8 @@ public class RigidBody {
     public func dispose(): Unit {
         if (!this._attached) { return }
         // 解除绑定（destroyBody 内部也会清映射，但显式清更安全）
-        match (this._boundObj) {
-            case Some(obj) => this._world.unbindObject(obj)
-            case None => ()
+        if (let Some(obj) <- this._boundObj) {
+            this._world.unbindObject(obj)
         }
         this._world.destroyBody(this._handle)
         this._handle = PhysicsBodyHandle.INVALID

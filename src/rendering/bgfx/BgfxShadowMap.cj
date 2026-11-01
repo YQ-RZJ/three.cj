@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 阴影贴图管理
  * @brief[zh-cn] 替代 WebGLShadowMap，使用 FrameBufferHandle 管理阴影贴图
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLShadowMap.js。WebGLShadowMap 使用 WebGLRenderTarget 管理阴影贴图，bgfx 版本使用 FrameBufferHandle 替代。支持三种阴影贴图类型：BasicShadowMap、PCFShadowMap、VSMShadowMap。
+ * @explain[zh-cn] WebGLShadowMap 使用 WebGLRenderTarget 管理阴影贴图，bgfx 版本使用 FrameBufferHandle 替代。支持三种阴影贴图类型：BasicShadowMap、PCFShadowMap、VSMShadowMap。
  *
  * @file[en] bgfx Shadow Map Management
  * @brief[en] Replaces WebGLShadowMap, manages shadow maps using FrameBufferHandle
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLShadowMap.js. WebGLShadowMap uses WebGLRenderTarget for shadow maps; the bgfx version uses FrameBufferHandle instead. Supports three shadow map types: BasicShadowMap, PCFShadowMap, VSMShadowMap.
+ * @explain[en] WebGLShadowMap uses WebGLRenderTarget for shadow maps; the bgfx version uses FrameBufferHandle instead. Supports three shadow map types: BasicShadowMap, PCFShadowMap, VSMShadowMap.
  */
 package three.rendering.bgfx
 
@@ -290,21 +290,20 @@ public class BgfxShadowMap {
      */
     public func getShadowMap(lightId: Int64, width: Int64, height: Int64, isCube!: Bool = false): ShadowMapInfo {
         @LogDebug(["shadowMap", "getShadowMap lightId=${lightId} w=${width} h=${height} isCube=${isCube}"])
-        match (shadowMaps.get(lightId)) {
-            case Some(shadowMap) =>
-                @LogDebug(["shadowMap", "cache hit, w=${shadowMap.width} h=${shadowMap.height} type=${shadowMap.shadowType}"])
-                // 如果尺寸或类型变化，需要重新创建
-                if (shadowMap.width != width || shadowMap.height != height ||
-                    shadowMap.shadowType != this.shadowType || shadowMap.isCube != isCube) {
-                    @LogDebug(["shadowMap", "cache invalid, recreating"])
-                    destroyShadowMap(lightId)
-                    return createShadowMap(lightId, width, height, isCube)
-                }
-                @LogDebug(["shadowMap", "returning cached, fb.idx=${shadowMap.frameBuffer.idx}"])
-                return shadowMap
-            case None =>
-                @LogDebug(["shadowMap", "cache miss, creating new"])
+        if (let Some(shadowMap) <- shadowMaps.get(lightId)) {
+            @LogDebug(["shadowMap", "cache hit, w=${shadowMap.width} h=${shadowMap.height} type=${shadowMap.shadowType}"])
+            // 如果尺寸或类型变化，需要重新创建
+            if (shadowMap.width != width || shadowMap.height != height ||
+                shadowMap.shadowType != this.shadowType || shadowMap.isCube != isCube) {
+                @LogDebug(["shadowMap", "cache invalid, recreating"])
+                destroyShadowMap(lightId)
                 return createShadowMap(lightId, width, height, isCube)
+            }
+            @LogDebug(["shadowMap", "returning cached, fb.idx=${shadowMap.frameBuffer.idx}"])
+            return shadowMap
+        } else {
+            @LogDebug(["shadowMap", "cache miss, creating new"])
+            return createShadowMap(lightId, width, height, isCube)
         }
     }
 
@@ -449,39 +448,36 @@ public class BgfxShadowMap {
      */
     public func destroyShadowMap(lightId: Int64): Unit {
         @LogDebug(["shadowMap", "destroyShadowMap lightId=${lightId}"])
-        match (shadowMaps.get(lightId)) {
-            case Some(shadowMap) =>
-                // 清理 cube face framebuffers（每个 face 独立的 fb）
-                // 注意：shadowMap.frameBuffer 与 faceFrameBuffers[0] 是同一个句柄，
-                // 避免重复销毁，先置空 frameBuffer 的 idx。
-                if (shadowMap.isCube) {
-                    shadowMap.frameBuffer.idx = 0xFFFFu16
+        if (let Some(shadowMap) <- shadowMaps.get(lightId)) {
+            // 清理 cube face framebuffers（每个 face 独立的 fb）
+            // 注意：shadowMap.frameBuffer 与 faceFrameBuffers[0] 是同一个句柄，
+            // 避免重复销毁，先置空 frameBuffer 的 idx。
+            if (shadowMap.isCube) {
+                shadowMap.frameBuffer.idx = 0xFFFFu16
+            }
+            for (faceFb in shadowMap.faceFrameBuffers) {
+                if (faceFb.idx != 0xFFFFu16) {
+                    bgfx_destroy_frame_buffer_cj(faceFb)
                 }
-                for (faceFb in shadowMap.faceFrameBuffers) {
-                    if (faceFb.idx != 0xFFFFu16) {
-                        bgfx_destroy_frame_buffer_cj(faceFb)
-                    }
-                }
-                shadowMap.faceFrameBuffers.clear()
-                if (shadowMap.frameBuffer.idx != 0xFFFFu16) {
-                    bgfx_destroy_frame_buffer_cj(shadowMap.frameBuffer)
-                }
-                if (shadowMap.texture.idx != 0xFFFFu16) {
-                    bgfx_destroy_texture_cj(shadowMap.texture)
-                }
-                // 清理 VSM 额外资源
-                if (shadowMap.depthTexture.idx != 0xFFFFu16) {
-                    bgfx_destroy_texture_cj(shadowMap.depthTexture)
-                }
-                if (shadowMap.passFrameBuffer.idx != 0xFFFFu16) {
-                    bgfx_destroy_frame_buffer_cj(shadowMap.passFrameBuffer)
-                }
-                if (shadowMap.passTexture.idx != 0xFFFFu16) {
-                    bgfx_destroy_texture_cj(shadowMap.passTexture)
-                }
-                shadowMaps.remove(lightId)
-            case None =>
-                ()
+            }
+            shadowMap.faceFrameBuffers.clear()
+            if (shadowMap.frameBuffer.idx != 0xFFFFu16) {
+                bgfx_destroy_frame_buffer_cj(shadowMap.frameBuffer)
+            }
+            if (shadowMap.texture.idx != 0xFFFFu16) {
+                bgfx_destroy_texture_cj(shadowMap.texture)
+            }
+            // 清理 VSM 额外资源
+            if (shadowMap.depthTexture.idx != 0xFFFFu16) {
+                bgfx_destroy_texture_cj(shadowMap.depthTexture)
+            }
+            if (shadowMap.passFrameBuffer.idx != 0xFFFFu16) {
+                bgfx_destroy_frame_buffer_cj(shadowMap.passFrameBuffer)
+            }
+            if (shadowMap.passTexture.idx != 0xFFFFu16) {
+                bgfx_destroy_texture_cj(shadowMap.passTexture)
+            }
+            shadowMaps.remove(lightId)
         }
     }
 

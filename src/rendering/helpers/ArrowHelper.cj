@@ -24,13 +24,13 @@
  * @file[zh-cn] 箭头辅助对象
  * @brief[zh-cn] 三维箭头辅助对象，用于可视化方向
  * @explain[zh-cn] 
- * 对应 Three.js helpers/ArrowHelper.js。由一条线（表示方向）和一个锥体（表示箭头头部）组成，
+ * 由一条线（表示方向）和一个锥体（表示箭头头部）组成，
  * 支持设置方向、长度和颜色。
  *
  * @file[en] Arrow Helper
  * @brief[en] 3D arrow helper for visualizing directions
  * @explain[en] 
- * Corresponds to Three.js helpers/ArrowHelper.js. Composed of a line (direction)
+ * Composed of a line (direction)
  * and a cone (arrow head), supports setting direction, length and color.
  */
 package three.rendering.helpers

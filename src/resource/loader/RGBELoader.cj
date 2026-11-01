@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] RGBELoader Radiance RGBE HDR 纹理加载器
- * @brief[zh-cn] 对应 Three.js examples/jsm/loaders/RGBELoader.js 的仓颉侧实现
+ * @brief[zh-cn] Radiance HDR（.hdr）纹理的仓颉侧实现
  * @explain[zh-cn] Radiance RGBE HDR 加载器。JS 侧 r180 起 RGBELoader 已弃用（改为 HDRLoader），此处保持同名兼容子类，行为与 HDRLoader 一致。
  *
  * @file[en] RGBELoader  Radiance RGBE HDR texture loader
- * @brief[en] Cangjie implementation corresponding to Three.js examples/jsm/loaders/RGBELoader.js
+ * @brief[en] Cangjie implementation of the Radiance HDR (.hdr) texture loader
  * @explain[en] Radiance RGBE HDR loader. Since JS r180, RGBELoader is deprecated (replaced by HDRLoader); this keeps the same name as a compatibility subclass with identical behavior to HDRLoader.
  */
 package three.resource.loader

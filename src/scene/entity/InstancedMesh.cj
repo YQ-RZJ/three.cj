@@ -53,6 +53,7 @@ import three.utils.constants.*
 import three.rendering.textures.DataTexture
 import three.utils.memory.AutoFreePtr
 import std.collection.*
+import std.math.*
 
 /**
  * @brief[zh-cn] 实例化网格，将同一几何/材质渲染多次，每次带独立变换矩阵/颜色
@@ -119,12 +120,12 @@ public class InstancedMesh <: Mesh {
     // index - 实例索引。
     // color - 颜色。
     public func setColorAt(index: Int64, color: Color): Unit {
-        match (this.instanceColor) {
-            case Some(ic) => color.toArray(ic.array, offset: index * 3)
-            case None =>
-                let ic = InstancedBufferAttribute(Array<Float64>(this.instanceMatrix.count * 3, { _ => 1.0 }), 3)
-                color.toArray(ic.array, offset: index * 3)
-                this.instanceColor = Some(ic)
+        if (let Some(ic) <- this.instanceColor) {
+            color.toArray(ic.array, offset: index * 3)
+        } else {
+            let ic = InstancedBufferAttribute(Array<Float64>(this.instanceMatrix.count * 3, { _ => 1.0 }), 3)
+            color.toArray(ic.array, offset: index * 3)
+            this.instanceColor = Some(ic)
         }
     }
 
@@ -132,45 +133,91 @@ public class InstancedMesh <: Mesh {
     // index - 实例索引。
     // color - 接收结果的目标颜色。
     public func getColorAt(index: Int64, color: Color): Color {
-        match (this.instanceColor) {
-            case Some(ic) => return color.fromArray(ic.array, offset: index * 3)
-            case None => return color.set(1.0, 1.0, 1.0)
+        if (let Some(ic) <- this.instanceColor) {
+            return color.fromArray(ic.array, offset: index * 3)
+        } else {
+            return color.set(1.0, 1.0, 1.0)
         }
     }
 
     // 计算包围盒。与 JS side 一致：遍历所有实例变换矩阵，取每实例 translation（elements[12..14]）
     // expand 到 boundingBox；几何本身包围盒由 Mesh.computeBoundingBox 处理（此处仅实例位置）。
     public func computeBoundingBox(): Unit {
-        match (this.boundingBox) {
-            case Some(box) => box.makeEmpty()
-            case None => this.boundingBox = Some(Box3())
+        if (let Some(box) <- this.boundingBox) {
+            box.makeEmpty()
+        } else {
+            this.boundingBox = Some(Box3())
         }
-        match (this.boundingBox) {
-            case Some(box) =>
-                for (i in 0..this.count) {
-                    let m = Matrix4()
-                    this.getMatrixAt(i, m)
-                    box.expandByPoint(Vector3(m.elements[12], m.elements[13], m.elements[14]))
-                }
-            case None => ()
+        if (let Some(box) <- this.boundingBox) {
+            for (i in 0..this.count) {
+                let m = Matrix4()
+                this.getMatrixAt(i, m)
+                box.expandByPoint(Vector3(m.elements[12], m.elements[13], m.elements[14]))
+            }
         }
     }
 
     // 计算包围球。与 JS side 一致：先 computeBoundingBox，再用 box.getBoundingSphere 填充。
     public func computeBoundingSphere(): Unit {
-        match (this.boundingSphere) {
-            case Some(sphere) => sphere.makeEmpty()
-            case None => this.boundingSphere = Some(Sphere())
+        if (let Some(sphere) <- this.boundingSphere) {
+            sphere.makeEmpty()
+        } else {
+            this.boundingSphere = Some(Sphere())
         }
         this.computeBoundingBox()
         // 仓颉 match 不支持元组双值块，故用嵌套 match 替代 JS side 的 (box, sphere) 双 match。
-        match (this.boundingBox) {
-            case Some(box) =>
-                match (this.boundingSphere) {
-                    case Some(sphere) => box.getBoundingSphere(sphere)
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(box) <- this.boundingBox && let Some(sphere) <- this.boundingSphere) {
+            box.getBoundingSphere(sphere)
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 世界空间包围球（视锥剔除用，覆写基类实现）
+     * @explain[zh-cn] 基类实现只变换基础几何包围球，不含实例分布——实例散布在世界各处时
+     * 剔除会误删可见实例。此处取"实例平移并集球（经 matrixWorld 变换）+ 基础几何半径 ×
+     * 最大实例缩放"，结果保守覆盖全部实例。O(count) 扫描 instanceMatrix，无逐实例矩阵求逆。
+     *
+     * @brief[en] World bounding sphere for frustum culling (overrides base implementation)
+     * @explain[en] The base implementation only transforms the base geometry sphere and ignores
+     * instance distribution — culling would wrongly drop visible instances. This override unions
+     * per-instance translations (transformed by matrixWorld) and adds geometry radius scaled by
+     * the max instance scale, conservatively covering all instances. O(count) scan of
+     * instanceMatrix without per-instance matrix inversion.
+     */
+    public override func getWorldBoundingSphere(): Option<Array<Float64>> {
+        if (this.count <= 0) { return super.getWorldBoundingSphere() }
+        // 基础几何包围球半径（平移并集球不含几何体自身延展）
+        this.geometry.computeBoundingSphere()
+        let geomRadius = if (let Some(gs) <- this.geometry.getBoundingSphere()) {
+            gs.radius
+        } else {
+            return super.getWorldBoundingSphere()
+        }
+        // 实例平移并集球（局部空间，缓存于 this.boundingSphere）
+        if (let Some(_) <- this.boundingSphere) {
+            ()
+        } else {
+            this.computeBoundingSphere()
+        }
+        if (let Some(bs) <- this.boundingSphere) {
+            // 最大实例缩放（近似：实例矩阵三列范数最大值），用于放大几何半径
+            var maxScale = 0.0
+            let arr = this.instanceMatrix.array
+            var i = 0
+            while (i < this.count) {
+                let base = i * 16
+                let sx = Vector3(arr[base], arr[base + 1], arr[base + 2]).length()
+                let sy = Vector3(arr[base + 4], arr[base + 5], arr[base + 6]).length()
+                let sz = Vector3(arr[base + 8], arr[base + 9], arr[base + 10]).length()
+                let s = max(max(sx, sy), sz)
+                if (s > maxScale) { maxScale = s }
+                i += 1
+            }
+            let sphere = Sphere().copy(bs).applyMatrix4(this.matrixWorld)
+            sphere.radius += geomRadius * maxScale
+            return Some([sphere.center.x, sphere.center.y, sphere.center.z, sphere.radius])
+        } else {
+            return super.getWorldBoundingSphere()
         }
     }
 
@@ -186,14 +233,14 @@ public class InstancedMesh <: Mesh {
         let len = Int64(objectInfluences.size) + 1 // morphBaseInfluence + all influences
 
         
-        match (this.morphTexture) {
-            case None =>
-                // 首次惰性创建：len * count 像素，每像素 1 float（RedFormat 单通道 + FloatType）
-                // 仓颉侧 DataTexture(data: Array<UInt8>, width, height, format, type)
-                let totalFloats = len * this.count
-                let bytes = Array<UInt8>(totalFloats * 4, { _ => 0u8 })
-                this.morphTexture = Some(DataTexture(bytes, len, this.count, format: RedFormat, `type`: FloatType))
-            case Some(_) => ()
+        if (let Some(_) <- this.morphTexture) {
+            ()
+        } else {
+            // 首次惰性创建：len * count 像素，每像素 1 float（RedFormat 单通道 + FloatType）
+            // 仓颉侧 DataTexture(data: Array<UInt8>, width, height, format, type)
+            let totalFloats = len * this.count
+            let bytes = Array<UInt8>(totalFloats * 4, { _ => 0u8 })
+            this.morphTexture = Some(DataTexture(bytes, len, this.count, format: RedFormat, `type`: FloatType))
         }
 
         
@@ -205,22 +252,20 @@ public class InstancedMesh <: Mesh {
 
         
         // 仓颉侧 morphTexture.source.data 是 Array<UInt8>，按 IEEE754 little-endian 逐 float 写 4 字节
-        match (this.morphTexture) {
-            case Some(tex) =>
-                let data = tex.source.data
-                let dataIndex = len * index
-                // 写 morphBaseInfluence 到 dataIndex 位
-                let baseBytes = float64ToFloat32Bytes(morphBaseInfluence)
-                let baseOffset = dataIndex * 4
-                for (k in 0..4) { data[baseOffset + k] = baseBytes[k] }
-                // 写 objectInfluences 到 dataIndex + 1 起续位
-                for (i in 0..objectInfluences.size) {
-                    let infBytes = float64ToFloat32Bytes(objectInfluences[i])
-                    let infOffset = (dataIndex + 1 + Int64(i)) * 4
-                    for (k in 0..4) { data[infOffset + k] = infBytes[k] }
-                }
-                tex.source.needsUpdate = true
-            case None => ()
+        if (let Some(tex) <- this.morphTexture) {
+            let data = tex.source.data
+            let dataIndex = len * index
+            // 写 morphBaseInfluence 到 dataIndex 位
+            let baseBytes = float64ToFloat32Bytes(morphBaseInfluence)
+            let baseOffset = dataIndex * 4
+            for (k in 0..4) { data[baseOffset + k] = baseBytes[k] }
+            // 写 objectInfluences 到 dataIndex + 1 起续位
+            for (i in 0..objectInfluences.size) {
+                let infBytes = float64ToFloat32Bytes(objectInfluences[i])
+                let infOffset = (dataIndex + 1 + Int64(i)) * 4
+                for (k in 0..4) { data[infOffset + k] = infBytes[k] }
+            }
+            tex.source.needsUpdate = true
         }
     }
 
@@ -230,18 +275,16 @@ public class InstancedMesh <: Mesh {
     // index - 实例索引。
     // influences - 接收结果的目标数组（长度需 ≥ objectInfluences.length，本实现按目标数组长度读回）。
     public func getMorphAt(index: Int64, influences: Array<Float64>): Array<Float64> {
-        match (this.morphTexture) {
-            case Some(tex) =>
-                let data = tex.source.data
-                let len = Int64(influences.size) + 1
-                let dataIndex = len * index + 1 // Skip the baseInfluenceSum at the beginning
-                for (i in 0..influences.size) {
-                    // 4 字节 IEEE754 little-endian → Float32 → Float64
-                    let offset = (dataIndex + Int64(i)) * 4
-                    let bits = UInt32(data[offset]) | (UInt32(data[offset + 1]) << 8) | (UInt32(data[offset + 2]) << 16) | (UInt32(data[offset + 3]) << 24)
-                    influences[i] = float32BitsToFloat64(bits)
-                }
-            case None => ()
+        if (let Some(tex) <- this.morphTexture) {
+            let data = tex.source.data
+            let len = Int64(influences.size) + 1
+            let dataIndex = len * index + 1 // Skip the baseInfluenceSum at the beginning
+            for (i in 0..influences.size) {
+                // 4 字节 IEEE754 little-endian → Float32 → Float64
+                let offset = (dataIndex + Int64(i)) * 4
+                let bits = UInt32(data[offset]) | (UInt32(data[offset + 1]) << 8) | (UInt32(data[offset + 2]) << 16) | (UInt32(data[offset + 3]) << 24)
+                influences[i] = float32BitsToFloat64(bits)
+            }
         }
         return influences
     }
@@ -270,17 +313,18 @@ public class InstancedMesh <: Mesh {
 
         // test with bounding sphere first
         
-        match (this.boundingSphere) {
-            case None => this.computeBoundingSphere()
-            case Some(_) => ()
+        if (let Some(_) <- this.boundingSphere) {
+            ()
+        } else {
+            this.computeBoundingSphere()
         }
         let sphere = Sphere()
-        match (this.boundingSphere) {
-            case Some(bs) =>
-                sphere.copy(bs)
-                sphere.applyMatrix4(matrixWorld)
-                if (raycaster.ray.intersectsSphere(sphere) == false) { return }
-            case None => return
+        if (let Some(bs) <- this.boundingSphere) {
+            sphere.copy(bs)
+            sphere.applyMatrix4(matrixWorld)
+            if (raycaster.ray.intersectsSphere(sphere) == false) { return }
+        } else {
+            return
         }
 
         // now test each instance

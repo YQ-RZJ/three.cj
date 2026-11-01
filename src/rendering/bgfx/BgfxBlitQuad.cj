@@ -82,10 +82,7 @@ internal class BgfxBlitQuad {
      * @explain[en] Mirrors bgfx4cj-last ThreeRenderer.ensureBlitVB: vec3 a_position + vec2 a_texcoord0, 4 vertices 6 indices. Full-screen triangle cover: position in NDC [-1,1], uv in [0,1].
      */
     public func ensureBlitVB(): Unit {
-        match (this._blitVB) {
-            case Some(_) => return
-            case None => ()
-        }
+        if (let Some(_) <- this._blitVB) { return }
         let vertsF64: Array<Float64> = [
             -1.0, -1.0, 0.0,  0.0, 1.0,   // 左下（V=1）
              1.0, -1.0, 0.0,  1.0, 1.0,   // 右下（V=1）
@@ -125,10 +122,7 @@ internal class BgfxBlitQuad {
      * @return[en] Vertex layout pointer
      */
     private func getOrCreateBlitLayoutPtr(): CPointer<VertexLayout> {
-        match (this._blitLayoutPtrCache) {
-            case Some(p) => return p
-            case None => ()
-        }
+        if (let Some(p) <- this._blitLayoutPtrCache) { return p }
         let layoutPtrHolder = AutoFreePtr<VertexLayout>(unsafe { LibC.malloc<VertexLayout>() })
         let layoutPtr = layoutPtrHolder.get()
         unsafe { layoutPtr.write(VertexLayout()) }
@@ -148,10 +142,7 @@ internal class BgfxBlitQuad {
      * @return[en] Vertex layout handle
      */
     public func getOrCreateBlitLayoutHandle(): VertexLayoutHandle {
-        match (this._blitLayout) {
-            case Some(lh) => return lh
-            case None => ()
-        }
+        if (let Some(lh) <- this._blitLayout) { return lh }
         let lh = bgfx_create_vertex_layout_cj(this.getOrCreateBlitLayoutPtr())
         this._blitLayout = Some(lh)
         return lh
@@ -163,23 +154,17 @@ internal class BgfxBlitQuad {
      * @brief[en] Dispose full-screen quad resources (called by BgfxBackend.dispose)
      */
     public func dispose(): Unit {
-        match (this._blitVB) {
-            case Some(vb) =>
-                bgfx_destroy_vertex_buffer_cj(vb)
-                this._blitVB = None
-            case None => ()
+        if (let Some(vb) <- this._blitVB) {
+            bgfx_destroy_vertex_buffer_cj(vb)
+            this._blitVB = None
         }
-        match (this._blitIB) {
-            case Some(ib) =>
-                bgfx_destroy_index_buffer_cj(ib)
-                this._blitIB = None
-            case None => ()
+        if (let Some(ib) <- this._blitIB) {
+            bgfx_destroy_index_buffer_cj(ib)
+            this._blitIB = None
         }
-        match (this._blitLayout) {
-            case Some(lh) =>
-                bgfx_destroy_vertex_layout_cj(lh)
-                this._blitLayout = None
-            case None => ()
+        if (let Some(lh) <- this._blitLayout) {
+            bgfx_destroy_vertex_layout_cj(lh)
+            this._blitLayout = None
         }
     }
 }

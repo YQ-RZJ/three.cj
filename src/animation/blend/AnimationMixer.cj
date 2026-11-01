@@ -49,6 +49,8 @@ import three.core.math.interpolants.*
 import three.utils.constants.*
 import three.animation.interfaces.IAnimationClip
 import three.animation.skeletal.*
+import three.profiler.*
+import three.profiler.macros.*
 import std.collection.*
 import std.math.*
 
@@ -161,6 +163,26 @@ public class AnimationMixer <: EventDispatcher {
     private var _sceneSkeleton: ?Skeleton
 
     /**
+     * @brief[zh-cn] 骨骼混合管线的逐帧复用缓冲（避免每帧重新分配中间结果）
+     * @explain[zh-cn] updateSkeletal 每帧都要产出采样/混合/模型矩阵三组中间结果，
+     *                  这些缓冲的尺寸只随骨骼规模变化，逐帧重建纯属浪费。
+     *
+     * @brief[en] Per-frame reusable scratch buffers for the skeletal blending pipeline
+     * @explain[en] The sampling/blending/model-matrix intermediates only change size
+     *              with the skeleton size, so they are reused across frames.
+     */
+    private var _skelLayers: ArrayList<BlendLayer> = ArrayList<BlendLayer>()
+    private var _skelSamplingOutputs: ArrayList<Array<SoaTransform>> = ArrayList<Array<SoaTransform>>()
+    private var _skelBlendOutput: Array<SoaTransform> = Array<SoaTransform>(0, { _ => SoaTransform() })
+    private var _skelModelMatrices: Array<Matrix4F> = Array<Matrix4F>(0, { _ => Matrix4F() })
+    private var _skelModelMatrix: Matrix4 = Matrix4()
+    private var _skelParentMatrix: Matrix4 = Matrix4()
+    private var _skelLocalMatrix: Matrix4 = Matrix4()
+    private var _skelSamplingJob: SamplingJob = SamplingJob()
+    private var _skelBlendingJob: BlendingJob = BlendingJob()
+    private var _skelLocalToModelJob: LocalToModelJob = LocalToModelJob()
+
+    /**
      * @brief[zh-cn] 全局混合器时间（秒，从创建时为 0）
      *
      * @brief[en] Global mixer time in seconds, 0 at creation
@@ -256,10 +278,7 @@ public class AnimationMixer <: EventDispatcher {
                     this._addInactiveBinding(existingBinding, rootUuid, trackName)
                 } else {
                     // 创建新绑定
-                    let path = match (prototypeAction) {
-                        case Some(pa) => pa._propertyBindings[i].binding.parsedPath
-                        case None => HashMap<String, Any>()
-                    }
+                    let path = if (let Some(pa) <- prototypeAction) { pa._propertyBindings[i].binding.parsedPath } else { HashMap<String, Any>() }
 
                     let createdBinding = PropertyBinding.create(root, trackName, path)
                     let propBinding = match (createdBinding) {
@@ -302,16 +321,14 @@ public class AnimationMixer <: EventDispatcher {
                 var prototypeAction: Option<AnimationAction> = None
                 if (actionsForClip.isSome()) {
                     let knownActionsOpt = actionsForClip.getOrThrow().get("knownActions")
-                    match (knownActionsOpt) {
-                        case Some(val) =>
-                            match (val) {
-                                case list: ArrayList<AnimationAction> =>
-                                    if (list.size > 0) {
-                                        prototypeAction = Some(list[0])
-                                    }
-                                case _ => ()
-                            }
-                        case None => ()
+                    if (let Some(val) <- knownActionsOpt) {
+                        match (val) {
+                            case list: ArrayList<AnimationAction> =>
+                                if (list.size > 0) {
+                                    prototypeAction = Some(list[0])
+                                }
+                            case _ => ()
+                        }
                     }
                 }
 
@@ -397,10 +414,8 @@ public class AnimationMixer <: EventDispatcher {
      */
     internal func _isActiveAction(action: AnimationAction): Bool {
         let index = action._cacheIndex
-        match (index) {
-            case Some(idx) => return idx < this._nActiveActions
-            case None => return false
-        }
+        if (let Some(idx) <- index) { return idx < this._nActiveActions }
+        return false
     }
 
     /**
@@ -427,26 +442,22 @@ public class AnimationMixer <: EventDispatcher {
         } else {
             let actionsForClip = actionsForClipOpt.getOrThrow()
             let knownActionsOpt = actionsForClip.get("knownActions")
-            match (knownActionsOpt) {
-                case Some(val) =>
-                    match (val) {
-                        case list: ArrayList<AnimationAction> =>
-                            action._byClipCacheIndex = Some(list.size)
-                            list.add(action)
-                        case _ => ()
-                    }
-                case None => ()
+            if (let Some(val) <- knownActionsOpt) {
+                match (val) {
+                    case list: ArrayList<AnimationAction> =>
+                        action._byClipCacheIndex = Some(list.size)
+                        list.add(action)
+                    case _ => ()
+                }
             }
 
             let actionByRootOpt = actionsForClip.get("actionByRoot")
-            match (actionByRootOpt) {
-                case Some(val) =>
-                    match (val) {
-                        case map: HashMap<String, AnimationAction> =>
-                            map.add(rootUuid, action)
-                        case _ => ()
-                    }
-                case None => ()
+            if (let Some(val) <- actionByRootOpt) {
+                match (val) {
+                    case map: HashMap<String, AnimationAction> =>
+                        map.add(rootUuid, action)
+                    case _ => ()
+                }
             }
         }
 
@@ -462,12 +473,10 @@ public class AnimationMixer <: EventDispatcher {
         let lastInactiveAction = actions[actions.size - 1]
         let cacheIndexOpt = action._cacheIndex
 
-        match (cacheIndexOpt) {
-            case Some(cacheIndex) =>
-                lastInactiveAction._cacheIndex = Some(cacheIndex)
-                actions[cacheIndex] = lastInactiveAction
-                actions.remove(actions.size - 1..actions.size)
-            case None => ()
+        if (let Some(cacheIndex) <- cacheIndexOpt) {
+            lastInactiveAction._cacheIndex = Some(cacheIndex)
+            actions[cacheIndex] = lastInactiveAction
+            actions.remove(actions.size - 1..actions.size)
         }
 
         action._cacheIndex = None
@@ -476,50 +485,42 @@ public class AnimationMixer <: EventDispatcher {
         let actionsByClip = this._actionsByClip
         let actionsForClipOpt = actionsByClip.get(clipUuid)
 
-        match (actionsForClipOpt) {
-            case Some(actionsForClip) =>
-                let knownActionsOpt = actionsForClip.get("knownActions")
-                match (knownActionsOpt) {
-                    case Some(val) =>
-                        match (val) {
-                            case knownActionsForClip: ArrayList<AnimationAction> =>
-                                if (knownActionsForClip.size > 0) {
-                                    let lastKnownAction = knownActionsForClip[knownActionsForClip.size - 1]
-                                    let byClipCacheIndexOpt = action._byClipCacheIndex
+        if (let Some(actionsForClip) <- actionsForClipOpt) {
+            let knownActionsOpt = actionsForClip.get("knownActions")
+            if (let Some(val) <- knownActionsOpt) {
+                match (val) {
+                    case knownActionsForClip: ArrayList<AnimationAction> =>
+                        if (knownActionsForClip.size > 0) {
+                            let lastKnownAction = knownActionsForClip[knownActionsForClip.size - 1]
+                            let byClipCacheIndexOpt = action._byClipCacheIndex
 
-                                    match (byClipCacheIndexOpt) {
-                                        case Some(byClipCacheIndex) =>
-                                            lastKnownAction._byClipCacheIndex = Some(byClipCacheIndex)
-                                            if (byClipCacheIndex < knownActionsForClip.size) {
-                                                knownActionsForClip[byClipCacheIndex] = lastKnownAction
-                                            }
-                                        case None => ()
-                                    }
-                                    knownActionsForClip.remove(knownActionsForClip.size - 1..knownActionsForClip.size)
+                            if (let Some(byClipCacheIndex) <- byClipCacheIndexOpt) {
+                                lastKnownAction._byClipCacheIndex = Some(byClipCacheIndex)
+                                if (byClipCacheIndex < knownActionsForClip.size) {
+                                    knownActionsForClip[byClipCacheIndex] = lastKnownAction
                                 }
-                            case _ => ()
+                            }
+                            knownActionsForClip.remove(knownActionsForClip.size - 1..knownActionsForClip.size)
                         }
-                    case None => ()
+                    case _ => ()
                 }
+            }
 
-                action._byClipCacheIndex = None
+            action._byClipCacheIndex = None
 
-                let actionByRootOpt = actionsForClip.get("actionByRoot")
-                match (actionByRootOpt) {
-                    case Some(val) =>
-                        match (val) {
-                            case actionByRoot: HashMap<String, AnimationAction> =>
-                                let rootUuid = action.getRoot().uuid
-                                actionByRoot.remove(rootUuid)
+            let actionByRootOpt = actionsForClip.get("actionByRoot")
+            if (let Some(val) <- actionByRootOpt) {
+                match (val) {
+                    case actionByRoot: HashMap<String, AnimationAction> =>
+                        let rootUuid = action.getRoot().uuid
+                        actionByRoot.remove(rootUuid)
 
-                                if (actionByRoot.size == 0) {
-                                    actionsByClip.remove(clipUuid)
-                                }
-                            case _ => ()
+                        if (actionByRoot.size == 0) {
+                            actionsByClip.remove(clipUuid)
                         }
-                    case None => ()
+                    case _ => ()
                 }
-            case None => ()
+            }
         }
 
         this._removeInactiveBindingsForAction(action)
@@ -555,22 +556,20 @@ public class AnimationMixer <: EventDispatcher {
         let actions = this._actions
         let prevIndexOpt = action._cacheIndex
 
-        match (prevIndexOpt) {
-            case Some(prevIndex) =>
-                let lastActiveIndex = this._nActiveActions
-                this._nActiveActions += 1
+        if (let Some(prevIndex) <- prevIndexOpt) {
+            let lastActiveIndex = this._nActiveActions
+            this._nActiveActions += 1
 
-                if (lastActiveIndex < actions.size) {
-                    let firstInactiveAction = actions[lastActiveIndex]
-                    action._cacheIndex = Some(lastActiveIndex)
-                    actions[lastActiveIndex] = action
-                    firstInactiveAction._cacheIndex = Some(prevIndex)
-                    actions[prevIndex] = firstInactiveAction
-                } else {
-                    action._cacheIndex = Some(lastActiveIndex)
-                    actions.add(action)
-                }
-            case None => ()
+            if (lastActiveIndex < actions.size) {
+                let firstInactiveAction = actions[lastActiveIndex]
+                action._cacheIndex = Some(lastActiveIndex)
+                actions[lastActiveIndex] = action
+                firstInactiveAction._cacheIndex = Some(prevIndex)
+                actions[prevIndex] = firstInactiveAction
+            } else {
+                action._cacheIndex = Some(lastActiveIndex)
+                actions.add(action)
+            }
         }
     }
 
@@ -587,19 +586,17 @@ public class AnimationMixer <: EventDispatcher {
         let actions = this._actions
         let prevIndexOpt = action._cacheIndex
 
-        match (prevIndexOpt) {
-            case Some(prevIndex) =>
-                this._nActiveActions -= 1
-                let firstInactiveIndex = this._nActiveActions
+        if (let Some(prevIndex) <- prevIndexOpt) {
+            this._nActiveActions -= 1
+            let firstInactiveIndex = this._nActiveActions
 
-                if (firstInactiveIndex < actions.size) {
-                    let lastActiveAction = actions[firstInactiveIndex]
-                    action._cacheIndex = Some(firstInactiveIndex)
-                    actions[firstInactiveIndex] = action
-                    lastActiveAction._cacheIndex = Some(prevIndex)
-                    actions[prevIndex] = lastActiveAction
-                }
-            case None => ()
+            if (firstInactiveIndex < actions.size) {
+                let lastActiveAction = actions[firstInactiveIndex]
+                action._cacheIndex = Some(firstInactiveIndex)
+                actions[firstInactiveIndex] = action
+                lastActiveAction._cacheIndex = Some(prevIndex)
+                actions[prevIndex] = lastActiveAction
+            }
         }
     }
 
@@ -641,25 +638,21 @@ public class AnimationMixer <: EventDispatcher {
         let bindingsByRoot = this._bindingsByRootAndName
 
         let bindingByNameOpt = bindingsByRoot.get(rootUuid)
-        match (bindingByNameOpt) {
-            case Some(bindingByName) =>
-                let lastInactiveBinding = bindings[bindings.size - 1]
-                let cacheIndexOpt = binding._cacheIndex
+        if (let Some(bindingByName) <- bindingByNameOpt) {
+            let lastInactiveBinding = bindings[bindings.size - 1]
+            let cacheIndexOpt = binding._cacheIndex
 
-                match (cacheIndexOpt) {
-                    case Some(cacheIndex) =>
-                        lastInactiveBinding._cacheIndex = Some(cacheIndex)
-                        bindings[cacheIndex] = lastInactiveBinding
-                        bindings.remove(bindings.size - 1..bindings.size)
-                    case None => ()
-                }
+            if (let Some(cacheIndex) <- cacheIndexOpt) {
+                lastInactiveBinding._cacheIndex = Some(cacheIndex)
+                bindings[cacheIndex] = lastInactiveBinding
+                bindings.remove(bindings.size - 1..bindings.size)
+            }
 
-                bindingByName.remove(trackName)
+            bindingByName.remove(trackName)
 
-                if (bindingByName.size == 0) {
-                    bindingsByRoot.remove(rootUuid)
-                }
-            case None => ()
+            if (bindingByName.size == 0) {
+                bindingsByRoot.remove(rootUuid)
+            }
         }
     }
 
@@ -670,22 +663,20 @@ public class AnimationMixer <: EventDispatcher {
         let bindings = this._bindings
         let prevIndexOpt = binding._cacheIndex
 
-        match (prevIndexOpt) {
-            case Some(prevIndex) =>
-                let lastActiveIndex = this._nActiveBindings
-                this._nActiveBindings += 1
+        if (let Some(prevIndex) <- prevIndexOpt) {
+            let lastActiveIndex = this._nActiveBindings
+            this._nActiveBindings += 1
 
-                if (lastActiveIndex < bindings.size) {
-                    let firstInactiveBinding = bindings[lastActiveIndex]
-                    binding._cacheIndex = Some(lastActiveIndex)
-                    bindings[lastActiveIndex] = binding
-                    firstInactiveBinding._cacheIndex = Some(prevIndex)
-                    bindings[prevIndex] = firstInactiveBinding
-                } else {
-                    binding._cacheIndex = Some(lastActiveIndex)
-                    bindings.add(binding)
-                }
-            case None => ()
+            if (lastActiveIndex < bindings.size) {
+                let firstInactiveBinding = bindings[lastActiveIndex]
+                binding._cacheIndex = Some(lastActiveIndex)
+                bindings[lastActiveIndex] = binding
+                firstInactiveBinding._cacheIndex = Some(prevIndex)
+                bindings[prevIndex] = firstInactiveBinding
+            } else {
+                binding._cacheIndex = Some(lastActiveIndex)
+                bindings.add(binding)
+            }
         }
     }
 
@@ -696,19 +687,17 @@ public class AnimationMixer <: EventDispatcher {
         let bindings = this._bindings
         let prevIndexOpt = binding._cacheIndex
 
-        match (prevIndexOpt) {
-            case Some(prevIndex) =>
-                this._nActiveBindings -= 1
-                let firstInactiveIndex = this._nActiveBindings
+        if (let Some(prevIndex) <- prevIndexOpt) {
+            this._nActiveBindings -= 1
+            let firstInactiveIndex = this._nActiveBindings
 
-                if (firstInactiveIndex < bindings.size) {
-                    let lastActiveBinding = bindings[firstInactiveIndex]
-                    binding._cacheIndex = Some(firstInactiveIndex)
-                    bindings[firstInactiveIndex] = binding
-                    lastActiveBinding._cacheIndex = Some(prevIndex)
-                    bindings[prevIndex] = lastActiveBinding
-                }
-            case None => ()
+            if (firstInactiveIndex < bindings.size) {
+                let lastActiveBinding = bindings[firstInactiveIndex]
+                binding._cacheIndex = Some(firstInactiveIndex)
+                bindings[firstInactiveIndex] = binding
+                lastActiveBinding._cacheIndex = Some(prevIndex)
+                bindings[prevIndex] = lastActiveBinding
+            }
         }
     }
 
@@ -746,19 +735,17 @@ public class AnimationMixer <: EventDispatcher {
         let interpolants = this._controlInterpolants
         let prevIndexOpt = interpolant.__cacheIndex
 
-        match (prevIndexOpt) {
-            case Some(prevIndex) =>
-                this._nActiveControlInterpolants -= 1
-                let firstInactiveIndex = this._nActiveControlInterpolants
+        if (let Some(prevIndex) <- prevIndexOpt) {
+            this._nActiveControlInterpolants -= 1
+            let firstInactiveIndex = this._nActiveControlInterpolants
 
-                if (firstInactiveIndex < interpolants.size) {
-                    let lastActiveInterpolant = interpolants[firstInactiveIndex]
-                    interpolant.__cacheIndex = Some(firstInactiveIndex)
-                    interpolants[firstInactiveIndex] = interpolant
-                    lastActiveInterpolant.__cacheIndex = Some(prevIndex)
-                    interpolants[prevIndex] = lastActiveInterpolant
-                }
-            case None => ()
+            if (firstInactiveIndex < interpolants.size) {
+                let lastActiveInterpolant = interpolants[firstInactiveIndex]
+                interpolant.__cacheIndex = Some(firstInactiveIndex)
+                interpolants[firstInactiveIndex] = interpolant
+                lastActiveInterpolant.__cacheIndex = Some(prevIndex)
+                interpolants[prevIndex] = lastActiveInterpolant
+            }
         }
     }
 
@@ -784,7 +771,7 @@ public class AnimationMixer <: EventDispatcher {
      * the same action
      */
     public func clipAction(clip: IAnimationClip, optionalRoot!: Option<Object3D> = None, blendMode!: Int64 = -1): AnimationAction {
-        let root = match (optionalRoot) { case Some(r) => r; case None => this._root }
+        let root = if (let Some(r) <- optionalRoot) { r } else { this._root }
         let rootUuid = root.uuid
 
         let clipObject = clip
@@ -798,40 +785,32 @@ public class AnimationMixer <: EventDispatcher {
             blendModeVal = clipObject.blendMode
         }
 
-        match (actionsForClipOpt) {
-            case Some(actionsForClip) =>
-                let actionByRootOpt = actionsForClip.get("actionByRoot")
-                match (actionByRootOpt) {
-                    case Some(val) =>
-                        match (val) {
-                            case actionByRoot: HashMap<String, AnimationAction> =>
-                                let existingActionOpt = actionByRoot.get(rootUuid)
-                                match (existingActionOpt) {
-                                    case Some(existingAction) =>
-                                        if (existingAction.blendMode == blendModeVal) {
-                                            return existingAction
-                                        }
-                                    case None => ()
-                                }
-                            case _ => ()
+        if (let Some(actionsForClip) <- actionsForClipOpt) {
+            let actionByRootOpt = actionsForClip.get("actionByRoot")
+            if (let Some(val) <- actionByRootOpt) {
+                match (val) {
+                    case actionByRoot: HashMap<String, AnimationAction> =>
+                        let existingActionOpt = actionByRoot.get(rootUuid)
+                        if (let Some(existingAction) <- existingActionOpt) {
+                            if (existingAction.blendMode == blendModeVal) {
+                                return existingAction
+                            }
                         }
-                    case None => ()
+                    case _ => ()
                 }
+            }
 
-                // 我们知道剪辑，所以不需要重新解析所有绑定，只需复制
-                let knownActionsOpt = actionsForClip.get("knownActions")
-                match (knownActionsOpt) {
-                    case Some(val) =>
-                        match (val) {
-                            case list: ArrayList<AnimationAction> =>
-                                if (list.size > 0) {
-                                    prototypeAction = Some(list[0])
-                                }
-                            case _ => ()
+            // 我们知道剪辑，所以不需要重新解析所有绑定，只需复制
+            let knownActionsOpt = actionsForClip.get("knownActions")
+            if (let Some(val) <- knownActionsOpt) {
+                match (val) {
+                    case list: ArrayList<AnimationAction> =>
+                        if (list.size > 0) {
+                            prototypeAction = Some(list[0])
                         }
-                    case None => ()
+                    case _ => ()
                 }
-            case None => ()
+            }
         }
 
         // 分配运行所需的所有资源
@@ -857,25 +836,21 @@ public class AnimationMixer <: EventDispatcher {
      * @return[en] The animation action, or None if not found
      */
     public func existingAction(clip: IAnimationClip, optionalRoot!: Option<Object3D> = None): Option<AnimationAction> {
-        let root = match (optionalRoot) { case Some(r) => r; case None => this._root }
+        let root = if (let Some(r) <- optionalRoot) { r } else { this._root }
         let rootUuid = root.uuid
         let clipUuid = clip.uuid
 
         let actionsForClipOpt = this._actionsByClip.get(clipUuid)
 
-        match (actionsForClipOpt) {
-            case Some(actionsForClip) =>
-                let actionByRootOpt = actionsForClip.get("actionByRoot")
-                match (actionByRootOpt) {
-                    case Some(val) =>
-                        match (val) {
-                            case actionByRoot: HashMap<String, AnimationAction> =>
-                                return actionByRoot.get(rootUuid)
-                            case _ => ()
-                        }
-                    case None => ()
+        if (let Some(actionsForClip) <- actionsForClipOpt) {
+            let actionByRootOpt = actionsForClip.get("actionByRoot")
+            if (let Some(val) <- actionByRootOpt) {
+                match (val) {
+                    case actionByRoot: HashMap<String, AnimationAction> =>
+                        return actionByRoot.get(rootUuid)
+                    case _ => ()
                 }
-            case None => ()
+            }
         }
 
         return None
@@ -913,6 +888,7 @@ public class AnimationMixer <: EventDispatcher {
      * @note[zh-cn] 通常在渲染循环中通过传递 Clock 或 Timer 的增量时间来调用
      * @note[en] Usually called in the render loop with the delta time of a Clock or Timer
      */
+    @Zone[three.animation.blend.AnimationMixer.update, name=mixerUpdate]
     public func update(deltaTime: Float64): AnimationMixer {
         var dt = deltaTime * this.timeScale
 
@@ -992,42 +968,36 @@ public class AnimationMixer <: EventDispatcher {
         let actionsByClip = this._actionsByClip
         let actionsForClipOpt = actionsByClip.get(clipUuid)
 
-        match (actionsForClipOpt) {
-            case Some(actionsForClip) =>
-                let knownActionsOpt = actionsForClip.get("knownActions")
-                match (knownActionsOpt) {
-                    case Some(val) =>
-                        match (val) {
-                            case actionsToRemove: ArrayList<AnimationAction> =>
-                                for (i in 0..actionsToRemove.size) {
-                                    let action = actionsToRemove[i]
+        if (let Some(actionsForClip) <- actionsForClipOpt) {
+            let knownActionsOpt = actionsForClip.get("knownActions")
+            if (let Some(val) <- knownActionsOpt) {
+                match (val) {
+                    case actionsToRemove: ArrayList<AnimationAction> =>
+                        for (i in 0..actionsToRemove.size) {
+                            let action = actionsToRemove[i]
 
-                                    this._deactivateAction(action)
+                            this._deactivateAction(action)
 
-                                    let cacheIndexOpt = action._cacheIndex
-                                    match (cacheIndexOpt) {
-                                        case Some(cacheIndex) =>
-                                            if (actions.size > 0) {
-                                                let lastInactiveAction = actions[actions.size - 1]
-                                                action._cacheIndex = None
-                                                action._byClipCacheIndex = None
+                            let cacheIndexOpt = action._cacheIndex
+                            if (let Some(cacheIndex) <- cacheIndexOpt) {
+                                if (actions.size > 0) {
+                                    let lastInactiveAction = actions[actions.size - 1]
+                                    action._cacheIndex = None
+                                    action._byClipCacheIndex = None
 
-                                                lastInactiveAction._cacheIndex = Some(cacheIndex)
-                                                actions[cacheIndex] = lastInactiveAction
-                                                actions.remove(actions.size - 1..actions.size)
-                                            }
-                                        case None => ()
-                                    }
-
-                                    this._removeInactiveBindingsForAction(action)
+                                    lastInactiveAction._cacheIndex = Some(cacheIndex)
+                                    actions[cacheIndex] = lastInactiveAction
+                                    actions.remove(actions.size - 1..actions.size)
                                 }
-                            case _ => ()
-                        }
-                    case None => ()
-                }
+                            }
 
-                actionsByClip.remove(clipUuid)
-            case None => ()
+                            this._removeInactiveBindingsForAction(action)
+                        }
+                    case _ => ()
+                }
+            }
+
+            actionsByClip.remove(clipUuid)
         }
     }
 
@@ -1047,43 +1017,33 @@ public class AnimationMixer <: EventDispatcher {
 
         for (clipUuid in actionsByClip.keys()) {
             let actionsForClipOpt = actionsByClip.get(clipUuid)
-            match (actionsForClipOpt) {
-                case Some(actionsForClip) =>
-                    let actionByRootOpt = actionsForClip.get("actionByRoot")
-                    match (actionByRootOpt) {
-                        case Some(val) =>
-                            match (val) {
-                                case actionByRoot: HashMap<String, AnimationAction> =>
-                                    let actionOpt = actionByRoot.get(rootUuid)
-                                    match (actionOpt) {
-                                        case Some(action) =>
-                                            this._deactivateAction(action)
-                                            this._removeInactiveAction(action)
-                                        case None => ()
-                                    }
-                                case _ => ()
+            if (let Some(actionsForClip) <- actionsForClipOpt) {
+                let actionByRootOpt = actionsForClip.get("actionByRoot")
+                if (let Some(val) <- actionByRootOpt) {
+                    match (val) {
+                        case actionByRoot: HashMap<String, AnimationAction> =>
+                            let actionOpt = actionByRoot.get(rootUuid)
+                            if (let Some(action) <- actionOpt) {
+                                this._deactivateAction(action)
+                                this._removeInactiveAction(action)
                             }
-                        case None => ()
+                        case _ => ()
                     }
-                case None => ()
+                }
             }
         }
 
         let bindingsByRoot = this._bindingsByRootAndName
         let bindingByNameOpt = bindingsByRoot.get(rootUuid)
 
-        match (bindingByNameOpt) {
-            case Some(bindingByName) =>
-                for (trackName in bindingByName.keys()) {
-                    let bindingOpt = bindingByName.get(trackName)
-                    match (bindingOpt) {
-                        case Some(binding) =>
-                            binding.restoreOriginalState()
-                            this._removeInactiveBinding(binding)
-                        case None => ()
-                    }
+        if (let Some(bindingByName) <- bindingByNameOpt) {
+            for (trackName in bindingByName.keys()) {
+                let bindingOpt = bindingByName.get(trackName)
+                if (let Some(binding) <- bindingOpt) {
+                    binding.restoreOriginalState()
+                    this._removeInactiveBinding(binding)
                 }
-            case None => ()
+            }
         }
     }
 
@@ -1102,11 +1062,9 @@ public class AnimationMixer <: EventDispatcher {
     public func uncacheAction(clip: IAnimationClip, optionalRoot!: Option<Object3D> = None): Unit {
         let actionOpt = this.existingAction(clip, optionalRoot: optionalRoot)
 
-        match (actionOpt) {
-            case Some(action) =>
-                this._deactivateAction(action)
-                this._removeInactiveAction(action)
-            case None => ()
+        if (let Some(action) <- actionOpt) {
+            this._deactivateAction(action)
+            this._removeInactiveAction(action)
         }
     }
 
@@ -1171,6 +1129,7 @@ public class AnimationMixer <: EventDispatcher {
      * @param[en] skeletonData Runtime skeleton data
      * @param[en] deltaTime Frame interval in seconds, same as the update argument
      */
+    @Zone[three.animation.blend.AnimationMixer.updateSkeletal, name=mixerUpdateSkeletal]
     public func updateSkeletal(skeletonData: SkeletonData, deltaTime: Float32): Unit {
         let numJoints = skeletonData.numJoints()
         if (numJoints <= 0) { return }
@@ -1178,8 +1137,17 @@ public class AnimationMixer <: EventDispatcher {
         let numSoa = skeletonData.numSoaJoints()
         let restPoses = skeletonData.jointRestPoses()
 
+        // 复用缓冲：尺寸随骨骼规模变化，变化时才重建
+        if (this._skelBlendOutput.size != numSoa) {
+            this._skelBlendOutput = Array<SoaTransform>(numSoa, { _ => SoaTransform() })
+        }
+        if (this._skelModelMatrices.size != numJoints) {
+            this._skelModelMatrices = Array<Matrix4F>(numJoints, { _ => Matrix4F() })
+        }
+
         // 1. 采样：为每个活跃且已注册骨骼数据的动作构建混合层
-        let layers = ArrayList<BlendLayer>()
+        let layers = this._skelLayers
+        layers.clear()
         for (i in 0..this._nActiveActions) {
             let action = this._actions[i]
             if (!action.enabled) { continue }
@@ -1194,10 +1162,20 @@ public class AnimationMixer <: EventDispatcher {
                 0.0f32
             }
 
-            match (this._skeletalDataMap.get(clip.uuid)) {
-                case Some(data) =>
-                    let samplingOutput = Array<SoaTransform>(numSoa, { _ => SoaTransform() })
-                    let samplingJob = SamplingJob()
+            if (let Some(data) <- this._skeletalDataMap.get(clip.uuid)) {
+                    // 采样输出缓冲按层复用
+                    let layerIdx = layers.size
+                    var samplingOutput = if (let Some(buf) <- this._skelSamplingOutputs.get(layerIdx)) {
+                        if (buf.size == numSoa) { buf } else { Array<SoaTransform>(numSoa, { _ => SoaTransform() }) }
+                    } else {
+                        Array<SoaTransform>(numSoa, { _ => SoaTransform() })
+                    }
+                    if (this._skelSamplingOutputs.size <= layerIdx) {
+                        this._skelSamplingOutputs.add(samplingOutput)
+                    } else {
+                        this._skelSamplingOutputs[layerIdx] = samplingOutput
+                    }
+                    let samplingJob = this._skelSamplingJob
                     samplingJob.ratio = ratio
                     samplingJob.animation = Some(data)
                     samplingJob.context = SamplingContext()
@@ -1208,13 +1186,12 @@ public class AnimationMixer <: EventDispatcher {
                         layer.transforms = samplingOutput
                         layers.add(layer)
                     }
-                case None => ()  // 未注册骨骼数据的动作跳过
-            }
+                }  // 未注册骨骼数据的动作跳过
         }
 
         // 2. 混合：无活跃层时 BlendingJob 对所有关节回退 rest pose
-        let blendOutput = Array<SoaTransform>(numSoa, { _ => SoaTransform() })
-        let blendingJob = BlendingJob()
+        let blendOutput = this._skelBlendOutput
+        let blendingJob = this._skelBlendingJob
         blendingJob.threshold = 0.001f32
         blendingJob.layers = layers
         blendingJob.restPose = restPoses
@@ -1222,8 +1199,8 @@ public class AnimationMixer <: EventDispatcher {
         if (!blendingJob.run()) { return }
 
         // 3. 局部空间 → 模型空间
-        let modelMatrices = Array<Matrix4F>(numJoints, { _ => Matrix4F() })
-        let localToModelJob = LocalToModelJob()
+        let modelMatrices = this._skelModelMatrices
+        let localToModelJob = this._skelLocalToModelJob
         localToModelJob.skeleton = Some(skeletonData)
         localToModelJob.input = blendOutput
         localToModelJob.output = modelMatrices
@@ -1232,31 +1209,35 @@ public class AnimationMixer <: EventDispatcher {
         if (!localToModelJob.run()) { return }
 
         // 4. 写回场景骨骼：模型矩阵 → 相对父关节的局部 TRS → Bone 节点
-        match (this._sceneSkeleton) {
-            case Some(sceneSkeleton) =>
-                if (sceneSkeleton.bones.size != numJoints) { return }
-                for (joint in 0..numJoints) {
-                    let bone = sceneSkeleton.bones[joint]
+        if (let Some(sceneSkeleton) <- this._sceneSkeleton) {
+            if (sceneSkeleton.bones.size != numJoints) { return }
+            for (joint in 0..numJoints) {
+                let bone = sceneSkeleton.bones[joint]
 
-                    // Float32 模型矩阵 → Float64 场景矩阵
-                    let model = Matrix4()
-                    model.fromArray(Array<Float64>(16, { e => Float64(modelMatrices[joint].elements[e]) }))
-
-                    // 局部矩阵 = 父模型矩阵的逆 × 当前模型矩阵；根关节直接使用模型矩阵
-                    let parentIdx = skeletonData.jointParent(joint)
-                    let local = if (parentIdx >= 0) {
-                        let parentModel = Matrix4()
-                        parentModel.fromArray(
-                            Array<Float64>(16, { e => Float64(modelMatrices[parentIdx].elements[e]) }))
-                        parentModel.invert()
-                        Matrix4().multiplyMatrices(parentModel, model)
-                    } else {
-                        model
-                    }
-
-                    local.decompose(bone.position, bone.quaternion, bone.scale)
+                // Float32 模型矩阵 → Float64 场景矩阵（直接写元素，免中间数组）
+                let model = this._skelModelMatrix
+                let src = modelMatrices[joint].elements
+                let dst = model.elements
+                for (e in 0..16) {
+                    dst[e] = Float64(src[e])
                 }
-            case None => ()
+
+                // 局部矩阵 = 父模型矩阵的逆 × 当前模型矩阵；根关节直接使用模型矩阵
+                let parentIdx = skeletonData.jointParent(joint)
+                if (parentIdx >= 0) {
+                    let parentModel = this._skelParentMatrix
+                    let pSrc = modelMatrices[parentIdx].elements
+                    let pDst = parentModel.elements
+                    for (e in 0..16) {
+                        pDst[e] = Float64(pSrc[e])
+                    }
+                    parentModel.invert()
+                    this._skelLocalMatrix.multiplyMatrices(parentModel, model)
+                    this._skelLocalMatrix.decompose(bone.position, bone.quaternion, bone.scale)
+                } else {
+                    model.decompose(bone.position, bone.quaternion, bone.scale)
+                }
+            }
         }
     }
 }

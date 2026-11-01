@@ -24,13 +24,13 @@
  * @file[zh-cn] 点光源辅助对象
  * @brief[zh-cn] 点光源辅助对象，用于可视化点光源
  * @explain[zh-cn] 
- * 对应 Three.js helpers/PointLightHelper.js。用球形线框网格可视化点光源的位置，
+ * 用球形线框网格可视化点光源的位置，
  * 当光源变换或属性改变时，需要调用 update() 方法更新。
  *
  * @file[en] Point Light Helper
  * @brief[en] Point light helper for visualizing point lights
  * @explain[en] 
- * Corresponds to Three.js helpers/PointLightHelper.js. Visualizes point light position
+ * Visualizes point light position
  * with a spherical wireframe mesh. Call update() when the light or its properties change.
  */
 package three.rendering.helpers
@@ -121,9 +121,6 @@ public class PointLightHelper <: Mesh {
     public func update(): Unit {
         this.matrixWorldNeedsUpdate = true
         this.light.updateWorldMatrix(true, false, false)
-        match (this.color) {
-            case Some(c) => this.material.color.copy(c)
-            case None => this.material.color.copy(this.light.color)
-        }
+        if (let Some(c) <- this.color) { this.material.color.copy(c) } else { this.material.color.copy(this.light.color) }
     }
 }

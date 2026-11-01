@@ -22,7 +22,7 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] ObjectLoader 对象加载器
- * @brief[zh-cn] 对应 Three.js loaders/ObjectLoader.js，加载 JSON 格式的完整场景对象
+ * @brief[zh-cn] 加载 JSON 格式的完整场景对象
  * @explain[zh-cn] 支持加载几何体、材质、纹理、对象、动画、相机、光源等所有类型。
  *
  * @file[en] ObjectLoader  Object loader
@@ -143,18 +143,13 @@ public open class ObjectLoader <: Loader {
             let json = this.parseJsonToHashMap(jsonStr)
 
             
-            let metadataType = match (json.get("metadata")) {
-                case Some(m) =>
-                    match (m) {
-                        case md: HashMap<String, Any> =>
-                            match (md.get("type")) {
-                                case Some(t) => match (t) { case s: String => s; case _ => "" }
-                                case None => ""
-                            }
-                        case _ => ""
-                    }
-                case None => ""
-            }
+            let metadataType = if (let Some(m) <- json.get("metadata")) {
+                match (m) {
+                    case md: HashMap<String, Any> =>
+                        if (let Some(t) <- md.get("type")) { match (t) { case s: String => s; case _ => "" } } else { "" }
+                    case _ => ""
+                }
+            } else { "" }
             if (metadataType == "" || metadataType.toAsciiLower() == "geometry") {
                 this.manager.itemError(url)
                 onError("THREE.ObjectLoader: Can't load " + url)
@@ -211,18 +206,16 @@ public open class ObjectLoader <: Loader {
      */
     public func parseAnimations(jsonOpt: Option<Any>): HashMap<String, AnimationClip> {
         let animations = HashMap<String, AnimationClip>()
-        match (jsonOpt) {
-            case Some(val) =>
-                match (val) {
-                    case jsonArr: Array<HashMap<String, Any>> =>
-                        for (i in 0..jsonArr.size) {
-                            let data = jsonArr[i]
-                            let clip = AnimationClip.parse(data)
-                            animations.add(clip.uuid, clip)
-                        }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(val) <- jsonOpt) {
+            match (val) {
+                case jsonArr: Array<HashMap<String, Any>> =>
+                    for (i in 0..jsonArr.size) {
+                        let data = jsonArr[i]
+                        let clip = AnimationClip.parse(data)
+                        animations.add(clip.uuid, clip)
+                    }
+                case _ => ()
+            }
         }
         return animations
     }
@@ -240,19 +233,17 @@ public open class ObjectLoader <: Loader {
      */
     public func parseShapes(jsonOpt: Option<Any>): HashMap<String, Shape> {
         let shapes = HashMap<String, Shape>()
-        match (jsonOpt) {
-            case Some(val) =>
-                match (val) {
-                    case jsonArr: Array<HashMap<String, Any>> =>
-                        for (i in 0..jsonArr.size) {
-                            let data = jsonArr[i]
-                            let shape = Shape()
-                            shape.uuid = _getString(data, "uuid")
-                            shapes.add(shape.uuid, shape)
-                        }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(val) <- jsonOpt) {
+            match (val) {
+                case jsonArr: Array<HashMap<String, Any>> =>
+                    for (i in 0..jsonArr.size) {
+                        let data = jsonArr[i]
+                        let shape = Shape()
+                        shape.uuid = _getString(data, "uuid")
+                        shapes.add(shape.uuid, shape)
+                    }
+                case _ => ()
+            }
         }
         return shapes
     }
@@ -272,30 +263,28 @@ public open class ObjectLoader <: Loader {
      */
     public func parseGeometries(jsonOpt: Option<Any>, shapes: HashMap<String, Shape>): HashMap<String, BufferGeometry> {
         let geometries = HashMap<String, BufferGeometry>()
-        match (jsonOpt) {
-            case Some(val) =>
-                match (val) {
-                    case jsonArr: Array<HashMap<String, Any>> =>
-                        let bufferGeometryLoader = BufferGeometryLoader()
-                        for (i in 0..jsonArr.size) {
-                            let data = jsonArr[i]
-                            let typeStr = _getString(data, "type")
-                            var geometry = BufferGeometry()
-                            if (typeStr == "BufferGeometry" || typeStr == "InstancedBufferGeometry") {
-                                geometry = bufferGeometryLoader.parse(data)
-                            } else {
-                                
-                                // CJ 侧几何子类多数无静态 fromJSON，故通过读取 JSON 的 parameters 字段调用对应构造函数。
-                                geometry = _dispatchGeometry(typeStr, data, shapes)
-                            }
-                            geometry.uuid = _getString(data, "uuid")
-                            let name = _getString(data, "name")
-                            if (name != "") { geometry.name = name }
-                            geometries.add(geometry.uuid, geometry)
+        if (let Some(val) <- jsonOpt) {
+            match (val) {
+                case jsonArr: Array<HashMap<String, Any>> =>
+                    let bufferGeometryLoader = BufferGeometryLoader()
+                    for (i in 0..jsonArr.size) {
+                        let data = jsonArr[i]
+                        let typeStr = _getString(data, "type")
+                        var geometry = BufferGeometry()
+                        if (typeStr == "BufferGeometry" || typeStr == "InstancedBufferGeometry") {
+                            geometry = bufferGeometryLoader.parse(data)
+                        } else {
+                            
+                            // CJ 侧几何子类多数无静态 fromJSON，故通过读取 JSON 的 parameters 字段调用对应构造函数。
+                            geometry = _dispatchGeometry(typeStr, data, shapes)
                         }
-                    case _ => ()
-                }
-            case None => ()
+                        geometry.uuid = _getString(data, "uuid")
+                        let name = _getString(data, "name")
+                        if (name != "") { geometry.name = name }
+                        geometries.add(geometry.uuid, geometry)
+                    }
+                case _ => ()
+            }
         }
         return geometries
     }
@@ -315,24 +304,22 @@ public open class ObjectLoader <: Loader {
      */
     public open func parseMaterials(jsonOpt: Option<Any>, textures: HashMap<String, Texture>): HashMap<String, Material> {
         let materials = HashMap<String, Material>()
-        match (jsonOpt) {
-            case Some(val) =>
-                match (val) {
-                    case jsonArr: Array<HashMap<String, Any>> =>
-                        let loader = MaterialLoader()
-                        loader.setTextures(textures)
-                        for (i in 0..jsonArr.size) {
-                            let data = jsonArr[i]
-                            let uuid = _getString(data, "uuid")
-                            if (!materials.contains(uuid)) {
-                                let material = loader.parse(data)
-                                material.uuid = uuid
-                                materials.add(uuid, material)
-                            }
+        if (let Some(val) <- jsonOpt) {
+            match (val) {
+                case jsonArr: Array<HashMap<String, Any>> =>
+                    let loader = MaterialLoader()
+                    loader.setTextures(textures)
+                    for (i in 0..jsonArr.size) {
+                        let data = jsonArr[i]
+                        let uuid = _getString(data, "uuid")
+                        if (!materials.contains(uuid)) {
+                            let material = loader.parse(data)
+                            material.uuid = uuid
+                            materials.add(uuid, material)
                         }
-                    case _ => ()
-                }
-            case None => ()
+                    }
+                case _ => ()
+            }
         }
         return materials
     }
@@ -350,54 +337,50 @@ public open class ObjectLoader <: Loader {
      */
     public func parseImages(jsonOpt: Option<Any>): HashMap<String, Source> {
         let images = HashMap<String, Source>()
-        match (jsonOpt) {
-            case Some(val) =>
-                match (val) {
-                    case jsonArr: Array<HashMap<String, Any>> =>
-                        let imageLoader = ImageLoader()
-                        for (i in 0..jsonArr.size) {
-                            let image = jsonArr[i]
-                            let uuid = _getString(image, "uuid")
-                            let urlOpt = image.get("url")
-                            match (urlOpt) {
-                                case Some(urlVal) =>
-                                    match (urlVal) {
-                                        case urlStr: String =>
-                                            // 加载单张图片
-                                            let fullPath = if (this.resourcePath != "") { this.resourcePath + "/" + urlStr } else { urlStr }
-                                            try {
-                                                let bytes = File.readFrom(fullPath)
-                                                images.add(uuid, Source(data: bytes))
-                                            } catch (_: Exception) {
-                                                images.add(uuid, Source())
-                                            }
-                                        case urlArr: Array<Any> =>
-                                            // 加载图片数组（如立方体贴图）
-                                            let imageArr = ArrayList<Array<UInt8>>()
-                                            for (j in 0..urlArr.size) {
-                                                match (urlArr[j]) {
-                                                    case subUrl: String =>
-                                                        let subFullPath = if (this.resourcePath != "") { this.resourcePath + "/" + subUrl } else { subUrl }
-                                                        try {
-                                                            let subBytes = File.readFrom(subFullPath)
-                                                            imageArr.add(subBytes)
-                                                        } catch (_: Exception) {
-                                                            ()
-                                                        }
-                                                    case _ => ()
-                                                }
-                                            }
-                                            if (imageArr.size > 0) {
-                                                images.add(uuid, Source(data: imageArr[0]))
-                                            }
-                                        case _ => ()
+        if (let Some(val) <- jsonOpt) {
+            match (val) {
+                case jsonArr: Array<HashMap<String, Any>> =>
+                    let imageLoader = ImageLoader()
+                    for (i in 0..jsonArr.size) {
+                        let image = jsonArr[i]
+                        let uuid = _getString(image, "uuid")
+                        let urlOpt = image.get("url")
+                        if (let Some(urlVal) <- urlOpt) {
+                            match (urlVal) {
+                                case urlStr: String =>
+                                    // 加载单张图片
+                                    let fullPath = if (this.resourcePath != "") { this.resourcePath + "/" + urlStr } else { urlStr }
+                                    try {
+                                        let bytes = File.readFrom(fullPath)
+                                        images.add(uuid, Source(data: bytes))
+                                    } catch (_: Exception) {
+                                        images.add(uuid, Source())
                                     }
-                                case None => ()
+                                case urlArr: Array<Any> =>
+                                    // 加载图片数组（如立方体贴图）
+                                    let imageArr = ArrayList<Array<UInt8>>()
+                                    for (j in 0..urlArr.size) {
+                                        match (urlArr[j]) {
+                                            case subUrl: String =>
+                                                let subFullPath = if (this.resourcePath != "") { this.resourcePath + "/" + subUrl } else { subUrl }
+                                                try {
+                                                    let subBytes = File.readFrom(subFullPath)
+                                                    imageArr.add(subBytes)
+                                                } catch (_: Exception) {
+                                                    ()
+                                                }
+                                            case _ => ()
+                                        }
+                                    }
+                                    if (imageArr.size > 0) {
+                                        images.add(uuid, Source(data: imageArr[0]))
+                                    }
+                                case _ => ()
                             }
                         }
-                    case _ => ()
-                }
-            case None => ()
+                    }
+                case _ => ()
+            }
         }
         return images
     }
@@ -417,13 +400,12 @@ public open class ObjectLoader <: Loader {
      */
     public func parseTextures(jsonOpt: Option<Any>, images: HashMap<String, Source>): HashMap<String, Texture> {
         let textures = HashMap<String, Texture>()
-        match (jsonOpt) {
-            case Some(val) =>
-                match (val) {
-                    case jsonArr: Array<HashMap<String, Any>> =>
-                        for (i in 0..jsonArr.size) {
-                            let data = jsonArr[i]
-                            let imageUuid = _getString(data, "image")
+        if (let Some(val) <- jsonOpt) {
+            match (val) {
+                case jsonArr: Array<HashMap<String, Any>> =>
+                    for (i in 0..jsonArr.size) {
+                        let data = jsonArr[i]
+                        let imageUuid = _getString(data, "image")
                             let source = images.get(imageUuid)
 
                             // 创建纹理
@@ -431,20 +413,14 @@ public open class ObjectLoader <: Loader {
                             texture.uuid = _getString(data, "uuid")
 
                             // 设置 source
-                            match (source) {
-                                case Some(src) => texture.source = src
-                                case None => ()
-                            }
+                            if (let Some(src) <- source) { texture.source = src }
 
                             // 设置纹理属性
                             let name = _getString(data, "name")
                             if (name != "") { texture.name = name }
-                            match (data.get("mapping")) {
-                                case Some(v) => match (v) { case i: Int64 => texture.mapping = i; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("wrap")) {
-                                case Some(v) => match (v) {
+                            if (let Some(v) <- data.get("mapping")) { match (v) { case i: Int64 => texture.mapping = i; case _ => () } }
+                            if (let Some(v) <- data.get("wrap")) {
+                                match (v) {
                                     case arr: Array<Any> =>
                                         if (arr.size >= 2) {
                                             match (arr[0]) { case i: Int64 => texture.wrapS = i; case _ => () }
@@ -452,61 +428,29 @@ public open class ObjectLoader <: Loader {
                                         }
                                     case _ => ()
                                 }
-                                case None => ()
                             }
-                            match (data.get("format")) {
-                                case Some(v) => match (v) { case i: Int64 => texture.format = i; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("type")) {
-                                case Some(v) => match (v) { case i: Int64 => texture.`type` = i; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("colorSpace")) {
-                                case Some(v) => match (v) { case s: String => texture.colorSpace = s; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("minFilter")) {
-                                case Some(v) => match (v) { case i: Int64 => texture.minFilter = i; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("magFilter")) {
-                                case Some(v) => match (v) { case i: Int64 => texture.magFilter = i; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("anisotropy")) {
-                                case Some(v) => match (v) { case i: Int64 => texture.anisotropy = i; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("flipY")) {
-                                case Some(v) => match (v) { case b: Bool => texture.flipY = b; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("generateMipmaps")) {
-                                case Some(v) => match (v) { case b: Bool => texture.generateMipmaps = b; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("offset")) {
-                                case Some(v) => match (v) { case arr: Array<Float64> => if (arr.size >= 2) { texture.offset.set(arr[0], arr[1]) }; case _ => () }
-                                case None => ()
-                            }
-                            match (data.get("repeat")) {
-                                case Some(v) => match (v) { case arr: Array<Float64> => if (arr.size >= 2) { texture.repeat.set(arr[0], arr[1]) }; case _ => () }
-                                case None => ()
-                            }
+                            if (let Some(v) <- data.get("format")) { match (v) { case i: Int64 => texture.format = i; case _ => () } }
+                            if (let Some(v) <- data.get("type")) { match (v) { case i: Int64 => texture.`type` = i; case _ => () } }
+                            if (let Some(v) <- data.get("colorSpace")) { match (v) { case s: String => texture.colorSpace = s; case _ => () } }
+                            if (let Some(v) <- data.get("minFilter")) { match (v) { case i: Int64 => texture.minFilter = i; case _ => () } }
+                            if (let Some(v) <- data.get("magFilter")) { match (v) { case i: Int64 => texture.magFilter = i; case _ => () } }
+                            if (let Some(v) <- data.get("anisotropy")) { match (v) { case i: Int64 => texture.anisotropy = i; case _ => () } }
+                            if (let Some(v) <- data.get("flipY")) { match (v) { case b: Bool => texture.flipY = b; case _ => () } }
+                            if (let Some(v) <- data.get("generateMipmaps")) { match (v) { case b: Bool => texture.generateMipmaps = b; case _ => () } }
+                            if (let Some(v) <- data.get("offset")) { match (v) { case arr: Array<Float64> => if (arr.size >= 2) { texture.offset.set(arr[0], arr[1]) }; case _ => () } }
+                            if (let Some(v) <- data.get("repeat")) { match (v) { case arr: Array<Float64> => if (arr.size >= 2) { texture.repeat.set(arr[0], arr[1]) }; case _ => () } }
                             texture.needsUpdate = true
                             textures.add(texture.uuid, texture)
                         }
                     case _ => ()
                 }
-            case None => ()
         }
         return textures
     }
 
     /**
      * @brief[zh-cn] 解析对象
-     * @explain[zh-cn] 对应 JS: parseObject(data, geometries, materials, textures, animations)。支持所有标准 Three.js 对象类型：Scene/PerspectiveCamera/OrthographicCamera/AmbientLight/DirectionalLight/PointLight/SpotLight/HemisphereLight/LightProbe/Mesh/SkinnedMesh/InstancedMesh/BatchedMesh/Line/LineLoop/LineSegments/Points/Sprite/Group/Bone/LOD 等。
+     * @explain[zh-cn] 支持所有标准引擎对象类型：Scene/PerspectiveCamera/OrthographicCamera/AmbientLight/DirectionalLight/PointLight/SpotLight/HemisphereLight/LightProbe/Mesh/SkinnedMesh/InstancedMesh/BatchedMesh/Line/LineLoop/LineSegments/Points/Sprite/Group/Bone/LOD 等。
      * @param[zh-cn] dataOpt JSON 中的对象数据
      * geometries 几何体映射
      * materials 材质映射
@@ -515,7 +459,7 @@ public open class ObjectLoader <: Loader {
      * @return[zh-cn] 解析后的 3D 对象
      *
      * @brief[en] Parse object
-     * @explain[en] Parses object data from JSON. Supports all standard Three.js object types: Scene/PerspectiveCamera/OrthographicCamera/AmbientLight/DirectionalLight/PointLight/SpotLight/HemisphereLight/LightProbe/Mesh/SkinnedMesh/InstancedMesh/BatchedMesh/Line/LineLoop/LineSegments/Points/Sprite/Group/Bone/LOD etc.
+     * @explain[en] Parses object data from JSON. Supports all standard engine object types: Scene/PerspectiveCamera/OrthographicCamera/AmbientLight/DirectionalLight/PointLight/SpotLight/HemisphereLight/LightProbe/Mesh/SkinnedMesh/InstancedMesh/BatchedMesh/Line/LineLoop/LineSegments/Points/Sprite/Group/Bone/LOD etc.
      * @param[en] dataOpt Object data in JSON
      * geometries Geometry mapping
      * materials Material mapping
@@ -524,14 +468,13 @@ public open class ObjectLoader <: Loader {
      * @return[en] Parsed 3D object
      */
     public func parseObject(dataOpt: Option<Any>, geometries: HashMap<String, BufferGeometry>, materials: HashMap<String, Material>, textures: HashMap<String, Texture>, animations: HashMap<String, AnimationClip>): Object3D {
-        match (dataOpt) {
-            case Some(val) =>
-                match (val) {
-                    case data: HashMap<String, Any> => return this._parseObject(data, geometries, materials, textures, animations)
-                    case _ => return Object3D()
-                }
-            case None => return Object3D()
+        if (let Some(val) <- dataOpt) {
+            match (val) {
+                case data: HashMap<String, Any> => return this._parseObject(data, geometries, materials, textures, animations)
+                case _ => return Object3D()
+            }
         }
+        return Object3D()
     }
 
     /**
@@ -544,41 +487,32 @@ public open class ObjectLoader <: Loader {
         // 根据类型创建对应对象
         if (typeStr == "Scene") {
             let scene = Scene()
-            match (data.get("background")) {
-                case Some(v) => match (v) {
+            if (let Some(v) <- data.get("background")) {
+                match (v) {
                     case i: Int64 => scene.background = Some(Color(UInt32(i)))
                     case s: String => scene.background = Some(textures.get(s) ?? Texture())
                     case _ => ()
                 }
-                case None => ()
             }
-            match (data.get("environment")) {
-                case Some(v) => match (v) {
+            if (let Some(v) <- data.get("environment")) {
+                match (v) {
                     case s: String => scene.environment = Some(textures.get(s) ?? Texture())
                     case _ => ()
                 }
-                case None => ()
             }
-            match (data.get("fog")) {
-                case Some(v) => match (v) {
+            if (let Some(v) <- data.get("fog")) {
+                match (v) {
                     case fogData: HashMap<String, Any> =>
                         let fogType = _getString(fogData, "type")
                         if (fogType == "Fog") {
                             let fogColor = fogData.get("color")
-                            match (fogColor) {
-                                case Some(c) => match (c) { case i: Int64 => scene.fog = Some(Fog(Color(UInt32(i)), near: _getFloat(fogData, "near", 1.0), far: _getFloat(fogData, "far", 1000.0))); case _ => () }
-                                case None => ()
-                            }
+                            if (let Some(c) <- fogColor) { match (c) { case i: Int64 => scene.fog = Some(Fog(Color(UInt32(i)), near: _getFloat(fogData, "near", 1.0), far: _getFloat(fogData, "far", 1000.0))); case _ => () } }
                         } else if (fogType == "FogExp2") {
                             let fogColor = fogData.get("color")
-                            match (fogColor) {
-                                case Some(c) => match (c) { case i: Int64 => scene.fogExp2 = Some(FogExp2(Color(UInt32(i)), density: _getFloat(fogData, "density", 0.00025))); case _ => () }
-                                case None => ()
-                            }
+                            if (let Some(c) <- fogColor) { match (c) { case i: Int64 => scene.fogExp2 = Some(FogExp2(Color(UInt32(i)), density: _getFloat(fogData, "density", 0.00025))); case _ => () } }
                         }
                     case _ => ()
                 }
-                case None => ()
             }
             object = scene
         } else if (typeStr == "PerspectiveCamera") {
@@ -587,8 +521,8 @@ public open class ObjectLoader <: Loader {
             let near = _getFloat(data, "near", 0.1)
             let far = _getFloat(data, "far", 2000.0)
             let cam = PerspectiveCamera(fov: fov, aspect: aspect, near: near, far: far)
-            match (data.get("focus")) { case Some(v) => match (v) { case f: Float64 => cam.focus = f; case _ => () }; case None => () }
-            match (data.get("zoom")) { case Some(v) => match (v) { case z: Float64 => cam.zoom = z; case _ => () }; case None => () }
+            if (let Some(v) <- data.get("focus")) { match (v) { case f: Float64 => cam.focus = f; case _ => () } }
+            if (let Some(v) <- data.get("zoom")) { match (v) { case z: Float64 => cam.zoom = z; case _ => () } }
             object = cam
         } else if (typeStr == "OrthographicCamera") {
             let left = _getFloat(data, "left", -1.0)
@@ -606,10 +540,7 @@ public open class ObjectLoader <: Loader {
             let color = _getInt(data, "color", 0xffffff)
             let intensity = _getFloat(data, "intensity", 1.0)
             let dirLight = DirectionalLight(color: Color(UInt32(color)), intensity: intensity)
-            match (data.get("target")) {
-                case Some(v) => match (v) { case s: String => dirLight.target.uuid = s; case _ => () }
-                case None => ()
-            }
+            if (let Some(v) <- data.get("target")) { match (v) { case s: String => dirLight.target.uuid = s; case _ => () } }
             object = dirLight
         } else if (typeStr == "PointLight") {
             let color = _getInt(data, "color", 0xffffff)
@@ -677,8 +608,8 @@ public open class ObjectLoader <: Loader {
         let name = _getString(data, "name")
         if (name != "") { object.name = name }
 
-        match (data.get("matrix")) {
-            case Some(v) => match (v) {
+        if (let Some(v) <- data.get("matrix")) {
+            match (v) {
                 case arr: Array<Float64> =>
                     if (arr.size >= 16) {
                         object.matrix.fromArray(arr, offset: 0)
@@ -686,23 +617,22 @@ public open class ObjectLoader <: Loader {
                     }
                 case _ => ()
             }
-            case None => ()
         }
 
-        match (data.get("position")) { case Some(v) => match (v) { case arr: Array<Float64> => if (arr.size >= 3) { object.position.fromArray(arr, offset: 0) }; case _ => () }; case None => () }
-        match (data.get("quaternion")) { case Some(v) => match (v) { case arr: Array<Float64> => if (arr.size >= 4) { object.quaternion.fromArray(arr, offset: 0) }; case _ => () }; case None => () }
-        match (data.get("scale")) { case Some(v) => match (v) { case arr: Array<Float64> => if (arr.size >= 3) { object.scale.fromArray(arr, offset: 0) }; case _ => () }; case None => () }
-        match (data.get("up")) { case Some(v) => match (v) { case arr: Array<Float64> => if (arr.size >= 3) { object.up.fromArray(arr, offset: 0) }; case _ => () }; case None => () }
-        match (data.get("castShadow")) { case Some(v) => match (v) { case b: Bool => object.castShadow = b; case _ => () }; case None => () }
-        match (data.get("receiveShadow")) { case Some(v) => match (v) { case b: Bool => object.receiveShadow = b; case _ => () }; case None => () }
-        match (data.get("visible")) { case Some(v) => match (v) { case b: Bool => object.visible = b; case _ => () }; case None => () }
-        match (data.get("frustumCulled")) { case Some(v) => match (v) { case b: Bool => object.frustumCulled = b; case _ => () }; case None => () }
-        match (data.get("renderOrder")) { case Some(v) => match (v) { case f: Float64 => object.renderOrder = f; case _ => () }; case None => () }
-        match (data.get("layers")) { case Some(v) => match (v) { case i: Int64 => object.layers.mask = UInt32(i); case _ => () }; case None => () }
+        if (let Some(v) <- data.get("position")) { match (v) { case arr: Array<Float64> => if (arr.size >= 3) { object.position.fromArray(arr, offset: 0) }; case _ => () } }
+        if (let Some(v) <- data.get("quaternion")) { match (v) { case arr: Array<Float64> => if (arr.size >= 4) { object.quaternion.fromArray(arr, offset: 0) }; case _ => () } }
+        if (let Some(v) <- data.get("scale")) { match (v) { case arr: Array<Float64> => if (arr.size >= 3) { object.scale.fromArray(arr, offset: 0) }; case _ => () } }
+        if (let Some(v) <- data.get("up")) { match (v) { case arr: Array<Float64> => if (arr.size >= 3) { object.up.fromArray(arr, offset: 0) }; case _ => () } }
+        if (let Some(v) <- data.get("castShadow")) { match (v) { case b: Bool => object.castShadow = b; case _ => () } }
+        if (let Some(v) <- data.get("receiveShadow")) { match (v) { case b: Bool => object.receiveShadow = b; case _ => () } }
+        if (let Some(v) <- data.get("visible")) { match (v) { case b: Bool => object.visible = b; case _ => () } }
+        if (let Some(v) <- data.get("frustumCulled")) { match (v) { case b: Bool => object.frustumCulled = b; case _ => () } }
+        if (let Some(v) <- data.get("renderOrder")) { match (v) { case f: Float64 => object.renderOrder = f; case _ => () } }
+        if (let Some(v) <- data.get("layers")) { match (v) { case i: Int64 => object.layers.mask = UInt32(i); case _ => () } }
 
         // 解析子对象
-        match (data.get("children")) {
-            case Some(v) => match (v) {
+        if (let Some(v) <- data.get("children")) {
+            match (v) {
                 case childrenArr: Array<HashMap<String, Any>> =>
                     for (childData in childrenArr) {
                         let child = this._parseObject(childData, geometries, materials, textures, animations)
@@ -710,50 +640,42 @@ public open class ObjectLoader <: Loader {
                     }
                 case _ => ()
             }
-            case None => ()
         }
 
         // 绑定动画
-        match (data.get("animations")) {
-            case Some(v) => match (v) {
+        if (let Some(v) <- data.get("animations")) {
+            match (v) {
                 case animArr: Array<Any> =>
                     for (animRef in animArr) {
                         match (animRef) {
                             case uuid: String =>
-                                match (animations.get(uuid)) {
-                                    case Some(clip) => object.animations.add(clip)
-                                    case None => ()
-                                }
+                                if (let Some(clip) <- animations.get(uuid)) { object.animations.add(clip) }
                             case _ => ()
                         }
                     }
                 case _ => ()
             }
-            case None => ()
         }
 
         // LOD 特殊处理
         if (typeStr == "LOD") {
-            match (data.get("levels")) {
-                case Some(v) => match (v) {
+            if (let Some(v) <- data.get("levels")) {
+                match (v) {
                     case levelsArr: Array<HashMap<String, Any>> =>
                         for (levelData in levelsArr) {
                             let levelObjUuid = _getString(levelData, "object")
                             let distance = _getFloat(levelData, "distance", 0.0)
                             // 查找子对象（递归搜索）
                             let foundChild = _findChildByUuid(object, levelObjUuid)
-                            match (foundChild) {
-                                case Some(child) =>
-                                    match (object) {
-                                        case lod: LOD => lod.addLevel(child, distance: distance)
-                                        case _ => ()
-                                    }
-                                case None => ()
+                            if (let Some(child) <- foundChild) {
+                                match (object) {
+                                    case lod: LOD => lod.addLevel(child, distance: distance)
+                                    case _ => ()
+                                }
                             }
                         }
                     case _ => ()
                 }
-                case None => ()
             }
         }
 
@@ -785,61 +707,52 @@ public open class ObjectLoader <: Loader {
             }
         })
 
-        match (jsonOpt) {
-            case Some(val) =>
-                match (val) {
-                    case jsonArr: Array<HashMap<String, Any>> =>
-                        for (i in 0..jsonArr.size) {
-                            let data = jsonArr[i]
-                            let boneArr = ArrayList<Bone>()
-                            let boneInverseArr = ArrayList<Matrix4>()
+        if (let Some(val) <- jsonOpt) {
+            match (val) {
+                case jsonArr: Array<HashMap<String, Any>> =>
+                    for (i in 0..jsonArr.size) {
+                        let data = jsonArr[i]
+                        let boneArr = ArrayList<Bone>()
+                        let boneInverseArr = ArrayList<Matrix4>()
 
-                            match (data.get("bones")) {
-                                case Some(bonesVal) =>
-                                    match (bonesVal) {
-                                        case boneUuids: Array<Any> =>
-                                            for (boneUuid in boneUuids) {
-                                                match (boneUuid) {
-                                                    case uuid: String =>
-                                                        match (bones.get(uuid)) {
-                                                            case Some(b) => boneArr.add(b)
-                                                            case None => ()
-                                                        }
-                                                    case _ => ()
-                                                }
-                                            }
-                                        case _ => ()
+                        if (let Some(bonesVal) <- data.get("bones")) {
+                            match (bonesVal) {
+                                case boneUuids: Array<Any> =>
+                                    for (boneUuid in boneUuids) {
+                                        match (boneUuid) {
+                                            case uuid: String =>
+                                                if (let Some(b) <- bones.get(uuid)) { boneArr.add(b) }
+                                            case _ => ()
+                                        }
                                     }
-                                case None => ()
+                                case _ => ()
                             }
-
-                            match (data.get("boneInverses")) {
-                                case Some(invVal) =>
-                                    match (invVal) {
-                                        case invArr: Array<Any> =>
-                                            for (invData in invArr) {
-                                                match (invData) {
-                                                    case arr: Array<Float64> =>
-                                                        if (arr.size >= 16) {
-                                                            let m = Matrix4()
-                                                            m.fromArray(arr, offset: 0)
-                                                            boneInverseArr.add(m)
-                                                        }
-                                                    case _ => ()
-                                                }
-                                            }
-                                        case _ => ()
-                                    }
-                                case None => ()
-                            }
-
-                            let skeleton = Skeleton(bones: boneArr, boneInverses: boneInverseArr)
-                            skeleton.uuid = _getString(data, "uuid")
-                            skeletons.add(skeleton.uuid, skeleton)
                         }
-                    case _ => ()
-                }
-            case None => ()
+
+                        if (let Some(invVal) <- data.get("boneInverses")) {
+                            match (invVal) {
+                                case invArr: Array<Any> =>
+                                    for (invData in invArr) {
+                                        match (invData) {
+                                            case arr: Array<Float64> =>
+                                                if (arr.size >= 16) {
+                                                    let m = Matrix4()
+                                                    m.fromArray(arr, offset: 0)
+                                                    boneInverseArr.add(m)
+                                                }
+                                            case _ => ()
+                                        }
+                                    }
+                                case _ => ()
+                            }
+                        }
+
+                        let skeleton = Skeleton(bones: boneArr, boneInverses: boneInverseArr)
+                        skeleton.uuid = _getString(data, "uuid")
+                        skeletons.add(skeleton.uuid, skeleton)
+                    }
+                case _ => ()
+            }
         }
         return skeletons
     }
@@ -862,10 +775,7 @@ public open class ObjectLoader <: Loader {
                 case mesh: SkinnedMesh =>
                     let skelUuid = mesh.skeleton.uuid
                     if (skelUuid != "") {
-                        match (skeletons.get(skelUuid)) {
-                            case Some(skel) => mesh.bind(skel, bindMatrix: mesh.bindMatrix)
-                            case None => ()
-                        }
+                        if (let Some(skel) <- skeletons.get(skelUuid)) { mesh.bind(skel, bindMatrix: mesh.bindMatrix) }
                     }
                 case _ => ()
             }
@@ -888,19 +798,13 @@ public open class ObjectLoader <: Loader {
                     let targetUuid = dirLight.target.uuid
                     if (targetUuid != "") {
                         let found = _findChildByUuid(object, targetUuid)
-                        match (found) {
-                            case Some(target) => dirLight.target = target
-                            case None => dirLight.target = Object3D()
-                        }
+                        if (let Some(target) <- found) { dirLight.target = target } else { dirLight.target = Object3D() }
                     }
                 case spotLight: SpotLight =>
                     let targetUuid = spotLight.target.uuid
                     if (targetUuid != "") {
                         let found = _findChildByUuid(object, targetUuid)
-                        match (found) {
-                            case Some(target) => spotLight.target = target
-                            case None => spotLight.target = Object3D()
-                        }
+                        if (let Some(target) <- found) { spotLight.target = target } else { spotLight.target = Object3D() }
                     }
                 case _ => ()
             }
@@ -970,23 +874,23 @@ internal func _getInt(map: HashMap<String, Any>, key: String, defaultVal: Int64)
 }
 
 internal func getGeometryFromMap(data: HashMap<String, Any>, geometries: HashMap<String, BufferGeometry>): BufferGeometry {
-    match (data.get("geometry")) {
-        case Some(v) => match (v) {
+    if (let Some(v) <- data.get("geometry")) {
+        match (v) {
             case uuid: String => return geometries.get(uuid) ?? BufferGeometry()
             case _ => return BufferGeometry()
         }
-        case None => return BufferGeometry()
     }
+    return BufferGeometry()
 }
 
 internal func getMaterialFromMap(data: HashMap<String, Any>, materials: HashMap<String, Material>): Material {
-    match (data.get("material")) {
-        case Some(v) => match (v) {
+    if (let Some(v) <- data.get("material")) {
+        match (v) {
             case uuid: String => return materials.get(uuid) ?? Material()
             case _ => return Material()
         }
-        case None => return Material()
     }
+    return Material()
 }
 
 // 递归查找指定 UUID 的子对象

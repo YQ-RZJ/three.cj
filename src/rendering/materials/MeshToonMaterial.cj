@@ -24,13 +24,13 @@
  * @file[zh-cn] Toon材质
  * @brief[zh-cn] 卡通材质，使用渐变贴图控制明暗分界实现卡通渲染效果
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshToonMaterial.js。支持 gradiantMap（渐变贴图控制明暗分界）、
+ * 支持 gradiantMap（渐变贴图控制明暗分界）、
  * specularMap、combine、reflectivity/refractionRatio。
  *
  * @file[en] Mesh Toon Material
  * @brief[en] Toon material, using gradient map to control light/dark boundaries for cartoon rendering
  * @explain[en] 
- * Corresponds to Three.js materials/MeshToonMaterial.js. Supports gradiantMap (gradient map controlling light/dark boundaries),
+ * Supports gradiantMap (gradient map controlling light/dark boundaries),
  * specularMap, combine, reflectivity/refractionRatio.
  */
 package three.rendering.materials
@@ -46,11 +46,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 卡通材质，使用渐变贴图控制明暗分界实现卡通渲染效果
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshToonMaterial.js。通过 gradiantMap 渐变贴图控制明暗分界。
+ * 通过 gradiantMap 渐变贴图控制明暗分界。
  *
  * @brief[en] Toon material, using gradient map to control light/dark boundaries for cartoon rendering
  * @explain[en] 
- * Corresponds to Three.js materials/MeshToonMaterial.js. Controls light/dark boundaries via gradiantMap.
+ * Controls light/dark boundaries via gradiantMap.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]
 public class MeshToonMaterial <: Material {

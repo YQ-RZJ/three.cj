@@ -122,6 +122,8 @@ func threadEntry(p: CPointer<Unit>): Int32 {
     }
     obj._resultMtx.lock()
     obj._result = retv
+    // 先置原子就绪标志（结果/异常对读到 true 的线程可见），再唤醒阻塞等待者
+    obj._resultReady.store(true)
     obj._resultCnd.signal()
     obj._resultMtx.unlock()
     // 释放入参（key 指针）并归还 key
@@ -220,6 +222,19 @@ internal class _SysThread {
      * @brief[en] Execution result
      */
     internal var _result: Option<Any> = None
+    /**
+     * @brief[zh-cn] 结果就绪标志（原子：tryGet / 已就绪的 get 不再进锁）
+     * @explain[zh-cn] 线程入口先写 _result/error，再 _resultReady.store(true) 并在锁内
+     *                signal 唤醒阻塞等待者；读取方先做一次原子检查，已就绪则直接取结果，
+     *                不进锁（依据《多线程改造计划》阶段 4 的 SThread 结果锁优化）。
+     *
+     * @brief[en] Result-ready flag (atomic: tryGet and already-ready get never take the lock)
+     * @explain[en] The thread entry writes _result/error first, then stores _resultReady(true)
+     * and signals waiters under the lock. Readers check the atomic flag first and, when
+     * already ready, read the result without acquiring the lock (Phase 4 SThread result
+     * lock optimization of the multi-threading plan).
+     */
+    internal let _resultReady = AtomicBool(false)
     /**
      * @brief[zh-cn] 结果互斥锁
      *
@@ -378,11 +393,14 @@ internal class _SysThread {
      * @return[en] Thread execution result
      */
     public func get(): Any {
-        this._resultMtx.lock()
-        while (this._result.isNone()) {
-            this._resultCnd.wait(this._resultMtx)
+        // 快路径：线程已结束（原子标志）→ 不进锁直接取结果
+        if (!this._resultReady.load()) {
+            this._resultMtx.lock()
+            while (!this._resultReady.load()) {
+                this._resultCnd.wait(this._resultMtx)
+            }
+            this._resultMtx.unlock()
         }
-        this._resultMtx.unlock()
         if (let Some(e) <- this.error) { throw e }
         return this._result.getOrThrow()
     }
@@ -397,15 +415,16 @@ internal class _SysThread {
      * @return[en] Thread result; throws TimeoutException on timeout
      */
     public func get(timeoutMS: Int32): Any {
-        this._resultMtx.lock()
-        if (this._result.isNone()) {
-            this._resultCnd.wait(this._resultMtx, timeoutMS)
+        if (!this._resultReady.load()) {
+            this._resultMtx.lock()
+            if (!this._resultReady.load()) {
+                this._resultCnd.wait(this._resultMtx, timeoutMS)
+            }
+            this._resultMtx.unlock()
         }
-        let r = this._result
-        this._resultMtx.unlock()
-        if (let Some(v) <- r) {
+        if (this._resultReady.load()) {
             if (let Some(e) <- this.error) { throw e }
-            return v
+            return this._result.getOrThrow()
         } else {
             throw TimeoutException()
         }
@@ -433,10 +452,9 @@ internal class _SysThread {
      * @return[en] Returns None if thread has not finished
      */
     public func tryGet(): Option<Any> {
-        this._resultMtx.lock()
-        let r = this._result
-        this._resultMtx.unlock()
-        return r
+        // 原子标志判定：线程未结束不进锁，直接返回 None
+        if (!this._resultReady.load()) { return None }
+        return this._result
     }
 
     /**

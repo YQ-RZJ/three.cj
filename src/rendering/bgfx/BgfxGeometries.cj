@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 几何体管理
  * @brief[zh-cn] 替代 WebGLGeometries，管理几何体到 bgfx 缓冲句柄的映射
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLGeometries.js。在 WebGL 中跟踪几何体的缓冲更新状态，在 bgfx 中同样需要跟踪几何体的缓冲版本，在数据变更时更新缓冲。
+ * @explain[zh-cn] 在 WebGL 中跟踪几何体的缓冲更新状态，在 bgfx 中同样需要跟踪几何体的缓冲版本，在数据变更时更新缓冲。
  *
  * @file[en] bgfx Geometry Management
  * @brief[en] Replaces WebGLGeometries, manages geometry to bgfx buffer handle mapping
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLGeometries.js. In WebGL, tracks buffer update state of geometries; in bgfx, similarly tracks buffer versions and updates buffers when data changes.
+ * @explain[en] In WebGL, tracks buffer update state of geometries; in bgfx, similarly tracks buffer versions and updates buffers when data changes.
  */
 package three.rendering.bgfx
 
@@ -150,9 +150,10 @@ public class BgfxGeometries {
      */
     public func getLayoutHandle(attributeId: Int64): Option<VertexLayoutHandle> {
         // 布局句柄缓存（由 BgfxGeometries 在 update 时管理）
-        match (this._layoutHandles.get(attributeId)) {
-            case Some(handle) => return Some(handle)
-            case None => return None
+        if (let Some(handle) <- this._layoutHandles.get(attributeId)) {
+            return Some(handle)
+        } else {
+            return None
         }
     }
 
@@ -183,11 +184,8 @@ public class BgfxGeometries {
      * wireframeAttrId Wireframe attribute ID
      */
     public func updateWireframeAttribute(geometryId: Int64, wireframeAttrId: Int64): Unit {
-        match (wireframeAttributes.get(geometryId)) {
-            case Some(oldAttrId) =>
-                attributes.removeVertexBuffer(oldAttrId)
-            case None =>
-                ()
+        if (let Some(oldAttrId) <- wireframeAttributes.get(geometryId)) {
+            attributes.removeVertexBuffer(oldAttrId)
         }
         wireframeAttributes.add(geometryId, wireframeAttrId)
     }
@@ -222,11 +220,8 @@ public class BgfxGeometries {
      */
     public func dispose(geometryId: Int64, indexAttributeId: Option<Int64>, attributeIds: ArrayList<Int64>): Unit {
         // 移除索引缓冲
-        match (indexAttributeId) {
-            case Some(id) =>
-                attributes.removeIndexBuffer(id)
-            case None =>
-                ()
+        if (let Some(id) <- indexAttributeId) {
+            attributes.removeIndexBuffer(id)
         }
 
         // 移除所有顶点属性缓冲
@@ -238,12 +233,9 @@ public class BgfxGeometries {
         geometries.remove(geometryId)
 
         // 移除线框属性
-        match (wireframeAttributes.get(geometryId)) {
-            case Some(attrId) =>
-                attributes.removeVertexBuffer(attrId)
-                wireframeAttributes.remove(geometryId)
-            case None =>
-                ()
+        if (let Some(attrId) <- wireframeAttributes.get(geometryId)) {
+            attributes.removeVertexBuffer(attrId)
+            wireframeAttributes.remove(geometryId)
         }
 
         // 释放绑定状态

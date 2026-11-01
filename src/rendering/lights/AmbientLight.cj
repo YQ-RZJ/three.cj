@@ -24,13 +24,13 @@
  * @file[zh-cn] 环境光
  * @brief[zh-cn] 环境光，从各方向均匀照射场景的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/AmbientLight.js。该光源颜色会均匀叠加到场景各物体上，
+ * 该光源颜色会均匀叠加到场景各物体上，
  * 不产生阴影、不计算法线。
  *
  * @file[en] Ambient Light
  * @brief[en] Ambient light that illuminates the scene uniformly from all directions
  * @explain[en] 
- * Corresponds to Three.js lights/AmbientLight.js. The light color is uniformly applied
+ * The light color is uniformly applied
  * to all objects in the scene, without shadows or normal calculations.
  */
 package three.rendering.lights

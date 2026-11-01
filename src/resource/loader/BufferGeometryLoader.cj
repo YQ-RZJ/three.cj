@@ -115,31 +115,25 @@ public class BufferGeometryLoader <: Loader {
         let geometry = if (isInstanced) { InstancedBufferGeometry() } else { BufferGeometry() }
 
         
-        match (json.get("data")) {
-            case Some(d) =>
-                match (d) {
-                    case data: HashMap<String, Any> =>
-                        
-                        match (data.get("index")) {
-                            case Some(idxVal) =>
+        if (let Some(d) <- json.get("data")) {
+            match (d) {
+                case data: HashMap<String, Any> =>
+                    
+                    if (let Some(idxVal) <- data.get("index")) {
                                 match (idxVal) {
                                     case idx: HashMap<String, Any> =>
-                                        match (idx.get("array")) {
-                                            case Some(arrVal) =>
-                                                let typed = _toFloat64Array(arrVal)
-                                                geometry.setIndex(BufferAttribute(typed, 1))
-                                            case None => ()
+                                        if (let Some(arrVal) <- idx.get("array")) {
+                                            let typed = _toFloat64Array(arrVal)
+                                            geometry.setIndex(BufferAttribute(typed, 1))
                                         }
                                     case _ => ()
                                 }
-                            case None => ()
-                        }
+                            }
 
                         
-                        match (data.get("attributes")) {
-                            case Some(attrsVal) =>
-                                match (attrsVal) {
-                                    case attrs: HashMap<String, Any> =>
+                        if (let Some(attrsVal) <- data.get("attributes")) {
+                            match (attrsVal) {
+                                case attrs: HashMap<String, Any> =>
                                         for ((name, attrVal) in attrs) {
                                             match (attrVal) {
                                                 case attr: HashMap<String, Any> =>
@@ -148,34 +142,29 @@ public class BufferGeometryLoader <: Loader {
                                                         
                                                         let ibUuid = _getString(attr, "data")
                                                         let ib = _getInterleavedBuffer(data, ibUuid)
-                                                        match (ib) {
-                                                            case Some(interleavedBuffer) =>
-                                                                let itemSize = _getInt(attr, "itemSize", 1)
-                                                                let offset = _getInt(attr, "offset", 0)
-                                                                let normalized = _getBool(attr, "normalized", false)
-                                                                // 仓颉侧 BufferGeometry.attributes 仅接受 BufferAttribute（对照 JS:
-                                                                // InterleavedBufferAttribute 继承 BufferAttribute），故按 JS
-                                                                // InterleavedBufferAttribute.toJSON() 无 data 时解交错为普通 BufferAttribute。
-                                                                let count = interleavedBuffer.array.size / interleavedBuffer.stride
-                                                                let deinterleaved = Array<Float64>(count * itemSize, { _ => 0.0 })
-                                                                for (i in 0..count) {
-                                                                    let base = i * interleavedBuffer.stride + offset
-                                                                    for (j in 0..itemSize) {
-                                                                        deinterleaved[i * itemSize + j] = interleavedBuffer.array[base + j]
-                                                                    }
+                                                        if (let Some(interleavedBuffer) <- ib) {
+                                                            let itemSize = _getInt(attr, "itemSize", 1)
+                                                            let offset = _getInt(attr, "offset", 0)
+                                                            let normalized = _getBool(attr, "normalized", false)
+                                                            // 仓颉侧 BufferGeometry.attributes 仅接受 BufferAttribute（对照 JS:
+                                                            // InterleavedBufferAttribute 继承 BufferAttribute），故按 JS
+                                                            // InterleavedBufferAttribute.toJSON() 无 data 时解交错为普通 BufferAttribute。
+                                                            let count = interleavedBuffer.array.size / interleavedBuffer.stride
+                                                            let deinterleaved = Array<Float64>(count * itemSize, { _ => 0.0 })
+                                                            for (i in 0..count) {
+                                                                let base = i * interleavedBuffer.stride + offset
+                                                                for (j in 0..itemSize) {
+                                                                    deinterleaved[i * itemSize + j] = interleavedBuffer.array[base + j]
                                                                 }
-                                                                let bufferAttribute = BufferAttribute(deinterleaved, itemSize, normalized: normalized)
-                                                                let aName = _getString(attr, "name")
-                                                                if (aName != "") { bufferAttribute.name = aName }
-                                                                geometry.setAttribute(name, bufferAttribute)
-                                                            case None => ()
+                                                            }
+                                                            let bufferAttribute = BufferAttribute(deinterleaved, itemSize, normalized: normalized)
+                                                            let aName = _getString(attr, "name")
+                                                            if (aName != "") { bufferAttribute.name = aName }
+                                                            geometry.setAttribute(name, bufferAttribute)
                                                         }
                                                     } else {
                                                         
-                                                        let typed = match (attr.get("array")) {
-                                                            case Some(arrVal) => _toFloat64Array(arrVal)
-                                                            case None => Array<Float64>()
-                                                        }
+                                                        let typed = if (let Some(arrVal) <- attr.get("array")) { _toFloat64Array(arrVal) } else { Array<Float64>() }
                                                         let itemSize = _getInt(attr, "itemSize", 1)
                                                         let normalized = _getBool(attr, "normalized", false)
                                                         
@@ -195,13 +184,11 @@ public class BufferGeometryLoader <: Loader {
                                         }
                                     case _ => ()
                                 }
-                            case None => ()
                         }
 
                         
-                        match (data.get("morphAttributes")) {
-                            case Some(morphVal) =>
-                                match (morphVal) {
+                        if (let Some(morphVal) <- data.get("morphAttributes")) {
+                            match (morphVal) {
                                     case morphs: HashMap<String, Any> =>
                                         for ((key, attrArrVal) in morphs) {
                                             let list = ArrayList<BufferAttribute>()
@@ -210,10 +197,7 @@ public class BufferGeometryLoader <: Loader {
                                                     for (a in attrArr) {
                                                         match (a) {
                                                             case attr: HashMap<String, Any> =>
-                                                                let typed = match (attr.get("array")) {
-                                                                    case Some(arrVal) => _toFloat64Array(arrVal)
-                                                                    case None => Array<Float64>()
-                                                                }
+                                                                let typed = if (let Some(arrVal) <- attr.get("array")) { _toFloat64Array(arrVal) } else { Array<Float64>() }
                                                                 let itemSize = _getInt(attr, "itemSize", 1)
                                                                 let normalized = _getBool(attr, "normalized", false)
                                                                 list.add(BufferAttribute(typed, itemSize, normalized: normalized))
@@ -228,7 +212,6 @@ public class BufferGeometryLoader <: Loader {
                                         }
                                     case _ => ()
                                 }
-                            case None => ()
                         }
 
                         
@@ -240,58 +223,51 @@ public class BufferGeometryLoader <: Loader {
                         var groupsVal = data.get("groups")
                         if (groupsVal.isNone()) { groupsVal = data.get("drawcalls") }
                         if (groupsVal.isNone()) { groupsVal = data.get("offsets") }
-                        match (groupsVal) {
-                            case Some(gVal) =>
-                                // fastjson 解析数组可能为 Array<Any> 或 ArrayList<Any>，两者都支持
-                                var groupList = ArrayList<Any>()
-                                match (gVal) {
-                                    case groupsArr: Array<Any> =>
-                                        for (g in groupsArr) { groupList.add(g) }
-                                    case groupsList: ArrayList<Any> =>
-                                        for (g in groupsList) { groupList.add(g) }
+                        if (let Some(gVal) <- groupsVal) {
+                            // fastjson 解析数组可能为 Array<Any> 或 ArrayList<Any>，两者都支持
+                            var groupList = ArrayList<Any>()
+                            match (gVal) {
+                                case groupsArr: Array<Any> =>
+                                    for (g in groupsArr) { groupList.add(g) }
+                                case groupsList: ArrayList<Any> =>
+                                    for (g in groupsList) { groupList.add(g) }
+                                case _ => ()
+                            }
+                            for (g in groupList) {
+                                match (g) {
+                                    case group: HashMap<String, Any> =>
+                                        let start = _getInt(group, "start", 0)
+                                        let count = _getInt(group, "count", 0)
+                                        let materialIndex = _getInt(group, "materialIndex", 0)
+                                        geometry.addGroup(start, count, materialIndex: materialIndex)
                                     case _ => ()
                                 }
-                                for (g in groupList) {
-                                    match (g) {
-                                        case group: HashMap<String, Any> =>
-                                            let start = _getInt(group, "start", 0)
-                                            let count = _getInt(group, "count", 0)
-                                            let materialIndex = _getInt(group, "materialIndex", 0)
-                                            geometry.addGroup(start, count, materialIndex: materialIndex)
-                                        case _ => ()
-                                    }
-                                }
-                            case None => ()
+                            }
                         }
 
                         
-                        match (data.get("boundingSphere")) {
-                            case Some(bsVal) =>
-                                match (bsVal) {
-                                    case bs: HashMap<String, Any> =>
-                                        let sphere = Sphere()
-                                        sphere.fromJSON(bs)
-                                        geometry.boundingSphere = Some(sphere)
-                                    case _ => ()
-                                }
-                            case None => ()
+                        if (let Some(bsVal) <- data.get("boundingSphere")) {
+                            match (bsVal) {
+                                case bs: HashMap<String, Any> =>
+                                    let sphere = Sphere()
+                                    sphere.fromJSON(bs)
+                                    geometry.boundingSphere = Some(sphere)
+                                case _ => ()
+                            }
                         }
                     case _ => ()
                 }
-            case None => ()
         }
 
         
         let name = _getString(json, "name")
         if (name != "") { geometry.name = name }
-        match (json.get("userData")) {
-            case Some(v) =>
-                match (v) {
-                    case m: HashMap<String, Any> =>
-                        for ((k, val) in m) { geometry.userData.add(k, val) }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(v) <- json.get("userData")) {
+            match (v) {
+                case m: HashMap<String, Any> =>
+                    for ((k, val) in m) { geometry.userData.add(k, val) }
+                case _ => ()
+            }
         }
 
         return geometry
@@ -310,40 +286,31 @@ public class BufferGeometryLoader <: Loader {
      * 从 json.data 的 interleavedBuffers/arrayBuffers 构建 InterleavedBuffer
      */
     private func _getInterleavedBuffer(data: HashMap<String, Any>, uuid: String): Option<InterleavedBuffer> {
-        match (data.get("interleavedBuffers")) {
-            case Some(ibVal) =>
-                match (ibVal) {
-                    case ibs: HashMap<String, Any> =>
-                        match (ibs.get(uuid)) {
-                            case Some(ibEntryVal) =>
-                                match (ibEntryVal) {
-                                    case ibEntry: HashMap<String, Any> =>
-                                        
-                                        let bufferUuid = _getString(ibEntry, "buffer")
-                                        let arrayBuf = match (data.get("arrayBuffers")) {
-                                            case Some(abVal) =>
-                                                match (abVal) {
-                                                    case abs: HashMap<String, Any> =>
-                                                        match (abs.get(bufferUuid)) {
-                                                            case Some(ab) => _toFloat64Array(ab)
-                                                            case None => Array<Float64>()
-                                                        }
-                                                    case _ => Array<Float64>()
-                                                }
-                                            case None => Array<Float64>()
-                                        }
-                                        let stride = _getInt(ibEntry, "stride", 1)
-                                        let interleavedBuffer = InterleavedBuffer(arrayBuf, stride)
-                                        
-                                        return Some(interleavedBuffer)
-                                    case _ => return None
-                                }
-                            case None => return None
+        if (let Some(ibVal) <- data.get("interleavedBuffers")) {
+            match (ibVal) {
+                case ibs: HashMap<String, Any> =>
+                    if (let Some(ibEntryVal) <- ibs.get(uuid)) {
+                        match (ibEntryVal) {
+                            case ibEntry: HashMap<String, Any> =>
+                                
+                                let bufferUuid = _getString(ibEntry, "buffer")
+                                let arrayBuf = if (let Some(abVal) <- data.get("arrayBuffers")) {
+                                    match (abVal) {
+                                        case abs: HashMap<String, Any> =>
+                                            if (let Some(ab) <- abs.get(bufferUuid)) { _toFloat64Array(ab) } else { Array<Float64>() }
+                                        case _ => Array<Float64>()
+                                    }
+                                } else { Array<Float64>() }
+                                let stride = _getInt(ibEntry, "stride", 1)
+                                let interleavedBuffer = InterleavedBuffer(arrayBuf, stride)
+                                
+                                return Some(interleavedBuffer)
+                            case _ => return None
                         }
-                    case _ => return None
-                }
-            case None => return None
-        }
+                    } else { return None }
+                case _ => return None
+            }
+        } else { return None }
     }
 
     /**

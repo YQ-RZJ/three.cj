@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] ColorManagement
  * @brief[zh-cn] 颜色空间管理
- * @explain[zh-cn] 定义颜色空间转换和常量，提供 sRGB 和线性 sRGB 之间的转换功能。参考 Three.js ColorManagement 实现。使用 String 类型标识颜色空间，与 constants.cj 中定义的常量一致。
+ * @explain[zh-cn] 定义颜色空间转换和常量，提供 sRGB 和线性 sRGB 之间的转换功能。提供与主流引擎一致的实现。使用 String 类型标识颜色空间，与 constants.cj 中定义的常量一致。
  *
  * @file[en] ColorManagement
  * @brief[en] Color space management
- * @explain[en] Defines color space conversion and constants, providing conversion between sRGB and linear sRGB. Referenced from Three.js ColorManagement implementation. Uses String type for color space identification, consistent with constants defined in constants.cj.
+ * @explain[en] Defines color space conversion and constants, providing conversion between sRGB and linear sRGB. Provides an implementation consistent with mainstream engines. Uses String type for color space identification, consistent with constants defined in constants.cj.
  */
 package three.core.math
 

@@ -22,14 +22,14 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] ShaderChunks  着色器块系统
- * @brief[zh-cn] 管理 Three.js ShaderChunk 在 bgfx 下的加载和组合
- * @explain[zh-cn] Three.js 使用 #include 宏在运行时组合 GLSL chunk，
+ * @brief[zh-cn] 管理 ShaderChunk 在 bgfx 下的加载和组合
+ * @explain[zh-cn] 通用 Web 引擎使用 #include 宏在运行时组合 GLSL chunk，
  * bgfx 使用 .sc 格式的着色器文件，需要在编译期完成组合。
  * 本模块在运行时模拟 chunk 组合，生成完整的 bgfx 着色器源码。
  *
  * @file[en] ShaderChunks  Shader chunk system
- * @brief[en] Manage Three.js ShaderChunk loading and composition under bgfx
- * @explain[en] Three.js uses #include macros to compose GLSL chunks at runtime,
+ * @brief[en] Manage ShaderChunk loading and composition under bgfx
+ * @explain[en] Mainstream web engines use #include macros to compose GLSL chunks at runtime,
  * bgfx uses .sc format shader files that require compile-time composition.
  * This module simulates chunk composition at runtime to generate complete bgfx shader source.
  */
@@ -99,22 +99,20 @@ public class ShaderChunks {
                 let trimmed = line.trimAsciiStart()
                 if (trimmed.startsWith("#include <")) {
                     let endIdx = trimmed.indexOf(">")
-                    match (endIdx) {
-                        case Some(idx) =>
-                            let chunkName = trimmed[10..idx]
-                            let chunkSrc = chunks.get(chunkName)
-                            match (chunkSrc) {
-                                case Some(src) =>
-                                    newLines.add(src)
-                                    found = true
-                                case None =>
-                                    // 调试：检查 chunk 是否真的不存在
-                                    let hasChunk = chunks.contains(chunkName)
-                                    @LogDebug(["chunks", "MISSING: '" + chunkName + "' contains=" + hasChunk.toString()])
-                                    newLines.add("// MISSING CHUNK: ${chunkName}")
-                            }
-                        case None =>
-                            newLines.add(line)
+                    if (let Some(idx) <- endIdx) {
+                        let chunkName = trimmed[10..idx]
+                        let chunkSrc = chunks.get(chunkName)
+                        if (let Some(src) <- chunkSrc) {
+                            newLines.add(src)
+                            found = true
+                        } else {
+                            // 调试：检查 chunk 是否真的不存在
+                            let hasChunk = chunks.contains(chunkName)
+                            @LogDebug(["chunks", "MISSING: '" + chunkName + "' contains=" + hasChunk.toString()])
+                            newLines.add("// MISSING CHUNK: ${chunkName}")
+                        }
+                    } else {
+                        newLines.add(line)
                     }
                 } else {
                     newLines.add(line)

@@ -25,13 +25,11 @@
  * @brief[zh-cn] 起止两点构成的 2D 直线段
  * @explain[zh-cn] 
  * LineCurve 继承 Curve，由两个端点 v1、v2 定义 2D 直线段。
- * 对应 Three.js extras/curves/LineCurve.js。
  *
  * @file[en] 2D Line Curve
  * @brief[en] 2D line segment defined by start and end points
  * @explain[en] 
  * LineCurve extends Curve, defining a 2D line segment by two endpoints v1 and v2.
- * Corresponds to Three.js extras/curves/LineCurve.js.
  */
 package three.rendering.geometry
 import std.collection.*

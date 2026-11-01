@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx Uniform 组管理
  * @brief[zh-cn] 替代 WebGLUniformsGroups，管理 Uniform Buffer Object (UBO)
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLUniformsGroups.js。在 WebGL 中通过 gl.bindBufferBase/gl.bufferSubData 管理 UBO，在 bgfx 中通过 bgfx_create_uniform_cj 创建 uniform 组。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.bindBufferBase/gl.bufferSubData 管理 UBO，在 bgfx 中通过 bgfx_create_uniform_cj 创建 uniform 组。
  *
  * @file[en] bgfx Uniform Group Management
  * @brief[en] Replaces WebGLUniformsGroups, manages Uniform Buffer Objects (UBO)
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLUniformsGroups.js. In WebGL, UBOs are managed via gl.bindBufferBase/gl.bufferSubData; in bgfx, uniform groups are created via bgfx_create_uniform_cj.
+ * @explain[en] In WebGL, UBOs are managed via gl.bindBufferBase/gl.bufferSubData; in bgfx, uniform groups are created via bgfx_create_uniform_cj.
  */
 package three.rendering.bgfx
 
@@ -137,23 +137,21 @@ public class BgfxUniformsGroups {
      * programId Shader program ID
      */
     public func update(groupId: Int64, programId: Int64): Unit {
-        match (buffers.get(groupId)) {
-            case Some(buffer) =>
-                let frame = info.render.frame
-                match (updateList.get(groupId)) {
-                    case Some(lastFrame) =>
-                        if (lastFrame != frame) {
-                            buffer.needsUpdate = true
-                            updateList.add(groupId, frame)
-                        }
-                    case None =>
-                        buffer.needsUpdate = true
-                        updateList.add(groupId, frame)
+        if (let Some(buffer) <- buffers.get(groupId)) {
+            let frame = info.render.frame
+            if (let Some(lastFrame) <- updateList.get(groupId)) {
+                if (lastFrame != frame) {
+                    buffer.needsUpdate = true
+                    updateList.add(groupId, frame)
                 }
-            case None =>
-                let buffer = UniformGroupInfo(groupId)
-                buffers.add(groupId, buffer)
-                updateList.add(groupId, info.render.frame)
+            } else {
+                buffer.needsUpdate = true
+                updateList.add(groupId, frame)
+            }
+        } else {
+            let buffer = UniformGroupInfo(groupId)
+            buffers.add(groupId, buffer)
+            updateList.add(groupId, info.render.frame)
         }
     }
 

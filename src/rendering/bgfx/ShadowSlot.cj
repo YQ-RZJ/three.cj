@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] ShadowSlot
  * @brief[zh-cn] 单个阴影光源的全部 GPU 资源（按光源 ID 分桶）
- * @explain[zh-cn] 对照 Three.js LightShadow + WebGLShadowMap：每光源一份 render target + depth texture + viewId。
+ * @explain[zh-cn] 对照 LightShadow + WebGLShadowMap：每光源一份 render target + depth texture + viewId。
  *
  * @file[en] ShadowSlot
  * @brief[en] All GPU resources for a single shadow light (bucketed by light ID)
- * @explain[en] Corresponds to Three.js LightShadow + WebGLShadowMap: one render target + depth texture + viewId per light.
+ * @explain[en] Corresponds to LightShadow + WebGLShadowMap: one render target + depth texture + viewId per light.
  */
 package three.rendering.bgfx
 
@@ -37,10 +37,10 @@ import std.collection.*
 
 /**
  * @brief[zh-cn] 单个阴影光源的全部 GPU 资源（按光源 ID 分桶）
- * @explain[zh-cn] 对照 Three.js LightShadow + WebGLShadowMap：每光源一份 render target + depth texture + viewId
+ * @explain[zh-cn] 对照 LightShadow + WebGLShadowMap：每光源一份 render target + depth texture + viewId
  *
  * @brief[en] All GPU resources for a single shadow light (bucketed by light ID)
- * @explain[en] Corresponds to Three.js LightShadow + WebGLShadowMap: one render target + depth texture + viewId per light
+ * @explain[en] Corresponds to LightShadow + WebGLShadowMap: one render target + depth texture + viewId per light
  */
 public class ShadowSlot {
     /**

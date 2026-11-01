@@ -23,11 +23,9 @@
  *
  * @file[zh-cn] bgfx 纹理工具
  * @brief[zh-cn] 对照 WebGLTextureUtils.js，纹理操作工具（mipmap 生成、格式转换）
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLTextureUtils.js
  *
  * @file[en] bgfx Texture Utils
  * @brief[en] Corresponds to WebGLTextureUtils.js, texture utility operations (mipmap generation, format conversion)
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLTextureUtils.js
  */
 package three.rendering.bgfx
 
@@ -87,18 +85,19 @@ public class BgfxTextureUtils {
     }
 
     /**
-     * @brief[zh-cn] 将 three.js 像素格式转换为 bgfx TextureFormat
-     * @param[zh-cn] format three.js 像素格式常量
+     * @brief[zh-cn] 将引擎像素格式转换为 bgfx TextureFormat
+     * @param[zh-cn] format 引擎像素格式常量
      * @return[zh-cn] bgfx TextureFormat 值
      *
-     * @brief[en] Convert three.js pixel format to bgfx TextureFormat
-     * @param[en] format three.js pixel format constant
+     * @brief[en] Convert engine pixel format to bgfx TextureFormat
+     * @param[en] format engine pixel format constant
      * @return[en] bgfx TextureFormat value
      */
     public func convertFormat(format: Int64): UInt32 {
-        match (BgfxUtils.convert(format, "srgb")) {
-            case Some(v) => return v
-            case None => return 0u32
+        if (let Some(v) <- BgfxUtils.convert(format, "srgb")) {
+            return v
+        } else {
+            return 0u32
         }
     }
 
@@ -136,7 +135,7 @@ public class BgfxTextureUtils {
      * @return[en] Bytes per pixel
      */
     private func getBytesPerPixel(format: Int64): Int64 {
-        // 根据 three.js 格式返回字节数
+        // 根据引擎格式返回字节数
         if (format == 1023) { return 4 }  // RGBAFormat
         if (format == 1022) { return 3 }  // RGBFormat
         if (format == 1026) { return 2 }  // LuminanceAlphaFormat

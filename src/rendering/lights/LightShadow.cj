@@ -24,14 +24,14 @@
  * @file[zh-cn] 光源阴影配置基类
  * @brief[zh-cn] 光源阴影配置的抽象基类，各具体光源阴影类型继承本类
  * @explain[zh-cn] 
- * 对应 Three.js lights/LightShadow.js。本类仅是配置/状态容器，阴影图（map/mapPass）的实际生成由渲染器内部完成。
+ * 本类仅是配置/状态容器，阴影图（map/mapPass）的实际生成由渲染器内部完成。
  * 包含阴影相机、偏置、模糊半径、阴影贴图尺寸、CSM 级联配置等属性。
  * 子类包括 DirectionalLightShadow、PointLightShadow、SpotLightShadow。
  *
  * @file[en] Light Shadow Base Class
  * @brief[en] Abstract base class for light shadow configuration, subclassed by concrete shadow types
  * @explain[en] 
- * Corresponds to Three.js lights/LightShadow.js. This class is a configuration/state container only;
+ * This class is a configuration/state container only;
  * the actual shadow map (map/mapPass) generation is handled internally by the renderer.
  * Contains shadow camera, bias, blur radius, shadow map size, CSM cascade configuration, etc.
  * Subclasses include DirectionalLightShadow, PointLightShadow, SpotLightShadow.
@@ -58,13 +58,13 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 光源阴影配置的抽象基类，各具体光源阴影类型继承本类
  * @explain[zh-cn] 
- * 对应 Three.js lights/LightShadow.js。本类仅是配置/状态容器，阴影图（map/mapPass）的实际生成由渲染器内部完成。
+ * 本类仅是配置/状态容器，阴影图（map/mapPass）的实际生成由渲染器内部完成。
  * 包含阴影相机、偏置、模糊半径、阴影贴图尺寸、CSM 级联配置等属性。
  * 子类包括 DirectionalLightShadow、PointLightShadow、SpotLightShadow。
  *
  * @brief[en] Abstract base class for light shadow configuration, subclassed by concrete shadow types
  * @explain[en] 
- * Corresponds to Three.js lights/LightShadow.js. This class is a configuration/state container only;
+ * This class is a configuration/state container only;
  * the actual shadow map (map/mapPass) generation is handled internally by the renderer.
  * Contains shadow camera, bias, blur radius, shadow map size, CSM cascade configuration, etc.
  * Subclasses include DirectionalLightShadow, PointLightShadow, SpotLightShadow.
@@ -503,15 +503,9 @@ public open class LightShadow {
     public func dispose(): Unit {
         
         // 仓颉：map/mapPass 已具体化为 Option<RenderTarget>，直接调用 dispose()。
-        match (this.map) {
-            case Some(rt) => rt.dispose()
-            case None => ()
-        }
+        if (let Some(rt) <- this.map) { rt.dispose() }
         this.map = None
-        match (this.mapPass) {
-            case Some(rt) => rt.dispose()
-            case None => ()
-        }
+        if (let Some(rt) <- this.mapPass) { rt.dispose() }
         this.mapPass = None
     }
 

@@ -24,13 +24,13 @@
  * @file[zh-cn] 光照探针
  * @brief[zh-cn] 光照探针，用球面调和描述场景光照环境的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/LightProbe.js。常用于 Image-Based Lighting：
+ * 常用于 Image-Based Lighting：
  * 从 HDR 环境贴图烘焙 SH 系数后作为光源参与渲染。
  *
  * @file[en] Light Probe
  * @brief[en] Light probe using spherical harmonics to describe scene lighting environment
  * @explain[en] 
- * Corresponds to Three.js lights/LightProbe.js. Commonly used for Image-Based Lighting:
+ * Commonly used for Image-Based Lighting:
  * bake SH coefficients from HDR environment maps and use as a light source in rendering.
  */
 package three.rendering.lights

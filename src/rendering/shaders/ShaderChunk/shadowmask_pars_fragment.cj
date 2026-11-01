@@ -99,7 +99,7 @@ float getShadowMask() {
 	#if NUM_RECT_AREA_LIGHTS > 0
 
 		// TODO (abelnation): update shadow for Area light
-		// Ignore: JS 原文 TODO（area light shadow），属 three.js 上游未实现项。
+		// Ignore: JS 原文 TODO（area light shadow），属上游未实现项。
 
 	#endif
 	*/

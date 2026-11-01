@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 渲染列表
  * @brief[zh-cn] 替代 WebGLRenderLists，按透明度/距离排序渲染对象
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLRenderLists.js。WebGLRenderLists 负责按渲染顺序（不透明、半透明、透明）排序对象。
+ * @explain[zh-cn] WebGLRenderLists 负责按渲染顺序（不透明、半透明、透明）排序对象。
  *
  * @file[en] bgfx Render Lists
  * @brief[en] Replaces WebGLRenderLists, sorts render objects by transparency/distance
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLRenderLists.js. WebGLRenderLists sorts objects by render order (opaque, transmissive, transparent).
+ * @explain[en] WebGLRenderLists sorts objects by render order (opaque, transmissive, transparent).
  */
 package three.rendering.bgfx
 
@@ -299,12 +299,12 @@ public class BgfxRenderLists {
      * @return[en] Render list
      */
     public func get(sceneId: Int64): BgfxRenderList {
-        match (lists.get(sceneId)) {
-            case Some(list) => return list
-            case None =>
-                let list = BgfxRenderList()
-                lists.add(sceneId, list)
-                return list
+        if (let Some(list) <- lists.get(sceneId)) {
+            return list
+        } else {
+            let list = BgfxRenderList()
+            lists.add(sceneId, list)
+            return list
         }
     }
 

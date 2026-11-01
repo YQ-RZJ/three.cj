@@ -122,10 +122,7 @@ public class HttpResponse {
      * @return[en] Returns the body text, or an empty string when the body is empty
      */
     public func bodyString(): String {
-        match (this.body) {
-            case Some(s) => s
-            case None => ""
-        }
+        return if (let Some(s) <- this.body) { s } else { "" }
     }
 
     /**
@@ -155,10 +152,7 @@ public class HttpResponse {
      */
     public prop contentType: String {
         get() {
-            match (this.header("Content-Type")) {
-                case Some(v) => v
-                case None => ""
-            }
+            return if (let Some(v) <- this.header("Content-Type")) { v } else { "" }
         }
     }
 }

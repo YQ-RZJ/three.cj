@@ -24,13 +24,13 @@
  * @file[zh-cn] Phong材质
  * @brief[zh-cn] Phong材质，支持镜面高光和光泽度
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshPhongMaterial.js。支持 specular/shininess、specularMap、
+ * 支持 specular/shininess、specularMap、
  * combine、reflectivity/refractionRatio、flatShading。Phong 模型包含环境光、漫反射和镜面高光。
  *
  * @file[en] Mesh Phong Material
  * @brief[en] Phong material, supporting specular highlights and shininess
  * @explain[en] 
- * Corresponds to Three.js materials/MeshPhongMaterial.js. Supports specular/shininess, specularMap,
+ * Supports specular/shininess, specularMap,
  * combine, reflectivity/refractionRatio, flatShading. The Phong model includes ambient, diffuse, and specular components.
  */
 package three.rendering.materials
@@ -46,11 +46,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] Phong材质，支持镜面高光和光泽度
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshPhongMaterial.js。Phong 模型包含环境光、漫反射和镜面高光。
+ * Phong 模型包含环境光、漫反射和镜面高光。
  *
  * @brief[en] Phong material, supporting specular highlights and shininess
  * @explain[en] 
- * Corresponds to Three.js materials/MeshPhongMaterial.js. The Phong model includes ambient, diffuse, and specular components.
+ * The Phong model includes ambient, diffuse, and specular components.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]
 public class MeshPhongMaterial <: Material {

@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 索引缓冲绘制
  * @brief[zh-cn] 替代 WebGLIndexedBufferRenderer，封装 bgfx 索引绘制调用
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLIndexedBufferRenderer.js。在 WebGL 中通过 gl.drawElements/gl.drawElementsInstanced 绘制索引几何体，在 bgfx 中通过 bgfx_submit_cj 配合 IndexBufferHandle 执行索引绘制。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.drawElements/gl.drawElementsInstanced 绘制索引几何体，在 bgfx 中通过 bgfx_submit_cj 配合 IndexBufferHandle 执行索引绘制。
  *
  * @file[en] bgfx Indexed Buffer Rendering
  * @brief[en] Replaces WebGLIndexedBufferRenderer, wraps bgfx indexed draw calls
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLIndexedBufferRenderer.js. In WebGL, indexed geometry is drawn via gl.drawElements/gl.drawElementsInstanced; in bgfx, indexed drawing is performed via bgfx_submit_cj with IndexBufferHandle.
+ * @explain[en] In WebGL, indexed geometry is drawn via gl.drawElements/gl.drawElementsInstanced; in bgfx, indexed drawing is performed via bgfx_submit_cj with IndexBufferHandle.
  */
 package three.rendering.bgfx
 

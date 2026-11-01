@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] Uniform 缓冲
  * @brief[zh-cn] Uniform 缓冲类，用于管理着色器 uniform 数据
- * @explain[zh-cn] UniformBuffer 封装了着色器 uniform 数据的存储和更新，持有名称、数据数组和字节长度属性，提供数据设置和更新方法。对照源码: three.js/src/renderers/common/UniformBuffer.js
+ * @explain[zh-cn] UniformBuffer 封装了着色器 uniform 数据的存储和更新，持有名称、数据数组和字节长度属性，提供数据设置和更新方法。
  *
  * @file[en] Uniform Buffer
  * @brief[en] Uniform buffer class, used for managing shader uniform data
- * @explain[en] UniformBuffer encapsulates storage and updating of shader uniform data, holding name, data array, and byte length properties, providing data setting and update methods. Reference: three.js/src/renderers/common/UniformBuffer.js
+ * @explain[en] UniformBuffer encapsulates storage and updating of shader uniform data, holding name, data array, and byte length properties, providing data setting and update methods.
  */
 package three.rendering.common
 

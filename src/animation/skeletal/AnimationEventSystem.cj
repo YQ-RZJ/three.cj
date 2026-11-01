@@ -147,13 +147,12 @@ public class AnimationEventSystem {
     public func addEvent(clipName: String, eventName: String, ratio: Float32, callback: (String) -> Unit): Unit {
         let event = AnimationEvent(eventName, ratio, callback)
 
-        match (this._events.get(clipName)) {
-            case Some(eventList) =>
-                eventList.add(event)
-            case None =>
-                let newList = ArrayList<AnimationEvent>()
-                newList.add(event)
-                this._events.add(clipName, newList)
+        if (let Some(eventList) <- this._events.get(clipName)) {
+            eventList.add(event)
+        } else {
+            let newList = ArrayList<AnimationEvent>()
+            newList.add(event)
+            this._events.add(clipName, newList)
         }
     }
 
@@ -189,34 +188,32 @@ public class AnimationEventSystem {
      *                  back to the start are also handled.
      */
     public func checkEvents(clipName: String, currentRatio: Float32, previousRatio: Float32, looping: Bool): Unit {
-        match (this._events.get(clipName)) {
-            case Some(eventList) =>
-                for (event in eventList) {
-                    if (event.triggered) {
-                        // 重置：如果时间比回到事件之前（循环或重播）
-                        if (currentRatio < event.ratio || previousRatio > currentRatio) {
-                            event.triggered = false
-                        }
-                    }
-
-                    if (!event.triggered) {
-                        var crossed = false
-
-                        if (previousRatio <= currentRatio) {
-                            // 正常前进：事件在 previousRatio 和 currentRatio 之间
-                            crossed = event.ratio >= previousRatio && event.ratio <= currentRatio
-                        } else if (looping) {
-                            // 循环穿越：从尾到首
-                            crossed = event.ratio >= previousRatio || event.ratio <= currentRatio
-                        }
-
-                        if (crossed) {
-                            event.triggered = true
-                            event.callback(event.name)
-                        }
+        if (let Some(eventList) <- this._events.get(clipName)) {
+            for (event in eventList) {
+                if (event.triggered) {
+                    // 重置：如果时间比回到事件之前（循环或重播）
+                    if (currentRatio < event.ratio || previousRatio > currentRatio) {
+                        event.triggered = false
                     }
                 }
-            case None => ()
+
+                if (!event.triggered) {
+                    var crossed = false
+
+                    if (previousRatio <= currentRatio) {
+                        // 正常前进：事件在 previousRatio 和 currentRatio 之间
+                        crossed = event.ratio >= previousRatio && event.ratio <= currentRatio
+                    } else if (looping) {
+                        // 循环穿越：从尾到首
+                        crossed = event.ratio >= previousRatio || event.ratio <= currentRatio
+                    }
+
+                    if (crossed) {
+                        event.triggered = true
+                        event.callback(event.name)
+                    }
+                }
+            }
         }
 
         // 检测动画完成（非循环模式下，时间比从 <1 到 >=1）
@@ -259,12 +256,10 @@ public class AnimationEventSystem {
      * @explain[en] Called when an animation is replayed, ensuring events can be triggered again
      */
     public func resetTriggered(clipName: String): Unit {
-        match (this._events.get(clipName)) {
-            case Some(eventList) =>
-                for (event in eventList) {
-                    event.triggered = false
-                }
-            case None => ()
+        if (let Some(eventList) <- this._events.get(clipName)) {
+            for (event in eventList) {
+                event.triggered = false
+            }
         }
     }
 }

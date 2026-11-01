@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * Info 及其内部类 RenderInfo、ComputeInfo、MemoryInfo 用于跟踪渲染管线的性能指标，
  * 包括 draw call 数量、三角形/顶点数、计算调用数、纹理/几何体内存占用等。
- * 对应 Three.js 中的 renderer.info 对象。
  *
  * @file[en] Render Info
  * @brief[en] Rendering statistics, tracking metrics such as render calls, triangles, and vertex counts
  * @explain[en] 
  * Info and its inner classes RenderInfo, ComputeInfo, MemoryInfo are used to track rendering pipeline performance metrics,
  * including draw call count, triangle/vertex counts, compute call counts, texture/geometry memory usage, etc.
- * Corresponds to the renderer.info object in Three.js.
  */
 package three.rendering.common
 

@@ -25,13 +25,11 @@
  * @brief[zh-cn] 长方体（立方体）几何体，由宽、高、深及分段数定义
  * @explain[zh-cn] 
  * BoxGeometry 继承自 BufferGeometry，生成六面长方体的顶点、法线、UV 和索引数据。
- * 对应 Three.js geometries/BoxGeometry.js。
  *
  * @file[en] Box Geometry
  * @brief[en] Box (cuboid) geometry defined by width, height, depth and segment counts
  * @explain[en] 
  * BoxGeometry extends BufferGeometry, generating vertex, normal, UV and index data for a six-faced box.
- * Corresponds to Three.js geometries/BoxGeometry.js.
  */
 package three.rendering.geometry
 

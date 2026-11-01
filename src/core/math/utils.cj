@@ -34,7 +34,7 @@ package three.core.math
 import std.collection.*
 
 // =============================================================================
-// 数组数学工具 — 对应 Three.js utils.js 中的 arrayMin / arrayMax / arrayNeedsUint32
+// 数组数学工具 — 提供 arrayMin / arrayMax / arrayNeedsUint32
 // =============================================================================
 
 /**
@@ -93,12 +93,12 @@ public func arrayNeedsUint32(array: Array<Int64>): Bool {
 
 /**
  * @brief[zh-cn] 判断对象是否为 TypedArray（仓颉中检查是否为 Array 类型）
- * @explain[zh-cn] Three.js 中用于区分普通数组和类型化数组
+ * @explain[zh-cn] 本引擎中用于区分普通数组和类型化数组
  * @param[zh-cn] array 要检查的对象
  * @return[zh-cn] 是否为 TypedArray
  *
  * @brief[en] Check if an object is a TypedArray (in Cangjie, checks if it is an Array type)
- * @explain[en] In Three.js, used to distinguish between regular arrays and typed arrays
+ * @explain[en] In this engine, used to distinguish between regular arrays and typed arrays
  * @param[en] array Object to check
  * @return[en] Whether the object is a TypedArray
  */
@@ -121,7 +121,7 @@ public func isTypedArray(array: Any): Bool {
 }
 
 // =============================================================================
-// 投影矩阵工具函数 — 对应 Three.js utils.js 中的投影矩阵转换函数
+// 投影矩阵工具函数 — 提供投影矩阵转换
 // =============================================================================
 
 /**

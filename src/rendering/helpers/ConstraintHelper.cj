@@ -194,13 +194,11 @@ public class ConstraintHelper <: Object3D {
         this.anchorB.position.copy(worldB)
 
         let positions = this.connection.geometry.getAttribute("position")
-        match (positions) {
-            case Some(attr) =>
-                let arr = attr.array
-                arr[0] = worldA.x; arr[1] = worldA.y; arr[2] = worldA.z
-                arr[3] = worldB.x; arr[4] = worldB.y; arr[5] = worldB.z
-                attr.version += 1
-            case None => ()
+        if (let Some(attr) <- positions) {
+            let arr = attr.array
+            arr[0] = worldA.x; arr[1] = worldA.y; arr[2] = worldA.z
+            arr[3] = worldB.x; arr[4] = worldB.y; arr[5] = worldB.z
+            attr.version += 1
         }
         this.connection.geometry.computeBoundingSphere()
 

@@ -212,28 +212,27 @@ public class LuaBinder {
         let id = lua_tointeger_cj(L, _UPVALUE1)
         // 2. 查全局注册表
         let handler = _handlers.get(id)
-        match (handler) {
-            case None =>
-                // 未注册（可能已 unregister）：Lua 报错
-                let cs = unsafe { LibC.mallocCString("handler not registered") }
-                lua_pushstring_cj(L, cs)
-                unsafe { LibC.free(cs) }
-                return lua_error_cj(L)
-            case Some(h) =>
-                // 3. 读取参数（栈上全部）
-                let nargs = lua_gettop_cj(L)
-                var args = Array<LuaValue>(Int64(nargs), { _ => LuaValue.Nil })
-                for (i in 0..nargs) {
-                    args[Int64(i)] = LuaVM.readValue(L, i + 1)
-                }
-                // 4. 调用仓颉回调
-                let results = h(args)
-                // 5. 压返回值
-                for (v in results) {
-                    LuaVM.pushValue(L, v)
-                }
-                // 6. 返回返回值数量
-                return Int32(results.size)
+        if (let Some(h) <- handler) {
+            // 3. 读取参数（栈上全部）
+            let nargs = lua_gettop_cj(L)
+            var args = Array<LuaValue>(Int64(nargs), { _ => LuaValue.Nil })
+            for (i in 0..nargs) {
+                args[Int64(i)] = LuaVM.readValue(L, i + 1)
+            }
+            // 4. 调用仓颉回调
+            let results = h(args)
+            // 5. 压返回值
+            for (v in results) {
+                LuaVM.pushValue(L, v)
+            }
+            // 6. 返回返回值数量
+            return Int32(results.size)
+        } else {
+            // 未注册（可能已 unregister）：Lua 报错
+            let cs = unsafe { LibC.mallocCString("handler not registered") }
+            lua_pushstring_cj(L, cs)
+            unsafe { LibC.free(cs) }
+            return lua_error_cj(L)
         }
     }
 }

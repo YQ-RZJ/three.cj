@@ -56,10 +56,11 @@ package three.rendering.postprocessing
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
-import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 胶片颗粒后处理 pass
@@ -106,6 +107,11 @@ public class FilmPass <: Pass {
     private var _filmProg: Option<ProgramHandle> = None
 
     /**
+     * uniform 注册表缓存（避免每帧创建新 BgfxUniforms 泄漏 bgfx handle）。
+     */
+    private var _uniforms: Option<BgfxUniforms> = None
+
+    /**
      * @brief[zh-cn] 构造 FilmPass
      * @brief[en] Constructs FilmPass
      * @param[zh-cn] intensity 颗粒强度（默认 0.5）
@@ -137,19 +143,18 @@ public class FilmPass <: Pass {
      * 编译 film shader。
      */
     private func _compileFilm(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("film")) {
-            case Some(sp) =>
-                if (!this._filmCompiled) {
-                    sp.compileBgfx()
-                    this._filmProg = Some(Box(sp.programHandle))
-                    this._filmCompiled = true
-                    @LogTrace(["film", "film shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._filmProg
-            case None =>
-                @LogTrace(["film", "film shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("film")) {
+            if (!this._filmCompiled) {
+                sp.compileBgfx()
+                this._filmProg = Some(Box(sp.programHandle))
+                this._filmCompiled = true
+                @LogTrace(["film", "film shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._filmProg
+        } else {
+            @LogTrace(["film", "film shader not registered"])
+            return None
         }
     }
 
@@ -173,6 +178,7 @@ public class FilmPass <: Pass {
      *         3. submits the full-screen quad (overwrite state);
      *         4. time += deltaTime (drives the rand noise change next frame).
      */
+    @Zone[three.rendering.postprocessing.FilmPass.render, name=filmPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -194,47 +200,45 @@ public class FilmPass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileFilm()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(prog) <- this._compileFilm()) {
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
+            // 缓存的 uniform 注册表（避免每帧创建新 BgfxUniforms 泄漏 bgfx handle）
+            let uniforms = if (let Some(u) <- this._uniforms) {
+                u
+            } else {
+                let u = this._passUniforms()
+                this._uniforms = Some(u)
+                u
+            }
 
-                // stage 0 = tDiffuse（readBuffer 的 color 0）
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
+            // stage 0 = tDiffuse（readBuffer 的 color 0）
+            let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+            let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
 
-                // u_intensity（vec4: x=intensity）
-                let uIntensity = uniforms.createUniform("u_intensity", UniformType.Vec4.value())
-                let intMem = BgfxMemory(16u32)
-                intMem.writeFloats([this.intensity, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uIntensity, intMem, num: 1u16)
+            // 复用上传缓冲（原实现每帧新建 3 个 BgfxMemory + 3 个数组字面量），
+            // 每个 uniform 独占一个槽位，避免同一帧内后写覆盖先写而尚未提交的数据。
+            let uIntensity = uniforms.createUniform("u_intensity", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uIntensity, 0, this.intensity)
 
-                // u_grayscale（vec4: x=grayscale 0.0/1.0）
-                let uGrayscale = uniforms.createUniform("u_grayscale", UniformType.Vec4.value())
-                let gsMem = BgfxMemory(16u32)
-                let gsVal: Float64 = if (this.grayscale) { 1.0 } else { 0.0 }
-                gsMem.writeFloats([gsVal, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uGrayscale, gsMem, num: 1u16)
+            let uGrayscale = uniforms.createUniform("u_grayscale", UniformType.Vec4.value())
+            let gsVal: Float64 = if (this.grayscale) { 1.0 } else { 0.0 }
+            this._setScalarUniform(renderer, uGrayscale, 1, gsVal)
 
-                // u_time（vec4: x=time）
-                let uTime = uniforms.createUniform("u_time", UniformType.Vec4.value())
-                let timeMem = BgfxMemory(16u32)
-                timeMem.writeFloats([this.time, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uTime, timeMem, num: 1u16)
+            let uTime = uniforms.createUniform("u_time", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uTime, 2, this.time)
 
-                // 全屏 quad submit（覆盖写 state）
-                this.submitQuad(viewId, prog)
+            // 全屏 quad submit（覆盖写 state）
+            this.submitQuad(viewId, prog)
 
-                // 时间累加（驱动下一帧 rand 噪声动态变化）
-                this.time += deltaTime
+            // 时间累加（驱动下一帧 rand 噪声动态变化）
+            this.time += deltaTime
 
-                @LogTrace(["film", "pass: view=" + viewId.toString() +
-                              " intensity=" + this.intensity.toString() +
-                              " grayscale=" + this.grayscale.toString() +
-                              " time=" + this.time.toString()])
-            case None => ()
+            @LogTrace(["film", "pass: view=" + viewId.toString() +
+                          " intensity=" + this.intensity.toString() +
+                          " grayscale=" + this.grayscale.toString() +
+                          " time=" + this.time.toString()])
         }
     }
 
@@ -247,6 +251,9 @@ public class FilmPass <: Pass {
      *         the full-screen quad is managed as a singleton by EffectComposer.
      */
     public override func dispose(): Unit {
+        this._filmProg = None
+        if (let Some(u) <- this._uniforms) { u.dispose() }
+        this._uniforms = None
         @LogTrace(["film", "disposed"])
     }
 }

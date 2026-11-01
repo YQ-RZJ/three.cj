@@ -189,9 +189,10 @@ public class ComponentManager {
      * @return[en] Component instance, or None if component class not registered
      */
     public func createComponent<T>(cptId: ComponentId): ?T where T <: Component {
-        match (_ensurePool(cptId)) {
-            case Some(pool) => pool.allocate() as T
-            case None => None
+        if (let Some(pool) <- _ensurePool(cptId)) {
+            pool.allocate() as T
+        } else {
+            None
         }
     }
 
@@ -490,9 +491,10 @@ public class TreeSysEtyMapManager <: ISysEtyMapManager<System, Entity> {
      * @return[en] (entity count, entity iterator)
      */
     public func getSystemEntitys(sys: System): (Int64, Iterator<Entity>) {
-        match (_sysMappingEntity.get(sys.cptMask.copyInnerData())) {
-            case Some(arr) => (arr.size, arr.iterator())
-            case None => (0, ArrayList<Entity>().iterator())
+        if (let Some(arr) <- _sysMappingEntity.get(sys.cptMask.copyInnerData())) {
+            (arr.size, arr.iterator())
+        } else {
+            (0, ArrayList<Entity>().iterator())
         }
     }
 

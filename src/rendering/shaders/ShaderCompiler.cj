@@ -364,33 +364,31 @@ public class ShaderCompiler {
             }
             _mutex.unlock()
 
-            match (jobOpt) {
-                case Some(job) =>
-                    @LogDebug(["ShaderCompiler", "Compiling ${job.label} ..."])
-                    let ret = sc_compile_cj(
-                        job.varyingPtr, job.varyingSize,
-                        job.srcPtr, job.srcSize,
-                        job.optionsPtr, job.resultPtr
-                    )
-                    job.compileResult = ret
+            if (let Some(job) <- jobOpt) {
+                @LogDebug(["ShaderCompiler", "Compiling ${job.label} ..."])
+                let ret = sc_compile_cj(
+                    job.varyingPtr, job.varyingSize,
+                    job.srcPtr, job.srcSize,
+                    job.optionsPtr, job.resultPtr
+                )
+                job.compileResult = ret
 
-                    _mutex.lock()
-                    _totalCompleted += 1
-                    if (ret != 0) {
-                        _totalErrors += 1
-                        var errMsg = "(no message)"
-                        let msgPtr = unsafe { job.resultPtr.read() }.message
-                        if (!msgPtr.isNull()) {
-                            let s = unsafe { CString(msgPtr) }.toString()
-                            if (!s.isEmpty()) { errMsg = s }
-                        }
-                        @LogError(["ShaderCompiler", "${job.label} failed: ${ret.toString()} ${errMsg}"])
+                _mutex.lock()
+                _totalCompleted += 1
+                if (ret != 0) {
+                    _totalErrors += 1
+                    var errMsg = "(no message)"
+                    let msgPtr = unsafe { job.resultPtr.read() }.message
+                    if (!msgPtr.isNull()) {
+                        let s = unsafe { CString(msgPtr) }.toString()
+                        if (!s.isEmpty()) { errMsg = s }
                     }
-                    _mutex.unlock()
+                    @LogError(["ShaderCompiler", "${job.label} failed: ${ret.toString()} ${errMsg}"])
+                }
+                _mutex.unlock()
 
-                    job.signalDone()
-                    @LogDebug(["ShaderCompiler", "${job.label} done, ret=${ret.toString()}"])
-                case None => ()
+                job.signalDone()
+                @LogDebug(["ShaderCompiler", "${job.label} done, ret=${ret.toString()}"])
             }
         }
         @LogDebug(["ShaderCompiler", "Worker stopped"])

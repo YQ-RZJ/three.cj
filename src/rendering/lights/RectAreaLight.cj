@@ -24,13 +24,13 @@
  * @file[zh-cn] 矩形面光源
  * @brief[zh-cn] 以矩形面积发光的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/RectAreaLight.js。与其他光源不同，本光源无衰减、不产生阴影。
+ * 与其他光源不同，本光源无衰减、不产生阴影。
  * 主要用途：配合 AreaLight 等节点材质使用。
  *
  * @file[en] Rect Area Light
  * @brief[en] A light that emits from a rectangular area
  * @explain[en] 
- * Corresponds to Three.js lights/RectAreaLight.js. Unlike other lights, this light has no decay and does not cast shadows.
+ * Unlike other lights, this light has no decay and does not cast shadows.
  * Main use case: works with AreaLight node materials.
  */
 package three.rendering.lights
@@ -50,12 +50,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 以矩形面积发光的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/RectAreaLight.js。与其他光源不同，本光源无衰减、不产生阴影。
+ * 与其他光源不同，本光源无衰减、不产生阴影。
  * 主要用途：配合 AreaLight 等节点材质使用。
  *
  * @brief[en] A light that emits from a rectangular area
  * @explain[en] 
- * Corresponds to Three.js lights/RectAreaLight.js. Unlike other lights, this light has no decay and does not cast shadows.
+ * Unlike other lights, this light has no decay and does not cast shadows.
  * Main use case: works with AreaLight node materials.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Light]

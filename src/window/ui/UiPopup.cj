@@ -165,9 +165,10 @@ public class UiPopupModal <: UiWidget {
      * @return[en] Whether interaction occurred (always false in this implementation)
      */
     public override func draw(): Bool {
-        let openPtr = match (this._open) {
-            case Some(p) => p.data()
-            case None => CPointer<Int32>()
+        let openPtr = if (let Some(p) <- this._open) {
+            p.data()
+        } else {
+            CPointer<Int32>()
         }
         let cs = unsafe { LibC.mallocCString(this._name) }
         let r = igBeginPopupModal_cj(cs, openPtr, this._flags) != 0

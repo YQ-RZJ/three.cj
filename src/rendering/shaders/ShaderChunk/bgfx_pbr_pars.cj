@@ -28,7 +28,7 @@
  * @brief[en] ShaderChunk GLSL fragment: bgfx-specific PBR helper functions
  * 该 GLSL 片段由 ShaderLib 在构建完整着色器程序时通过 #include 引用。
  * 包含 GGX 微表面 BRDF、菲涅尔、球谐辐照度、多散射补偿等函数。
- * 使用 bgfx flat vec4 uniform 命名约定（u_xxx），而非 Three.js struct 约定。
+ * 使用 bgfx flat vec4 uniform 命名约定（u_xxx），而非 struct 约定。
  */
 package three.rendering.shaders.ShaderChunk
 
@@ -73,7 +73,7 @@ vec3 BRDF_Lambert(vec3 diffuseColor)
     return diffuseColor * (1.0 / 3.14159);
 }
 
-// 环境 BRDF（对照 Three.js EnvironmentBRDF + DFGLUT）
+// 环境 BRDF 预积分（EnvironmentBRDF + DFGLUT）
 vec3 EnvironmentBRDF(vec3 specularColor, float roughness, float dotNV)
 {
     vec2 uv = vec2(roughness, dotNV);
@@ -81,7 +81,7 @@ vec3 EnvironmentBRDF(vec3 specularColor, float roughness, float dotNV)
     return specularColor * fab.x + vec3_splat(1.0) * fab.y;
 }
 
-// SH3 球谐辐照度（对照 Three.js getShIrradianceAt）
+// 球谐辐照度求值 getShIrradianceAt
 vec3 getShIrradianceAt(vec3 normal)
 {
     float x = normal.x, y = normal.y, z = normal.z;
@@ -104,23 +104,40 @@ vec3 getShIrradianceAt(vec3 normal)
     return result;
 }
 
-// 多散射补偿（参照 Three.js computeMultiscattering）
-void computeMultiscattering(vec3 normal, vec3 viewDir, vec3 specularColor, float specularF90, float roughness, inout vec3 singleScatter, inout vec3 multiScatter)
+// DFG 预积分近似（Karis/Unreal 移动端拟合，无需查表）
+vec2 DFGApprox(vec3 normal, vec3 viewDir, float roughness)
 {
     float dotNV = saturate(dot(normal, viewDir));
-    float x = 1.0 - dotNV;
-    float x5 = x * x * x * x * x;
+    vec4 c0 = vec4(-1.0, -0.0275, -0.572, 0.022);
+    vec4 c1 = vec4(1.0, 0.0425, 1.04, -0.04);
+    vec4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * dotNV)) * r.x + r.y;
+    vec2 fab = vec2(-1.04, 1.04) * a004 + r.zw;
+    return fab;
+}
+
+// 多散射能量补偿 computeMultiscattering
+//   由 DFG 预积分给出单散射能量 Ess 与多散射能量 Ems，粗糙度→0 时 fab→(1,0)（Ems→0，
+//   镜面无多散射补偿），粗糙度→1 时 Ems 显著（能量补偿生效）。
+//   此前实现忽略 roughness（Ess 恒为 0.6~1.0 区间的经验值），使光滑金属也叠加了一份
+//   "模糊环境辐照度 × multiScatter"，把清晰的镜面反射淹没 → 反射颜色/形状失真。
+void computeMultiscattering(vec3 normal, vec3 viewDir, vec3 specularColor, float specularF90, float roughness, inout vec3 singleScatter, inout vec3 multiScatter)
+{
+    vec2 fab = DFGApprox(normal, viewDir, roughness);
+
     vec3 Fr = specularColor;
-    vec3 FssEss = Fr * (1.0 - x5) + vec3_splat(specularF90) * x5;
-    float Ess = (1.0 - x5) * 0.6 + x5 * 0.4;
+    vec3 FssEss = Fr * fab.x + vec3_splat(specularF90) * fab.y;
+
+    float Ess = fab.x + fab.y;
     float Ems = 1.0 - Ess;
+
     vec3 Favg = Fr + (vec3_splat(1.0) - Fr) * 0.047619;
     vec3 Fms = FssEss * Favg / max(vec3_splat(1.0) - Ems * Favg, vec3_splat(0.001));
     singleScatter += FssEss;
     multiScatter += Fms * Ems;
 }
 
-// 法线贴图切线空间构建（参照 Three.js getTangentFrame）
+// 切线空间基构建 getTangentFrame
 mat3 getTangentFrame(vec3 viewDir, vec3 surfNorm, vec2 uv)
 {
     vec3 q0 = dFdx(viewDir);

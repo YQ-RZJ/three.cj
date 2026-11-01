@@ -25,14 +25,12 @@
  * @brief[zh-cn] 混合模式描述，定义颜色混合方程和因子
  * @explain[zh-cn] 
  * BlendMode 封装了渲染管线的颜色混合配置，包含混合模式、方程、源因子和目标因子。
- * 对应 Three.js 中的混合状态配置。
  *
  * @file[en] BlendMode
  * @brief[en] Blend mode description, defining color blending equation and factors
  * @explain[en] 
  * BlendMode encapsulates the color blending configuration for the render pipeline,
  * including blend mode, equation, source factor, and destination factor.
- * Corresponds to the blending state configuration in Three.js.
  */
 package three.rendering.common
 

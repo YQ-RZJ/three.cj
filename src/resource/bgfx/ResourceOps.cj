@@ -80,10 +80,7 @@ public class ResourceOps {
         flags: UInt64,
         mem: Option<BgfxMemory>
     ): TextureHandle {
-        let memPtr = match (mem) {
-            case Some(m) => m.get()
-            case None => CPointer<bgfx.Memory>()
-        }
+        let memPtr = if (let Some(m) <- mem) { m.get() } else { CPointer<bgfx.Memory>() }
         return Box(bgfx.bgfx_create_texture_2d_cj(w, h, hasMips, numLayers, format, flags, memPtr))
     }
 

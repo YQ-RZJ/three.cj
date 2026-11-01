@@ -24,13 +24,13 @@
  * @file[zh-cn] 标准PBR材质
  * @brief[zh-cn] 基于PBR的标准材质，支持金属度/粗糙度工作流
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshStandardMaterial.js。基于物理的渲染（PBR）材质，
+ * 基于物理的渲染（PBR）材质，
  * 使用金属度/粗糙度工作流，支持多种贴图（map、roughnessMap、metalnessMap、normalMap、aoMap等）。
  *
  * @file[en] Mesh Standard Material
  * @brief[en] Standard PBR material, supporting metalness/roughness workflow
  * @explain[en] 
- * Corresponds to Three.js materials/MeshStandardMaterial.js. Physically based rendering (PBR) material
+ * Physically based rendering (PBR) material
  * using metalness/roughness workflow, supports various texture maps (map, roughnessMap, metalnessMap, normalMap, aoMap, etc.).
  */
 package three.rendering.materials
@@ -45,12 +45,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 基于PBR的标准材质，支持金属度/粗糙度工作流
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshStandardMaterial.js。使用金属度/粗糙度工作流，
+ * 使用金属度/粗糙度工作流，
  * 支持多种贴图（map、roughnessMap、metalnessMap、normalMap、aoMap等）。
  *
  * @brief[en] Standard PBR material, supporting metalness/roughness workflow
  * @explain[en] 
- * Corresponds to Three.js materials/MeshStandardMaterial.js. Uses metalness/roughness workflow,
+ * Uses metalness/roughness workflow,
  * supports various texture maps (map, roughnessMap, metalnessMap, normalMap, aoMap, etc.).
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]

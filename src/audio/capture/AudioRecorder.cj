@@ -65,6 +65,8 @@ import openalsoft4cj.al.*
 import three.audio.device.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 麦克风音频捕获器，封装 ALC capture 扩展
@@ -305,6 +307,7 @@ public class AudioRecorder {
      * @note[en] Maps to alcCaptureSamples(device, buffer, samples); the data is 16-bit
      * interleaved PCM.
      */
+    @Zone[three.audio.capture.AudioRecorder.readSamples, name=audioReadSamples]
     public func readSamples(buffer: CPointer<UInt8>, samples: Int32): Int32 {
         if (!this._opened || samples <= 0) { return 0 }
         let dev = this._captureDevice

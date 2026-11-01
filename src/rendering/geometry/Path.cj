@@ -25,13 +25,11 @@
  * @brief[zh-cn] 由多条子曲线串联构成的 2D 路径
  * @explain[zh-cn] 
  * Path 继承 CurvePath，提供 moveTo/lineTo/bezierCurveTo/quadraticCurveTo/arc/ellipse 等路径绘制方法。
- * 对应 Three.js extras/core/Path.js。
  *
  * @file[en] Path
  * @brief[en] 2D path composed of multiple sub-curves connected in sequence
  * @explain[en] 
  * Path extends CurvePath, providing path drawing methods such as moveTo/lineTo/bezierCurveTo/quadraticCurveTo/arc/ellipse.
- * Corresponds to Three.js extras/core/Path.js.
  */
 package three.rendering.geometry
 

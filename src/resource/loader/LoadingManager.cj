@@ -117,10 +117,7 @@ public class LoadingManager {
     public func itemStart(url: String): Unit {
         this.itemsTotal += 1
         if (!this.isLoading) {
-            match (this.onStart) {
-                case Some(f) => f(url, this.itemsLoaded, this.itemsTotal)
-                case None => ()
-            }
+            if (let Some(f) <- this.onStart) { f(url, this.itemsLoaded, this.itemsTotal) }
         }
         this.isLoading = true
     }
@@ -134,16 +131,10 @@ public class LoadingManager {
      */
     public func itemEnd(url: String): Unit {
         this.itemsLoaded += 1
-        match (this.onProgress) {
-            case Some(f) => f(url, this.itemsLoaded, this.itemsTotal)
-            case None => ()
-        }
+        if (let Some(f) <- this.onProgress) { f(url, this.itemsLoaded, this.itemsTotal) }
         if (this.itemsLoaded == this.itemsTotal) {
             this.isLoading = false
-            match (this.onLoad) {
-                case Some(f) => f()
-                case None => ()
-            }
+            if (let Some(f) <- this.onLoad) { f() }
         }
     }
 
@@ -155,10 +146,7 @@ public class LoadingManager {
      * @param[en] url Item URL
      */
     public func itemError(url: String): Unit {
-        match (this.onError) {
-            case Some(f) => f(url)
-            case None => ()
-        }
+        if (let Some(f) <- this.onError) { f(url) }
     }
 
     /**
@@ -171,10 +159,8 @@ public class LoadingManager {
      * @return[en] Modified URL
      */
     public func resolveURL(url: String): String {
-        match (this.urlModifier) {
-            case Some(f) => return f(url)
-            case None => return url
-        }
+        if (let Some(f) <- this.urlModifier) { return f(url) }
+        return url
     }
 
     /**

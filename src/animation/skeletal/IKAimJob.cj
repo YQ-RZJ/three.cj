@@ -143,10 +143,7 @@ public class IKAimJob {
      * @brief[en] Validates the inputs
      */
     public func validate(): Bool {
-        match (this.jointCorrection) {
-            case Some(_) => true
-            case None => false
-        }
+        if (let Some(_) <- this.jointCorrection) { true } else { false }
     }
 
     /**
@@ -173,10 +170,7 @@ public class IKAimJob {
     public func run(): Bool {
         if (!this.validate()) { return false }
 
-        let correction = match (this.jointCorrection) {
-            case Some(q) => q
-            case None => return false
-        }
+        let correction = if (let Some(q) <- this.jointCorrection) { q } else { return false }
 
         // 提取关节位置
         let jointPos = Vector3F(
@@ -201,9 +195,8 @@ public class IKAimJob {
         let lengthSq = dirToTarget.x * dirToTarget.x + dirToTarget.y * dirToTarget.y + dirToTarget.z * dirToTarget.z
 
         // 检查可达性
-        match (this.reached) {
-            case Some(_) => this.reached = Some(lengthSq > 1e-12f32)
-            case None => ()
+        if (let Some(_) <- this.reached) {
+            this.reached = Some(lengthSq > 1e-12f32)
         }
 
         if (lengthSq < 1e-12f32) {

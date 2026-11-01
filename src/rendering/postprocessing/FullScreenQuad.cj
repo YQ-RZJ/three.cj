@@ -109,10 +109,7 @@ public class FullScreenQuad {
      * @param[en] renderer Renderer (bgfx resource creation is serialized to the render thread via its high-level API)
      */
     public func ensureResources(renderer: ThreeRenderer): Unit {
-        match (this._quadVB) {
-            case Some(_) => return
-            case None => ()
-        }
+        if (let Some(_) <- this._quadVB) { return }
         // 4 顶点：position(xyz) + texcoord0(uv) = 5 floats × 4 = 20 floats
         // 全屏四边形 NDC 坐标，V 与纹理 V 同向（bgfx 纹理 v=0 顶 + quad 顶点布布自洽）
         let vertsF64: Array<Float64> = [
@@ -203,26 +200,14 @@ public class FullScreenQuad {
      *         This method is provided so the caller can pass the full state (including blending).
      */
     public func submitWithState(viewId: UInt16, prog: ProgramHandle, state: UInt64): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                this.ensureResources(renderer)
-                match (this._quadVB) {
-                    case Some(vb) =>
-                        match (this._quadIB) {
-                            case Some(ib) =>
-                                match (this._quadLayout) {
-                                    case Some(layout) =>
-                                        renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                                        renderer.setState(state, rgba: 0x00000000u32)
-                                        renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
-                                    case None => ()
-                                }
-                            case None => ()
-                        }
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            this.ensureResources(renderer)
+            if (let Some(vb) <- this._quadVB && let Some(ib) <- this._quadIB && let Some(layout) <- this._quadLayout) {
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
+                renderer.setState(state, rgba: 0x00000000u32)
+                renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
+            }
         }
     }
 
@@ -231,27 +216,19 @@ public class FullScreenQuad {
      * @brief[en] Releases the GPU resources held by the full-screen quad
      */
     public func dispose(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                match (this._quadVB) {
-                    case Some(vb) =>
-                        renderer.destroyVertexBuffer(vb)
-                        this._quadVB = None
-                    case None => ()
-                }
-                match (this._quadIB) {
-                    case Some(ib) =>
-                        renderer.destroyIndexBuffer(ib)
-                        this._quadIB = None
-                    case None => ()
-                }
-                match (this._quadLayout) {
-                    case Some(layout) =>
-                        renderer.destroyVertexLayout(layout)
-                        this._quadLayout = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            if (let Some(vb) <- this._quadVB) {
+                renderer.destroyVertexBuffer(vb)
+                this._quadVB = None
+            }
+            if (let Some(ib) <- this._quadIB) {
+                renderer.destroyIndexBuffer(ib)
+                this._quadIB = None
+            }
+            if (let Some(layout) <- this._quadLayout) {
+                renderer.destroyVertexLayout(layout)
+                this._quadLayout = None
+            }
         }
     }
 }

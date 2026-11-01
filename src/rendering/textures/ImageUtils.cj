@@ -22,12 +22,12 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] 图像工具函数
- * @brief[zh-cn] 对应 Three.js extras/ImageUtils.js，提供图像数据 URI 获取与 sRGB→Linear 转换
- * @explain[zh-cn] 仓颉侧无 DOM/HTMLCanvas，相关分支已裁剪为纯数据操作；保留接口与 JS 对齐。
+ * @brief[zh-cn] 提供图像数据 URI 获取与 sRGB→Linear 转换
+ * @explain[zh-cn] 仓颉侧无 DOM/HTMLCanvas，相关分支已裁剪为纯数据操作；保留接口与主流图像处理库对齐。
 
  * @file[en] Image Utilities
- * @brief[en] Corresponding to Three.js extras/ImageUtils.js, provides image data URI retrieval and sRGB→Linear conversion
- * @explain[en] Cangjie side has no DOM/HTMLCanvas, related branches are trimmed to pure data operations; preserves interface alignment with JS. 
+ * @brief[en] Provides image data URI retrieval and sRGB→Linear conversion
+ * @explain[en] Cangjie side has no DOM/HTMLCanvas, related branches are trimmed to pure data operations; preserves interface alignment with the common image-processing API.
  */
 package three.rendering.textures
 
@@ -36,10 +36,10 @@ import three.core.math.*
 
 /**
  * @brief[zh-cn] 图像工具类
- * @explain[zh-cn] 提供 Image → data URI、sRGB → Linear 颜色空间转换等静态方法。仓颉侧无浏览器 DOM，本类仅保留与 Three.js 接口一致的方法签名，内部实现以像素数组操作替代 Canvas/ImageData。
+ * @explain[zh-cn] 提供 Image → data URI、sRGB → Linear 颜色空间转换等静态方法。仓颉侧无浏览器 DOM，本类仅保留与主流图像处理库一致的方法签名，内部实现以像素数组操作替代 Canvas/ImageData。
 
  * @brief[en] Image utilities class
- * @explain[en] Provides static methods for Image → data URI, sRGB → Linear color space conversion, etc. Cangjie side has no browser DOM, this class only preserves method signatures consistent with Three.js, internal implementation uses pixel array operations instead of Canvas/ImageData.
+ * @explain[en] Provides static methods for Image → data URI, sRGB → Linear color space conversion, etc. Cangjie side has no browser DOM, this class only preserves method signatures consistent with the common image-processing API, internal implementation uses pixel array operations instead of Canvas/ImageData.
  */
 public class ImageUtils {
     /**

@@ -24,13 +24,13 @@
  * @file[zh-cn] Box3 辅助对象
  * @brief[zh-cn] Box3 轴对齐包围盒辅助对象，用于可视化 Box3 边界
  * @explain[zh-cn] 
- * 对应 Three.js helpers/Box3Helper.js。以线框绘制 Box3 包围盒，
+ * 以线框绘制 Box3 包围盒，
  * 自动根据 Box3 的中心和尺寸更新位置与缩放。
  *
  * @file[en] Box3 Helper
  * @brief[en] Box3 axis-aligned bounding box helper for visualizing Box3 boundaries
  * @explain[en] 
- * Corresponds to Three.js helpers/Box3Helper.js. Draws a Box3 bounding box as wireframe,
+ * Draws a Box3 bounding box as wireframe,
  * automatically updates position and scale based on Box3 center and size.
  */
 package three.rendering.helpers
@@ -68,6 +68,12 @@ public class Box3Helper <: LineSegments {
      */
     public var box: Box3
 
+    /// 复用的暂存向量（updateMatrixWorld 每帧调用，避免逐帧新建 Vector3）
+    @JsonIgnore
+    private let _scratchCenter: Vector3 = Vector3()
+    @JsonIgnore
+    private let _scratchSize: Vector3 = Vector3()
+
     /**
      * @brief[zh-cn] 构造 Box3 辅助对象
      * @param[zh-cn] box 要可视化的 Box3 包围盒
@@ -102,12 +108,11 @@ public class Box3Helper <: LineSegments {
      */
     public override func updateMatrixWorld(force: Bool): Unit {
         if (!this.box.isEmpty()) {
-            let center = Vector3()
-            this.box.getCenter(center)
-            this.position.copy(center)
-            let size = Vector3()
-            this.box.getSize(size)
-            this.scale.copy(size.multiplyScalar(0.5))
+            // 复用暂存向量：原实现每帧新建 2 个 Vector3（center/size），逐帧调用是稳定堆分配源。
+            this.box.getCenter(this._scratchCenter)
+            this.position.copy(this._scratchCenter)
+            this.box.getSize(this._scratchSize)
+            this.scale.copy(this._scratchSize.multiplyScalar(0.5))
         }
         super.updateMatrixWorld(force)
     }

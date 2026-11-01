@@ -77,12 +77,10 @@ public class RawAnimationUtils {
         let targetTracks = ArrayList<Int>()
         for (i in 0..targetJointNames.size) {
             let name = targetJointNames[i]
-            match (sourceNameToTrack.get(name)) {
-                case Some(srcTrack) =>
-                    if (srcTrack < source.trackCount) {
-                        targetTracks.add(srcTrack)
-                    }
-                case None => ()
+            if (let Some(srcTrack) <- sourceNameToTrack.get(name)) {
+                if (srcTrack < source.trackCount) {
+                    targetTracks.add(srcTrack)
+                }
             }
         }
 

@@ -117,6 +117,8 @@ import three.rendering.geometry.BufferGeometry
 import three.rendering.types.*
 import three.rendering.bgfx.BgfxAttributeDesc
 import std.collection.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 像素化渲染 pass
@@ -356,40 +358,37 @@ public class RenderPixelatedPass <: Pass {
 
     /** 销毁全部低分辨率 RT（setSize 重建或 dispose 时调用） */
     private func _destroyRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                let beautyFB = this._beautyFB; let depthFB = this._depthFB; let normalFB = this._normalFB
-                let beautyTex = this._beautyTex; let beautyDepthTex = this._beautyDepthTex
-                let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
-                let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
-                if (Handle.isValid(beautyFB)) { renderer.destroyFrameBuffer(beautyFB) }
-                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
-                if (Handle.isValid(beautyTex)) { renderer.destroyTexture(beautyTex) }
-                if (Handle.isValid(beautyDepthTex)) { renderer.destroyTexture(beautyDepthTex) }
-                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-                if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
-                if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
-                this._beautyFB = INVALID_FRAME_BUFFER_HANDLE
-                this._depthFB = INVALID_FRAME_BUFFER_HANDLE
-                this._normalFB = INVALID_FRAME_BUFFER_HANDLE
-                this._beautyTex = INVALID_TEXTURE_HANDLE
-                this._beautyDepthTex = INVALID_TEXTURE_HANDLE
-                this._depthTex = INVALID_TEXTURE_HANDLE
-                this._depthDepthTex = INVALID_TEXTURE_HANDLE
-                this._normalTex = INVALID_TEXTURE_HANDLE
-                this._normalDepthTex = INVALID_TEXTURE_HANDLE
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            let beautyFB = this._beautyFB; let depthFB = this._depthFB; let normalFB = this._normalFB
+            let beautyTex = this._beautyTex; let beautyDepthTex = this._beautyDepthTex
+            let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
+            let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
+            if (Handle.isValid(beautyFB)) { renderer.destroyFrameBuffer(beautyFB) }
+            if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+            if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
+            if (Handle.isValid(beautyTex)) { renderer.destroyTexture(beautyTex) }
+            if (Handle.isValid(beautyDepthTex)) { renderer.destroyTexture(beautyDepthTex) }
+            if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+            if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+            if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
+            if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
+            this._beautyFB = INVALID_FRAME_BUFFER_HANDLE
+            this._depthFB = INVALID_FRAME_BUFFER_HANDLE
+            this._normalFB = INVALID_FRAME_BUFFER_HANDLE
+            this._beautyTex = INVALID_TEXTURE_HANDLE
+            this._beautyDepthTex = INVALID_TEXTURE_HANDLE
+            this._depthTex = INVALID_TEXTURE_HANDLE
+            this._depthDepthTex = INVALID_TEXTURE_HANDLE
+            this._normalTex = INVALID_TEXTURE_HANDLE
+            this._normalDepthTex = INVALID_TEXTURE_HANDLE
         }
     }
 
     // ===== 场景几何体缓存（对齐 SSRPass/_renderDepth 范式） =====
 
     private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
-        match (this._layoutHandleCache) {
-            case Some(lh) => return lh
-            case None => ()
+        if (let Some(lh) <- this._layoutHandleCache) {
+            return lh
         }
         // 经 renderer.createVertexLayout(attrs) 高阶 API 创建布局句柄（封装 begin/add/end/create 序列）。
         // _createVB 经 renderer.createVertexBufferFromLayout(handle) 创建顶点缓冲
@@ -434,106 +433,78 @@ public class RenderPixelatedPass <: Pass {
     }
 
     private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._vbCache.get(geomId)) {
-            case Some(vb) => return vb
-            case None => ()
+        let geomId = geom.id
+        if (let Some(vb) <- this._vbCache.get(geomId)) {
+            return vb
         }
         let posAttrOpt = geom.getAttribute("position")
-        match (posAttrOpt) {
-            case Some(pos) =>
-                let vc = pos.count
-                if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
-                // position(3) + normal(3) + color(4) + uv(2) = 12 floats
-                let vertStride: Int64 = 12
-                let totalFloats = vc * vertStride
-                let data = Array<Float64>(totalFloats, { i => 0.0 })
-                let normAttrOpt = geom.getAttribute("normal")
-                let colAttrOpt = geom.getAttribute("color")
-                let uvAttrOpt = geom.getAttribute("uv")
-                for (vi in 0..vc) {
-                    let base = vi * vertStride
-                    data[base] = pos.getX(vi)
-                    data[base + 1] = pos.getY(vi)
-                    data[base + 2] = pos.getZ(vi)
-                    match (normAttrOpt) {
-                        case Some(na) =>
-                            data[base + 3] = na.getX(vi)
-                            data[base + 4] = na.getY(vi)
-                            data[base + 5] = na.getZ(vi)
-                        case None => data[base + 5] = 1.0
-                    }
-                    match (colAttrOpt) {
-                        case Some(ca) =>
-                            data[base + 6] = ca.getX(vi)
-                            data[base + 7] = ca.getY(vi)
-                            data[base + 8] = ca.getZ(vi)
-                            data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
-                        case None =>
-                            for (j in 0..4) { data[base + 6 + j] = 1.0 }
-                    }
-                    match (uvAttrOpt) {
-                        case Some(ua) =>
-                            data[base + 10] = ua.getX(vi)
-                            data[base + 11] = ua.getY(vi)
-                        case None => ()
-                    }
+        if (let Some(pos) <- posAttrOpt) {
+            let vc = pos.count
+            if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
+            // position(3) + normal(3) + color(4) + uv(2) = 12 floats
+            let vertStride: Int64 = 12
+            let totalFloats = vc * vertStride
+            let data = Array<Float64>(totalFloats, { i => 0.0 })
+            let normAttrOpt = geom.getAttribute("normal")
+            let colAttrOpt = geom.getAttribute("color")
+            let uvAttrOpt = geom.getAttribute("uv")
+            for (vi in 0..vc) {
+                let base = vi * vertStride
+                data[base] = pos.getX(vi)
+                data[base + 1] = pos.getY(vi)
+                data[base + 2] = pos.getZ(vi)
+                if (let Some(na) <- normAttrOpt) {
+                    data[base + 3] = na.getX(vi)
+                    data[base + 4] = na.getY(vi)
+                    data[base + 5] = na.getZ(vi)
+                } else { data[base + 5] = 1.0 }
+                if (let Some(ca) <- colAttrOpt) {
+                    data[base + 6] = ca.getX(vi)
+                    data[base + 7] = ca.getY(vi)
+                    data[base + 8] = ca.getZ(vi)
+                    data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
+                } else {
+                    for (j in 0..4) { data[base + 6 + j] = 1.0 }
                 }
-                let mem = BgfxMemory(UInt32(totalFloats * 4))
-                mem.writeFloats(data, totalFloats)
-                let layout = this._getOrCreateLayout(renderer)
-                let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
-                this._vbCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_VERTEX_BUFFER_HANDLE
-        }
+                if (let Some(ua) <- uvAttrOpt) {
+                    data[base + 10] = ua.getX(vi)
+                    data[base + 11] = ua.getY(vi)
+                }
+            }
+            let mem = BgfxMemory(UInt32(totalFloats * 4))
+            mem.writeFloats(data, totalFloats)
+            let layout = this._getOrCreateLayout(renderer)
+            let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
+            this._vbCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_VERTEX_BUFFER_HANDLE }
     }
 
     private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._ibCache.get(geomId)) {
-            case Some(ib) => return ib
-            case None => ()
+        let geomId = geom.id
+        if (let Some(ib) <- this._ibCache.get(geomId)) {
+            return ib
         }
-        match (geom.index) {
-            case Some(idxAttr) =>
-                let count = idxAttr.count
-                if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
-                let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
-                let mem = BgfxMemory(UInt32(count * 2))
-                mem.writeUInt16(idxData, count)
-                let handle = renderer.createIndexBuffer(mem, flags: 0u16)
-                this._ibCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_INDEX_BUFFER_HANDLE
-        }
-    }
-
-    /** 收集场景中所有 Mesh（递归遍历 children，对齐 SSRPass._collectMeshes） */
-    private func _collectMeshes(obj: Object3D, renderObjects: ArrayList<RenderObject>): Unit {
-        for (child in obj.children) {
-            if (child.children.size > 0) {
-                this._collectMeshes(child, renderObjects)
-            }
-            if (child.kind == "Mesh") {
-                match (child as Mesh) {
-                    case Some(mesh) =>
-                        let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
-                        renderObjects.add(ro)
-                    case None => ()
-                }
-            }
-        }
+        if (let Some(idxAttr) <- geom.index) {
+            let count = idxAttr.count
+            if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
+            let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
+            let mem = BgfxMemory(UInt32(count * 2))
+            mem.writeUInt16(idxData, count)
+            let handle = renderer.createIndexBuffer(mem, flags: 0u16)
+            this._ibCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_INDEX_BUFFER_HANDLE }
     }
 
     /** 设置 view transform（view=matrixWorldInverse, proj=projectionMatrix，对齐 SSRPass） */
     private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
-        let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let viewMem = BgfxMemory(64u32)
-        let projMem = BgfxMemory(64u32)
-        viewMem.writeFloats(viewArr, 16)
-        projMem.writeFloats(projArr, 16)
+        // 复用基类上传缓冲槽位：原实现每帧 3 次调用各新建 2 个 Array(16) + 2 块 BgfxMemory。
+        // 槽位隔离：12=view，13=proj。
+        let viewMem = this._uploadMem(12, 64u32)
+        let projMem = this._uploadMem(13, 64u32)
+        viewMem.writeFloats(camera.matrixWorldInverse.elements, 16)
+        projMem.writeFloats(camera.projectionMatrix.elements, 16)
         renderer.setViewTransform(viewId, viewMem, projMem)
     }
 
@@ -543,19 +514,18 @@ public class RenderPixelatedPass <: Pass {
      * 编译 pixelated shader（合成 pass 用）。
      */
     private func _compilePixelated(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("pixelated")) {
-            case Some(sp) =>
-                if (!this._pixelatedCompiled) {
-                    sp.compileBgfx()
-                    this._pixelatedProg = Some(Box(sp.programHandle))
-                    this._pixelatedCompiled = true
-                    @LogTrace(["pixelated", "pixelated shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._pixelatedProg
-            case None =>
-                @LogTrace(["pixelated", "pixelated shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("pixelated")) {
+            if (!this._pixelatedCompiled) {
+                sp.compileBgfx()
+                this._pixelatedProg = Some(Box(sp.programHandle))
+                this._pixelatedCompiled = true
+                @LogTrace(["pixelated", "pixelated shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._pixelatedProg
+        } else {
+            @LogTrace(["pixelated", "pixelated shader not registered"])
+            return None
         }
     }
 
@@ -573,37 +543,36 @@ public class RenderPixelatedPass <: Pass {
         this._setViewTransformFor(renderer, viewId, camera)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00101018u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileBeauty()) {
-            case Some(beautyProg) =>
-                if (!Handle.isValid(beautyProg)) {
-                    @LogTrace(["pixelated", "beauty pass: prog compile FAILED"])
-                    return
+        if (let Some(beautyProg) <- this._compileBeauty()) {
+            if (!Handle.isValid(beautyProg)) {
+                @LogTrace(["pixelated", "beauty pass: prog compile FAILED"])
+                return
+            }
+            let layout = this._getOrCreateLayout(renderer)
+            let renderObjects = renderer.getSceneMeshes(scene)
+            // 复用基类上传槽位：原实现每帧新建 1 个 Array(16) + 1 块 BgfxMemory
+            let mtxMem = this._uploadMem(4, 64u32)
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                mtxMem.writeFloats(ro.worldMatrix.elements, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(renderer, ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(renderer, ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    let renderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                      BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                      BgfxConstants.FRONT_CCW
-                    renderer.setState(renderState, rgba: 0x00000000u32)
-                    renderer.submit(viewId, beautyProg, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
-                }
-                @LogTrace(["pixelated", "beauty pass done: prog=${Handle.idx(beautyProg)}submitCnt=${submitCnt}"])
-            case None => @LogTrace(["pixelated", "beauty pass: shader NOT registered"])
+                let renderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                  BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                  BgfxConstants.FRONT_CCW
+                renderer.setState(renderState, rgba: 0x00000000u32)
+                renderer.submit(viewId, beautyProg, depth: 0u32, blend: 0xFFu8)
+                submitCnt += 1
+            }
+            @LogTrace(["pixelated", "beauty pass done: prog=${Handle.idx(beautyProg)}submitCnt=${submitCnt}"])
+        } else {
+            @LogTrace(["pixelated", "beauty pass: shader NOT registered"])
         }
     }
 
@@ -612,19 +581,18 @@ public class RenderPixelatedPass <: Pass {
      * beauty pass 用 normal shader 渲场景到低分辨率 RT（含材质明度信息）。
      */
     private func _compileBeauty(): Option<ProgramHandle> {
-        match (ShaderLibs.get("normal")) {
-            case Some(sp) =>
-                if (!this._beautyCompiled) {
-                    sp.compileBgfx()
-                    this._beautyProg = Some(Box(sp.programHandle))
-                    this._beautyCompiled = true
-                    @LogTrace(["pixelated", "beauty (normal) shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._beautyProg
-            case None =>
-                @LogTrace(["pixelated", "beauty (normal) shader not registered in ShaderLibs"])
-                return None
+        if (let Some(sp) <- ShaderLibs.get("normal")) {
+            if (!this._beautyCompiled) {
+                sp.compileBgfx()
+                this._beautyProg = Some(Box(sp.programHandle))
+                this._beautyCompiled = true
+                @LogTrace(["pixelated", "beauty (normal) shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._beautyProg
+        } else {
+            @LogTrace(["pixelated", "beauty (normal) shader not registered in ShaderLibs"])
+            return None
         }
     }
 
@@ -645,42 +613,41 @@ public class RenderPixelatedPass <: Pass {
         // clear 为白色（NDC 深度=1.0=far）：背景无片元时保持 1.0
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
 
-        match (PostProcessingShaders.get("aodepth")) {
-            case Some(depthSp) =>
-                if (!this._depthCompiled) {
-                    depthSp.compileBgfx()
-                    this._depthCompiled = true
+        if (let Some(depthSp) <- PostProcessingShaders.get("aodepth")) {
+            if (!this._depthCompiled) {
+                depthSp.compileBgfx()
+                this._depthCompiled = true
+            }
+            let depthProg = Box(depthSp.programHandle)
+            if (!Handle.isValid(depthProg)) {
+                @LogTrace(["pixelated", "depth pass: aodepth program compile FAILED"])
+                return
+            }
+            let layout = this._getOrCreateLayout(renderer)
+            let renderObjects = renderer.getSceneMeshes(scene)
+            // 复用基类上传槽位：原实现每帧新建 1 个 Array(16) + 1 块 BgfxMemory
+            let mtxMem = this._uploadMem(4, 64u32)
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                mtxMem.writeFloats(ro.worldMatrix.elements, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(renderer, ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
-                let depthProg = Box(depthSp.programHandle)
-                if (!Handle.isValid(depthProg)) {
-                    @LogTrace(["pixelated", "depth pass: aodepth program compile FAILED"])
-                    return
-                }
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(renderer, ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                           BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                           BgfxConstants.FRONT_CCW
-                    renderer.setState(depthRenderState, rgba: 0x00000000u32)
-                    renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
-                }
-                @LogTrace(["pixelated", "depth pass done: prog=${Handle.idx(depthProg)} submitCnt=${submitCnt}"])
-            case None => @LogTrace(["pixelated", "depth pass: aodepth shader NOT registered"])
+                let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                       BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                       BgfxConstants.FRONT_CCW
+                renderer.setState(depthRenderState, rgba: 0x00000000u32)
+                renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
+                submitCnt += 1
+            }
+            @LogTrace(["pixelated", "depth pass done: prog=${Handle.idx(depthProg)} submitCnt=${submitCnt}"])
+        } else {
+            @LogTrace(["pixelated", "depth pass: aodepth shader NOT registered"])
         }
     }
 
@@ -696,66 +663,65 @@ public class RenderPixelatedPass <: Pass {
         // bgfx clear color 为 ABGR 格式：ABGR = 0x00FF8080 → RGBA=(0.5,0.5,1.0,0.0)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00FF8080u32, depth: 1.0f32, stencil: 0u8)
 
-        match (ShaderLibs.get("normal")) {
-            case Some(normalSp) =>
-                if (!this._normalCompiled) {
-                    normalSp.compileBgfx()
-                    this._normalCompiled = true
-                }
-                let normalProg = Box(normalSp.programHandle)
-                if (!Handle.isValid(normalProg)) {
-                    @LogTrace(["pixelated", "normal pass: prog compile FAILED"])
-                    return
-                }
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                // view 矩阵 3x3（法线 RT 需要 view space 法线）
-                let viewMtx = camera.matrixWorldInverse.elements
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let posAttrOpt = ro.geometry.getAttribute("position")
-                    match (posAttrOpt) {
-                        case Some(_) =>
-                            let mtxArr = ro.worldMatrix.elements
-                            let mtxMem = BgfxMemory(64u32)
-                            mtxMem.writeFloats(mtxArr, 16)
-                            renderer.setTransform(mtxMem, num: 1u16)
+        if (let Some(normalSp) <- ShaderLibs.get("normal")) {
+            if (!this._normalCompiled) {
+                normalSp.compileBgfx()
+                this._normalCompiled = true
+            }
+            let normalProg = Box(normalSp.programHandle)
+            if (!Handle.isValid(normalProg)) {
+                @LogTrace(["pixelated", "normal pass: prog compile FAILED"])
+                return
+            }
+            let layout = this._getOrCreateLayout(renderer)
+            let renderObjects = renderer.getSceneMeshes(scene)
+            // view 矩阵 3x3（法线 RT 需要 view space 法线）
+            let viewMtx = camera.matrixWorldInverse.elements
+            // 复用基类上传槽位：4=模型矩阵、2=法线矩阵
+            // （原实现逐对象新建 BgfxMemory + Array(12)，且逐对象 createUniform（取全局 bgfx 锁））
+            let mtxMem = this._uploadMem(4, 64u32)
+            let nmMem = this._uploadMem(2, 48u32)
+            let nmData = Array<Float64>(12, { _ => 0.0 })
+            let uNormalMatrix = this._passUniforms().createUniform("u_normalMatrix", UniformType.Mat3.value())
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                let posAttrOpt = ro.geometry.getAttribute("position")
+                if (let Some(_) <- posAttrOpt) {
+                    let mtxArr = ro.worldMatrix.elements
+                    mtxMem.writeFloats(mtxArr, 16)
+                    renderer.setTransform(mtxMem, num: 1u16)
 
-                            // u_normalMatrix = mat3(view) × mat3(model)（3x3 列主序 → 紧凑 9 floats）
-                            let nmData = Array<Float64>(12, { i => 0.0 })
-                            for (c in 0..3) {
-                                for (r in 0..3) {
-                                    var sum = 0.0
-                                    for (k in 0..3) {
-                                        sum = sum + viewMtx[c * 4 + k] * mtxArr[k * 4 + r]
-                                    }
-                                    nmData[c * 3 + r] = sum
-                                }
+                    // u_normalMatrix = mat3(view) × mat3(model)（3x3 列主序 → 紧凑 9 floats）
+                    for (c in 0..3) {
+                        for (r in 0..3) {
+                            var sum = 0.0
+                            for (k in 0..3) {
+                                sum = sum + viewMtx[c * 4 + k] * mtxArr[k * 4 + r]
                             }
-                            let nmMem = BgfxMemory(48u32)
-                            nmMem.writeFloats(nmData, 12)
-                            let uNormalMatrix = BgfxUniforms().createUniform("u_normalMatrix", UniformType.Mat3.value())
-                            this.setUniform(renderer, uNormalMatrix, nmMem)
-
-                            renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                            let ib = this._createIB(renderer, ro.geometry)
-                            if (Handle.isValid(ib)) {
-                                renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                            }
-                            let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                              BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                              BgfxConstants.FRONT_CCW
-                            renderer.setState(normalState, rgba: 0x00000000u32)
-                            renderer.submit(viewId, normalProg, depth: 0u32, blend: 0xFFu8)
-                            submitCnt += 1
-                        case None => ()
+                            nmData[c * 3 + r] = sum
+                        }
                     }
+                    nmMem.writeFloats(nmData, 12)
+                    this.setUniform(renderer, uNormalMatrix, nmMem)
+
+                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                    let ib = this._createIB(renderer, ro.geometry)
+                    if (Handle.isValid(ib)) {
+                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
+                    }
+                    let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                      BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                      BgfxConstants.FRONT_CCW
+                    renderer.setState(normalState, rgba: 0x00000000u32)
+                    renderer.submit(viewId, normalProg, depth: 0u32, blend: 0xFFu8)
+                    submitCnt += 1
                 }
-                @LogTrace(["pixelated", "normal pass done: prog=${Handle.idx(normalProg)} submitCnt=${submitCnt}"])
-            case None => @LogTrace(["pixelated", "normal pass: normal shader NOT registered in ShaderLibs"])
+            }
+            @LogTrace(["pixelated", "normal pass done: prog=${Handle.idx(normalProg)} submitCnt=${submitCnt}"])
+        } else {
+            @LogTrace(["pixelated", "normal pass: normal shader NOT registered in ShaderLibs"])
         }
     }
 
@@ -781,55 +747,49 @@ public class RenderPixelatedPass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compilePixelated()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["pixelated", "composite pass: pixelated program compile FAILED"])
-                    return
-                }
+        if (let Some(prog) <- this._compilePixelated()) {
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["pixelated", "composite pass: pixelated program compile FAILED"])
+                return
+            }
 
-                let uniforms = BgfxUniforms()
+            let uniforms = this._passUniforms()
 
-                // stage 0 = tDiffuse（低分辨率 beauty RT 的 color 0）
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiffuse, this._beautyTex, 0u32)
-                // stage 1 = tDepth（深度 RT 的 color 0）
-                let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uDepth, this._depthTex, 0u32)
-                // stage 2 = tNormal（法线 RT 的 color 0）
-                let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
-                this.bindTexture(renderer, 2u8, uNormal, this._normalTex, 0u32)
+            // stage 0 = tDiffuse（低分辨率 beauty RT 的 color 0）
+            let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiffuse, this._beautyTex, 0u32)
+            // stage 1 = tDepth（深度 RT 的 color 0）
+            let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uDepth, this._depthTex, 0u32)
+            // stage 2 = tNormal（法线 RT 的 color 0）
+            let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
+            this.bindTexture(renderer, 2u8, uNormal, this._normalTex, 0u32)
 
-                // resolution（vec4: xy=低分辨率尺寸, zw=1/尺寸）
-                let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                let resMem = BgfxMemory(16u32)
-                let rw = Float64(this._renderWidth)
-                let rh = Float64(this._renderHeight)
-                resMem.writeFloats([rw, rh, 1.0 / rw, 1.0 / rh], 4)
-                this.setUniform(renderer, uRes, resMem)
+            // resolution（vec4: xy=低分辨率尺寸, zw=1/尺寸）
+            // 复用上传槽位（原实现每帧新建 3 块 BgfxMemory + 3 个数组字面量）
+            let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
+            let rw = Float64(this._renderWidth)
+            let rh = Float64(this._renderHeight)
+            this._setVec4Uniform(renderer, uRes, 0, rw, rh, 1.0 / rw, 1.0 / rh)
 
-                // normalEdgeStrength / depthEdgeStrength（vec4.x=值）
-                let uNes = uniforms.createUniform("u_normalEdgeStrength", UniformType.Vec4.value())
-                let nesMem = BgfxMemory(16u32)
-                nesMem.writeFloats([this.normalEdgeStrength, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uNes, nesMem)
+            // normalEdgeStrength / depthEdgeStrength（vec4.x=值）
+            let uNes = uniforms.createUniform("u_normalEdgeStrength", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uNes, 1, this.normalEdgeStrength)
 
-                let uDes = uniforms.createUniform("u_depthEdgeStrength", UniformType.Vec4.value())
-                let desMem = BgfxMemory(16u32)
-                desMem.writeFloats([this.depthEdgeStrength, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uDes, desMem)
+            let uDes = uniforms.createUniform("u_depthEdgeStrength", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uDes, 3, this.depthEdgeStrength)
 
-                // 全屏 quad submit（覆盖写 state）
-                this.submitQuad(viewId, prog)
+            // 全屏 quad submit（覆盖写 state）
+            this.submitQuad(viewId, prog)
 
-                @LogTrace(["pixelated", "composite pass: view=" + viewId.toString() +
-                              " render=${this._renderWidth}x${this._renderHeight}" +
-                              " full=${this._width}x${this._height}" +
-                              " normalEdgeStrength=" + this.normalEdgeStrength.toString() +
-                              " depthEdgeStrength=" + this.depthEdgeStrength.toString() +
-                              " beautyTex=${Handle.idx(this._beautyTex)} depthTex=${Handle.idx(this._depthTex)} normalTex=${Handle.idx(this._normalTex)}"])
-            case None =>
-                @LogTrace(["pixelated", "composite pass: pixelated shader compile failed, skip pass"])
+            @LogTrace(["pixelated", "composite pass: view=" + viewId.toString() +
+                          " render=${this._renderWidth}x${this._renderHeight}" +
+                          " full=${this._width}x${this._height}" +
+                          " normalEdgeStrength=" + this.normalEdgeStrength.toString() +
+                          " depthEdgeStrength=" + this.depthEdgeStrength.toString() +
+                          " beautyTex=${Handle.idx(this._beautyTex)} depthTex=${Handle.idx(this._depthTex)} normalTex=${Handle.idx(this._normalTex)}"])
+        } else {
+            @LogTrace(["pixelated", "composite pass: pixelated shader compile failed, skip pass"])
         }
     }
 
@@ -849,6 +809,7 @@ public class RenderPixelatedPass <: Pass {
      * @param readBuffer 读 buffer（本 pass 不用，beauty 自渲）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.RenderPixelatedPass.render, name=renderPixelatedPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -867,32 +828,27 @@ public class RenderPixelatedPass <: Pass {
 
         let sceneOpt = this._scene
         let camOpt = this._camera
-        match (sceneOpt) {
-            case Some(scene) => match (camOpt) {
-                case Some(camera) =>
-                    this._ensureRTs(renderer)
-                    if (!Handle.isValid(this._beautyFB)) {
-                        @LogTrace(["pixelated", "render: _ensureRTs failed, beautyFB invalid"])
-                        return
-                    }
-
-                    let baseView = RenderPixelatedPass.PIXELATED_VIEW_ID_BASE
-
-                    // ===== 1. beauty pass（view+0）=====
-                    this._renderBeauty(renderer, scene, camera, baseView)
-                    // ===== 2. 深度 pass（view+1）=====
-                    this._renderDepth(renderer, scene, camera, UInt16(UInt16(baseView) + 1u16))
-                    // ===== 3. 法线 pass（view+2）=====
-                    this._renderNormals(renderer, scene, camera, UInt16(UInt16(baseView) + 2u16))
-                    // ===== 4. 合成 pass（view+3）=====
-                    this._renderComposite(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 3u16))
-
-                    @LogTrace(["pixelated", "render done: pixelSize=" + this.pixelSize.toString() +
-                                  " render=${this._renderWidth}x${this._renderHeight}" +
-                                  " full=${this._width}x${this._height}"])
-                case None => ()
+        if (let Some(scene) <- sceneOpt && let Some(camera) <- camOpt) {
+            this._ensureRTs(renderer)
+            if (!Handle.isValid(this._beautyFB)) {
+                @LogTrace(["pixelated", "render: _ensureRTs failed, beautyFB invalid"])
+                return
             }
-            case None => ()
+
+            let baseView = RenderPixelatedPass.PIXELATED_VIEW_ID_BASE
+
+            // ===== 1. beauty pass（view+0）=====
+            this._renderBeauty(renderer, scene, camera, baseView)
+            // ===== 2. 深度 pass（view+1）=====
+            this._renderDepth(renderer, scene, camera, UInt16(UInt16(baseView) + 1u16))
+            // ===== 3. 法线 pass（view+2）=====
+            this._renderNormals(renderer, scene, camera, UInt16(UInt16(baseView) + 2u16))
+            // ===== 4. 合成 pass（view+3）=====
+            this._renderComposite(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 3u16))
+
+            @LogTrace(["pixelated", "render done: pixelSize=" + this.pixelSize.toString() +
+                          " render=${this._renderWidth}x${this._renderHeight}" +
+                          " full=${this._width}x${this._height}"])
         }
     }
 
@@ -904,15 +860,9 @@ public class RenderPixelatedPass <: Pass {
     public override func dispose(): Unit {
         this._destroyRTs()
         // 释放共享顶点布局句柄（_getOrCreateLayout 经 renderer.createVertexLayout 创建）
-        match (this._renderer) {
-            case Some(renderer) =>
-                match (this._layoutHandleCache) {
-                    case Some(lh) =>
-                        renderer.destroyVertexLayout(lh)
-                        this._layoutHandleCache = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer && let Some(lh) <- this._layoutHandleCache) {
+            renderer.destroyVertexLayout(lh)
+            this._layoutHandleCache = None
         }
         @LogTrace(["pixelated", "disposed"])
     }

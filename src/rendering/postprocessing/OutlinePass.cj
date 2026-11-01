@@ -24,23 +24,21 @@
  * @file[zh-cn] OutlinePass 物体轮廓描边后处理 pass
  * @brief[zh-cn] 物体轮廓描边后处理 pass —— 基于 depth buffer 的边缘检测 + 可分离高斯模糊
  * @explain[zh-cn] 算法流程：
- *         1. 非选中物体 → depthMaterial → renderTargetDepthBuffer（深度图）
- *         2. 选中物体（隐藏非选中）→ prepareMaskMaterial → renderTargetMaskBuffer
- *           （用深度图比较，输出 r=mask, g=depthTest, b=1, a=1）
- *         3. materialCopy 把 maskBuffer 降采样到 renderTargetMaskDownSampleBuffer
- *         4. edgeDetectionMaterial 对降采样 mask 做边缘检测 → renderTargetEdgeBuffer1
- *         5. separableBlurMaterial1 (半分辨率) H/V 模糊 → renderTargetEdgeBuffer1
- *         6. separableBlurMaterial2 (1/4 分辨率) H/V 模糊 → renderTargetEdgeBuffer2
- *         7. overlayMaterial 把 edge1/edge2/mask/pattern 加性叠加到 readBuffer
+ *         1. maskRT：先渲非选中物体（只写 Z），再渲选中物体（写 RGB/A/Z + 深度测试 LESS）
+ *            —— 被遮挡的选中片元深度测试失败 → 不写 mask，描边被遮挡处不显示
+ *         2. materialCopy 把 maskBuffer 降采样到 renderTargetMaskDownSampleBuffer
+ *         3. edgeDetectionMaterial 对降采样 mask 做边缘检测 → renderTargetEdgeBuffer1
+ *         4. separableBlurMaterial1 (半分辨率) H/V 模糊 → renderTargetEdgeBuffer1
+ *         5. separableBlurMaterial2 (1/4 分辨率) H/V 模糊 → renderTargetEdgeBuffer2
+ *         6. overlayMaterial 把 edge1/edge2/mask/pattern 加性叠加到 readBuffer
  *         本 pass 不依赖 EffectComposer 的双 RT ping-pong（needsSwap=false），
- *         内部自持 7 个 RT + 6 个 shader，完整实现 outline 效果。
+ *         内部自持 6 个 RT + 5 个 shader，完整实现 outline 效果。
  *         渲染差异：
  *         - bgfx 用 FrameBufferHandle + TextureHandle 自持 RT，setSize 时销毁重建。
- *         - overrideMaterial 经 scene.overrideMaterial 设（Scene.cj 已支持）。
  *         - 深度比较经 DEPTH_TO_VIEW_Z + perspectiveDepthToViewZ；bgfx 在 prepareMask shader
  *           内联 perspectiveDepthToViewZ（无需 chunk）。
  *         - 全屏四边形渲染；bgfx 用共享 FullScreenQuad.submit(viewId, prog)。
- *         - 7 个 RT：bgfx 用 7 个 FrameBufferHandle（color + depth attachment）。
+ *         - 6 个 RT：bgfx 用 6 个 FrameBufferHandle（color + depth attachment）。
  *         用法：
  *         let outlinePass = OutlinePass(Vector2(w, h), scene, camera, [obj1, obj2])
  *         composer.addPass(outlinePass)
@@ -49,17 +47,17 @@
  * @brief[en] Object outline post-processing pass - depth-buffer-based edge detection +
  *         separable Gaussian blur
  * @explain[en] Algorithm flow:
- *         1. Non-selected objects → depthMaterial → renderTargetDepthBuffer (depth map)
- *         2. Selected objects (non-selected hidden) → prepareMaskMaterial → renderTargetMaskBuffer
- *           (compared against the depth map, output r=mask, g=depthTest, b=1, a=1)
- *         3. materialCopy downsamples the maskBuffer to renderTargetMaskDownSampleBuffer
- *         4. edgeDetectionMaterial performs edge detection on the downsampled mask →
+ *         1. maskRT: first render non-selected objects (depth only), then selected objects
+ *            (RGB/A/Z + depth test LESS) - occluded selected fragments fail the depth test
+ *            → mask is not written, so the outline is hidden where it is occluded
+ *         2. materialCopy downsamples the maskBuffer to renderTargetMaskDownSampleBuffer
+ *         3. edgeDetectionMaterial performs edge detection on the downsampled mask →
  *            renderTargetEdgeBuffer1
- *         5. separableBlurMaterial1 (half res) H/V blur → renderTargetEdgeBuffer1
- *         6. separableBlurMaterial2 (quarter res) H/V blur → renderTargetEdgeBuffer2
- *         7. overlayMaterial additively combines edge1/edge2/mask/pattern into readBuffer
+ *         4. separableBlurMaterial1 (half res) H/V blur → renderTargetEdgeBuffer1
+ *         5. separableBlurMaterial2 (quarter res) H/V blur → renderTargetEdgeBuffer2
+ *         6. overlayMaterial additively combines edge1/edge2/mask/pattern into readBuffer
  *         This pass does not rely on the EffectComposer dual-RT ping-pong (needsSwap=false);
- *         it holds 7 internal RTs + 6 shaders to fully implement the outline effect.
+ *         it holds 6 internal RTs + 5 shaders to fully implement the outline effect.
  *         Rendering differences:
  *         - bgfx holds RTs via FrameBufferHandle + TextureHandle, destroyed and rebuilt on setSize.
  *         - overrideMaterial is set via scene.overrideMaterial (supported by Scene.cj).
@@ -100,6 +98,8 @@ import three.utils.log.macros.*
 import three.rendering.types.*
 import std.collection.*
 import std.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] Outline 后处理 pass
@@ -198,9 +198,6 @@ public class OutlinePass <: Pass {
     private var _maskFB: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
     private var _maskTex: TextureHandle = INVALID_TEXTURE_HANDLE
     private var _maskDepthTex: TextureHandle = INVALID_TEXTURE_HANDLE  // mask RT 的 depth attachment（遮挡剔除用）
-    private var _depthFB: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
-    private var _depthTex: TextureHandle = INVALID_TEXTURE_HANDLE
-    private var _depthDepthTex: TextureHandle = INVALID_TEXTURE_HANDLE  // depth pass 用的 depth attachment
     private var _maskDownFB: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
     private var _maskDownTex: TextureHandle = INVALID_TEXTURE_HANDLE
     private var _blur1FB: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
@@ -224,15 +221,12 @@ public class OutlinePass <: Pass {
     /** 渲染器引用（render() 时注入；RT 创建/销毁与几何体缓存释放走 renderer 高阶 API） */
     private var _renderer: Option<ThreeRenderer> = None
 
-    // ===== 缓存（Object3D 不 Hashable，用 ArrayList<(Object3D, Bool)> 存原可见性） =====
-    private var _visibilityCache: ArrayList<(Object3D, Bool)> = ArrayList<(Object3D, Bool)>()
+    // ===== 缓存（选中集合；Object3D 不 Hashable，用 ArrayList 存） =====
     private var _selectionCache: ArrayList<Object3D> = ArrayList<Object3D>()
-    private var _textureMatrix: Matrix4 = Matrix4()
 
     // ===== 编译后 program handle 缓存 =====
-    private var _depthProg: Option<ProgramHandle> = None
-    private var _prepareMaskProg: Option<ProgramHandle> = None
-    private var _whiteProg: Option<ProgramHandle> = None   // outline_white（mask/depth 几何 pass 用）
+    private var _copyProg: Option<ProgramHandle> = None   // outline_copy（降采样）
+    private var _whiteProg: Option<ProgramHandle> = None   // outline_white（mask 几何 pass 用）
     private var _edgeDetectionProg: Option<ProgramHandle> = None
     private var _separableBlurProg: Option<ProgramHandle> = None
     private var _overlayProg: Option<ProgramHandle> = None
@@ -241,6 +235,65 @@ public class OutlinePass <: Pass {
     private var _vbCache: HashMap<Int64, VertexBufferHandle> = HashMap<Int64, VertexBufferHandle>()
     private var _ibCache: HashMap<Int64, IndexBufferHandle> = HashMap<Int64, IndexBufferHandle>()
     private var _layoutHandleCache: Option<VertexLayoutHandle> = None
+
+    // ===== uniform 句柄缓存（逐帧复用，避免每帧 createUniform 的全局锁 + 字符串哈希）=====
+    // 逐帧新建 uniform 句柄的开销：BgfxUniforms.createUniform 内部要取全局 bgfxCallMtx
+    // 互斥锁 + 对 name 字符串求哈希；本 pass 每帧要取 20 个 uniform 句柄（7 个子 pass），
+    // 故句柄在此一次性缓存后复用（按整数槽位索引，避免再引入字符串键哈希）。
+    /** uniform 句柄槽位索引（与 _uniform 的 slot 参数对应）。 */
+    private static let U_TEX_DIFFUSE: Int64 = 0
+    private static let U_OPACITY: Int64 = 1
+    private static let U_MASK_TEXTURE: Int64 = 2
+    private static let U_TEX_SIZE: Int64 = 3
+    private static let U_VISIBLE_EDGE_COLOR: Int64 = 4
+    private static let U_HIDDEN_EDGE_COLOR: Int64 = 5
+    private static let U_COLOR_TEXTURE: Int64 = 6
+    private static let U_DIRECTION: Int64 = 7
+    private static let U_KERNEL_RADIUS: Int64 = 8
+    private static let U_EDGE_TEXTURE1: Int64 = 9
+    private static let U_EDGE_TEXTURE2: Int64 = 10
+    private static let U_PATTERN_TEXTURE: Int64 = 11
+    private static let U_OVERLAY_PARAMS: Int64 = 12
+
+    private var _uniformHandles: ArrayList<Option<UniformHandle>> = ArrayList<Option<UniformHandle>>()
+
+    // ===== 复用的上传缓冲（逐帧新建 BgfxMemory 会走 bgfx_alloc 且永不归还 → 原生内存泄漏）=====
+    // bgfx_set_uniform / bgfx_set_view_transform / bgfx_set_transform 在调用时即把数据
+    // memcpy 进引擎内部缓冲，故同一块内存可安全跨帧复用。
+    // 注：view 与 proj 矩阵必须用两块独立缓冲（set_view_transform 一次读走两者，
+    // 共用一块会让后写覆盖先写）。
+    // vec4 uniform 走基类 Pass._uploadMem / _setVec4Uniform 的槽位复用机制。
+    private var _viewMemStore: Option<BgfxMemory> = None
+    private var _projMemStore: Option<BgfxMemory> = None
+    private var _mtxMemStore: Option<BgfxMemory> = None
+    /** 复用的脉冲颜色实例（避免逐帧新建两个 Color 堆对象）。 */
+    private let _pulseColor1: Color = Color(1.0, 1.0, 1.0)
+    private let _pulseColor2: Color = Color(0.1, 0.04, 0.02)
+
+    /**
+     * @brief[zh-cn] 取槽位 slot 对应的 uniform 句柄（首次创建后缓存，逐帧复用）
+     * @param[zh-cn] slot 槽位编号（见 U_* 常量）
+     * @param[zh-cn] name uniform 名称
+     * @param[zh-cn] uniformType uniform 类型
+     * @return[zh-cn] uniform 句柄
+     *
+     * @brief[en] Gets the uniform handle of `slot` (created once, then cached and reused)
+     * @param[en] slot Slot index (see the U_* constants)
+     * @param[en] name Uniform name
+     * @param[en] uniformType Uniform type
+     * @return[en] Uniform handle
+     */
+    private func _uniform(slot: Int64, name: String, uniformType: UInt32): UniformHandle {
+        while (this._uniformHandles.size <= slot) {
+            this._uniformHandles.add(None)
+        }
+        if (let Some(h) <- this._uniformHandles[Int64(slot)]) {
+            return h
+        }
+        let h = this._passUniforms().createUniform(name, uniformType)
+        this._uniformHandles[Int64(slot)] = Some(h)
+        return h
+    }
 
     /**
      * 构造 OutlinePass。
@@ -293,53 +346,46 @@ public class OutlinePass <: Pass {
         if (this._width <= 0 || this._height <= 0) {
             return
         }
-        match (this._renderer) {
-            case Some(renderer) =>
-                let w = UInt16(this._width)
-                let h = UInt16(this._height)
-                let dw = UInt16(this._downW)
-                let dh = UInt16(this._downH)
-                let qw = UInt16(this._quarterW)
-                let qh = UInt16(this._quarterH)
-                let colorFlags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
-                let rtFmt: UInt32 = TextureFormat.RGBA8.value()  // outline 用 RGBA8 足够
+        if (let Some(renderer) <- this._renderer) {
+            let w = UInt16(this._width)
+            let h = UInt16(this._height)
+            let dw = UInt16(this._downW)
+            let dh = UInt16(this._downH)
+            let qw = UInt16(this._quarterW)
+            let qh = UInt16(this._quarterH)
+            let colorFlags: UInt64 = BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
+            let rtFmt: UInt32 = TextureFormat.RGBA8.value()  // outline 用 RGBA8 足够
 
-                // mask RT（全分辨率，color + depth attachment）
-                // depth attachment 用于遮挡剔除：mask pass 先渲非选中物体深度（depth-only），
-                // 再渲选中物体（深度测试 LESS），被非选中物体遮挡的选中部分深度测试失败 → 不写 mask，
-                // 描边被遮挡处不显示（prepareMask 的 depthTexture 比较语义）。
-                this._maskTex = renderer.createTexture2D(w, h, false, 1u16, rtFmt, colorFlags, None)
-                this._maskDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), colorFlags, None)
-                this._maskFB = this._createFBWithDepth(renderer, this._maskTex, this._maskDepthTex)
+            // mask RT（全分辨率，color + depth attachment）
+            // depth attachment 用于遮挡剔除：mask pass 先渲非选中物体深度（depth-only），
+            // 再渲选中物体（深度测试 LESS），被非选中物体遮挡的选中部分深度测试失败 → 不写 mask，
+            // 描边被遮挡处不显示（prepareMask 的 depthTexture 比较语义）。
+            this._maskTex = renderer.createTexture2D(w, h, false, 1u16, rtFmt, colorFlags, None)
+            this._maskDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), colorFlags, None)
+            this._maskFB = this._createFBWithDepth(renderer, this._maskTex, this._maskDepthTex)
 
-                // depth RT（全分辨率，color + depth attachment）
-                this._depthTex = renderer.createTexture2D(w, h, false, 1u16, rtFmt, colorFlags, None)
-                this._depthDepthTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.D24S8.value(), colorFlags, None)
-                this._depthFB = this._createFBWithDepth(renderer, this._depthTex, this._depthDepthTex)
+            // maskDown RT（半分辨率）
+            this._maskDownTex = renderer.createTexture2D(dw, dh, false, 1u16, rtFmt, colorFlags, None)
+            this._maskDownFB = this._createFB(renderer, this._maskDownTex)
 
-                // maskDown RT（半分辨率）
-                this._maskDownTex = renderer.createTexture2D(dw, dh, false, 1u16, rtFmt, colorFlags, None)
-                this._maskDownFB = this._createFB(renderer, this._maskDownTex)
+            // blur1 RT（半分辨率）
+            this._blur1Tex = renderer.createTexture2D(dw, dh, false, 1u16, rtFmt, colorFlags, None)
+            this._blur1FB = this._createFB(renderer, this._blur1Tex)
 
-                // blur1 RT（半分辨率）
-                this._blur1Tex = renderer.createTexture2D(dw, dh, false, 1u16, rtFmt, colorFlags, None)
-                this._blur1FB = this._createFB(renderer, this._blur1Tex)
+            // blur2 RT（1/4 分辨率）
+            this._blur2Tex = renderer.createTexture2D(qw, qh, false, 1u16, rtFmt, colorFlags, None)
+            this._blur2FB = this._createFB(renderer, this._blur2Tex)
 
-                // blur2 RT（1/4 分辨率）
-                this._blur2Tex = renderer.createTexture2D(qw, qh, false, 1u16, rtFmt, colorFlags, None)
-                this._blur2FB = this._createFB(renderer, this._blur2Tex)
+            // edge1 RT（半分辨率）
+            this._edge1Tex = renderer.createTexture2D(dw, dh, false, 1u16, rtFmt, colorFlags, None)
+            this._edge1FB = this._createFB(renderer, this._edge1Tex)
 
-                // edge1 RT（半分辨率）
-                this._edge1Tex = renderer.createTexture2D(dw, dh, false, 1u16, rtFmt, colorFlags, None)
-                this._edge1FB = this._createFB(renderer, this._edge1Tex)
+            // edge2 RT（1/4 分辨率）
+            this._edge2Tex = renderer.createTexture2D(qw, qh, false, 1u16, rtFmt, colorFlags, None)
+            this._edge2FB = this._createFB(renderer, this._edge2Tex)
 
-                // edge2 RT（1/4 分辨率）
-                this._edge2Tex = renderer.createTexture2D(qw, qh, false, 1u16, rtFmt, colorFlags, None)
-                this._edge2FB = this._createFB(renderer, this._edge2Tex)
-
-                this._rtsCreated = true
-                @LogTrace(["OutlinePass", "_createRTs done: mask/depth/maskDown/blur1/blur2/edge1/edge2"])
-            case None => ()
+            this._rtsCreated = true
+            @LogTrace(["OutlinePass", "_createRTs done: mask/depth/maskDown/blur1/blur2/edge1/edge2"])
         }
     }
 
@@ -350,25 +396,20 @@ public class OutlinePass <: Pass {
         if (!this._rtsCreated) {
             return
         }
-        match (this._renderer) {
-            case Some(renderer) =>
-                renderer.destroyFrameBuffer(this._maskFB)
-                renderer.destroyTexture(this._maskTex)
-                renderer.destroyTexture(this._maskDepthTex)
-                renderer.destroyFrameBuffer(this._depthFB)
-                renderer.destroyTexture(this._depthTex)
-                renderer.destroyTexture(this._depthDepthTex)
-                renderer.destroyFrameBuffer(this._maskDownFB)
-                renderer.destroyTexture(this._maskDownTex)
-                renderer.destroyFrameBuffer(this._blur1FB)
-                renderer.destroyTexture(this._blur1Tex)
-                renderer.destroyFrameBuffer(this._blur2FB)
-                renderer.destroyTexture(this._blur2Tex)
-                renderer.destroyFrameBuffer(this._edge1FB)
-                renderer.destroyTexture(this._edge1Tex)
-                renderer.destroyFrameBuffer(this._edge2FB)
-                renderer.destroyTexture(this._edge2Tex)
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            renderer.destroyFrameBuffer(this._maskFB)
+            renderer.destroyTexture(this._maskTex)
+            renderer.destroyTexture(this._maskDepthTex)
+            renderer.destroyFrameBuffer(this._maskDownFB)
+            renderer.destroyTexture(this._maskDownTex)
+            renderer.destroyFrameBuffer(this._blur1FB)
+            renderer.destroyTexture(this._blur1Tex)
+            renderer.destroyFrameBuffer(this._blur2FB)
+            renderer.destroyTexture(this._blur2Tex)
+            renderer.destroyFrameBuffer(this._edge1FB)
+            renderer.destroyTexture(this._edge1Tex)
+            renderer.destroyFrameBuffer(this._edge2FB)
+            renderer.destroyTexture(this._edge2Tex)
         }
         this._rtsCreated = false
     }
@@ -399,101 +440,12 @@ public class OutlinePass <: Pass {
         for (i in 0..this.selectedObjects.size) {
             let obj = this.selectedObjects[i]
             obj.traverse({ o =>
-                // 经 renderer.render 走 Mesh filter；Cangjie 用 `match (o as Mesh)` 下转检查（参考 BgfxShadowPass）。
-                match (o as Mesh) {
-                    case Some(_) => this._selectionCache.add(o)
-                    case None => ()
+                // 经 renderer.render 走 Mesh filter；Cangjie 用 `if (let Some(_) <- (o as Mesh))` 下转检查（参考 BgfxShadowPass）。
+                if (let Some(_) <- (o as Mesh)) {
+                    this._selectionCache.add(o)
                 }
             })
         }
-    }
-
-    /**
-     * 切换选中物体的可见性（保存/恢复 visible）。
-     *
-     * @param bVisible true=恢复可见性（从 cache 取），false=隐藏选中（cache 存原值）
-     */
-    private func _changeVisibilityOfSelectedObjects(bVisible: Bool): Unit {
-        let cache = this._visibilityCache
-        for (mesh in this._selectionCache) {
-            if (bVisible) {
-                // 在 cache 中查找 mesh 的原可见性（ArrayList 无 .get(key)，线性查找）
-                var restored: Bool = false
-                for (i in 0..cache.size) {
-                    let entry = cache[i]
-                    if (entry[0] == mesh) {
-                        mesh.visible = entry[1]
-                        restored = true
-                        break
-                    }
-                }
-                // 未找到则不动（防御性，正常不应发生）
-            } else {
-                cache.add((mesh, mesh.visible))
-                mesh.visible = false
-            }
-        }
-    }
-
-    /**
-     * 切换非选中物体的可见性。
-     *
-     * @param bVisible true=恢复可见性（从 cache 取），false=隐藏非选中（cache 存原值）
-     */
-    private func _changeVisibilityOfNonSelectedObjects(bVisible: Bool): Unit {
-        let visibilityCache = this._visibilityCache
-        let selectionCache = this._selectionCache
-        // 工具：判断 obj 是否在 selectionCache 中（ArrayList 无 .contains，线性查找）
-        let isInSelection: (Object3D) -> Bool = { obj =>
-            for (i in 0..selectionCache.size) {
-                if (selectionCache[i] == obj) { return true }
-            }
-            return false
-        }
-        // 工具：在 visibilityCache 中查找 obj 的原可见性
-        let findInCache: (Object3D) -> Option<Bool> = { obj =>
-            for (i in 0..visibilityCache.size) {
-                let entry = visibilityCache[i]
-                if (entry[0] == obj) { return Some(entry[1]) }
-            }
-            return None
-        }
-        let cb: (Object3D) -> Unit = { obj =>
-            // Points/Line/Line2 不参与 outline 计算
-            // Cangjie 用 `match (obj as Mesh)` 下转检查（参考 BgfxShadowPass）
-            match (obj as Mesh) {
-                case Some(_) =>
-                    if (!isInSelection(obj)) {
-                        if (bVisible) {
-                            match (findInCache(obj)) {
-                                case Some(v) => obj.visible = v
-                                case None => ()
-                            }
-                        } else {
-                            visibilityCache.add((obj, obj.visible))
-                            obj.visible = false
-                        }
-                    }
-                case None => ()
-            }
-        }
-        this.renderScene.traverse(cb)
-    }
-
-    /**
-     * 更新纹理矩阵（用于 prepareMask 的 depthTexture 投影比较）。
-     *
-     * textureMatrix = 0.5*projectionMatrix * matrixWorldInverse + bias
-     * （把世界坐标投影到 depthTexture 的 UV 空间）
-     */
-    private func _updateTextureMatrix(): Unit {
-        let m = this._textureMatrix
-        m.set(0.5, 0.0, 0.0, 0.5,
-              0.0, 0.5, 0.0, 0.5,
-              0.0, 0.0, 0.5, 0.5,
-              0.0, 0.0, 0.0, 1.0)
-        m.multiply(this.renderCamera.projectionMatrix)
-        m.multiply(this.renderCamera.matrixWorldInverse)
     }
 
     /**
@@ -504,6 +456,7 @@ public class OutlinePass <: Pass {
      * @param readBuffer 读 buffer（renderToScreen=false 时写这里）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.OutlinePass.render, name=outlinePass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -525,46 +478,31 @@ public class OutlinePass <: Pass {
         // 编译所有 shader（首次）
         this._ensureShaders()
 
-        // 准备选中/可见性缓存
+        // 准备选中缓存（_isSelected 判定"选中物体"的唯一依据）
         this._updateSelectionCache()
-        this._changeVisibilityOfSelectedObjects(false)
 
-        // 保存场景状态
-        let currentBackground = this.renderScene.background
-        let currentOverrideMaterial = this.renderScene.overrideMaterial
-        this.renderScene.background = None
-
-        // ===== 1. 非选中物体 → depthMaterial → depthRT =====
-        // 隐藏选中物体，用 depthMaterial 渲染非选中物体到 depthRT
-        this.renderScene.overrideMaterial = this._getDepthMaterial()
-        this._renderSceneToDepth(renderer)
-
-        // 恢复选中物体可见性
-        this._changeVisibilityOfSelectedObjects(true)
-        this._visibilityCache.clear()
-
-        // 更新 textureMatrix
-        this._updateTextureMatrix()
-
-        // ===== 2. 选中物体 → prepareMaskMaterial → maskRT =====
-        // 隐藏非选中物体，用 prepareMaskMaterial 渲染选中物体到 maskRT
-        this._changeVisibilityOfNonSelectedObjects(false)
-        this.renderScene.overrideMaterial = this._getPrepareMaskMaterial()
+        // ===== 1. 选中物体 → maskRT =====
+        // 非选中物体先渲深度（写入 maskRT 的 depth attachment），选中物体再以
+        // DEPTH_TEST_LESS 写入颜色——被遮挡的选中片元深度测试失败 → 不写 mask。
+        //
+        // 注：可见性开关（_changeVisibilityOf*）已移除——本 pass 直接提交几何体
+        // （setVertexBufferWithLayout + submit），不经 renderer.render 的可见性过滤，
+        // 参与提交与否完全由 _isSelected 决定，开关只是徒增场景遍历与闭包分配。
         this._renderSceneToMask(renderer)
-        this._changeVisibilityOfNonSelectedObjects(true)
-        this._visibilityCache.clear()
         this._selectionCache.clear()
 
-        // 恢复场景状态
-        this.renderScene.background = currentBackground
-        this.renderScene.overrideMaterial = currentOverrideMaterial
-
-        // ===== 3. materialCopy 把 maskBuffer 降采样到 maskDownBuffer =====
+        // ===== 2. materialCopy 把 maskBuffer 降采样到 maskDownBuffer =====
         this._renderDownsample(renderer)
 
-        // 准备脉冲颜色
-        let pulseColor1 = Color(this.visibleEdgeColor.r, this.visibleEdgeColor.g, this.visibleEdgeColor.b)
-        let pulseColor2 = Color(this.hiddenEdgeColor.r, this.hiddenEdgeColor.g, this.hiddenEdgeColor.b)
+        // 准备脉冲颜色（复用 Color 实例，避免逐帧新建两个堆对象）
+        let pulseColor1 = this._pulseColor1
+        let pulseColor2 = this._pulseColor2
+        pulseColor1.r = this.visibleEdgeColor.r
+        pulseColor1.g = this.visibleEdgeColor.g
+        pulseColor1.b = this.visibleEdgeColor.b
+        pulseColor2.r = this.hiddenEdgeColor.r
+        pulseColor2.g = this.hiddenEdgeColor.g
+        pulseColor2.b = this.hiddenEdgeColor.b
         if (this.pulsePeriod > 0.0) {
             let scalar = (1.0 + 0.25) / 2.0 + cos(Float64(getCurrentMillis()) * 0.01 / this.pulsePeriod) * (1.0 - 0.25) / 2.0
             pulseColor1.multiplyScalar(scalar)
@@ -586,33 +524,14 @@ public class OutlinePass <: Pass {
         @LogTrace(["OutlinePass", "render done (7-pass chain)"])
     }
 
-    /**
-     * 取深度材质（MeshDepthMaterial，side=DoubleSide, depthPacking=RGBADepthPacking）。
-     *
-     * 简化：返回 None，depth pass 用 outline_white 几何 shader 直接 submit（参照 SSAO）。
-     */
-    private func _getDepthMaterial(): Option<Material> {
-        return None
-    }
-
-    /**
-     * 取 prepareMask 材质。
-     *
-     * 简化：返回 None，mask pass 用 outline_white 几何 shader 直接 submit（参照 SSAO）。
-     */
-    private func _getPrepareMaskMaterial(): Option<Material> {
-        return None
-    }
-
     // ===== 几何 submit 工具（参照 SSAO._createVB/_createIB/_getOrCreateLayout/_setViewTransformFor） =====
 
     /**
      * 取共享顶点 layout handle（缓存复用）。
      */
     private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
-        match (this._layoutHandleCache) {
-            case Some(lh) => return lh
-            case None => ()
+        if (let Some(lh) <- this._layoutHandleCache) {
+            return lh
         }
         // 经 renderer.createVertexLayout(attrs) 高阶 API 创建布局句柄（封装 begin/add/end/create 序列）。
         // _createVB 经 renderer.createVertexBufferFromLayout(handle) 创建顶点缓冲
@@ -660,81 +579,70 @@ public class OutlinePass <: Pass {
      * 创建/复用 geometry 的顶点缓冲（按 geomId 缓存）。
      */
     private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._vbCache.get(geomId)) {
-            case Some(vb) => return vb
-            case None => ()
+        let geomId = geom.id
+        if (let Some(vb) <- this._vbCache.get(geomId)) {
+            return vb
         }
         let posAttrOpt = geom.getAttribute("position")
-        match (posAttrOpt) {
-            case Some(pos) =>
-                let vc = pos.count
-                if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
-                let vertStride: Int64 = 12   // position(3) + normal(3) + color(4) + uv(2)
-                let totalFloats = vc * vertStride
-                let data = Array<Float64>(totalFloats, { i => 0.0 })
-                let normAttrOpt = geom.getAttribute("normal")
-                let colAttrOpt = geom.getAttribute("color")
-                let uvAttrOpt = geom.getAttribute("uv")
-                for (vi in 0..vc) {
-                    let base = vi * vertStride
-                    data[base] = pos.getX(vi)
-                    data[base + 1] = pos.getY(vi)
-                    data[base + 2] = pos.getZ(vi)
-                    match (normAttrOpt) {
-                        case Some(na) =>
-                            data[base + 3] = na.getX(vi)
-                            data[base + 4] = na.getY(vi)
-                            data[base + 5] = na.getZ(vi)
-                        case None => data[base + 5] = 1.0
-                    }
-                    match (colAttrOpt) {
-                        case Some(ca) =>
-                            data[base + 6] = ca.getX(vi)
-                            data[base + 7] = ca.getY(vi)
-                            data[base + 8] = ca.getZ(vi)
-                            data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
-                        case None =>
-                            for (j in 0..4) { data[base + 6 + j] = 1.0 }
-                    }
-                    match (uvAttrOpt) {
-                        case Some(ua) =>
-                            data[base + 10] = ua.getX(vi)
-                            data[base + 11] = ua.getY(vi)
-                        case None => ()
-                    }
+        if (let Some(pos) <- posAttrOpt) {
+            let vc = pos.count
+            if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
+            let vertStride: Int64 = 12   // position(3) + normal(3) + color(4) + uv(2)
+            let totalFloats = vc * vertStride
+            let data = Array<Float64>(totalFloats, { i => 0.0 })
+            let normAttrOpt = geom.getAttribute("normal")
+            let colAttrOpt = geom.getAttribute("color")
+            let uvAttrOpt = geom.getAttribute("uv")
+            for (vi in 0..vc) {
+                let base = vi * vertStride
+                data[base] = pos.getX(vi)
+                data[base + 1] = pos.getY(vi)
+                data[base + 2] = pos.getZ(vi)
+                if (let Some(na) <- normAttrOpt) {
+                    data[base + 3] = na.getX(vi)
+                    data[base + 4] = na.getY(vi)
+                    data[base + 5] = na.getZ(vi)
+                } else { data[base + 5] = 1.0 }
+                if (let Some(ca) <- colAttrOpt) {
+                    data[base + 6] = ca.getX(vi)
+                    data[base + 7] = ca.getY(vi)
+                    data[base + 8] = ca.getZ(vi)
+                    data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
+                } else {
+                    for (j in 0..4) { data[base + 6 + j] = 1.0 }
                 }
-                let mem = BgfxMemory(UInt32(totalFloats * 4))
-                mem.writeFloats(data, totalFloats)
-                let layout = this._getOrCreateLayout(renderer)
-                let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
-                this._vbCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_VERTEX_BUFFER_HANDLE
-        }
+                if (let Some(ua) <- uvAttrOpt) {
+                    data[base + 10] = ua.getX(vi)
+                    data[base + 11] = ua.getY(vi)
+                }
+            }
+            let mem = BgfxMemory(UInt32(totalFloats * 4))
+            mem.writeFloats(data, totalFloats)
+            let layout = this._getOrCreateLayout(renderer)
+            let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
+            this._vbCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_VERTEX_BUFFER_HANDLE }
     }
 
     /**
      * 创建/复用 geometry 的索引缓冲（按 geomId 缓存）。
      */
     private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._ibCache.get(geomId)) {
-            case Some(ib) => return ib
-            case None => ()
+        let geomId = geom.id
+        if (let Some(ib) <- this._ibCache.get(geomId)) {
+            return ib
         }
-        match (geom.index) {
-            case Some(idxAttr) =>
-                let count = idxAttr.count
-                if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
-                let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
-                let mem = BgfxMemory(UInt32(count * 2))
-                mem.writeUInt16(idxData, count)
-                let handle = renderer.createIndexBuffer(mem, flags: 0u16)
-                this._ibCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_INDEX_BUFFER_HANDLE
-        }
+        if (let Some(idxAttr) <- geom.index) {
+            let count = idxAttr.count
+            if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
+            let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
+            let mem = BgfxMemory(UInt32(count * 2))
+            mem.writeUInt16(idxData, count)
+            let handle = renderer.createIndexBuffer(mem, flags: 0u16)
+            this._ibCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_INDEX_BUFFER_HANDLE }
     }
 
     /**
@@ -745,30 +653,24 @@ public class OutlinePass <: Pass {
     private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.elements
         let projArr = camera.projectionMatrix.elements
-        let viewMem = BgfxMemory(64u32)
-        let projMem = BgfxMemory(64u32)
+        // 复用缓冲：view 与 proj 各一块（set_view_transform 一次读走两者，不能共用）
+        let viewMem = if (let Some(m) <- this._viewMemStore) {
+            m
+        } else {
+            let m = BgfxMemory(64u32)
+            this._viewMemStore = Some(m)
+            m
+        }
+        let projMem = if (let Some(m) <- this._projMemStore) {
+            m
+        } else {
+            let m = BgfxMemory(64u32)
+            this._projMemStore = Some(m)
+            m
+        }
         viewMem.writeFloats(viewArr, 16)
         projMem.writeFloats(projArr, 16)
         renderer.setViewTransform(viewId, viewMem, projMem)
-    }
-
-    /**
-     * 递归收集场景中的 Mesh（参照 SSAO._collectMeshes）。
-     */
-    private func _collectMeshes(obj: Object3D, renderObjects: ArrayList<RenderObject>): Unit {
-        for (child in obj.children) {
-            if (child.children.size > 0) {
-                this._collectMeshes(child, renderObjects)
-            }
-            if (child.kind == "Mesh") {
-                match (child as Mesh) {
-                    case Some(mesh) =>
-                        let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
-                        renderObjects.add(ro)
-                    case None => ()
-                }
-            }
-        }
     }
 
     /**
@@ -782,74 +684,13 @@ public class OutlinePass <: Pass {
     }
 
     /**
-     * 渲染场景到 depthRT（非选中物体 → 白色 mask，view 独立）。
+     * 渲染场景到 maskRT（选中物体 → 白色 mask，view 独立）。
      *
      * bgfx 差异：不走 renderer.render（其 _collectRenderObjects 不检查 visible，
      * 且 finishRender 触发 bgfx_frame 破坏 composer 帧序），
      * 改为遍历场景直接 submit（参照 SSAO._renderDepth 模式）。
-     * 用独立 view id（OUTLINE_VIEW_ID_BASE+1），不碰 view 0。
-     */
-    private func _renderSceneToDepth(renderer: ThreeRenderer): Unit {
-        let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 1u16)
-        let w = UInt16(renderer.width)
-        let h = UInt16(renderer.height)
-        // outline_white shader 编译（首次）
-        match (this._whiteProg) {
-            case None =>
-                match (PostProcessingShaders.get("outline_white")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._whiteProg = Some(Box(sp.programHandle))
-                    case None => @LogTrace(["OutlinePass", "outline_white shader NOT REGISTERED"]); return
-                }
-            case Some(_) => ()
-        }
-        match (this._whiteProg) {
-            case Some(progRaw) =>
-                if (!Handle.isValid(progRaw)) { return }
-                let prog = progRaw
-                // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear / 变换
-                this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
-                this.setRenderTarget(renderer, viewId, this._depthFB)
-                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00000000u32)
-                this._setViewTransformFor(renderer, viewId, this.renderCamera)
-                // 几何提交 API 走 renderer 高阶 API（setTransform / setVertexBufferWithLayout /
-                // setIndexBuffer / setState / submit），各自内部 execBgfx 序列化到渲染线程
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(this.renderScene, renderObjects)
-                let layout = this._getOrCreateLayout(renderer)
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    // depth pass 只渲非选中物体
-                    if (this._isSelected(ro.mesh)) { continue }
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.elements
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(renderer, ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    let state: UInt64 = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                        BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                        BgfxConstants.FRONT_CCW
-                    renderer.setState(state, rgba: 0x00000000u32)
-                    renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
-                }
-                @LogTrace(["OutlinePass", "_renderSceneToDepth submitCnt=" + submitCnt.toString()])
-            case None => ()
-        }
-        @LogTrace(["OutlinePass", "_renderSceneToDepth done"])
-    }
-
-    /**
-     * 渲染场景到 maskRT（选中物体 → 白色 mask，view 独立）。
+     * 用独立 view id（OUTLINE_VIEW_ID_BASE+2），不碰 view 0。
      *
-     * bgfx 差异：同 _renderSceneToDepth，遍历场景直接 submit。
      * 遮挡剔除（prepareMask 的 depthTexture 比较语义）：
      *   - 第一步：渲非选中物体到 maskFB 的 depth attachment（state 只写 Z，不写 RGB/A），
      *     建立"遮挡深度"（选中物体被非选中物体挡住的部分应隐藏描边）。
@@ -861,78 +702,80 @@ public class OutlinePass <: Pass {
         let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 2u16)
         let w = UInt16(renderer.width)
         let h = UInt16(renderer.height)
-        match (this._whiteProg) {
-            case None =>
-                match (PostProcessingShaders.get("outline_white")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._whiteProg = Some(Box(sp.programHandle))
-                    case None => @LogTrace(["OutlinePass", "outline_white shader NOT REGISTERED"]); return
-                }
-            case Some(_) => ()
+        if (let None <- this._whiteProg) {
+            if (let Some(sp) <- PostProcessingShaders.get("outline_white")) {
+                sp.compileBgfx()
+                this._whiteProg = Some(Box(sp.programHandle))
+            } else {
+                @LogTrace(["OutlinePass", "outline_white shader NOT REGISTERED"])
+                return
+            }
         }
-        match (this._whiteProg) {
-            case Some(progRaw) =>
-                if (!Handle.isValid(progRaw)) { return }
-                let prog = progRaw
-                // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear / 变换
-                this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
-                this.setRenderTarget(renderer, viewId, this._maskFB)
-                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00000000u32)
-                this._setViewTransformFor(renderer, viewId, this.renderCamera)
-                // 几何提交 API 走 renderer 高阶 API（对齐 SSAOPass._renderNormals）
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(this.renderScene, renderObjects)
-                let layout = this._getOrCreateLayout(renderer)
+        if (let Some(progRaw) <- this._whiteProg) {
+            if (!Handle.isValid(progRaw)) { return }
+            let prog = progRaw
+            // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear / 变换
+            this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
+            this.setRenderTarget(renderer, viewId, this._maskFB)
+            this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00000000u32)
+            this._setViewTransformFor(renderer, viewId, this.renderCamera)
+            // 几何提交 API 走 renderer 高阶 API（对齐 SSAOPass._renderNormals）
+            let renderObjects = renderer.getSceneMeshes(this.renderScene)
+            let layout = this._getOrCreateLayout(renderer)
+            // 复用的 bgfx 变换内存（setTransform 经 execBgfx 同步消费，可安全复用）
+            let mtxMem = if (let Some(m) <- this._mtxMemStore) {
+                m
+            } else {
+                let m = BgfxMemory(64u32)
+                this._mtxMemStore = Some(m)
+                m
+            }
 
-                // ===== 第一步：渲非选中物体到 depth attachment（只写 Z，遮挡剔除） =====
-                // state 不设 WRITE_RGB/WRITE_A：bgfx 不写颜色，仅深度写入
-                let depthOnlyState: UInt64 = BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                             BgfxConstants.FRONT_CCW
-                var depthSubmitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    if (this._isSelected(ro.mesh)) { continue }
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.elements
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(renderer, ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    renderer.setState(depthOnlyState, rgba: 0x00000000u32)
-                    renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
-                    depthSubmitCnt += 1
+            // ===== 第一步：渲非选中物体到 depth attachment（只写 Z，遮挡剔除） =====
+            // state 不设 WRITE_RGB/WRITE_A：bgfx 不写颜色，仅深度写入
+            let depthOnlyState: UInt64 = BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                         BgfxConstants.FRONT_CCW
+            var depthSubmitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                if (this._isSelected(ro.mesh)) { continue }
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                let mtxArr = ro.worldMatrix.elements
+                mtxMem.writeFloats(mtxArr, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(renderer, ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
+                renderer.setState(depthOnlyState, rgba: 0x00000000u32)
+                renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
+                depthSubmitCnt += 1
+            }
 
-                // ===== 第二步：渲选中物体到 color（白色 mask + 深度测试 LESS） =====
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    if (!this._isSelected(ro.mesh)) { continue }
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.elements
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(renderer, ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    // 深度测试 LESS：被非选中物体（第一步已写深度）遮挡的选中片元测试失败 → mask 不写
-                    let state: UInt64 = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                        BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                        BgfxConstants.FRONT_CCW
-                    renderer.setState(state, rgba: 0x00000000u32)
-                    renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
+            // ===== 第二步：渲选中物体到 color（白色 mask + 深度测试 LESS） =====
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                if (!this._isSelected(ro.mesh)) { continue }
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                let mtxArr = ro.worldMatrix.elements
+                mtxMem.writeFloats(mtxArr, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(renderer, ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
-                @LogTrace(["OutlinePass", "_renderSceneToMask depthSubmitCnt=" + depthSubmitCnt.toString() + " maskSubmitCnt=" + submitCnt.toString()])
-            case None => ()
+                // 深度测试 LESS：被非选中物体（第一步已写深度）遮挡的选中片元测试失败 → mask 不写
+                let state: UInt64 = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                    BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                    BgfxConstants.FRONT_CCW
+                renderer.setState(state, rgba: 0x00000000u32)
+                renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
+                submitCnt += 1
+            }
+            @LogTrace(["OutlinePass", "_renderSceneToMask depthSubmitCnt=" + depthSubmitCnt.toString() + " maskSubmitCnt=" + submitCnt.toString()])
         }
         @LogTrace(["OutlinePass", "_renderSceneToMask done"])
     }
@@ -943,31 +786,29 @@ public class OutlinePass <: Pass {
      * 用 outline_copy shader（copy + 不透明）做全屏四边形降采样。
      */
     private func _renderDownsample(renderer: ThreeRenderer): Unit {
-        match (PostProcessingShaders.get("outline_copy")) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    sp.compileBgfx()
-                }
-                let progRaw = Box(sp.programHandle)
-                if (!Handle.isValid(progRaw)) { @LogTrace(["OutlinePass", "outline_copy prog compile failed"]); return }
-                let prog = progRaw
-                let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 7u16)
-                let dw = UInt16(this._downW)
-                let dh = UInt16(this._downH)
-                // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
-                this.setViewport(renderer, viewId, 0u16, 0u16, dw, dh)
-                this.setRenderTarget(renderer, viewId, this._maskDownFB)
-                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
-                // bindTexture / setUniform 高阶 API（各自走 execBgfx）
-                let uniforms = BgfxUniforms()
-                let uTex = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uTex, this._maskTex, 0u32)
-                let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                let opMem = BgfxMemory(16u32)
-                opMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uOpacity, opMem)
-                this.submitQuad(viewId, prog)
-            case None => @LogTrace(["OutlinePass", "outline_copy shader NOT REGISTERED"])
+        // 程序句柄缓存：原实现每帧重新查 PostProcessingShaders + Box 包装，
+        // 改为首次解析后缓存句柄。
+        if (let None <- this._copyProg) {
+            this._ensureShaders()
+        }
+        if (let Some(progRaw) <- this._copyProg) {
+            if (!Handle.isValid(progRaw)) { return }
+            let prog = progRaw
+            let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 7u16)
+            let dw = UInt16(this._downW)
+            let dh = UInt16(this._downH)
+            // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
+            this.setViewport(renderer, viewId, 0u16, 0u16, dw, dh)
+            this.setRenderTarget(renderer, viewId, this._maskDownFB)
+            this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
+            // bindTexture / setUniform 高阶 API（各自走 execBgfx）
+            let uTex = this._uniform(OutlinePass.U_TEX_DIFFUSE, "tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uTex, this._maskTex, 0u32)
+            let uOpacity = this._uniform(OutlinePass.U_OPACITY, "u_opacity", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uOpacity, 0, 1.0, 0.0, 0.0, 0.0)
+            this.submitQuad(viewId, prog)
+        } else {
+            @LogTrace(["OutlinePass", "outline_copy shader NOT REGISTERED"])
         }
     }
 
@@ -975,41 +816,39 @@ public class OutlinePass <: Pass {
      * 边缘检测：edgeDetectionMaterial 对 maskDownBuffer 做边缘检测 → edge1Buffer。
      */
     private func _renderEdgeDetection(renderer: ThreeRenderer, pulseColor1: Color, pulseColor2: Color): Unit {
-        match (this._edgeDetectionProg) {
-            case Some(_) => ()
-            case None => this._ensureShaders()
+        if (let None <- this._edgeDetectionProg) {
+            this._ensureShaders()
         }
-        match (this._edgeDetectionProg) {
-            case Some(progRaw) =>
-                if (!Handle.isValid(progRaw)) { return }
-                let prog = progRaw
-                let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 8u16)
-                let dw = UInt16(this._downW)
-                let dh = UInt16(this._downH)
-                let pc1 = pulseColor1
-                let pc2 = pulseColor2
-                // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
-                this.setViewport(renderer, viewId, 0u16, 0u16, dw, dh)
-                this.setRenderTarget(renderer, viewId, this._edge1FB)
-                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
-                // bindTexture / setUniform 高阶 API（各自走 execBgfx）
-                let uniforms = BgfxUniforms()
-                let uMask = uniforms.createUniform("maskTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uMask, this._maskDownTex, 0u32)
-                let uTexSize = uniforms.createUniform("texSize", UniformType.Vec4.value())
-                let tsMem = BgfxMemory(16u32)
-                tsMem.writeFloats([Float64(this._downW), Float64(this._downH), 0.0, 0.0], 4)
-                this.setUniform(renderer, uTexSize, tsMem)
-                let uVis = uniforms.createUniform("visibleEdgeColor", UniformType.Vec4.value())
-                let visMem = BgfxMemory(16u32)
-                visMem.writeFloats([pc1.r, pc1.g, pc1.b, 1.0], 4)
-                this.setUniform(renderer, uVis, visMem)
-                let uHid = uniforms.createUniform("hiddenEdgeColor", UniformType.Vec4.value())
-                let hidMem = BgfxMemory(16u32)
-                hidMem.writeFloats([pc2.r, pc2.g, pc2.b, 1.0], 4)
-                this.setUniform(renderer, uHid, hidMem)
-                this.submitQuad(viewId, prog)
-            case None => ()
+        if (let Some(progRaw) <- this._edgeDetectionProg) {
+            if (!Handle.isValid(progRaw)) { return }
+            let prog = progRaw
+            let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 8u16)
+            let dw = UInt16(this._downW)
+            let dh = UInt16(this._downH)
+            let pc1 = pulseColor1
+            let pc2 = pulseColor2
+            // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
+            this.setViewport(renderer, viewId, 0u16, 0u16, dw, dh)
+            this.setRenderTarget(renderer, viewId, this._edge1FB)
+            this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
+            // bindTexture / setUniform 高阶 API（各自走 execBgfx）
+            let uMask = this._uniform(OutlinePass.U_MASK_TEXTURE, "maskTexture", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uMask, this._maskDownTex, 0u32)
+            let uTexSize = this._uniform(OutlinePass.U_TEX_SIZE, "texSize", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uTexSize, 1, Float64(this._downW), Float64(this._downH), 0.0, 0.0)
+            let uVis = this._uniform(
+                OutlinePass.U_VISIBLE_EDGE_COLOR,
+                "visibleEdgeColor",
+                UniformType.Vec4.value()
+            )
+            this._setVec4Uniform(renderer, uVis, 2, pc1.r, pc1.g, pc1.b, 1.0)
+            let uHid = this._uniform(
+                OutlinePass.U_HIDDEN_EDGE_COLOR,
+                "hiddenEdgeColor",
+                UniformType.Vec4.value()
+            )
+            this._setVec4Uniform(renderer, uHid, 3, pc2.r, pc2.g, pc2.b, 1.0)
+            this.submitQuad(viewId, prog)
         }
     }
 
@@ -1021,57 +860,56 @@ public class OutlinePass <: Pass {
      *   V：blur1 → edge1（direction=Y）
      */
     private func _renderBlur1(renderer: ThreeRenderer): Unit {
-        match (this._separableBlurProg) {
-            case Some(_) => ()
-            case None => this._ensureShaders()
+        if (let None <- this._separableBlurProg) {
+            this._ensureShaders()
         }
-        match (this._separableBlurProg) {
-            case Some(progRaw) =>
-                if (!Handle.isValid(progRaw)) { return }
-                let prog = progRaw
-                let baseView = OutlinePass.OUTLINE_VIEW_ID_BASE
-                let dw = UInt16(this._downW)
-                let dh = UInt16(this._downH)
-                let et = this.edgeThickness
+        if (let Some(progRaw) <- this._separableBlurProg) {
+            if (!Handle.isValid(progRaw)) { return }
+            let prog = progRaw
+            let baseView = OutlinePass.OUTLINE_VIEW_ID_BASE
+            let dw = UInt16(this._downW)
+            let dh = UInt16(this._downH)
+            let et = this.edgeThickness
 
-                // H：edge1 → blur1
-                let viewH = UInt16(UInt16(baseView) + 9u16)
-                // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
-                this.setViewport(renderer, viewH, 0u16, 0u16, dw, dh)
-                this.setRenderTarget(renderer, viewH, this._blur1FB)
-                this.clearRenderTarget(renderer, viewH, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
-                // bindTexture / setUniform 高阶 API（各自走 execBgfx）
-                let uniforms = BgfxUniforms()
-                let uColor = uniforms.createUniform("colorTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uColor, this._edge1Tex, 0u32)
-                let uTexSize = uniforms.createUniform("texSize", UniformType.Vec4.value())
-                let tsMem = BgfxMemory(16u32)
-                tsMem.writeFloats([Float64(this._downW), Float64(this._downH), 0.0, 0.0], 4)
-                this.setUniform(renderer, uTexSize, tsMem)
-                let uDir = uniforms.createUniform("direction", UniformType.Vec4.value())
-                let dirMem = BgfxMemory(16u32)
-                dirMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)  // X
-                this.setUniform(renderer, uDir, dirMem)
-                let uKernel = uniforms.createUniform("kernelRadius", UniformType.Vec4.value())
-                let krMem = BgfxMemory(16u32)
-                krMem.writeFloats([et, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uKernel, krMem)
-                this.submitQuad(viewH, prog)
+            // H：edge1 → blur1
+            let viewH = UInt16(UInt16(baseView) + 9u16)
+            // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
+            this.setViewport(renderer, viewH, 0u16, 0u16, dw, dh)
+            this.setRenderTarget(renderer, viewH, this._blur1FB)
+            this.clearRenderTarget(renderer, viewH, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
+            // bindTexture / setUniform 高阶 API（各自走 execBgfx）
+            let uColor = this._uniform(
+                OutlinePass.U_COLOR_TEXTURE,
+                "colorTexture",
+                UniformType.Sampler.value()
+            )
+            this.bindTexture(renderer, 0u8, uColor, this._edge1Tex, 0u32)
+            let uTexSize = this._uniform(OutlinePass.U_TEX_SIZE, "texSize", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uTexSize, 4, Float64(this._downW), Float64(this._downH), 0.0, 0.0)
+            let uDir = this._uniform(OutlinePass.U_DIRECTION, "direction", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uDir, 5, 1.0, 0.0, 0.0, 0.0)  // X
+            let uKernel = this._uniform(
+                OutlinePass.U_KERNEL_RADIUS,
+                "kernelRadius",
+                UniformType.Vec4.value()
+            )
+            this._setVec4Uniform(renderer, uKernel, 6, et, 0.0, 0.0, 0.0)
+            this.submitQuad(viewH, prog)
 
-                // V：blur1 → edge1
-                let viewV = UInt16(UInt16(baseView) + 10u16)
-                this.setViewport(renderer, viewV, 0u16, 0u16, dw, dh)
-                this.setRenderTarget(renderer, viewV, this._edge1FB)
-                this.clearRenderTarget(renderer, viewV, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
-                let uniforms2 = BgfxUniforms()
-                let uColor2 = uniforms2.createUniform("colorTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uColor2, this._blur1Tex, 0u32)
-                let uDir2 = uniforms2.createUniform("direction", UniformType.Vec4.value())
-                let dirMem2 = BgfxMemory(16u32)
-                dirMem2.writeFloats([0.0, 1.0, 0.0, 0.0], 4)  // Y
-                this.setUniform(renderer, uDir2, dirMem2)
-                this.submitQuad(viewV, prog)
-            case None => ()
+            // V：blur1 → edge1
+            let viewV = UInt16(UInt16(baseView) + 10u16)
+            this.setViewport(renderer, viewV, 0u16, 0u16, dw, dh)
+            this.setRenderTarget(renderer, viewV, this._edge1FB)
+            this.clearRenderTarget(renderer, viewV, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
+            let uColor2 = this._uniform(
+                OutlinePass.U_COLOR_TEXTURE,
+                "colorTexture",
+                UniformType.Sampler.value()
+            )
+            this.bindTexture(renderer, 0u8, uColor2, this._blur1Tex, 0u32)
+            let uDir2 = this._uniform(OutlinePass.U_DIRECTION, "direction", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uDir2, 7, 0.0, 1.0, 0.0, 0.0)  // Y
+            this.submitQuad(viewV, prog)
         }
     }
 
@@ -1079,50 +917,49 @@ public class OutlinePass <: Pass {
      * 模糊2：separableBlurMaterial2 (1/4 分辨率) H/V 模糊 → edge2Buffer。
      */
     private func _renderBlur2(renderer: ThreeRenderer): Unit {
-        match (this._separableBlurProg) {
-            case Some(_) => ()
-            case None => this._ensureShaders()
+        if (let None <- this._separableBlurProg) {
+            this._ensureShaders()
         }
-        match (this._separableBlurProg) {
-            case Some(progRaw) =>
-                if (!Handle.isValid(progRaw)) { return }
-                let prog = progRaw
-                let baseView = OutlinePass.OUTLINE_VIEW_ID_BASE
-                let qw = UInt16(this._quarterW)
-                let qh = UInt16(this._quarterH)
+        if (let Some(progRaw) <- this._separableBlurProg) {
+            if (!Handle.isValid(progRaw)) { return }
+            let prog = progRaw
+            let baseView = OutlinePass.OUTLINE_VIEW_ID_BASE
+            let qw = UInt16(this._quarterW)
+            let qh = UInt16(this._quarterH)
 
-                // H：edge1 → edge2（1/4 分辨率）
-                let viewH = UInt16(UInt16(baseView) + 11u16)
-                // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
-                this.setViewport(renderer, viewH, 0u16, 0u16, qw, qh)
-                this.setRenderTarget(renderer, viewH, this._edge2FB)
-                this.clearRenderTarget(renderer, viewH, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
-                // bindTexture / setUniform 高阶 API（各自走 execBgfx）
-                let uniforms = BgfxUniforms()
-                let uColor = uniforms.createUniform("colorTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uColor, this._edge1Tex, 0u32)
-                let uDir = uniforms.createUniform("direction", UniformType.Vec4.value())
-                let dirMem = BgfxMemory(16u32)
-                dirMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)  // X
-                this.setUniform(renderer, uDir, dirMem)
-                this.submitQuad(viewH, prog)
+            // H：edge1 → edge2（1/4 分辨率）
+            let viewH = UInt16(UInt16(baseView) + 11u16)
+            // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
+            this.setViewport(renderer, viewH, 0u16, 0u16, qw, qh)
+            this.setRenderTarget(renderer, viewH, this._edge2FB)
+            this.clearRenderTarget(renderer, viewH, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
+            // bindTexture / setUniform 高阶 API（各自走 execBgfx）
+            let uColor = this._uniform(
+                OutlinePass.U_COLOR_TEXTURE,
+                "colorTexture",
+                UniformType.Sampler.value()
+            )
+            this.bindTexture(renderer, 0u8, uColor, this._edge1Tex, 0u32)
+            let uDir = this._uniform(OutlinePass.U_DIRECTION, "direction", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uDir, 8, 1.0, 0.0, 0.0, 0.0)  // X
+            this.submitQuad(viewH, prog)
 
-                // V：edge2 → edge2（同 buffer，1/4 分辨率）
-                // 注意：bgfx view 同 frame buffer 可二次 submit，但 view clear 仅首次生效
-                // 这里用单独 view id（+13）避免 H view 的 clear 残留
-                let viewV = UInt16(UInt16(baseView) + 13u16)
-                this.setViewport(renderer, viewV, 0u16, 0u16, qw, qh)
-                this.setRenderTarget(renderer, viewV, this._edge2FB)
-                this.clearRenderTarget(renderer, viewV, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
-                let uniforms2 = BgfxUniforms()
-                let uColor2 = uniforms2.createUniform("colorTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uColor2, this._edge2Tex, 0u32)
-                let uDir2 = uniforms2.createUniform("direction", UniformType.Vec4.value())
-                let dirMem2 = BgfxMemory(16u32)
-                dirMem2.writeFloats([0.0, 1.0, 0.0, 0.0], 4)  // Y
-                this.setUniform(renderer, uDir2, dirMem2)
-                this.submitQuad(viewV, prog)
-            case None => ()
+            // V：edge2 → edge2（同 buffer，1/4 分辨率）
+            // 注意：bgfx view 同 frame buffer 可二次 submit，但 view clear 仅首次生效
+            // 这里用单独 view id（+13）避免 H view 的 clear 残留
+            let viewV = UInt16(UInt16(baseView) + 13u16)
+            this.setViewport(renderer, viewV, 0u16, 0u16, qw, qh)
+            this.setRenderTarget(renderer, viewV, this._edge2FB)
+            this.clearRenderTarget(renderer, viewV, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
+            let uColor2 = this._uniform(
+                OutlinePass.U_COLOR_TEXTURE,
+                "colorTexture",
+                UniformType.Sampler.value()
+            )
+            this.bindTexture(renderer, 0u8, uColor2, this._edge2Tex, 0u32)
+            let uDir2 = this._uniform(OutlinePass.U_DIRECTION, "direction", UniformType.Vec4.value())
+            this._setVec4Uniform(renderer, uDir2, 9, 0.0, 1.0, 0.0, 0.0)  // Y
+            this.submitQuad(viewV, prog)
         }
     }
 
@@ -1134,54 +971,64 @@ public class OutlinePass <: Pass {
      * 输出到 writeBuffer（renderToScreen=true 时输出屏幕），对齐 SSAO apply 成熟模式。
      */
     private func _renderOverlay(renderer: ThreeRenderer, writeBuffer: FrameBufferHandle, readBuffer: FrameBufferHandle): Unit {
-        match (this._overlayProg) {
-            case Some(_) => ()
-            case None => this._ensureShaders()
+        if (let None <- this._overlayProg) {
+            this._ensureShaders()
         }
-        match (this._overlayProg) {
-            case Some(progRaw) =>
-                if (!Handle.isValid(progRaw)) { return }
-                let prog = progRaw
-                let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 12u16)
-                let w = UInt16(renderer.width)
-                let h = UInt16(renderer.height)
-                let rt = this.renderToScreen
-                // 输出目标：renderToScreen（最后一个 enabled pass）→ 屏幕；否则 → writeBuffer
-                // （bgfx 差异：overlay 需从 readBuffer 采样场景合成，故目标不能是 readBuffer，
-                //   对照 SSAO apply 输出 writeBuffer + needsSwap=true 的成熟模式）
-                // 场景纹理 = readBuffer 的 color attachment 0（composer 的 RT）
-                let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
-                let es = this.edgeStrength
-                let eg = this.edgeGlow
-                let upt = if (this.usePatternTexture) { 1.0 } else { 0.0 }
-                // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
-                this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
-                if (rt) {
-                    this.setRenderTarget(renderer, viewId, INVALID_FRAME_BUFFER_HANDLE)
-                } else {
-                    this.setRenderTarget(renderer, viewId, writeBuffer)
-                }
-                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
-                // bindTexture / setUniform 高阶 API（各自走 execBgfx）
-                let uniforms = BgfxUniforms()
-                // stage 0=tDiffuse(场景), 1=maskTexture, 2=edgeTexture1, 3=edgeTexture2, 4=patternTexture
-                let uScene = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
-                let uMask = uniforms.createUniform("maskTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uMask, this._maskTex, 0u32)
-                let uEdge1 = uniforms.createUniform("edgeTexture1", UniformType.Sampler.value())
-                this.bindTexture(renderer, 2u8, uEdge1, this._edge1Tex, 0u32)
-                let uEdge2 = uniforms.createUniform("edgeTexture2", UniformType.Sampler.value())
-                this.bindTexture(renderer, 3u8, uEdge2, this._edge2Tex, 0u32)
-                // patternTexture 占位：用 maskTex（不实际使用 pattern）
-                let uPattern = uniforms.createUniform("patternTexture", UniformType.Sampler.value())
-                this.bindTexture(renderer, 4u8, uPattern, this._maskTex, 0u32)
-                let uParams = uniforms.createUniform("u_overlayParams", UniformType.Vec4.value())
-                let pMem = BgfxMemory(16u32)
-                pMem.writeFloats([es, eg, upt, 0.0], 4)
-                this.setUniform(renderer, uParams, pMem)
-                this.submitQuad(viewId, prog)
-            case None => ()
+        if (let Some(progRaw) <- this._overlayProg) {
+            if (!Handle.isValid(progRaw)) { return }
+            let prog = progRaw
+            let viewId = UInt16(UInt16(OutlinePass.OUTLINE_VIEW_ID_BASE) + 12u16)
+            let w = UInt16(renderer.width)
+            let h = UInt16(renderer.height)
+            let rt = this.renderToScreen
+            // 输出目标：renderToScreen（最后一个 enabled pass）→ 屏幕；否则 → writeBuffer
+            // （bgfx 差异：overlay 需从 readBuffer 采样场景合成，故目标不能是 readBuffer，
+            //   对照 SSAO apply 输出 writeBuffer + needsSwap=true 的成熟模式）
+            // 场景纹理 = readBuffer 的 color attachment 0（composer 的 RT）
+            let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
+            let es = this.edgeStrength
+            let eg = this.edgeGlow
+            let upt = if (this.usePatternTexture) { 1.0 } else { 0.0 }
+            // 高阶 API（各自走 execBgfx）设置 view 矩形 / 渲染目标 / clear
+            this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
+            if (rt) {
+                this.setRenderTarget(renderer, viewId, INVALID_FRAME_BUFFER_HANDLE)
+            } else {
+                this.setRenderTarget(renderer, viewId, writeBuffer)
+            }
+            this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32)
+            // bindTexture / setUniform 高阶 API（各自走 execBgfx）
+            // stage 0=tDiffuse(场景), 1=maskTexture, 2=edgeTexture1, 3=edgeTexture2, 4=patternTexture
+            let uScene = this._uniform(OutlinePass.U_TEX_DIFFUSE, "tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
+            let uMask = this._uniform(OutlinePass.U_MASK_TEXTURE, "maskTexture", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uMask, this._maskTex, 0u32)
+            let uEdge1 = this._uniform(
+                OutlinePass.U_EDGE_TEXTURE1,
+                "edgeTexture1",
+                UniformType.Sampler.value()
+            )
+            this.bindTexture(renderer, 2u8, uEdge1, this._edge1Tex, 0u32)
+            let uEdge2 = this._uniform(
+                OutlinePass.U_EDGE_TEXTURE2,
+                "edgeTexture2",
+                UniformType.Sampler.value()
+            )
+            this.bindTexture(renderer, 3u8, uEdge2, this._edge2Tex, 0u32)
+            // patternTexture 占位：用 maskTex（不实际使用 pattern）
+            let uPattern = this._uniform(
+                OutlinePass.U_PATTERN_TEXTURE,
+                "patternTexture",
+                UniformType.Sampler.value()
+            )
+            this.bindTexture(renderer, 4u8, uPattern, this._maskTex, 0u32)
+            let uParams = this._uniform(
+                OutlinePass.U_OVERLAY_PARAMS,
+                "u_overlayParams",
+                UniformType.Vec4.value()
+            )
+            this._setVec4Uniform(renderer, uParams, 10, es, eg, upt, 0.0)
+            this.submitQuad(viewId, prog)
         }
     }
 
@@ -1190,60 +1037,41 @@ public class OutlinePass <: Pass {
      * shader 已在 PostProcessingShaders 注册。
      */
     private func _ensureShaders(): Unit {
-        // depth shader（outline 用）
-        match (this._depthProg) {
-            case None =>
-                match (PostProcessingShaders.get("outline_depth")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._depthProg = Some(Box(sp.programHandle))
-                    case None => @LogTrace(["OutlinePass", "outline_depth shader NOT REGISTERED"])
-                }
-            case Some(_) => ()
-        }
-        // prepareMask shader
-        match (this._prepareMaskProg) {
-            case None =>
-                match (PostProcessingShaders.get("outline_prepare_mask")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._prepareMaskProg = Some(Box(sp.programHandle))
-                    case None => @LogTrace(["OutlinePass", "outline_prepare_mask shader NOT REGISTERED"])
-                }
-            case Some(_) => ()
+        // copy shader（降采样）
+        if (let None <- this._copyProg) {
+            if (let Some(sp) <- PostProcessingShaders.get("outline_copy")) {
+                sp.compileBgfx()
+                this._copyProg = Some(Box(sp.programHandle))
+            } else {
+                @LogTrace(["OutlinePass", "outline_copy shader NOT REGISTERED"])
+            }
         }
         // edgeDetection shader
-        match (this._edgeDetectionProg) {
-            case None =>
-                match (PostProcessingShaders.get("outline_edge_detection")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._edgeDetectionProg = Some(Box(sp.programHandle))
-                    case None => @LogTrace(["OutlinePass", "outline_edge_detection shader NOT REGISTERED"])
-                }
-            case Some(_) => ()
+        if (let None <- this._edgeDetectionProg) {
+            if (let Some(sp) <- PostProcessingShaders.get("outline_edge_detection")) {
+                sp.compileBgfx()
+                this._edgeDetectionProg = Some(Box(sp.programHandle))
+            } else {
+                @LogTrace(["OutlinePass", "outline_edge_detection shader NOT REGISTERED"])
+            }
         }
         // separableBlur shader
-        match (this._separableBlurProg) {
-            case None =>
-                match (PostProcessingShaders.get("outline_separable_blur")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._separableBlurProg = Some(Box(sp.programHandle))
-                    case None => @LogTrace(["OutlinePass", "outline_separable_blur shader NOT REGISTERED"])
-                }
-            case Some(_) => ()
+        if (let None <- this._separableBlurProg) {
+            if (let Some(sp) <- PostProcessingShaders.get("outline_separable_blur")) {
+                sp.compileBgfx()
+                this._separableBlurProg = Some(Box(sp.programHandle))
+            } else {
+                @LogTrace(["OutlinePass", "outline_separable_blur shader NOT REGISTERED"])
+            }
         }
         // overlay shader
-        match (this._overlayProg) {
-            case None =>
-                match (PostProcessingShaders.get("outline_overlay")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._overlayProg = Some(Box(sp.programHandle))
-                    case None => @LogTrace(["OutlinePass", "outline_overlay shader NOT REGISTERED"])
-                }
-            case Some(_) => ()
+        if (let None <- this._overlayProg) {
+            if (let Some(sp) <- PostProcessingShaders.get("outline_overlay")) {
+                sp.compileBgfx()
+                this._overlayProg = Some(Box(sp.programHandle))
+            } else {
+                @LogTrace(["OutlinePass", "outline_overlay shader NOT REGISTERED"])
+            }
         }
     }
 
@@ -1252,21 +1080,15 @@ public class OutlinePass <: Pass {
      */
     public override func dispose(): Unit {
         this._destroyRTs()
-        this._depthProg = None
-        this._prepareMaskProg = None
+        this._copyProg = None
+        this._whiteProg = None
         this._edgeDetectionProg = None
         this._separableBlurProg = None
         this._overlayProg = None
         // 释放共享顶点布局句柄（_getOrCreateLayout 经 renderer.createVertexLayout 创建）
-        match (this._renderer) {
-            case Some(renderer) =>
-                match (this._layoutHandleCache) {
-                    case Some(lh) =>
-                        renderer.destroyVertexLayout(lh)
-                        this._layoutHandleCache = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer && let Some(lh) <- this._layoutHandleCache) {
+            renderer.destroyVertexLayout(lh)
+            this._layoutHandleCache = None
         }
     }
 }

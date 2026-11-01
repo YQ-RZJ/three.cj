@@ -41,6 +41,8 @@ import three.core.interfaces.ILoadResult
 
 import three.audio.device.*
 import three.audio.listener.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 音频缓冲区，存储解码后的 PCM 数据
@@ -133,6 +135,7 @@ public class AudioBuffer <: ILoadResult {
      * @note[zh-cn] OpenAL 调用经 context.execAudio 在音频线程执行。
      * @note[en] OpenAL calls run on the audio thread via context.execAudio.
      */
+    @Zone[three.audio.source.AudioBuffer.create, name=audioBufferCreate]
     public static func create(pcmData: CPointer<Unit>, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer {
         let buf = AudioBuffer()
         buf.channels = channels

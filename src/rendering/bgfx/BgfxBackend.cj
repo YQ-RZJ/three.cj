@@ -37,6 +37,7 @@ import three.rendering.shaders.ShaderProgram
 import three.rendering.shaders.ShaderVariant
 import three.rendering.shaders.*
 import three.rendering.textures.Texture
+import three.utils.constants.CubeUVReflectionMapping
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -53,9 +54,12 @@ import three.utils.memory.intToCPointer
 import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
+import three.profiler.macros.*
 import three.scene.entity.Mesh
 import three.scene.entity.Line
 import three.scene.entity.Points
+import three.scene.entity.InstancedMesh
 import bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
@@ -85,6 +89,59 @@ private class _LightDefinesHolder {
     public func dispose(): Unit {
         // Array<String> 由 GC 管理，无需手动释放
     }
+}
+
+/**
+ * 几何 draw plan：把逐 draw 需要的 VB / IB / 三角形数合并为一次查表。
+ *
+ * 逐 draw 分别调用 _createVB/_createIB/统计三角形数会重复做 geom.uuid.hashCode()、
+ * 多次 getAttribute("position") 字符串查找与多次 HashMap 查找；同一几何体每帧被
+ * N 个对象绘制时这些开销乘以 N。plan 以几何体 uuid 的 hash 为键，position 属性
+ * 版本号为版本戳：版本未变直接复用，变化时整体重建（顶点数据与索引同时失效）。
+ */
+private class GeomPlan {
+    let geomId: Int64
+    var vb: VertexBufferHandle = VertexBufferHandle(65535u16)
+    var ib: IndexBufferHandle = IndexBufferHandle(65535u16)
+    var triCount: Int64 = 0
+    var posVersion: Int64 = -1
+
+    init(geomId: Int64) {
+        this.geomId = geomId
+    }
+}
+
+/**
+ * 材质渲染状态：cullMode / blendState / 线点图元判定，只取决于材质属性，按 uuid 缓存。
+ */
+private class MatState {
+    var cullMode: UInt64 = 0u64
+    var blendState: UInt64 = 0u64
+    var isLineKind: Bool = false
+    var isPointsKind: Bool = false
+    // 简易材质（Points/Sprite）：其着色器（ShaderLibs "points"/"sprite"）只声明
+    // u_color/u_opacity(+map)，不声明 u_normalMatrix / receiveShadow / diffuse。
+    // 逐 draw 上传这些 uniform 是纯空转（每次 3 个 bgfx_set_uniform + 临时缓冲写入）。
+    var simpleKind: Bool = false
+    // 参与缓存的材质属性指纹：side/transparent/kind 任一变化即失效
+    var sideKey: Int64 = 0
+    var transparentKey: Bool = false
+    var kindKey: String = ""
+
+    init() {}
+}
+
+/**
+ * program 快路径缓存条目：mat.uuid → 上次命中的变体指纹
+ * （帧级光照后缀 + 实例化标记 + env 标记）+ 对应句柄。
+ */
+private class FastProg {
+    var lightSuffix: String = ""
+    var instSuffix: String = ""
+    var envSuffix: String = ""
+    var handle: ProgramHandle = ProgramHandle(65535u16)
+
+    init() {}
 }
 
 public class BgfxBackend <: Backend {
@@ -117,7 +174,7 @@ public class BgfxBackend <: Backend {
      *
      * @brief[en] Render statistics
      */
-    private var info: BgfxInfo
+    public var info: BgfxInfo
     /**
      * @brief[zh-cn] 属性存储
      *
@@ -260,6 +317,12 @@ public class BgfxBackend <: Backend {
     private var _numHemiLights: Int64 = 0
     // LightProbe 数量（供 _buildLightDefines 构建 USE_LIGHT_PROBES define）
     private var _numLightProbes: Int64 = 0
+    // ===== 当前场景环境贴图（IBL）=====
+    // beginRender 时从 renderContext.scene 读取 scene.environment / scene.environmentIntensity，
+    // 作为材质 envMap 的兜底（material.envMap 优先，缺失时回退 scene.environment）。
+    // 同时决定变体编译是否注入 USE_ENVMAP / ENVMAP_TYPE_CUBE_UV 宏。
+    private var _currentEnvMap: Option<Texture> = None
+    private var _currentEnvIntensity: Float64 = 1.0
     // 阴影光源计数（对照参考项目 ThreeRenderer 行 178-180、456-461）
     // 不传 NUM_*_LIGHT_SHADOWS defines 会导致 Phong shader 的 shadowmap_pars_fragment / lights_pars_begin
     // 阴影分支被预处理器剔除 → 物体只有材质光照、无阴影投射效果（sp_fullphong 阴影缺失根因）
@@ -268,7 +331,7 @@ public class BgfxBackend <: Backend {
     private var _numSpotShadowLights: Int64 = 0
 
     // ===== 光源/阴影数量上限（可配置，编译 shader 时作为宏 NUM_*_LIGHTS_MAX 传入）=====
-    // 对照 Three.js：光源数量由场景决定，本引擎用"配置上限"约束 shader 数组声明与手动展开段数。
+    // 对照通用引擎惯例：光源数量由场景决定，本引擎用"配置上限"约束 shader 数组声明与手动展开段数。
     // 修改这些值后，_buildLightDefines 会生成对应的 NUM_*_LIGHTS_MAX 编译宏，
     // ShaderLibs.cj 的 uniform 数组声明与 lights_fragment_begin.cj 的循环展开段自动适配。
     // 注意：受 D3D11 纹理单元上限（16）约束，dir+spot+point 三类阴影 sampler 总数 ≤ 16。
@@ -416,10 +479,7 @@ public class BgfxBackend <: Backend {
         initParams.profile = false
         // 设置平台窗口句柄（backend.hwnd 字段，替代原 parameters["hwnd"]；
         // 新版 bgfx 的 nwh 从 platformData 移入 swapChain）
-        match (this.hwnd) {
-            case Some(hwndVal) => initParams.swapChain.nwh = intToCPointer(hwndVal)
-            case None => ()
-        }
+        if (let Some(hwndVal) <- this.hwnd) { initParams.swapChain.nwh = intToCPointer(hwndVal) }
         unsafe { initPtr.write(initParams) }
         var ok = bgfx_init_cj(initPtr)
         if (!ok && initParams.`type` != 0u32) {
@@ -459,21 +519,17 @@ public class BgfxBackend <: Backend {
         bgfx_set_view_clear_cj(viewId, CLEAR_COLOR | CLEAR_DEPTH, clearColor, 1.0f32, 0)
 
         // 设置 FBO（若有）
-        match (renderContext.getFrameBuffer()) {
-            case Some(fbo) =>
-                // bgfx_set_view_frame_buffer 由外部 Renderer 管理
-                ()
-            case None => ()
+        if (let Some(_) <- renderContext.getFrameBuffer()) {
+            // bgfx_set_view_frame_buffer 由外部 Renderer 管理
+            ()
         }
 
         // 设置视角变换（从 camera 获取 view/proj 矩阵）
-        match (renderContext.getCamera()) {
-            case Some(camera) =>
-                // 从 camera 获取 viewMatrix 和 projectionMatrix
-                let viewMat = camera.matrixWorldInverse.elements  // 16 Float64
-                let projMat = camera.projectionMatrix.elements    // 16 Float64
-                this._setViewTransform(viewId, viewMat, projMat)
-            case None => ()
+        if (let Some(camera) <- renderContext.getCamera()) {
+            // 从 camera 获取 viewMatrix 和 projectionMatrix
+            let viewMat = camera.matrixWorldInverse.elements  // 16 Float64
+            let projMat = camera.projectionMatrix.elements    // 16 Float64
+            this._setViewTransform(viewId, viewMat, projMat)
         }
     }
 
@@ -489,6 +545,7 @@ public class BgfxBackend <: Backend {
      * 不调用 bgfx_touch_cj：touch 会重置 view 状态，导致后续 submit 失效（全黑）。
      * bgfx 中 submit 已标记 view 活跃，frame 触发双缓冲交换。
      */
+    @Zone[three.rendering.bgfx.BgfxBackend.beginRender]
     public override func beginRender(renderContext: RenderContext): Unit {
         let viewId = renderContext.viewId
         let (x, y, w, h) = renderContext.viewport
@@ -506,17 +563,13 @@ public class BgfxBackend <: Backend {
 
         // 设置相机级 uniform（u_cameraPos / u_cameraNearFar / isOrthographic / toneMappingExposure）
         // 对照原始有效实现 _renderImpl 行 467-512
-        match (renderContext.camera) {
-            case Some(cam) => this.lightBinder.setCameraUniforms(cam)
-            case None => ()
-        }
+        if (let Some(cam) <- renderContext.camera) { this.lightBinder.setCameraUniforms(cam) }
 
         // 收集场景光源 + 设置光照 uniform（对照原始有效实现 setLightUniforms）
         // 必须在 draw 之前完成，供着色器采样光源数据
-        match (renderContext.scene) {
-            case Some(scene) =>
-                let (dirLights, pointLights, ambientLights, spotLights, hemiLights, lightProbes) = this.lightBinder.collectLights(scene)
-                // 记录光照计数，供 _getOrCreateProgram 构建 NUM_*_LIGHTS defines
+        if (let Some(scene) <- renderContext.scene) {
+            let (dirLights, pointLights, ambientLights, spotLights, hemiLights, lightProbes) = this._collectLightsCached(scene)
+            // 记录光照计数，供 _getOrCreateProgram 构建 NUM_*_LIGHTS defines
                 // 可配置上限：实际数量 clamp 到 maxXxxLights，超过部分截断（与 _setLightUniforms 一致）
                 this._numDirLights = if (dirLights.size < this.maxDirLights) { Int64(dirLights.size) } else { this.maxDirLights }
                 this._numPointLights = if (pointLights.size < this.maxPointLights) { Int64(pointLights.size) } else { this.maxPointLights }
@@ -537,11 +590,39 @@ public class BgfxBackend <: Backend {
                 if (this._numDirShadowLights > this.maxDirShadows) { this._numDirShadowLights = this.maxDirShadows }
                 if (this._numPointShadowLights > this.maxPointShadows) { this._numPointShadowLights = this.maxPointShadows }
                 if (this._numSpotShadowLights > this.maxSpotShadows) { this._numSpotShadowLights = this.maxSpotShadows }
+                // D 项：构建帧级光照后缀（variantKey 的光照/阴影计数 + shadow 类型部分）。
+                // 仅在计数/阴影类型变化时重建：每帧重建会产生十余次 toString 与字符串拼接。
+                let shadowType = this.shadowMap.getShadowType()
+                if (this._lsDir != this._numDirLights || this._lsPoint != this._numPointLights ||
+                    this._lsSpot != this._numSpotLights || this._lsHemi != this._numHemiLights ||
+                    this._lsProbe != this._numLightProbes ||
+                    this._lsDirShadow != this._numDirShadowLights ||
+                    this._lsPointShadow != this._numPointShadowLights ||
+                    this._lsSpotShadow != this._numSpotShadowLights ||
+                    this._lsShadowType != shadowType) {
+                    this._frameLightSuffix = "_D" + this._numDirLights.toString() + "P" + this._numPointLights.toString() +
+                        "S" + this._numSpotLights.toString() + "H" + this._numHemiLights.toString() +
+                        "L" + this._numLightProbes.toString() +
+                        "_dSh" + this._numDirShadowLights.toString() + "pSh" + this._numPointShadowLights.toString() +
+                        "sSh" + this._numSpotShadowLights.toString() + "st" + shadowType.toString()
+                    this._lsDir = this._numDirLights
+                    this._lsPoint = this._numPointLights
+                    this._lsSpot = this._numSpotLights
+                    this._lsHemi = this._numHemiLights
+                    this._lsProbe = this._numLightProbes
+                    this._lsDirShadow = this._numDirShadowLights
+                    this._lsPointShadow = this._numPointShadowLights
+                    this._lsSpotShadow = this._numSpotShadowLights
+                    this._lsShadowType = shadowType
+                }
                 this.lightBinder.setLightUniforms(dirLights, pointLights, ambientLights, spotLights, hemiLights, lightProbes)
-                // 绑定场景级纹理（DFG LUT 等）——必须在 draw 之前完成，
-                // 否则 multiScatteringCompensation 的 dfgLUT 采样为 0 → 1/0 爆炸 → 高光失效
-                this._bindSceneTextures()
-            case None => ()
+                // 记录场景环境贴图（IBL）：作为材质 envMap 的兜底来源，
+                // 供 _bindEnvMap 绑定 u_envMap、_getOrCreateProgram 注入 USE_ENVMAP 宏
+                this._currentEnvMap = scene.environment
+                this._currentEnvIntensity = scene.environmentIntensity
+                // 注：场景级纹理（dfgLUT）改在每次 draw 前绑定（见 _drawRenderObject）——
+                // submit 用 DISCARD_ALL 会清空纹理绑定，只在 beginRender 绑一次会导致
+                // 第二次及以后的 draw 丢失 dfgLUT。
         }
     }
 
@@ -551,6 +632,31 @@ public class BgfxBackend <: Backend {
      */
     private func _getClearColorFromParams(): UInt32 {
         return this.clearColor
+    }
+
+    /**
+     * @brief[zh-cn] 收集场景光源（带帧内缓存）
+     * @explain[zh-cn] 阴影预 pass（prepareShadowMap）与主 pass（beginRender）处于同一帧，
+     *               场景内容不变；原实现各自遍历一次整棵场景树收集光源，大场景下
+     *               每帧多一次全量遍历。此处按帧缓存结果，第二次调用直接复用。
+     *
+     * @brief[en] Collects scene lights (with a per-frame cache)
+     * @explain[en] The shadow pre-pass (prepareShadowMap) and the main pass
+     *               (beginRender) run in the same frame with an unchanged scene;
+     *               the previous implementation traversed the whole scene tree
+     *               twice per frame. The result is now cached per frame.
+     */
+    private func _collectLightsCached(scene: Scene): (
+        ArrayList<DirectionalLight>, ArrayList<PointLight>,
+        ArrayList<AmbientLight>, ArrayList<SpotLight>,
+        ArrayList<HemisphereLight>, ArrayList<LightProbe>) {
+        if (this._lightCacheFrame == this._lightFrameIndex) {
+            if (let Some(c) <- this._lightCache) { return c }
+        }
+        let lights = this.lightBinder.collectLights(scene)
+        this._lightCache = Some(lights)
+        this._lightCacheFrame = this._lightFrameIndex
+        return lights
     }
 
     // ===== 2.4 draw =====
@@ -565,6 +671,7 @@ public class BgfxBackend <: Backend {
      * 4. bgfx_set_state_cj —— render state
      * 5. bgfx_submit_cj —— submit with program handle from material
      */
+    @Zone[three.rendering.bgfx.BgfxBackend.draw]
     public override func draw(renderObject: IRenderObject): Unit {
         // 若 renderObject 是具体 RenderObject，直接访问 geometry/material 创建缓冲
         if (renderObject is RenderObject) {
@@ -579,7 +686,8 @@ public class BgfxBackend <: Backend {
         let geometryId = renderObject.getGeometryId()
         let matrix = renderObject.getMatrix()
         if (matrix.size >= 16) {
-            let mtxMem = BgfxMemory(64u32)
+            // 复用 _uMem64（原实现每次新建 BgfxMemory，走 bgfx_alloc 且不归还 → 逐帧泄漏）
+            let mtxMem = this._uMem64
             mtxMem.writeFloats(matrix, 16)
             let mtxData = mtxMem.data()
             bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxData) }, 1u16)
@@ -587,20 +695,12 @@ public class BgfxBackend <: Backend {
         // 2. set vertex buffer
         let vbOpt = this.geometries.getVertexBuffer(geometryId)
         let lhOpt = this.geometries.getLayoutHandle(geometryId)
-        match (vbOpt) {
-            case Some(vb) =>
-                match (lhOpt) {
-                    case Some(lh) =>
-                        bgfx_set_vertex_buffer_with_layout_cj(0u8, vb.handle, 0u32, 0xFFFFFFFFu32, lh)
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(vb) <- vbOpt && let Some(lh) <- lhOpt) {
+            bgfx_set_vertex_buffer_with_layout_cj(0u8, vb.handle, 0u32, 0xFFFFFFFFu32, lh)
         }
         let ibOpt = this.geometries.getIndexBuffer(geometryId)
-        match (ibOpt) {
-            case Some(ib) =>
-                bgfx_set_index_buffer_cj(ib.handle, 0u32, 0xFFFFFFFFu32)
-            case None => ()
+        if (let Some(ib) <- ibOpt) {
+            bgfx_set_index_buffer_cj(ib.handle, 0u32, 0xFFFFFFFFu32)
         }
         bgfx_set_state_cj(
             0x00000000u64 | 0x00000010u64 | 0x00000020u64 |
@@ -628,6 +728,8 @@ public class BgfxBackend <: Backend {
     // 顶点缓冲对应的 position 属性版本号：版本变化时销毁旧缓冲并重建（CPU 蒙皮/形态目标等动态几何）
     private var _vbVersions: HashMap<Int64, Int64> = HashMap<Int64, Int64>()
     private var _ibCache: HashMap<Int64, IndexBufferHandle> = HashMap<Int64, IndexBufferHandle>()
+    // 顶点布局结构指针缓存：布局是常量，逐次重建（malloc + 4 次 bgfx 调用）纯属浪费
+    private var _layoutPtrCache: ?CPointer<VertexLayout> = None
     private var _layoutCache: Option<VertexLayoutHandle> = None
     private var _currentLayout: VertexLayoutHandle = VertexLayoutHandle(65535u16)
     // 材质纹理 → bgfx TextureHandle 缓存。key = texture.uuid.hashCode()。
@@ -636,84 +738,157 @@ public class BgfxBackend <: Backend {
     // 未绑定则 USE_*MAP 分支采样的数据全为默认（黑/白）→ PBR 渐变失效（向光白背光黑）。
     private var _matTexCache: HashMap<Int64, TextureHandle> = HashMap<Int64, TextureHandle>()
 
-    /**
-     * 用具体 RenderObject 绘制：直接创建顶点缓冲并提交
-     */
-    private func _drawRenderObject(renderObject: RenderObject): Unit {
-        let geom = renderObject.geometry
-        let mat = renderObject.material
-        let meshName = renderObject.mesh.name
-        @LogTrace(["draw", "ENTER obj=${meshName} matKind=${mat.kind} geomId=${geom.uuid.hashCode()} side=${mat.side}"])
-
-        // 1. 创建顶点缓冲
-        let vb = this._createVB(geom)
-        if (vb.idx == 65535u16) {
-            @LogWarn(["draw", "VB INVALID obj=${meshName}"])
-            return
-        }
-        let layout = this._getOrCreateLayout()
-
-        // 2. set transform（模型矩阵）
-        let mtxArr = renderObject.worldMatrix.elements
-        let mtxMem = BgfxMemory(64u32)
-        mtxMem.writeFloats(mtxArr, 16)
-        let mtxData = mtxMem.data()
-        bgfx_set_transform_cj(unsafe { CPointer<Unit>(mtxData) }, 1u16)
-        @LogTrace(["draw", "obj=${meshName} worldMtx[0]=${mtxArr[0]} [5]=${mtxArr[5]} [10]=${mtxArr[10]} [12]=${mtxArr[12]} [13]=${mtxArr[13]} [14]=${mtxArr[14]}"])
-
-        // 3. set u_normalMatrix（模型矩阵左上 3x3，用于法线变换）
-        // 对照原始有效实现 draw() 行 892-911
-        // bgfx mat3 存储为 3 个 vec4（12 floats），列主序：col0=[0,1,2], col1=[4,5,6], col2=[8,9,10]
-        let uNormalMat = this.uniforms.createUniform("u_normalMatrix", UniformType.Mat3.value())
-        let nmMem = BgfxMemory(48u32)
-        let nmData = Array<Float64>(12, { i =>
-            if (i < 3) {
-                mtxArr[i]             // col0: rows 0-2
-            } else if (i < 6) {
-                mtxArr[4 + (i - 3)]   // col1: rows 0-2
-            } else if (i < 9) {
-                mtxArr[8 + (i - 6)]   // col2: rows 0-2
+    // E 项性能优化：uniform 句柄一次性缓存 + 可复用 CPU buffer。
+    // _bindMaterialUniforms/_bindMaterialTextures/_bindSceneTextures 每 draw 调用，原实现每次
+    // createUniform（bgfxCallMtx 全局互斥锁 + 字符串 HashMap 查找）并新建 BgfxMemory/Array。
+    // 句柄缓存后每 draw 只做 HashMap 查询；buffer 复用（bgfx_set_uniform/transform 均拷贝数据，
+    // submit 用 DISCARD_ALL，覆写安全）。
+    private var _uniformHandleCache: HashMap<String, Box<UniformHandle>> = HashMap<String, Box<UniformHandle>>()
+    // 惰性分配（关键修复）：BgfxMemory(size) 构造器即调用 bgfx_alloc_cj（bgfx FFI），
+    // 而 BgfxBackend 在 ThreeRenderer 构造期（bgfx_init 之前）就被创建——若在字段初始化器
+    // 里分配，会在 bgfx 未初始化时调用 bgfx_alloc 导致初始化卡死。改为只读属性，
+    // 首次访问时才分配（首次访问必在渲染路径，bgfx 已初始化且持 bgfxCallMtx）。
+    private var _uMem16Store: ?BgfxMemory = None
+    private var _uMem48Store: ?BgfxMemory = None
+    private var _uMem64Store: ?BgfxMemory = None
+    // 投影矩阵专用缓冲：_setViewTransform 中 view 与 proj 同时写入后一起提交，
+    // 不能共用同一块（后写会覆盖先写的数据）。
+    private var _viewProjMemStore: ?BgfxMemory = None
+    private prop _viewProjMem: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._viewProjMemStore) {
+                m
             } else {
-                0.0                    // col0/1/2 的 w 分量 = 0
+                let m = BgfxMemory(64u32)  // proj mat4（16 float）
+                this._viewProjMemStore = Some(m)
+                m
             }
-        })
-        nmMem.writeFloats(nmData, 12)
-        let nmDataPtr = nmMem.data()
-        bgfx_set_uniform_cj(uNormalMat.value, unsafe { CPointer<Unit>(nmDataPtr) }, 1u16)
-
-        // 4. set receiveShadow uniform（对照 JS: p_uniforms.setValue(_gl, 'receiveShadow', object.receiveShadow)）
-        let uRecvShadow = this.uniforms.createUniform("receiveShadow", UniformType.Vec4.value())
-        let rsMem = BgfxMemory(16u32)
-        let mesh = renderObject.mesh
-        let rsVal = if (mesh.receiveShadow) { 1.0 } else { 0.0 }
-        rsMem.writeFloats([rsVal, 0.0, 0.0, 0.0], 4)
-        let rsData = rsMem.data()
-        bgfx_set_uniform_cj(uRecvShadow.value, unsafe { CPointer<Unit>(rsData) }, 1u16)
-
-        // 5. vertex buffer + layout
-        bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, 0xFFFFFFFFu32, layout)
-
-        // 6. index buffer（若有）
-        let ib = this._createIB(geom)
-        if (ib.idx != 65535u16) {
-            bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
         }
+    }
+    private prop _uMem16: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._uMem16Store) {
+                m
+            } else {
+                let m = BgfxMemory(16u32)  // vec4 / vec3（4 float）
+                this._uMem16Store = Some(m)
+                m
+            }
+        }
+    }
+    private prop _uMem48: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._uMem48Store) {
+                m
+            } else {
+                let m = BgfxMemory(48u32)  // mat3（12 float）
+                this._uMem48Store = Some(m)
+                m
+            }
+        }
+    }
+    private prop _uMem64: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._uMem64Store) {
+                m
+            } else {
+                let m = BgfxMemory(64u32)  // mat4 / transform（16 float）
+                this._uMem64Store = Some(m)
+                m
+            }
+        }
+    }
+    // 逐 draw 复用的临时 Float64 缓冲：避免每 draw 为法线矩阵/标量 uniform
+    // 新建数组字面量（每次都是一次堆分配 + GC 压力），改为就地写入复用缓冲。
+    // writeFloats 内部立即拷贝，缓冲可安全复用。
+    private var _scratch4: Array<Float64> = Array<Float64>(4, { _ => 0.0 })
+    private var _scratch12: Array<Float64> = Array<Float64>(12, { _ => 0.0 })
+    // 逐 draw 复用的 uniform 句柄（避免每 draw 以字符串键查 HashMap）：
+    // 键为固定字面量，句柄创建一次后永久有效。
+    private var _uNormalMatrix: ?Box<UniformHandle> = None
+    private var _uReceiveShadow: ?Box<UniformHandle> = None
+    private var _uColor: ?Box<UniformHandle> = None
+    private var _uDiffuse: ?Box<UniformHandle> = None
+    private var _uOpacity: ?Box<UniformHandle> = None
+    // dfgLUT 采样器句柄与纹理句柄（_bindSceneTextures 每 draw 调用，句柄与纹理均只需解析一次）
+    private var _dfgLutSampler: ?Box<UniformHandle> = None
+    private var _dfgLutHandle: TextureHandle = TextureHandle(65535u16)
+    // 帧内光源收集缓存：prepareShadowMap 与 beginRender 各收集一次光源，
+    // 两者处于同一帧（场景未变），第二次直接复用，避免每帧两次全场景遍历
+    // （800 对象场景每次遍历约 0.18 ms）。
+    private var _lightFrameIndex: Int64 = 0
+    private var _lightCacheFrame: Int64 = -1
+    private var _lightCache: ?(ArrayList<DirectionalLight>, ArrayList<PointLight>,
+        ArrayList<AmbientLight>, ArrayList<SpotLight>,
+        ArrayList<HemisphereLight>, ArrayList<LightProbe>) = None
 
-        // 7. state —— FRONT_CCW（CCW=front，与 Three.js/OpenGL 一致）+ 按 material.side 设置 CULL
-        // 对照原始有效实现 draw() 行 1048-1060
-        // bgfx 默认 CW=front（Direct3D 惯例），Three.js 几何体使用 CCW winding，故加 FRONT_CCW
-        let baseState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                        BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                        BgfxConstants.MSAA | BgfxConstants.FRONT_CCW
-        let state = baseState
-        let cullMode = BgfxConstants.convertCullMode(mat.side)
+    /**
+     * _cachedUniform：按名取 uniform 句柄，首次创建后缓存，避免每 draw 重复 createUniform 的
+     * 全局互斥锁与字符串查找（E 项）。num 为数组 uniform 长度，非数组时恒 1。
+     */
+    private func _cachedUniform(name: String, uniformType: UInt32, num!: UInt16 = 1u16): Box<UniformHandle> {
+        if (let Some(h) <- this._uniformHandleCache.get(name)) { return h }
+        let h = this.uniforms.createUniform(name, uniformType, num)
+        this._uniformHandleCache.add(name, h)
+        return h
+    }
+
+    /**
+     * @brief[zh-cn] 写入单个 vec4 uniform（复用临时数组 + 复用内存缓冲）
+     * @explain[zh-cn] 原实现每次都构造数组字面量（如 `[c.r, c.g, c.b, opacity]`），
+     *               逐 draw 场景下是稳定的堆分配来源；此处就地写入复用的 4 元缓冲。
+     *
+     * @brief[en] Writes a single vec4 uniform (reusing the scratch array and memory buffer)
+     * @explain[en] The previous implementation allocated an array literal per call
+     *              (e.g. `[c.r, c.g, c.b, opacity]`) — a steady source of heap
+     *              allocations in per-draw paths; now it writes into a reused buffer.
+     */
+    private func _setVec4(handle: Box<UniformHandle>, x: Float64, y: Float64,
+                          z: Float64, w: Float64): Unit {
+        let s = this._scratch4
+        s[0] = x
+        s[1] = y
+        s[2] = z
+        s[3] = w
+        this._uMem16.writeFloats(s, 4)
+        bgfx_set_uniform_cj(handle.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
+    }
+
+    private var _geomPlans: HashMap<Int64, GeomPlan> = HashMap<Int64, GeomPlan>()
+
+    /** 材质渲染状态缓存（MatState 为文件级私有类），key = Material.id（整数，避免逐 draw 对 uuid 字符串求哈希） */
+    private var _matStates: HashMap<Int64, MatState> = HashMap<Int64, MatState>()
+    // 固定渲染状态：与材质/对象无关，逐 draw 无需重算 OR
+    private let _baseRenderState: UInt64 = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+        BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+        BgfxConstants.MSAA | BgfxConstants.FRONT_CCW
+
+    private func _getMatState(mat: Material): MatState {
+        if (let Some(st) <- this._matStates.get(mat.id)) {
+            if (st.sideKey == mat.side && st.transparentKey == mat.transparent && st.kindKey == mat.kind) {
+                return st
+            }
+            this._refreshMatState(st, mat)
+            return st
+        }
+        let st = MatState()
+        this._refreshMatState(st, mat)
+        this._matStates[mat.id] = st
+        return st
+    }
+
+    private func _refreshMatState(st: MatState, mat: Material): Unit {
+        st.sideKey = mat.side
+        st.transparentKey = mat.transparent
+        st.kindKey = mat.kind
+        st.cullMode = BgfxConstants.convertCullMode(mat.side)
         // 透明材质启用 alpha blend：BGFX_STATE_BLEND_FUNC(SRC_ALPHA, INV_SRC_ALPHA)
         // 对照 bgfx defines.h: BGFX_STATE_BLEND_FUNC(_src,_dst) = _src | (_dst<<4)
         //   其中 _src/_dst 是 STATE_BLEND_* 常量（enum<<12）
         //   BGFX_STATE_BLEND_ALPHA = FUNC(SRC_ALPHA, INV_SRC_ALPHA) = 0x6565000
         // 注意：不能直接 OR 三个 BLEND_* 常量 —— 那会把 src/dst factor 合并成
         // 单一 factor（0x7000），导致 alpha blend 完全失效（渲染为不透明）。
-        let blendState = if (mat.transparent) {
+        st.blendState = if (mat.transparent) {
             BgfxBackend.makeBlendFunc(
                 BgfxConstants.BLEND_SRC_ALPHA,
                 BgfxConstants.BLEND_ONE_MINUS_SRC_ALPHA
@@ -721,31 +896,183 @@ public class BgfxBackend <: Backend {
         } else {
             0u64
         }
-        // 图元类型：对照 three.js（图元由对象类型决定，材质辅助判断）：
+        st.isLineKind = (mat.kind == "LineBasicMaterial" || mat.kind == "LineDashedMaterial")
+        st.isPointsKind = (mat.kind == "PointsMaterial")
+        st.simpleKind = (mat.kind == "PointsMaterial" || mat.kind == "SpriteMaterial")
+    }
+
+    @Zone[three.rendering.bgfx.BgfxBackend._getGeomPlan]
+    private func _getGeomPlan(geom: BufferGeometry): GeomPlan {
+        let geomId = geom.id
+        // position 属性版本号：CPU 蒙皮/变形等每帧改写顶点数据时会自增
+        let posVersion = if (let Some(p) <- geom.getAttribute("position")) { p.version } else { 0 }
+        if (let Some(pl) <- this._geomPlans.get(geomId)) {
+            if (pl.posVersion == posVersion) { return pl }
+        }
+        let pl = GeomPlan(geomId)
+        pl.vb = this._createVB(geom)
+        pl.ib = this._createIB(geom)
+        // 每实例三角形数（索引优先；无索引时按 position 顶点数）
+        if (let Some(idx) <- geom.index) {
+            pl.triCount = idx.count / 3
+        } else if (let Some(pos) <- geom.getAttribute("position")) {
+            pl.triCount = pos.count / 3
+        } else {
+            pl.triCount = 0
+        }
+        pl.posVersion = posVersion
+        this._geomPlans[geomId] = pl
+        return pl
+    }
+
+    /**
+     * 用具体 RenderObject 绘制：直接创建顶点缓冲并提交
+     */
+    @Zone[three.rendering.bgfx.BgfxBackend._drawRenderObject]
+    private func _drawRenderObject(renderObject: RenderObject): Unit {
+        let geom = renderObject.geometry
+        let mat = renderObject.material
+        let meshName = renderObject.mesh.name
+        // 实例化对象（InstancedMesh）：走 USE_INSTANCING 变体程序 + 实例数据缓冲（对照方案 C1）。
+        // transform/normalMatrix 仍用对象自身 matrixWorld：VS 中 u_model * instanceMatrix 组合变换
+        // （聚合自动路由时 matrixWorld=单位阵，手动 InstancedMesh 时实例矩阵在局部空间），均正确。
+        let isInstanced = if (let Some(_) <- (renderObject.mesh as InstancedMesh)) { true } else { false }
+        @LogTrace(["draw", "ENTER obj=${meshName} matKind=${mat.kind} geomId=${geom.id} side=${mat.side} instanced=${isInstanced}"])
+
+        // 1. 顶点缓冲（draw plan 一次查表拿到 VB/IB/三角形数）
+        let plan = this._getGeomPlan(geom)
+        let vb = plan.vb
+        if (vb.idx == 65535u16) {
+            @LogWarn(["draw", "VB INVALID obj=${meshName}"])
+            return
+        }
+        let layout = this._getOrCreateLayout()
+        // 材质渲染状态提前取用（步骤 3/4 需要 simpleKind 判定是否跳过无带着色器 uniform）
+        let matState = this._getMatState(mat)
+
+        // 2. set transform（模型矩阵）
+        let mtxArr = renderObject.worldMatrix.elements
+        this._uMem64.writeFloats(mtxArr, 16)
+        bgfx_set_transform_cj(unsafe { CPointer<Unit>(this._uMem64.data()) }, 1u16)
+        @LogTrace(["draw", "obj=${meshName} worldMtx[0]=${mtxArr[0]} [5]=${mtxArr[5]} [10]=${mtxArr[10]} [12]=${mtxArr[12]} [13]=${mtxArr[13]} [14]=${mtxArr[14]}"])
+
+        // 3. set u_normalMatrix（模型矩阵左上 3x3，用于法线变换）
+        // 对照原始有效实现 draw() 行 892-911
+        // bgfx mat3 存储为 3 个 vec4（12 floats），列主序：col0=[0,1,2], col1=[4,5,6], col2=[8,9,10]
+        // 句柄与临时缓冲均复用：逐 draw 不再重复字符串键查找与数组分配。
+        // Points/Sprite 着色器不声明该 uniform（也不需要法线），跳过整段写入。
+        if (!matState.simpleKind) {
+            let uNormalMat = if (let Some(h) <- this._uNormalMatrix) {
+                h
+            } else {
+                let h = this._cachedUniform("u_normalMatrix", UniformType.Mat3.value())
+                this._uNormalMatrix = Some(h)
+                h
+            }
+            let nm = this._scratch12
+            nm[0] = mtxArr[0]
+            nm[1] = mtxArr[1]
+            nm[2] = mtxArr[2]
+            nm[3] = mtxArr[4]
+            nm[4] = mtxArr[5]
+            nm[5] = mtxArr[6]
+            nm[6] = mtxArr[8]
+            nm[7] = mtxArr[9]
+            nm[8] = mtxArr[10]
+            nm[9] = 0.0
+            nm[10] = 0.0
+            nm[11] = 0.0
+            this._uMem48.writeFloats(nm, 12)
+            bgfx_set_uniform_cj(uNormalMat.value, unsafe { CPointer<Unit>(this._uMem48.data()) }, 1u16)
+        }
+
+        // 4. set receiveShadow uniform（对照 JS: p_uniforms.setValue(_gl, 'receiveShadow', object.receiveShadow)）
+        // receiveShadow 由 chunk 系统的 shadowmap_pars_fragment 消费；Points/Sprite 不走这些 chunk，跳过。
+        let mesh = renderObject.mesh
+        if (!matState.simpleKind) {
+            let uRecvShadow = if (let Some(h) <- this._uReceiveShadow) {
+                h
+            } else {
+                let h = this._cachedUniform("receiveShadow", UniformType.Vec4.value())
+                this._uReceiveShadow = Some(h)
+                h
+            }
+            let rsVal = if (mesh.receiveShadow) { 1.0 } else { 0.0 }
+            this._setVec4(uRecvShadow, rsVal, 0.0, 0.0, 0.0)
+        }
+
+        // 5. vertex buffer + layout
+        bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, 0xFFFFFFFFu32, layout)
+
+        // 6. index buffer（若有）
+        let ib = plan.ib
+        if (ib.idx != 65535u16) {
+            bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
+        }
+
+        // 6.5 instance data buffer（仅实例化对象，对照方案 C1）：
+        // stride 64 字节 = 4×vec4（i_data0..3，VS 中重组为 instanceMatrix，column-major）。
+        // instanceMatrix.array 每实例 16 个 Float64，转 Float32 写入 bgfx 帧内分配的实例缓冲。
+        // struct 本体用 AutoFreePtr 管理（data 指针由 bgfx 生命周期管理，无需手动释放）。
+        if (isInstanced) {
+            let im = (renderObject.mesh as InstancedMesh).getOrThrow()
+            let count = im.count
+            if (count > 0) {
+                let idbHolder = AutoFreePtr<InstanceDataBuffer>(unsafe { LibC.malloc<InstanceDataBuffer>() })
+                let idbPtr = idbHolder.get()
+                unsafe { bgfx_alloc_instance_data_buffer_cj(idbPtr, UInt32(count), 64u16) }
+                let arr = im.instanceMatrix.array
+                let dataPtr = unsafe { idbPtr.read().data }
+                unsafe {
+                    let fPtr = CPointer<Float32>(dataPtr)
+                    var fi: Int64 = 0
+                    for (i in 0..(count * 16)) {
+                        fPtr.write(fi, Float32(arr[i]))
+                        fi += 1
+                    }
+                }
+                unsafe { bgfx_set_instance_data_buffer_cj(idbPtr, 0u32, UInt32(count)) }
+                idbHolder.dispose()
+            }
+        }
+
+        // 7. state —— FRONT_CCW（CCW=front，与主流 Web 引擎/OpenGL 一致）+ 按 material.side 设置 CULL
+        // 对照原始有效实现 draw() 行 1048-1060
+        // bgfx 默认 CW=front（Direct3D 惯例），主流 Web 引擎几何体使用 CCW winding，故加 FRONT_CCW
+        // 与 kind 相关的判定（cullMode / blendState / 线点图元）只取决于材质属性，
+        // 按 mat.id 缓存一次，避免逐 draw 重复多次 kind 字符串比较（matState 已在步骤 3 前取用）。
+        let cullMode = matState.cullMode
+        let blendState = matState.blendState
+        // 图元类型：（图元由对象类型决定，材质辅助判断）：
         //   Line/LineSegments 或 Line 系材质 → LINES；
         //   Points 或 PointsMaterial → POINTS；其余默认三角形列表。
-        // 参考：three.js WebGLGeometries/Lines 的 gl.drawArrays(gl.LINES/POINTS)
-        let isLineObj = (mesh is Line) || mat.kind == "LineBasicMaterial" || mat.kind == "LineDashedMaterial"
-        let isPointsObj = (mesh is Points) || mat.kind == "PointsMaterial"
+        // 参考：通用引擎 WebGLGeometries/Lines 的 gl.drawArrays(gl.LINES/POINTS)
+        let isLineObj = (mesh is Line) || matState.isLineKind
+        let isPointsObj = (mesh is Points) || matState.isPointsKind
         let primState = if (isLineObj) { BgfxConstants.LINES } else if (isPointsObj) { BgfxConstants.POINTS } else { 0u64 }
-        bgfx_set_state_cj(baseState | primState | cullMode | blendState, 0x00000000u32)
+        bgfx_set_state_cj(this._baseRenderState | primState | cullMode | blendState, 0x00000000u32)
 
         // 7.5 绑定材质 uniform（u_color / u_opacity + 各材质特有 uniform）
         // 对照原始有效实现 ThreeRenderer.setMatUniforms（行 1474-1563）
-        // Three.js chunk 系统的 meshbasic/meshphong/meshstandard FS 均声明：
+        // 通用 chunk 系统的 meshbasic/meshphong/meshstandard FS 均声明：
         //   uniform vec4 u_color;    // diffuse.rgb + opacity.a
         //   uniform vec4 u_opacity;  // chunk 系统读 u_opacity.x 作为 diffuseColor.a
         // 不绑定则材质渲染为黑（u_color 未初始化）或全透明（u_opacity=0）。
-        this._bindMaterialUniforms(mat)
+        // ★必须在每次 draw 前重绑场景级纹理（dfgLUT）：submit 用 DISCARD_ALL 清空纹理绑定，
+        //   bgfx 的 texture 绑定是"提交即消费"的瞬时状态，若只在 beginRender 绑一次，
+        //   第二次及以后的 draw 都会丢失去 dfgLUT → EssMs=0 → 1/0 → 高光爆炸/发黑
+        //  （表现为"多物体场景中只有一个物体光照正常"）。
+        this._bindSceneTextures()
+        this._bindMaterialUniforms(mat, matState.simpleKind)
 
         // 7.6 绑定材质纹理到 bgfx 纹理阶段（PBR 核心路径）
-        // 对照 Three.js WebGLTextures.uploadTexture + setValue(map, ...)
+        // 对照 WebGLTextures.uploadTexture + setValue(map, ...)
         // 不绑定则 map_fragment/metalnessmap_fragment/roughnessmap_fragment 虽被 #ifdef 激活，
         // 但 sampler 读取的是 bgfx 默认采样结果（黑/白）→ 小球渐变失效、呈现纯金属/纯粗糙
         this._bindMaterialTextures(mat)
 
-        // 8. 获取程序句柄 — 从材质量编译 shader program
-        let prog = this._getOrCreateProgram(mat)
+        // 8. 获取程序句柄 — 从材质量编译 shader program（实例化对象用 USE_INSTANCING 变体）
+        let prog = this._getOrCreateProgram(mat, instanced: isInstanced)
         @LogTrace(["drawRenderObject", "obj=${meshName} prog.idx=${prog.idx}"])
         if (prog.idx != 65535u16) {
             // 用实际 view id（renderObject.context.viewId）而非硬编码 0：
@@ -761,6 +1088,16 @@ public class BgfxBackend <: Backend {
             // 内存 → 线条放射状/三角形平面/时立方体时乱线，且随渲染顺序变化而闪烁。
             // 每个 draw 均已完整重设 transform/VB/IB/state/uniform，DISCARD_ALL 安全。
             bgfx_submit_cj(renderObject.context.viewId, prog, 0u32, 0xFFu8)
+            // 渲染统计（对照通用引擎惯例的 info.render.calls/triangles）：直接提交路径不经过
+            // BufferRenderer（其 info.update 不会被触发），在此手动累加。
+            // 帧末由 Renderer._syncRenderStats 同步到抽象层 Info 并清零本统计。
+            this.info.render.calls += 1
+            var triCount: Int64 = plan.triCount
+            if (isInstanced) {
+                let imStat = (renderObject.mesh as InstancedMesh).getOrThrow()
+                triCount *= imStat.count
+            }
+            this.info.render.triangles += triCount
             @LogTrace(["drawRenderObject", "obj=${meshName} submit OK"])
         } else {
             @LogDebug(["drawRenderObject", "obj=${meshName} prog 无效, 跳过 submit"])
@@ -779,29 +1116,46 @@ public class BgfxBackend <: Backend {
      *   MeshStandardMaterial/MeshPhysicalMaterial: u_roughness, u_metalness, u_emissive
      *   ShaderMaterial: 遍历 sm.uniforms 自定义 uniform
      */
-    private func _bindMaterialUniforms(mat: Material): Unit {
+    @Zone[three.rendering.bgfx.BgfxBackend._bindMaterialUniforms]
+    private func _bindMaterialUniforms(mat: Material, simpleKind: Bool): Unit {
         // u_color：材质 diffuse 颜色 + opacity（chunk FS: diffuseColor = vec4(u_color.rgb, u_opacity.x)）
-        let uColor = this.uniforms.createUniform("u_color", UniformType.Vec4.value())
-        let colorMem = BgfxMemory(16u32)
-        colorMem.writeFloats([mat.color.r, mat.color.g, mat.color.b, mat.opacity], 4)
+        // 句柄复用（不再每 draw 以字符串键查表）+ 值写入复用缓冲（不再每 draw 分配数组字面量）。
+        let uColor = if (let Some(h) <- this._uColor) {
+            h
+        } else {
+            let h = this._cachedUniform("u_color", UniformType.Vec4.value())
+            this._uColor = Some(h)
+            h
+        }
+        this._setVec4(uColor, mat.color.r, mat.color.g, mat.color.b, mat.opacity)
         @LogTrace(["color", "u_color r=${mat.color.r.toString()} g=${mat.color.g.toString()} b=${mat.color.b.toString()} opacity=${mat.opacity.toString()}"])
-        bgfx_set_uniform_cj(uColor.value, unsafe { CPointer<Unit>(colorMem.data()) }, 1u16)
 
         // diffuse：meshbasic/meshphong/meshphysical 等 ShaderLib 片段均声明 `uniform vec3 diffuse`，
         // diffuseColor = vec4(diffuse, opacity)。此前只绑 u_color 与 shader 声明对不上，
         // diffuse 取 bgfx 默认值（黑）→ MeshStandardMaterial 球只剩光源贡献（红色点光通道），
         // 表现为全红球。补绑 diffuse（Vec4 xyz=rgb，w=padding 对齐 bgfx UniformType 无 Vec3）。
-        let uDiffuse = this.uniforms.createUniform("diffuse", UniformType.Vec4.value())
-        let diffuseMem = BgfxMemory(16u32)
-        diffuseMem.writeFloats([mat.color.r, mat.color.g, mat.color.b, 0.0], 4)
-        bgfx_set_uniform_cj(uDiffuse.value, unsafe { CPointer<Unit>(diffuseMem.data()) }, 1u16)
-        @LogTrace(["diffuse-bind", "kind=${mat.kind} uDiffuse.idx= rgb=(${mat.color.r},${mat.color.g},${mat.color.b})"])
+        // Points/Sprite 着色器只声明 u_color/u_opacity(+map)，不声明 diffuse —— 跳过这次空转上传。
+        if (!simpleKind) {
+            let uDiffuse = if (let Some(h) <- this._uDiffuse) {
+                h
+            } else {
+                let h = this._cachedUniform("diffuse", UniformType.Vec4.value())
+                this._uDiffuse = Some(h)
+                h
+            }
+            this._setVec4(uDiffuse, mat.color.r, mat.color.g, mat.color.b, 0.0)
+            @LogTrace(["diffuse-bind", "kind=${mat.kind} uDiffuse.idx= rgb=(${mat.color.r},${mat.color.g},${mat.color.b})"])
+        }
 
         // u_opacity：chunk 系统读 u_opacity.x 作为 diffuseColor.a
-        let uOpacity = this.uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-        let opMem = BgfxMemory(16u32)
-        opMem.writeFloats([mat.opacity, 0.0, 0.0, 0.0], 4)
-        bgfx_set_uniform_cj(uOpacity.value, unsafe { CPointer<Unit>(opMem.data()) }, 1u16)
+        let uOpacity = if (let Some(h) <- this._uOpacity) {
+            h
+        } else {
+            let h = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+            this._uOpacity = Some(h)
+            h
+        }
+        this._setVec4(uOpacity, mat.opacity, 0.0, 0.0, 0.0)
 
         // 材质特有 uniform
         match (mat.kind) {
@@ -809,65 +1163,51 @@ public class BgfxBackend <: Backend {
                 match (mat) {
                     case pm: MeshPhongMaterial =>
                         // u_shininess: 高光指数
-                        let uShininess = this.uniforms.createUniform("u_shininess", UniformType.Vec4.value())
-                        let shMem = BgfxMemory(16u32)
-                        shMem.writeFloats([pm.shininess, 0.0, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uShininess.value, unsafe { CPointer<Unit>(shMem.data()) }, 1u16)
+                        let uShininess = this._cachedUniform("u_shininess", UniformType.Vec4.value())
+                        this._setVec4(uShininess, pm.shininess, 0.0, 0.0, 0.0)
 
                         // u_specular: 高光颜色 (rgb, 1.0)
-                        let uSpecular = this.uniforms.createUniform("u_specular", UniformType.Vec4.value())
-                        let spMem = BgfxMemory(16u32)
-                        spMem.writeFloats([pm.specular.r, pm.specular.g, pm.specular.b, 1.0], 4)
-                        bgfx_set_uniform_cj(uSpecular.value, unsafe { CPointer<Unit>(spMem.data()) }, 1u16)
+                        let uSpecular = this._cachedUniform("u_specular", UniformType.Vec4.value())
+                        this._setVec4(uSpecular, pm.specular.r, pm.specular.g, pm.specular.b, 1.0)
                     case _ => ()
                 }
             case "MeshStandardMaterial" | "MeshPhysicalMaterial" =>
                 // PBR uniform: u_roughness, u_metalness, u_emissive
-                let uRoughness = this.uniforms.createUniform("u_roughness", UniformType.Vec4.value())
-                let rMem = BgfxMemory(16u32)
+                let uRoughness = this._cachedUniform("u_roughness", UniformType.Vec4.value())
                 let roughness = match (mat) {
                     case sm: MeshStandardMaterial => sm.roughness
                     case _ => 1.0
                 }
-                rMem.writeFloats([roughness, 0.0, 0.0, 0.0], 4)
-                bgfx_set_uniform_cj(uRoughness.value, unsafe { CPointer<Unit>(rMem.data()) }, 1u16)
+                this._setVec4(uRoughness, roughness, 0.0, 0.0, 0.0)
 
-                let uMetalness = this.uniforms.createUniform("u_metalness", UniformType.Vec4.value())
-                let mMem = BgfxMemory(16u32)
+                let uMetalness = this._cachedUniform("u_metalness", UniformType.Vec4.value())
                 let metalness = match (mat) {
                     case sm: MeshStandardMaterial => sm.metalness
                     case _ => 0.0
                 }
-                mMem.writeFloats([metalness, 0.0, 0.0, 0.0], 4)
-                bgfx_set_uniform_cj(uMetalness.value, unsafe { CPointer<Unit>(mMem.data()) }, 1u16)
+                this._setVec4(uMetalness, metalness, 0.0, 0.0, 0.0)
 
-                let uEmissive = this.uniforms.createUniform("u_emissive", UniformType.Vec4.value())
-                let eMem = BgfxMemory(16u32)
+                let uEmissive = this._cachedUniform("u_emissive", UniformType.Vec4.value())
                 let emissive = match (mat) {
                     case sm: MeshStandardMaterial => sm.emissive
                     case _ => Color(0x000000)
                 }
-                eMem.writeFloats([emissive.r, emissive.g, emissive.b, 1.0], 4)
-                bgfx_set_uniform_cj(uEmissive.value, unsafe { CPointer<Unit>(eMem.data()) }, 1u16)
+                this._setVec4(uEmissive, emissive.r, emissive.g, emissive.b, 1.0)
             case "PointsMaterial" =>
-                // u_pointSize：点大小（PointsMaterial.size，对照 three.js points.vert gl_PointSize = size）
+                // u_pointSize：点大小（PointsMaterial.size，对照 points.vert 的 gl_PointSize = size）
                 match (mat) {
                     case pm: PointsMaterial =>
-                        let uPointSize = this.uniforms.createUniform("u_pointSize", UniformType.Vec4.value())
-                        let psMem = BgfxMemory(16u32)
-                        psMem.writeFloats([pm.size, 0.0, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uPointSize.value, unsafe { CPointer<Unit>(psMem.data()) }, 1u16)
+                        let uPointSize = this._cachedUniform("u_pointSize", UniformType.Vec4.value())
+                        this._setVec4(uPointSize, pm.size, 0.0, 0.0, 0.0)
                     case _ => ()
                 }
             case "LineDashedMaterial" =>
                 // u_dashParams：x = dashSize, y = totalSize = dashSize + gapSize
                 match (mat) {
                     case ldm: LineDashedMaterial =>
-                        let uDashParams = this.uniforms.createUniform("u_dashParams", UniformType.Vec4.value())
-                        let dpMem = BgfxMemory(16u32)
+                        let uDashParams = this._cachedUniform("u_dashParams", UniformType.Vec4.value())
                         let totalSize = ldm.dashSize + ldm.gapSize
-                        dpMem.writeFloats([ldm.dashSize, totalSize, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uDashParams.value, unsafe { CPointer<Unit>(dpMem.data()) }, 1u16)
+                        this._setVec4(uDashParams, ldm.dashSize, totalSize, 0.0, 0.0)
                     case _ => ()
                 }
             case "ReflectorMaterial" =>
@@ -875,67 +1215,56 @@ public class BgfxBackend <: Backend {
                 match (mat) {
                     case rm: ReflectorMaterial =>
                         // tDiffuse（反射 RT color，stage 0）与 tDepth（反射深度 RT，stage 1，useDepthTexture 时）
-                        let uTDiffuse = this.uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+                        let uTDiffuse = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
                         bgfx_set_texture_cj(0u8, uTDiffuse.value, rm.tDiffuse.value, 0u32)
                         if (rm.useDepthTexture) {
-                            let uTDepth = this.uniforms.createUniform("tDepth", UniformType.Sampler.value())
+                            let uTDepth = this._cachedUniform("tDepth", UniformType.Sampler.value())
                             bgfx_set_texture_cj(1u8, uTDepth.value, rm.tDepth.value, 0u32)
                         }
                         // textureMatrix（mat4，反射贴图投影到地面）
-                        let uTexMtx = this.uniforms.createUniform("u_textureMatrix", UniformType.Mat4.value())
+                        let uTexMtx = this._cachedUniform("u_textureMatrix", UniformType.Mat4.value())
                         let tmArr = rm.textureMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                        let tmMem = BgfxMemory(64u32)
-                        tmMem.writeFloats(tmArr, 16)
-                        bgfx_set_uniform_cj(uTexMtx.value, unsafe { CPointer<Unit>(tmMem.data()) }, 1u16)
+                        this._uMem64.writeFloats(tmArr, 16)
+                        bgfx_set_uniform_cj(uTexMtx.value, unsafe { CPointer<Unit>(this._uMem64.data()) }, 1u16)
                         // color（vec4 rgb）
-                        let uColor = this.uniforms.createUniform("u_color", UniformType.Vec4.value())
-                        let cMem = BgfxMemory(16u32)
-                        cMem.writeFloats([rm.reflectorColor.r, rm.reflectorColor.g, rm.reflectorColor.b, 0.0], 4)
-                        bgfx_set_uniform_cj(uColor.value, unsafe { CPointer<Unit>(cMem.data()) }, 1u16)
+                        let uColorR = this._cachedUniform("u_color", UniformType.Vec4.value())
+                        this._uMem16.writeFloats([rm.reflectorColor.r, rm.reflectorColor.g, rm.reflectorColor.b, 0.0], 4)
+                        bgfx_set_uniform_cj(uColorR.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
                         // maxDistance / opacity（vec4.x；opacity 用父类 Material.opacity）
-                        let uMaxDist = this.uniforms.createUniform("u_maxDistance", UniformType.Vec4.value())
-                        let mdMem = BgfxMemory(16u32)
-                        mdMem.writeFloats([rm.maxDistance, 0.0, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uMaxDist.value, unsafe { CPointer<Unit>(mdMem.data()) }, 1u16)
-                        let uOpacity = this.uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                        let opMem = BgfxMemory(16u32)
-                        opMem.writeFloats([mat.opacity, 0.0, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uOpacity.value, unsafe { CPointer<Unit>(opMem.data()) }, 1u16)
+                        let uMaxDist = this._cachedUniform("u_maxDistance", UniformType.Vec4.value())
+                        this._uMem16.writeFloats([rm.maxDistance, 0.0, 0.0, 0.0], 4)
+                        bgfx_set_uniform_cj(uMaxDist.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
+                        let uOpacityR = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+                        this._uMem16.writeFloats([mat.opacity, 0.0, 0.0, 0.0], 4)
+                        bgfx_set_uniform_cj(uOpacityR.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
                         // fresnelCoe（vec4.x）
-                        let uFresnel = this.uniforms.createUniform("u_fresnelCoe", UniformType.Vec4.value())
-                        let fcMem = BgfxMemory(16u32)
-                        fcMem.writeFloats([rm.fresnelCoe, 0.0, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uFresnel.value, unsafe { CPointer<Unit>(fcMem.data()) }, 1u16)
+                        let uFresnel = this._cachedUniform("u_fresnelCoe", UniformType.Vec4.value())
+                        this._uMem16.writeFloats([rm.fresnelCoe, 0.0, 0.0, 0.0], 4)
+                        bgfx_set_uniform_cj(uFresnel.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
                         // virtualCameraNear / virtualCameraFar（vec4.x）
-                        let uVCamNear = this.uniforms.createUniform("u_virtualCameraNear", UniformType.Vec4.value())
-                        let vnMem = BgfxMemory(16u32)
-                        vnMem.writeFloats([rm.virtualCameraNear, 0.0, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uVCamNear.value, unsafe { CPointer<Unit>(vnMem.data()) }, 1u16)
-                        let uVCamFar = this.uniforms.createUniform("u_virtualCameraFar", UniformType.Vec4.value())
-                        let vfMem = BgfxMemory(16u32)
-                        vfMem.writeFloats([rm.virtualCameraFar, 0.0, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uVCamFar.value, unsafe { CPointer<Unit>(vfMem.data()) }, 1u16)
+                        let uVCamNear = this._cachedUniform("u_virtualCameraNear", UniformType.Vec4.value())
+                        this._uMem16.writeFloats([rm.virtualCameraNear, 0.0, 0.0, 0.0], 4)
+                        bgfx_set_uniform_cj(uVCamNear.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
+                        let uVCamFar = this._cachedUniform("u_virtualCameraFar", UniformType.Vec4.value())
+                        this._uMem16.writeFloats([rm.virtualCameraFar, 0.0, 0.0, 0.0], 4)
+                        bgfx_set_uniform_cj(uVCamFar.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
                         // resolution（vec4 xy）
-                        let uRes = this.uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                        let resMem = BgfxMemory(16u32)
-                        resMem.writeFloats([rm.resolutionX, rm.resolutionY, 0.0, 0.0], 4)
-                        bgfx_set_uniform_cj(uRes.value, unsafe { CPointer<Unit>(resMem.data()) }, 1u16)
+                        let uRes = this._cachedUniform("u_resolution", UniformType.Vec4.value())
+                        this._uMem16.writeFloats([rm.resolutionX, rm.resolutionY, 0.0, 0.0], 4)
+                        bgfx_set_uniform_cj(uRes.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
                         // virtualCameraProjectionMatrix / ProjectionMatrixInverse / MatrixWorld（mat4）
-                        let uProj = this.uniforms.createUniform("u_virtualCameraProjectionMatrix", UniformType.Mat4.value())
+                        let uProj = this._cachedUniform("u_virtualCameraProjectionMatrix", UniformType.Mat4.value())
                         let pArr = rm.virtualCameraProjectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                        let pMem = BgfxMemory(64u32)
-                        pMem.writeFloats(pArr, 16)
-                        bgfx_set_uniform_cj(uProj.value, unsafe { CPointer<Unit>(pMem.data()) }, 1u16)
-                        let uProjInv = this.uniforms.createUniform("u_virtualCameraProjectionMatrixInverse", UniformType.Mat4.value())
+                        this._uMem64.writeFloats(pArr, 16)
+                        bgfx_set_uniform_cj(uProj.value, unsafe { CPointer<Unit>(this._uMem64.data()) }, 1u16)
+                        let uProjInv = this._cachedUniform("u_virtualCameraProjectionMatrixInverse", UniformType.Mat4.value())
                         let piArr = rm.virtualCameraProjectionMatrixInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
-                        let piMem = BgfxMemory(64u32)
-                        piMem.writeFloats(piArr, 16)
-                        bgfx_set_uniform_cj(uProjInv.value, unsafe { CPointer<Unit>(piMem.data()) }, 1u16)
-                        let uMtxWorld = this.uniforms.createUniform("u_virtualCameraMatrixWorld", UniformType.Mat4.value())
+                        this._uMem64.writeFloats(piArr, 16)
+                        bgfx_set_uniform_cj(uProjInv.value, unsafe { CPointer<Unit>(this._uMem64.data()) }, 1u16)
+                        let uMtxWorld = this._cachedUniform("u_virtualCameraMatrixWorld", UniformType.Mat4.value())
                         let mwArr = rm.virtualCameraMatrixWorld.toArray(Array<Float64>(16, { _ => 0.0 }))
-                        let mwMem = BgfxMemory(64u32)
-                        mwMem.writeFloats(mwArr, 16)
-                        bgfx_set_uniform_cj(uMtxWorld.value, unsafe { CPointer<Unit>(mwMem.data()) }, 1u16)
+                        this._uMem64.writeFloats(mwArr, 16)
+                        bgfx_set_uniform_cj(uMtxWorld.value, unsafe { CPointer<Unit>(this._uMem64.data()) }, 1u16)
                     case _ => ()
                 }
             case _ => ()
@@ -973,78 +1302,205 @@ public class BgfxBackend <: Backend {
      * #define sampler2D BgfxSampler2D，裸 uniform sampler2D 会被替换成 struct，
      * bgfx 无法按名绑定 → 贴图采样不生效。
      */
+    @Zone[three.rendering.bgfx.BgfxBackend._bindMaterialTextures]
     private func _bindMaterialTextures(mat: Material): Unit {
-        // 收集 (samplerName, texture, stage) 三元组，按材质 kind 分支
+        // 按材质 kind 直接绑定（不再每 draw 构造 bindings 数组：逐 draw 的
+        // ArrayList + 元组装箱是无贴图材质场景下最纯粹的浪费）。
         // stage 从 16 起分配，避开 shadow 区段（0..15）
-        var bindings = ArrayList<(String, Texture, UInt8)>()
         match (mat.kind) {
             case "MeshStandardMaterial" | "MeshPhysicalMaterial" =>
                 match (mat) {
                     case sm: MeshStandardMaterial =>
-                        match (sm.map) { case Some(t) => bindings.add(("map", t, SamplerStages.STAGE_MAP)); case None => () }
-                        match (sm.roughnessMap) { case Some(t) => bindings.add(("roughnessMap", t, SamplerStages.STAGE_ROUGHNESS_MAP)); case None => () }
-                        match (sm.metalnessMap) { case Some(t) => bindings.add(("metalnessMap", t, SamplerStages.STAGE_METALNESS_MAP)); case None => () }
-                        match (sm.normalMap) { case Some(t) => bindings.add(("normalMap", t, SamplerStages.STAGE_NORMAL_MAP)); case None => () }
-                        match (sm.aoMap) { case Some(t) => bindings.add(("aoMap", t, SamplerStages.STAGE_AO_MAP)); case None => () }
-                        match (sm.emissiveMap) { case Some(t) => bindings.add(("emissiveMap", t, SamplerStages.STAGE_EMISSIVE_MAP)); case None => () }
+                        this._bindMatTexture("map", sm.map, SamplerStages.STAGE_MAP)
+                        this._bindMatTexture("roughnessMap", sm.roughnessMap, SamplerStages.STAGE_ROUGHNESS_MAP)
+                        this._bindMatTexture("metalnessMap", sm.metalnessMap, SamplerStages.STAGE_METALNESS_MAP)
+                        this._bindMatTexture("normalMap", sm.normalMap, SamplerStages.STAGE_NORMAL_MAP)
+                        this._bindMatTexture("aoMap", sm.aoMap, SamplerStages.STAGE_AO_MAP)
+                        this._bindMatTexture("emissiveMap", sm.emissiveMap, SamplerStages.STAGE_EMISSIVE_MAP)
                     case _ => ()
                 }
             case "MeshBasicMaterial" =>
                 match (mat) {
                     case bm: MeshBasicMaterial =>
-                        match (bm.map) { case Some(t) => bindings.add(("map", t, SamplerStages.STAGE_MAP)); case None => () }
+                        this._bindMatTexture("map", bm.map, SamplerStages.STAGE_MAP)
                     case _ => ()
                 }
             case _ => ()
         }
-        if (bindings.size == 0) { return }
-        for (i in 0..bindings.size) {
-            let (samplerName, tex, stage) = bindings[i]
-            let texId = tex.uuid.hashCode()
-            // 1. 取/创建 bgfx 纹理句柄（按 texture.uuid 缓存，避免每帧重传）
-            var handle = TextureHandle(65535u16)
-            match (this._matTexCache.get(texId)) {
-                case Some(h) => handle = h
-                case None =>
-                    handle = this._uploadMaterialTexture(tex)
-                    if (handle.idx != 65535u16) {
-                        this._matTexCache.add(texId, handle)
-                    }
-            }
-            if (handle.idx == 65535u16) {
-                @LogWarn(["bindTex", "sampler=${samplerName} tex=${tex.uuid} handle INVALID, skip"])
-                continue
-            }
-            // 2. 创建 sampler uniform（按 shader 中声明的名字）并绑定到 stage
-            let sampler = this.uniforms.createUniform(samplerName, UniformType.Sampler.value())
-            bgfx_set_texture_cj(stage, sampler.value, handle, 0u32)
-            @LogTrace(["bindTex", "sampler=${samplerName} stage=${stage.toString()} tex=${tex.uuid} w=${tex.width.toString()} h=${tex.height.toString()}"])
-            // 3. 设置对应 mat3 transform uniform（默认单位矩阵）
-            // uv_vertex chunk：vMetalnessMapUv = mul( metalnessMapTransform, vec3( METALNESSMAP_UV, 1 ) ).xy
-            // 后端若不设置这些 mat3 uniform，bgfx 默认 0 矩阵 → UV=(0,0) → 所有表面采样贴图同一像素
-            // → 金属度/粗糙度贴图完全失去渐变效果（对照 Three.js WebGLUniforms：uvTransform 默认单位矩阵）
-            let transformName = match (samplerName) {
-                case "map" => "mapTransform"
-                case "roughnessMap" => "roughnessMapTransform"
-                case "metalnessMap" => "metalnessMapTransform"
-                case "normalMap" => "normalMapTransform"
-                case "aoMap" => "aoMapTransform"
-                case "emissiveMap" => "emissiveMapTransform"
-                case _ => ""
-            }
-            if (transformName != "") {
-                let uTransform = this.uniforms.createUniform(transformName, UniformType.Mat3.value())
-                let tMem = BgfxMemory(48u32)
-                // 单位矩阵（bgfx mat3 列主序存储：3 个 vec4，共 12 float）
-                tMem.writeFloats([
-                    1.0, 0.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0, 0.0,
-                    0.0, 0.0, 1.0, 0.0
-                ], 12)
-                bgfx_set_uniform_cj(uTransform.value, unsafe { CPointer<Unit>(tMem.data()) }, 1u16)
-                @LogTrace(["bindTex", "transform=${transformName} handle.idx=${uTransform.value.idx}"])
+        // 环境贴图（IBL）：常规材质贴图绑定完成后统一处理
+        this._bindEnvMap(mat)
+    }
+
+    /**
+     * @brief[zh-cn] 绑定单张材质贴图到指定纹理阶段
+     * @explain[zh-cn] 上传（按 texture.uuid 缓存，避免每帧重传）+ 绑定 sampler +
+     *               设置对应 mat3 uv 变换矩阵（默认单位矩阵）。
+     *               uv_vertex chunk：vMetalnessMapUv = mul( metalnessMapTransform,
+     *               vec3( METALNESSMAP_UV, 1 ) ).xy——后端若不设置这些 mat3 uniform，
+     *               bgfx 默认 0 矩阵 → UV=(0,0) → 所有表面采样贴图同一像素
+     *               → 金属度/粗糙度贴图完全失去渐变效果（对照 WebGLUniforms：
+     *               uvTransform 默认单位矩阵）。
+     *
+     * @brief[en] Binds a single material texture to the given texture stage
+     * @explain[en] Uploads (cached by texture.uuid, avoiding per-frame re-upload),
+     *               binds the sampler and sets the matching mat3 uv transform
+     *               (identity by default).
+     *
+     * @param[zh-cn] samplerName shader 中声明的 sampler 名
+     * @param[zh-cn] texOpt 材质贴图（None 表示该材质无此贴图）
+     * @param[zh-cn] stage bgfx 纹理阶段
+     */
+    private func _bindMatTexture(samplerName: String, texOpt: Option<Texture>, stage: UInt8): Unit {
+        let tex = if (let Some(t) <- texOpt) { t } else { return }
+        let texId = tex.id
+        // 1. 取/创建 bgfx 纹理句柄（按 texture.uuid 缓存，避免每帧重传）
+        var handle = TextureHandle(65535u16)
+        if (let Some(h) <- this._matTexCache.get(texId)) {
+            handle = h
+        } else {
+            handle = this._uploadMaterialTexture(tex)
+            if (handle.idx != 65535u16) {
+                this._matTexCache.add(texId, handle)
             }
         }
+        if (handle.idx == 65535u16) {
+            @LogWarn(["bindTex", "sampler=${samplerName} tex=${tex.uuid} handle INVALID, skip"])
+            return
+        }
+        // 2. 创建 sampler uniform（按 shader 中声明的名字）并绑定到 stage
+        let sampler = this._cachedUniform(samplerName, UniformType.Sampler.value())
+        bgfx_set_texture_cj(stage, sampler.value, handle, 0u32)
+        @LogTrace(["bindTex", "sampler=${samplerName} stage=${stage.toString()} tex=${tex.uuid} w=${tex.width.toString()} h=${tex.height.toString()}"])
+        // 3. 设置对应 mat3 transform uniform（默认单位矩阵）
+        let transformName = match (samplerName) {
+            case "map" => "mapTransform"
+            case "roughnessMap" => "roughnessMapTransform"
+            case "metalnessMap" => "metalnessMapTransform"
+            case "normalMap" => "normalMapTransform"
+            case "aoMap" => "aoMapTransform"
+            case "emissiveMap" => "emissiveMapTransform"
+            case _ => ""
+        }
+        if (transformName != "") {
+            let uTransform = this._cachedUniform(transformName, UniformType.Mat3.value())
+            // 单位矩阵（bgfx mat3 列主序存储：3 个 vec4，共 12 float）
+            let t = this._scratch12
+            t[0] = 1.0
+            t[1] = 0.0
+            t[2] = 0.0
+            t[3] = 0.0
+            t[4] = 0.0
+            t[5] = 1.0
+            t[6] = 0.0
+            t[7] = 0.0
+            t[8] = 0.0
+            t[9] = 0.0
+            t[10] = 1.0
+            t[11] = 0.0
+            this._uMem48.writeFloats(t, 12)
+            bgfx_set_uniform_cj(uTransform.value, unsafe { CPointer<Unit>(this._uMem48.data()) }, 1u16)
+            @LogTrace(["bindTex", "transform=${transformName} handle.idx=${uTransform.value.idx}"])
+        }
+    }
+
+    /**
+     * _effectiveEnvMap：取材质实际生效的环境贴图（IBL）
+     *
+     * 语义对照通用引擎：material.envMap 优先，缺失时回退 scene.environment；
+     * 生效强度 = Material.envMapIntensity × Scene.environmentIntensity。
+     * 返回值为 (纹理, 强度)；无环境贴图时返回 None。
+     *
+     * @param[zh-cn] mat 材质
+     * @return[zh-cn] Some((环境贴图, 强度)) 或 None
+     *
+     * @brief[en] _effectiveEnvMap: resolve the effective environment map (IBL) of a material
+     * @param[en] mat Material
+     * @return[en] Some((envMap, intensity)) or None
+     */
+    private func _effectiveEnvMap(mat: Material): Option<(Texture, Float64)> {
+        // 仅 PBR 材质（standard/physical）走 IBL 路径
+        if (mat.kind != "MeshStandardMaterial" && mat.kind != "MeshPhysicalMaterial") {
+            return None
+        }
+        let texOpt = if (let Some(t) <- mat.envMap) { Some(t) } else { this._currentEnvMap }
+        if (let Some(t) <- texOpt) {
+            // 当前仅实现 PMREM CubeUV 路径；非 CubeUV 映射的贴图会被按 CubeUV 布局采样（告警提示）
+            if (t.mapping != CubeUVReflectionMapping) {
+                @LogDebug(["env", "envMap mapping=${t.mapping} != CubeUVReflectionMapping; sampled as CubeUV atlas"])
+            }
+            return Some((t, mat.envMapIntensity * this._currentEnvIntensity))
+        }
+        return None
+    }
+
+    /**
+     * _bindEnvMap：绑定环境贴图（IBL）到 STAGE_ENV_MAP 并设置强度 uniform
+     *
+     * 对照 WebGLRenderer 的 envMap 绑定：材质 prepare 后把生效环境贴图
+     * （material.envMap ?? scene.environment）绑到 u_envMap，强度写入 u_envMapIntensity。
+     * 未绑定时标准/物理材质的 envmap_physical_pars_fragment 采样返回 0 → 无环境光照
+     * （向光面仅剩直接光照，背光面全黑）。
+     *
+     * @param[zh-cn] mat 材质
+     *
+     * @brief[en] _bindEnvMap: bind the environment map (IBL) to STAGE_ENV_MAP and set the intensity uniform
+     * @param[en] mat Material
+     */
+    private func _bindEnvMap(mat: Material): Unit {
+        let effOpt = this._effectiveEnvMap(mat)
+        if (let Some((envTex, intensity)) <- effOpt) {
+            let texId = envTex.uuid.hashCode()
+            var handle = TextureHandle(65535u16)
+            if (let Some(h) <- this._matTexCache.get(texId)) {
+                handle = h
+            } else {
+                handle = this._uploadEnvMapTexture(envTex)
+                if (handle.idx != 65535u16) {
+                    this._matTexCache.add(texId, handle)
+                }
+            }
+            if (handle.idx == 65535u16) {
+                @LogWarn(["bindEnv", "envMap handle INVALID, skip"])
+                return
+            }
+            // ClampToEdge：CubeUV 图集边界必须 clamp，否则线性过滤会绕回采到错误层级/面
+            let envFlags = UInt32(SAMPLER_U_CLAMP) | UInt32(SAMPLER_V_CLAMP)
+            let sampler = this._cachedUniform("u_envMap", UniformType.Sampler.value())
+            bgfx_set_texture_cj(SamplerStages.STAGE_ENV_MAP, sampler.value, handle, envFlags)
+            let uIntensity = this._cachedUniform("u_envMapIntensity", UniformType.Vec4.value())
+            this._uMem16.writeFloats([intensity, 0.0, 0.0, 0.0], 4)
+            bgfx_set_uniform_cj(uIntensity.value, unsafe { CPointer<Unit>(this._uMem16.data()) }, 1u16)
+            @LogTrace(["bindEnv", "u_envMap stage=${SamplerStages.STAGE_ENV_MAP.toString()} w=${envTex.width.toString()} h=${envTex.height.toString()} intensity=${intensity}"])
+        }
+    }
+
+    /**
+     * _uploadEnvMapTexture：把 PMREM CubeUV 环境贴图上传为 bgfx 2D 纹理
+     *
+     * 与 _uploadMaterialTexture 的区别：采样标志固定为 U/V ClampToEdge
+     * （CubeUV 是图集，边界必须 clamp），无 mip 链（层级是图集内的独立平面）。
+     *
+     * @param[zh-cn] tex CubeUV 环境贴图（DataTexture）
+     * @return[zh-cn] bgfx TextureHandle；失败返回 INVALID (65535)
+     *
+     * @brief[en] _uploadEnvMapTexture: upload a PMREM CubeUV env map as a bgfx 2D texture
+     * @param[en] tex CubeUV env map (DataTexture)
+     * @return[en] bgfx TextureHandle; INVALID (65535) on failure
+     */
+    private func _uploadEnvMapTexture(tex: Texture): TextureHandle {
+        let w = tex.width
+        let h = tex.height
+        let img = tex.image
+        if (w <= 0 || h <= 0 || img.size == 0) {
+            @LogWarn(["uploadEnv", "tex=${tex.uuid} empty data w=${w.toString()} h=${h.toString()}"])
+            return TextureHandle(65535u16)
+        }
+        let mem = BgfxMemory(UInt32(img.size))
+        mem.writeUInt8(img, Int64(img.size))
+        let flags = UInt64(SAMPLER_U_CLAMP) | UInt64(SAMPLER_V_CLAMP)
+        let handle = bgfx_create_texture_2d_cj(UInt16(w), UInt16(h), false, 1u16, TextureFormat.RGBA8.value(), flags, mem.get())
+        @LogDebug(["uploadEnv", "tex=${tex.uuid} w=${w.toString()} h=${h.toString()} handle.idx=${handle.idx.toString()}"])
+        return handle
     }
 
     /**
@@ -1102,12 +1558,76 @@ public class BgfxBackend <: Backend {
         return rgbPart | alphaPart
     }
 
-    // ===== Shader 程序获取（Three.js 模式：从材质编译自定义 shader）=====
-    // 对照 Three.js WebGLBackend: 从 material 获取已编译的 program
+    // ===== Shader 程序获取（主流 Web 引擎模式：从材质编译自定义 shader）=====
+    // 对照 WebGLBackend: 从 material 获取已编译的 program
     // 对照参考代码 ThreeRenderer.getOrCreateProgram
 
     private var _customProgCache: HashMap<String, ProgramHandle> = HashMap<String, ProgramHandle>()
     private var _variantProgCache: HashMap<String, ProgramHandle> = HashMap<String, ProgramHandle>()
+
+    /**
+     * ShaderMaterial program 快路径缓存：Material.id → ProgramHandle。
+     * 原实现每 draw 拼一次 "custom_" + sm.uuid 字符串（一次堆分配）再查 HashMap。
+     * ShaderMaterial 的自定义 shader 与实例一一对应（uuid 唯一），故用 mat.id 作键即可。
+     * 注意：只服务 ShaderMaterial 路径，不与内置材质的变体缓存混用。
+     */
+    private var _customProgByMatId: HashMap<Int64, ProgramHandle> = HashMap<Int64, ProgramHandle>()
+
+    // D 项性能优化：variantKey 记忆化。
+    // variantKey 由「材质前缀（shaderName_uuid_tex）+ 帧级光照后缀 + inst/env 后缀」组成。
+    // 材质前缀在材质生命周期内恒定（mat.uuid/kind/纹理组合不变）→ 缓存，避免每 draw 重算
+    // ShaderVariant.getVariantKey（数组分配 + join）与长字符串拼接；
+    // 帧级光照后缀（9 个计数 + shadow 类型）在 beginRender 每帧拼一次，避免每 draw 9 次 toString。
+    // 注意：若运行时替换材质的纹理/kind，前缀缓存会过期（罕见操作，换纹理后需重建 program，
+    // 与本缓存预期一致：perf_render 等共享材质场景命中率 100%）。
+    private var _frameLightSuffix: String = ""
+    private var _matVariantPrefixCache: HashMap<Int64, String> = HashMap<Int64, String>()
+
+    /**
+     * @brief[zh-cn] 光照后缀的重建判据（上次重建时的各计数与阴影类型）
+     * @explain[zh-cn] 光照后缀由 9 个计数 + 阴影类型拼成，每帧重建会产生十余次
+     *               toString 与字符串拼接（实测 beginRender 自耗时 54µs 的一部分）。
+     *               绝大多数帧这些值不变，故缓存上次取值，仅在变化时重建后缀串。
+     *
+     * @brief[en] Rebuild criteria for the light suffix (counts and shadow type at last rebuild)
+     * @explain[en] The light suffix is built from 9 counts plus the shadow type; rebuilding
+     *               it every frame costs a dozen toString calls and string concatenations
+     *               (part of beginRender's 54µs self time). These values rarely change,
+     *               so the last ones are cached and the suffix is rebuilt only on change.
+     */
+    private var _lsDir: Int64 = -1
+    private var _lsPoint: Int64 = -1
+    private var _lsSpot: Int64 = -1
+    private var _lsHemi: Int64 = -1
+    private var _lsProbe: Int64 = -1
+    private var _lsDirShadow: Int64 = -1
+    private var _lsPointShadow: Int64 = -1
+    private var _lsSpotShadow: Int64 = -1
+    private var _lsShadowType: Int64 = -1
+
+    /**
+     * program 快路径缓存：Material.id → 上次命中的变体指纹（帧级光照后缀 + 实例化标记 + env 标记）。
+     * 命中时直接返回句柄，跳过 variantKey 的 3 次字符串拼接与长字符串哈希；
+     * 指纹任一分量变化即回退完整键路径重新解析，语义与原实现一致。
+     */
+    private var _fastProgCache: HashMap<Int64, FastProg> = HashMap<Int64, FastProg>()
+
+    private func _storeFastProg(matId: Int64, instSuffix: String, envSuffix: String,
+                               lightSuffix: String, handle: ProgramHandle): Unit {
+        if (let Some(fp) <- this._fastProgCache.get(matId)) {
+            fp.lightSuffix = lightSuffix
+            fp.instSuffix = instSuffix
+            fp.envSuffix = envSuffix
+            fp.handle = handle
+        } else {
+            let fp = FastProg()
+            fp.lightSuffix = lightSuffix
+            fp.instSuffix = instSuffix
+            fp.envSuffix = envSuffix
+            fp.handle = handle
+            this._fastProgCache[matId] = fp
+        }
+    }
 
     /**
      * _getOrCreateProgram：按 mat.kind 选择基础 shader 并编译变体
@@ -1118,47 +1638,60 @@ public class BgfxBackend <: Backend {
      *    调 ShaderProgram.createVariant 复制已解析的 bgfx 源码，再 compileBgfxWithDefines 编译
      *
      * 变体按 mat.uuid 缓存，避免每帧重编译。
+     *
+     * @param[zh-cn] instanced 是否为实例化变体：追加 USE_INSTANCING=1 define（激活 chunk 实例分支
+     * 与 VS 的 i_data0..3 注入），variantKey 加 "_inst" 后缀与普通变体区分缓存
      */
-    private func _getOrCreateProgram(mat: Material): ProgramHandle {
+    @Zone[three.rendering.bgfx.BgfxBackend._getOrCreateProgram]
+    private func _getOrCreateProgram(mat: Material, instanced!: Bool = false): ProgramHandle {
         // 1. ShaderMaterial：编译材质自带的自定义 shader
         // 注意：RawShaderMaterial/ShaderMaterial 未设置 vertexShader/fragmentShader 时
         //       （空字符串），空 shader 编译必然失败 → 无模型显示但几何体仍在（射线可命中）。
-        //       对照 three.js：ShaderMaterial 无自定义 shader 时回退到默认材质着色
-        //       （three.js 中 ShaderMaterial 默认有内置 shader；仓颉侧为空则回退基础路径）。
+        //       对照通用引擎惯例：ShaderMaterial 无自定义 shader 时回退到默认材质着色
+        //       （主流 Web 引擎中 ShaderMaterial 默认有内置 shader；仓颉侧为空则回退基础路径）。
         if (mat is ShaderMaterial) {
             let smOpt = mat as ShaderMaterial
-            match (smOpt) {
-                case Some(sm) =>
-                    if (sm.vertexShader.size > 0 && sm.fragmentShader.size > 0) {
-                        let key = "custom_" + sm.uuid
-                        match (this._customProgCache.get(key)) {
-                            case Some(prog) =>
-                                @LogDebug(["program", "ShaderMaterial cache HIT key=${key} prog.idx=${prog.idx}"])
-                                return prog
-                            case None => ()
-                        }
-                        @LogDebug(["program", "compiling custom shader key=${key} vsLen=${sm.vertexShader.size} fsLen=${sm.fragmentShader.size}"])
-                        let varyingDef = this._extractVaryingDef(sm.vertexShader)
-                        @LogDebug(["program", "varyingDef=${varyingDef}"])
-                        let prog = ShaderProgram(key, sm.vertexShader, sm.fragmentShader, varyingDef: varyingDef)
-                        prog.compileBgfx()
-                        @LogDebug(["program", "custom compile result key=${key} prog.idx=${prog.programHandle.idx}"])
-                        if (prog.programHandle.idx != 65535u16) {
-                            this._customProgCache.add(key, prog.programHandle)
-                            return prog.programHandle
-                        }
-                        @LogError(["program", "custom shader compile FAILED key=${key}"])
-                        return ProgramHandle(65535u16)
-                    } else {
-                        // 空 shader 回退：不编译自定义程序，落入下方按 mat.kind 的基础 shader 分发
-                        @LogDebug(["program", "ShaderMaterial empty shader, fallback to basic kind=${sm.kind}"])
+            if (let Some(sm) <- smOpt) {
+                if (sm.vertexShader.size > 0 && sm.fragmentShader.size > 0) {
+                    // 按材质 id 直接缓存 program：原实现每 draw 拼一次 "custom_" + sm.uuid
+                    // 字符串（一次堆分配）再查 HashMap。ShaderMaterial 的自定义 shader
+                    // 与实例一一对应（uuid 唯一），故用 mat.id 作键即可，无需拼前缀。
+                    // 注意：ShaderMaterial 走独立缓存，不与内置材质的变体缓存混用。
+                    if (let Some(prog) <- this._customProgByMatId.get(mat.id)) {
+                        @LogDebug(["program", "ShaderMaterial cache HIT matId=${mat.id} prog.idx=${prog.idx}"])
+                        return prog
                     }
-                case None => ()
+                    let key = "custom_" + sm.uuid
+                    if (let Some(prog) <- this._customProgCache.get(key)) {
+                        @LogDebug(["program", "ShaderMaterial cache HIT key=${key} prog.idx=${prog.idx}"])
+                        this._customProgByMatId[mat.id] = prog
+                        return prog
+                    }
+                    @LogDebug(["program", "compiling custom shader key=${key} vsLen=${sm.vertexShader.size} fsLen=${sm.fragmentShader.size}"])
+                    let varyingDef = this._extractVaryingDef(sm.vertexShader)
+                    @LogDebug(["program", "varyingDef=${varyingDef}"])
+                    let prog = ShaderProgram(key, sm.vertexShader, sm.fragmentShader, varyingDef: varyingDef)
+                    prog.compileBgfx()
+                    @LogDebug(["program", "custom compile result key=${key} prog.idx=${prog.programHandle.idx}"])
+                    if (prog.programHandle.idx != 65535u16) {
+                        this._customProgCache.add(key, prog.programHandle)
+                        this._customProgByMatId[mat.id] = prog.programHandle
+                        return prog.programHandle
+                    }
+                    @LogError(["program", "custom shader compile FAILED key=${key}"])
+                    // 负缓存：同 variant，失败不缓存会导致每帧重编译
+                    this._customProgCache.add(key, ProgramHandle(65535u16))
+                    this._customProgByMatId[mat.id] = ProgramHandle(65535u16)
+                    return ProgramHandle(65535u16)
+                } else {
+                    // 空 shader 回退：不编译自定义程序，落入下方按 mat.kind 的基础 shader 分发
+                    @LogDebug(["program", "ShaderMaterial empty shader, fallback to basic kind=${sm.kind}"])
+                }
             }
         }
 
         // 2. 其他材质：按 mat.kind 选择基础 shader 名称
-        // 对照 Three.js ShaderLib：材质 kind → ShaderLibs 注册的程序名
+        // 对照 ShaderLib 惯例：材质 kind → ShaderLibs 注册的程序名
         // ShaderLibs.initialize() 中注册的程序：basic/lambert/phong/standard/physical/
         //   normal/depth/depthviz/lightdir/shadowproj/shadowblit/pcf/shadowfrustum/vsm/...
         let shaderName = match (mat.kind) {
@@ -1176,7 +1709,7 @@ public class BgfxBackend <: Backend {
             case "SpriteMaterial" => "sprite"
             case "ShadowMaterial" => "shadow"
             case "LineDashedMaterial" => "linedashed"
-            // bgfx4cj 扩展：debug 可视化材质（对照 Three.js 无，属本仓库扩展）
+            // bgfx4cj 扩展：debug 可视化材质（主流 Web 引擎无此扩展，属本仓库扩展）
             case "DepthVizMaterial" => "depthviz"
             case "LightDirMaterial" => "lightdir"
             case "ShadowProjMaterial" => "shadowproj"
@@ -1190,52 +1723,96 @@ public class BgfxBackend <: Backend {
         // variant 缓存键含光照/阴影计数+阴影类型+纹理组合（对照参考项目 ThreeRenderer 行 1291 的 lightKey）
         // 否则阴影光源数量或阴影类型变化时不会重编译 shader，导致阴影缺失或多余阴影分支
         // 纹理组合变化时也必须重编译，否则 PBR 路径（USE_MAP/USE_METALNESSMAP/USE_ROUGHNESSMAP）被剔除
-        let stKey = this.shadowMap.getShadowType().toString()
-        // ShaderVariant.getVariantKey 返回 kind 或 kind_FLAG1_FLAG2...（FLAG 为大写 USE_XXX 前缀名）
-        let texVariant = ShaderVariant.getVariantKey(mat)
-        // 提取变体中的纹理标志部分（去掉前导 kind），拼到 variantKey 中
-        let texFlagsPart = if (texVariant.size > mat.kind.size + 1) {
-            texVariant[mat.kind.size + 1..]
-        } else {
-            ""
+        // D 项：帧级光照后缀（_num*Lights 计数 + 阴影计数 + shadow 类型）已由 beginRender 每帧构建一次，
+        // 此处直接复用，避免每 draw 重复 9 次 toString 与长字符串拼接
+        let frameLightSuffix = this._frameLightSuffix
+        // 实例化变体标记
+        let instSuffix = if (instanced) { "_inst" } else { "" }
+        // IBL 变体：存在生效环境贴图时追加 "_env" 后缀，与无 envMap 的变体区分缓存
+        // （否则同一材质在不同场景/不同环境贴图状态下会误用已编译变体）
+        let envSuffix = if (let Some(_) <- this._effectiveEnvMap(mat)) { "_env" } else { "" }
+        // 快路径：按 mat.id 记忆「上次命中的变体指纹」。命中时不重建 70+ 字符的 variantKey
+        // （3 次字符串拼接）也不做长字符串哈希，只比对 3 个短分量。
+        // 指纹任一分量变化（光照数量/阴影类型/实例化/环境贴图）即回退到完整键路径。
+        if (let Some(fp) <- this._fastProgCache.get(mat.id)) {
+            if (fp.instSuffix == instSuffix && fp.envSuffix == envSuffix &&
+                fp.lightSuffix == frameLightSuffix) {
+                return fp.handle
+            }
         }
-        let variantKey = shaderName + "_" + mat.uuid +
-            "_D" + this._numDirLights.toString() + "P" + this._numPointLights.toString() +
-            "S" + this._numSpotLights.toString() + "H" + this._numHemiLights.toString() +
-            "L" + this._numLightProbes.toString() +
-            "_dSh" + this._numDirShadowLights.toString() + "pSh" + this._numPointShadowLights.toString() +
-            "sSh" + this._numSpotShadowLights.toString() + "st" + stKey +
-            "_tex" + texFlagsPart
-        match (this._variantProgCache.get(variantKey)) {
-            case Some(h) => return h
-            case None => ()
+        // 材质前缀（shader 语义分组）记忆化：同一材质重复 draw 时不再重算
+        // ShaderVariant.getVariantKey（数组分配 + join）与 shaderName/kind/texFlags 拼接
+        //
+        // 变体键按 shader 语义分组，不再按 mat.uuid（实例级）隔离：
+        // 内置材质的编译产物（源码 + defines）只取决于 shader 名、材质 kind、
+        // 纹理标志、光照/实例化/env 后缀，与材质实例本身无关。相同 kind 的多个材质
+        // （如 5 个无贴图 MeshPhongMaterial）此前会各自编译一份完全相同的 shader
+        // （bokeh_pass 场景实测 7 次重复编译合计约 1.97s），现共享同一 program。
+        // 例外：ReflectorMaterial 的 useDepthTexture / distanceAttenuation / fresnel
+        // 是随实例变化的编译期 define，保留 uuid 隔离以维持既有行为。
+        var matPrefix = ""
+        if (let Some(p) <- this._matVariantPrefixCache.get(mat.id)) {
+            matPrefix = p
+        } else {
+            // ShaderVariant.getVariantKey 返回 kind 或 kind_FLAG1_FLAG2...（FLAG 为大写 USE_XXX 前缀名）
+            let texVariant = ShaderVariant.getVariantKey(mat)
+            // 提取变体中的纹理标志部分（去掉前导 kind），拼到 variantKey 中
+            let texFlagsPart = if (texVariant.size > mat.kind.size + 1) {
+                texVariant[mat.kind.size + 1..]
+            } else {
+                ""
+            }
+            matPrefix = if (mat is ReflectorMaterial) {
+                shaderName + "_" + mat.uuid + "_tex" + texFlagsPart
+            } else {
+                shaderName + "_" + mat.kind + "_tex" + texFlagsPart
+            }
+            this._matVariantPrefixCache.add(mat.id, matPrefix)
+        }
+        let variantKey = matPrefix + frameLightSuffix + instSuffix + envSuffix
+        if (let Some(h) <- this._variantProgCache.get(variantKey)) {
+            this._storeFastProg(mat.id, instSuffix, envSuffix, frameLightSuffix, h)
+            return h
         }
         @LogDebug(["program", "compiling variant key=" + variantKey + " shaderName=" + shaderName + " texFlags=" + texFlagsPart])
-        match (ShaderLibs.get(shaderName)) {
-            case Some(baseProg) =>
-                let variantProg = ShaderProgram.createVariant(variantKey, baseProg)
-                // 构建光照计数 defines（NUM_DIR_LIGHTS 等）
-                // 对照原始有效实现 ThreeRenderer.getOrCreateProg（行 1332-1339）
-                // 不传这些 defines 会导致 #if NUM_DIR_LIGHTS > 0 整段被预处理器剔除 → 物体渲染为黑
-                let lightDefs = this._buildLightDefines()
-                // 合并材质纹理 #define（USE_MAP=1 / USE_METALNESSMAP=1 / USE_ROUGHNESSMAP=1 / ...）
-                // 不传则 map_fragment/metalnessmap_fragment/roughnessmap_fragment 整段被预处理器剔除
-                // → PBR 纹理路径失效 → 模型呈现纯金属/纯粗糙（向光白背光黑）
-                let defines = this._mergeTextureDefines(lightDefs, mat)
-                lightDefs.dispose()
-                variantProg.compileBgfx(extraDefines: defines.defs)
-                defines.dispose()
-                if (variantProg.programHandle.idx != 65535u16) {
-                    this._variantProgCache.add(variantKey, variantProg.programHandle)
-                    @LogDebug(["program", "variant compiled OK key=" + variantKey + " idx=" + variantProg.programHandle.idx.toString()])
-                    return variantProg.programHandle
-                }
-                @LogError(["program", "variant compile FAILED key=" + variantKey])
-                return ProgramHandle(65535u16)
-            case None =>
-                @LogError(["program", "base shader not found: " + shaderName])
-                return ProgramHandle(65535u16)
+        if (let Some(baseProg) <- ShaderLibs.get(shaderName)) {
+            let variantProg = ShaderProgram.createVariant(variantKey, baseProg)
+            // 构建光照计数 defines（NUM_DIR_LIGHTS 等）
+            // 对照原始有效实现 ThreeRenderer.getOrCreateProg（行 1332-1339）
+            // 不传这些 defines 会导致 #if NUM_DIR_LIGHTS > 0 整段被预处理器剔除 → 物体渲染为黑
+            let lightDefs = this._buildLightDefines()
+            // 合并材质纹理 #define（USE_MAP=1 / USE_METALNESSMAP=1 / USE_ROUGHNESSMAP=1 / ...）
+            // 不传则 map_fragment/metalnessmap_fragment/roughnessmap_fragment 整段被预处理器剔除
+            // → PBR 纹理路径失效 → 模型呈现纯金属/纯粗糙（向光白背光黑）
+            let defines = this._mergeTextureDefines(lightDefs, mat)
+            // 实例化变体：追加 USE_INSTANCING=1（激活 project_vertex/defaultnormal_vertex/
+            // worldpos_vertex 等 chunk 的实例分支 + VS 的 i_data0..3 输入注入）
+            var defArray = defines.defs
+            if (instanced) {
+                let arr = ArrayList<String>()
+                for (d in defArray) { arr.add(d) }
+                arr.add("USE_INSTANCING=1")
+                defArray = arr.toArray()
+            }
+            lightDefs.dispose()
+            variantProg.compileBgfx(extraDefines: defArray)
+            defines.dispose()
+            if (variantProg.programHandle.idx != 65535u16) {
+                this._variantProgCache.add(variantKey, variantProg.programHandle)
+                this._storeFastProg(mat.id, instSuffix, envSuffix, frameLightSuffix, variantProg.programHandle)
+                @LogDebug(["program", "variant compiled OK key=" + variantKey + " idx=" + variantProg.programHandle.idx.toString()])
+                return variantProg.programHandle
+            }
+            @LogError(["program", "variant compile FAILED key=" + variantKey])
+            // 负缓存：把失败结果（无效句柄）也写入缓存。编译失败不缓存时，每次 draw 都会重新
+            // 走完整编译流程（实测 800 对象场景每帧重试，单帧多花数百 ms）。
+            // 调用方按 idx==65535 跳过 submit，语义与首次失败一致。
+            this._variantProgCache.add(variantKey, ProgramHandle(65535u16))
+            this._storeFastProg(mat.id, instSuffix, envSuffix, frameLightSuffix, ProgramHandle(65535u16))
+            return ProgramHandle(65535u16)
         }
+        @LogError(["program", "base shader not found: " + shaderName])
+        return ProgramHandle(65535u16)
     }
 
     /**
@@ -1265,13 +1842,18 @@ public class BgfxBackend <: Backend {
         //     分支控制深度重建/距离衰减/菲涅尔；不传则走 #else 简化分支（无深度衰减），
         //     地面反射贴图缺失距离衰减与菲涅尔效果。
         if (mat is ReflectorMaterial) {
-            match (mat as ReflectorMaterial) {
-                case Some(rm) =>
-                    if (rm.useDepthTexture) { allDefs.add("useDepthTexture=1") }
-                    if (rm.distanceAttenuation) { allDefs.add("DISTANCE_ATTENUATION=1") }
-                    if (rm.fresnel) { allDefs.add("FRESNEL=1") }
-                case None => ()
+            if (let Some(rm) <- (mat as ReflectorMaterial)) {
+                if (rm.useDepthTexture) { allDefs.add("useDepthTexture=1") }
+                if (rm.distanceAttenuation) { allDefs.add("DISTANCE_ATTENUATION=1") }
+                if (rm.fresnel) { allDefs.add("FRESNEL=1") }
             }
+        }
+        // 2.7 环境贴图（IBL）：存在生效 envMap 时注入 USE_ENVMAP + ENVMAP_TYPE_CUBE_UV，
+        //     激活 cube_uv_reflection_fragment / envmap_physical_pars_fragment 的 CubeUV 路径；
+        //     不传则 lights_fragment_maps 的 IBL 补光段被预处理器整体剔除 → 无环境反射。
+        if (let Some(_) <- this._effectiveEnvMap(mat)) {
+            allDefs.add("USE_ENVMAP=1")
+            allDefs.add("ENVMAP_TYPE_CUBE_UV=1")
         }
         // 3. 纹理路径必然需要 UV（uv_pars_vertex/uv_vertex 的 #ifdef USE_UV 包裹 vUv 赋值，
         //    不传则 v_uv 未声明，texture 采样路径编译失败。二分测试已确认 USE_UV 不是
@@ -1421,112 +2003,148 @@ public class BgfxBackend <: Backend {
     /**
      * 创建顶点缓冲（从 geometry 的 position/normal/color/uv 属性读取）
      */
+    @Zone[three.rendering.bgfx.BgfxBackend._createVB]
     internal func _createVB(geom: BufferGeometry): VertexBufferHandle {
-        let geomId = geom.uuid.hashCode()
+        let geomId = geom.id
         // position 属性版本号：CPU 蒙皮等每帧修改数据时会自增
-        let posVersion = match (geom.getAttribute("position")) {
-            case Some(p) => p.version
-            case None => 0
-        }
-        match (this._vbCache.get(geomId)) {
-            case Some(vb) =>
-                // 版本未变 → 复用缓存
-                match (this._vbVersions.get(geomId)) {
-                    case Some(v) => if (v == posVersion) { return vb }
-                    case _ => ()
-                }
-                // 版本变化 → 销毁旧缓冲并重建
-                if (vb.idx != 65535u16) {
-                    bgfx_destroy_vertex_buffer_cj(vb)
-                }
-                this._vbCache.remove(geomId)
-            case None => ()
+        let posVersion = if (let Some(p) <- geom.getAttribute("position")) { p.version } else { 0 }
+        if (let Some(vb) <- this._vbCache.get(geomId)) {
+            // 版本未变 → 复用缓存
+            if (let Some(v) <- this._vbVersions.get(geomId)) {
+                if (v == posVersion) { return vb }
+            }
+            // 版本变化 → 销毁旧缓冲并重建
+            if (vb.idx != 65535u16) {
+                bgfx_destroy_vertex_buffer_cj(vb)
+            }
+            this._vbCache.remove(geomId)
         }
         let posAttrOpt = geom.getAttribute("position")
-        match (posAttrOpt) {
-            case Some(pos) =>
-                let vc = pos.count
-                if (vc == 0) { return VertexBufferHandle(65535u16) }
-                // position(3) + normal(3) + color(4) + uv(2) = 12 floats
-                let vertStride: Int64 = 12
-                let totalFloats = vc * vertStride
-                let data = Array<Float64>(totalFloats, { i => 0.0 })
-                let normAttrOpt = geom.getAttribute("normal")
-                let colAttrOpt = geom.getAttribute("color")
-                let uvAttrOpt = geom.getAttribute("uv")
+        if (let Some(pos) <- posAttrOpt) {
+            let vc = pos.count
+            if (vc == 0) { return VertexBufferHandle(65535u16) }
+            // position(3) + normal(3) + color(4) + uv(2) = 12 floats
+            let vertStride: Int64 = 12
+            let totalFloats = vc * vertStride
+            // ★直接以 Float32 写入 bgfx 内存：原实现先落一份 Float64 中间数组
+            //   （每帧 vc*12 个 double），再由 writeFloats 逐个转成 Float32——
+            //   多一遍分配 + 多一遍内存遍历。改为一次遍历直写。
+            let mem = BgfxMemory(UInt32(totalFloats * 4))
+            let fPtr = unsafe { CPointer<Float32>(mem.data()) }
+            // 属性数组与步长一次性取出，避免逐顶点做 Option 匹配与方法调用
+            let posArr = pos.array
+            let posStep = pos.itemSize
+            let normAttrOpt = geom.getAttribute("normal")
+            let colAttrOpt = geom.getAttribute("color")
+            let uvAttrOpt = geom.getAttribute("uv")
+            var normArr = Array<Float64>(0, { _ => 0.0 })
+            var normStep: Int64 = 0
+            var hasNormal = false
+            if (let Some(na) <- normAttrOpt) {
+                normArr = na.array
+                normStep = na.itemSize
+                hasNormal = true
+            }
+            var colArr = Array<Float64>(0, { _ => 0.0 })
+            var colStep: Int64 = 0
+            var colHasW = false
+            var hasColor = false
+            if (let Some(ca) <- colAttrOpt) {
+                colArr = ca.array
+                colStep = ca.itemSize
+                colHasW = ca.itemSize > 3
+                hasColor = true
+            }
+            var uvArr = Array<Float64>(0, { _ => 0.0 })
+            var uvStep: Int64 = 0
+            var hasUv = false
+            if (let Some(ua) <- uvAttrOpt) {
+                uvArr = ua.array
+                uvStep = ua.itemSize
+                hasUv = true
+            }
                 for (vi in 0..vc) {
                     let base = vi * vertStride
-                    data[base] = pos.getX(vi)
-                    data[base + 1] = pos.getY(vi)
-                    data[base + 2] = pos.getZ(vi)
-                    match (normAttrOpt) {
-                        case Some(na) =>
-                            data[base + 3] = na.getX(vi)
-                            data[base + 4] = na.getY(vi)
-                            data[base + 5] = na.getZ(vi)
-                        case None => data[base + 5] = 1.0
-                    }
-                    match (colAttrOpt) {
-                        case Some(ca) =>
-                            data[base + 6] = ca.getX(vi)
-                            data[base + 7] = ca.getY(vi)
-                            data[base + 8] = ca.getZ(vi)
-                            data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
-                        case None =>
-                            for (j in 0..4) { data[base + 6 + j] = 1.0 }
-                    }
-                    match (uvAttrOpt) {
-                        case Some(ua) =>
-                            data[base + 10] = ua.getX(vi)
-                            data[base + 11] = ua.getY(vi)
-                        case None => ()
+                    let pb = vi * posStep
+                    unsafe {
+                        fPtr.write(base, Float32(posArr[pb]))
+                        fPtr.write(base + 1, Float32(posArr[pb + 1]))
+                        fPtr.write(base + 2, Float32(posArr[pb + 2]))
+                        // ★缺省分量必须显式写 0：bgfx_alloc 的内存不做零初始化，
+                        //   漏写会让该分量取到垃圾值（法线 x/y 垃圾 → 着色闪烁）。
+                        if (hasNormal) {
+                            let nb = vi * normStep
+                            fPtr.write(base + 3, Float32(normArr[nb]))
+                            fPtr.write(base + 4, Float32(normArr[nb + 1]))
+                            fPtr.write(base + 5, Float32(normArr[nb + 2]))
+                        } else {
+                            fPtr.write(base + 3, 0.0)
+                            fPtr.write(base + 4, 0.0)
+                            fPtr.write(base + 5, 1.0)
+                        }
+                        if (hasColor) {
+                            let cb = vi * colStep
+                            fPtr.write(base + 6, Float32(colArr[cb]))
+                            fPtr.write(base + 7, Float32(colArr[cb + 1]))
+                            fPtr.write(base + 8, Float32(colArr[cb + 2]))
+                            fPtr.write(base + 9, if (colHasW) { Float32(colArr[cb + 3]) } else { 1.0 })
+                        } else {
+                            fPtr.write(base + 6, 1.0)
+                            fPtr.write(base + 7, 1.0)
+                            fPtr.write(base + 8, 1.0)
+                            fPtr.write(base + 9, 1.0)
+                        }
+                        if (hasUv) {
+                            let ub = vi * uvStep
+                            fPtr.write(base + 10, Float32(uvArr[ub]))
+                            fPtr.write(base + 11, Float32(uvArr[ub + 1]))
+                        } else {
+                            fPtr.write(base + 10, 0.0)
+                            fPtr.write(base + 11, 0.0)
+                        }
                     }
                 }
-                let mem = BgfxMemory(UInt32(totalFloats * 4))
-                mem.writeFloats(data, totalFloats)
-                // 诊断：打印前 2 个顶点的 pos/uv，确认 a_texcoord0 数据已写入
-                @LogDebug(["vbDiag", "vc=${vc.toString()} v0.pos=(${data[0].toString()},${data[1].toString()},${data[2].toString()}) v0.uv=(${data[10].toString()},${data[11].toString()}) v1.uv=(${data[22].toString()},${data[23].toString()})"])
                 let layout = this._getOrCreateLayoutPtr()
                 let handle = bgfx_create_vertex_buffer_cj(mem.get(), layout, 0u16)
                 this._vbCache.add(geomId, handle)
                 this._vbVersions.add(geomId, posVersion)
                 return handle
-            case None => return VertexBufferHandle(65535u16)
         }
+        return VertexBufferHandle(65535u16)
     }
 
     /**
      * 创建索引缓冲
      */
+    @Zone[three.rendering.bgfx.BgfxBackend._createIB]
     internal func _createIB(geom: BufferGeometry): IndexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._ibCache.get(geomId)) {
-            case Some(ib) => return ib
-            case None => ()
+        let geomId = geom.id
+        if (let Some(ib) <- this._ibCache.get(geomId)) { return ib }
+        if (let Some(idxAttr) <- geom.index) {
+            let count = idxAttr.count
+            if (count == 0) { return IndexBufferHandle(65535u16) }
+            // 索引数组存 Float64，需转为 UInt16 写入（2字节/索引）
+            @LogDebug(["createIB", "index count=" + count.toString()])
+            let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
+            let mem = BgfxMemory(UInt32(count * 2))
+            mem.writeUInt16(idxData, count)
+            let handle = bgfx_create_index_buffer_cj(mem.get(), 0u16)
+            @LogDebug(["createIB", "handle.idx=" + handle.idx.toString()])
+            this._ibCache.add(geomId, handle)
+            return handle
         }
-        match (geom.index) {
-            case Some(idxAttr) =>
-                let count = idxAttr.count
-                if (count == 0) { return IndexBufferHandle(65535u16) }
-                // Three.js 索引存 Float64，需转为 UInt16 写入（2字节/索引）
-                @LogDebug(["createIB", "index count=" + count.toString()])
-                let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
-                let mem = BgfxMemory(UInt32(count * 2))
-                mem.writeUInt16(idxData, count)
-                let handle = bgfx_create_index_buffer_cj(mem.get(), 0u16)
-                @LogDebug(["createIB", "handle.idx=" + handle.idx.toString()])
-                this._ibCache.add(geomId, handle)
-                return handle
-            case None => return IndexBufferHandle(65535u16)
-        }
+        return IndexBufferHandle(65535u16)
     }
 
     /**
      * 获取/创建顶点布局指针（供 bgfx_create_vertex_buffer_cj 使用）
      */
     private func _getOrCreateLayoutPtr(): CPointer<VertexLayout> {
-        let layoutPtrHolder = AutoFreePtr<VertexLayout>(unsafe { LibC.malloc<VertexLayout>() })
-        let layoutPtr = layoutPtrHolder.get()
+        // 布局是常量：缓存结构指针，避免每次创建顶点缓冲都 malloc + 重建一次布局。
+        // 注意：此处刻意不用 AutoFreePtr（其终结器会在 GC 回收时 free 掉内存，
+        // 缓存后即成悬垂指针）；改为一次性 malloc 并常驻，布局体积极小。
+        if (let Some(p) <- this._layoutPtrCache) { return p }
+        let layoutPtr = unsafe { LibC.malloc<VertexLayout>() }
         unsafe { layoutPtr.write(VertexLayout()) }
         bgfx_vertex_layout_begin_cj(layoutPtr, 0u32)
         bgfx_vertex_layout_add_cj(layoutPtr, Attrib.Position.value(), 3u8, AttribType.Float.value(), false, false)
@@ -1534,7 +2152,8 @@ public class BgfxBackend <: Backend {
         bgfx_vertex_layout_add_cj(layoutPtr, Attrib.Color0.value(), 4u8, AttribType.Float.value(), false, false)
         bgfx_vertex_layout_add_cj(layoutPtr, Attrib.TexCoord0.value(), 2u8, AttribType.Float.value(), false, false)
         bgfx_vertex_layout_end_cj(layoutPtr)
-        // bgfx_create_vertex_buffer_cj 会在内部复制布局数据，因此即使 AutoFreePtr 释放，缓冲的布局信息仍然有效
+        // bgfx_create_vertex_buffer_cj 会在内部复制布局数据，因此布局结构本身可长期持有
+        this._layoutPtrCache = Some(layoutPtr)
         return layoutPtr
     }
 
@@ -1547,10 +2166,7 @@ public class BgfxBackend <: Backend {
 
     private var _layoutHandleCache: Option<VertexLayoutHandle> = None
     private func _getOrCreateLayoutHandle(): VertexLayoutHandle {
-        match (this._layoutHandleCache) {
-            case Some(lh) => return lh
-            case None => ()
-        }
+        if (let Some(lh) <- this._layoutHandleCache) { return lh }
         let layoutPtrHolder = AutoFreePtr<VertexLayout>(unsafe { LibC.malloc<VertexLayout>() })
         let layoutPtr = layoutPtrHolder.get()
         unsafe { layoutPtr.write(VertexLayout()) }
@@ -1587,9 +2203,12 @@ public class BgfxBackend <: Backend {
      * 显示 swap chain 初始内容（灰）。此 touch 在 submit 之后调用，不会使已提交的
      * draw call 失效（此前"touch 导致全黑"的注释为误判，实际为缺 touch 导致全灰）。
      */
+    @Zone[three.rendering.bgfx.BgfxBackend.finishRender]
     public override func finishRender(renderContext: RenderContext): Unit {
         bgfx_touch_cj(renderContext.viewId)
         bgfx_frame_cj(flags: FRAME_NONE)
+        // 帧计数推进：下一帧的光源收集缓存失效（帧内复用，跨帧不复用）
+        this._lightFrameIndex += 1
     }
 
     // ===== 阴影预 pass 钩子 override（对照 Backend 基类 prepareShadowMap/bindShadowUniforms/blitShadowMap） =====
@@ -1606,6 +2225,7 @@ public class BgfxBackend <: Backend {
     /**
      * 阴影深度预 pass：收集场景中 castShadow 的方向光，渲染深度到阴影 framebuffer。
      */
+    @Zone[three.rendering.bgfx.BgfxBackend.prepareShadowMap]
     public override func prepareShadowMap(scene: Scene): Unit {
         // 注意：去掉 initialized 守卫——ThreeRenderer 多线程委托机制下，
         // prepareShadowMap 在专用渲染线程上下文调时 initialized 字段跨线程可见性没保证，
@@ -1615,11 +2235,29 @@ public class BgfxBackend <: Backend {
 
         // 多光源阴影支持：每帧重置当前帧 shadow slot 注册表与 view ID 游标。
         // 持久资源（_shadowResources）跨帧复用，不在此处清理；光源销毁时由调用方显式释放。
+        // 收集场景中所有方向光 + 聚光灯 + 点光源（castShadow=true 的才参与阴影深度 pass）
+        // 复用帧内缓存（与 beginRender 同帧同场景，无需第二次全场景遍历）
+        let (dirLights, pointLights, _, spotLights, _, _) = this._collectLightsCached(scene)
+        @LogTrace(["shadow", "prepareShadowMap dirLights.size=${dirLights.size} spotLights.size=${spotLights.size} pointLights.size=${pointLights.size}"])
+        // 无投影光源时整段阴影预 pass 为空转（每帧仅剩注册表清空 + 三趟空循环）：
+        // 直接返回，仅保留必要的状态失效（上一帧若有槽位必须先清，否则 bindShadowUniforms
+        // 的 hasShadowSlots() 仍为真、继续逐 draw 绑定过期槽位）。
+        var hasCaster = false
+        for (dl in dirLights) { if (dl.castShadow) { hasCaster = true; break } }
+        if (!hasCaster) {
+            for (sl in spotLights) { if (sl.castShadow) { hasCaster = true; break } }
+        }
+        if (!hasCaster) {
+            for (pl in pointLights) { if (pl.castShadow) { hasCaster = true; break } }
+        }
+        if (!hasCaster) {
+            if (this.shadowPass.hasShadowSlots()) {
+                this.shadowPass.beginFrame()
+            }
+            return
+        }
         this.shadowPass.beginFrame()
 
-        // 收集场景中所有方向光 + 聚光灯 + 点光源（castShadow=true 的才参与阴影深度 pass）
-        let (dirLights, pointLights, _, spotLights, _, _) = this.lightBinder.collectLights(scene)
-        @LogTrace(["shadow", "prepareShadowMap dirLights.size=${dirLights.size} spotLights.size=${spotLights.size} pointLights.size=${pointLights.size}"])
         for (dl in dirLights) {
             if (dl.castShadow) {
                 this.shadowPass.renderShadowMap(dl, scene)
@@ -1641,7 +2279,12 @@ public class BgfxBackend <: Backend {
     /**
      * 绑定阴影 uniform 到主 pass draw。
      */
+    @Zone[three.rendering.bgfx.BgfxBackend.bindShadowUniforms]
     public override func bindShadowUniforms(): Unit {
+        // 无 castShadow 光源时当帧没有阴影槽，逐 draw 调用是纯空转，直接跳过
+        if (!this.shadowPass.hasShadowSlots()) {
+            return
+        }
         this.shadowPass.bindShadowUniforms()
     }
 
@@ -1657,60 +2300,51 @@ public class BgfxBackend <: Backend {
             blitKeys.add(k)
         }
         for (lid in blitKeys) {
-            match (this.shadowPass._shadowSlotKind.get(lid)) {
-                case Some("dir") =>
-                    match (this.shadowPass._shadowSlots.get(lid)) {
-                        case Some(s) => blitSlot = Some(s)
-                        case None => ()
+            if (let Some(kind) <- this.shadowPass._shadowSlotKind.get(lid)) {
+                if (kind == "dir") {
+                    if (let Some(s) <- this.shadowPass._shadowSlots.get(lid)) {
+                        blitSlot = Some(s)
                     }
                     break
-                case _ => ()
+                }
             }
         }
-        match (blitSlot) {
-            case None => @LogDebug(["blit", "SKIP: no dir shadow slot"]); return
-            case Some(slot) =>
-                if (slot.frameBuffer.idx == 65535u16) { @LogDebug(["blit", "SKIP: shadowFB not created"]); return }
-                // 确保 shadowblit shader 已编译
-                let blitProgOpt = ShaderLibs.get("shadowblit")
-                match (blitProgOpt) {
-                    case Some(blitSp) =>
-                        if (blitSp.programHandle.idx == 65535u16) {
-                            blitSp.compileBgfx()
-                        }
-                        let blitProg = blitSp.programHandle
-                        if (blitProg.idx == 65535u16) { @LogDebug(["blit", "SKIP: shadowblit prog compile failed"]); return }
-
-                        this.blitQuad.ensureBlitVB()
-                        // 仓颉不支持多元素 tuple match，改为逐层解构
-                        match (this.blitQuad._blitVB) {
-                            case Some(vb) =>
-                                match (this.blitQuad._blitIB) {
-                                    case Some(ib) =>
-                                        match (this.blitQuad._blitLayout) {
-                                            case Some(layout) =>
-                                                // 绑定阴影贴图纹理到 sampler stage 0（shadowblit shader 的 shadowBlitSampler）
-                                                // 关键：attachment 0 = color texture（RGBA8，depth shader 写 gl_FragCoord.z 到 color）
-                                                let shadowTex = bgfx_get_texture_cj(slot.frameBuffer, 0u8)
-                                                @LogDebug(["blit", "shadowTex idx=${shadowTex.idx} shadowFB idx=${slot.frameBuffer.idx}"])
-                                                let blitSampler = this.uniforms.createUniform("shadowBlitSampler", UniformType.Sampler.value())
-                                                bgfx_set_texture_cj(SamplerStages.STAGE_SHADOW_BLIT, blitSampler.value, shadowTex, 0u32)
-
-                                                bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, 0xFFFFFFFFu32, layout)
-                                                bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
-                                                // 关键：blit 不需要深度测试（全屏四边形 z=0），关掉 DEPTH_TEST 避免被主 pass 深度挡
-                                                let blitState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A | BgfxConstants.FRONT_CCW
-                                                bgfx_set_state_cj(blitState, 0x00000000u32)
-                                                bgfx_submit_cj(mainViewId, blitProg, 0u32, 0xFFu8)
-                                                @LogDebug(["blit", "submit OK mainViewId=${mainViewId}"])
-                                            case None => @LogDebug(["blit", "SKIP: blitLayout None"])
-                                        }
-                                    case None => @LogDebug(["blit", "SKIP: blitIB None"])
-                                }
-                            case None => @LogDebug(["blit", "SKIP: blitVB None"])
-                        }
-                    case None => @LogDebug(["blit", "SKIP: shadowblit shader not registered"])
+        if (let Some(slot) <- blitSlot) {
+            if (slot.frameBuffer.idx == 65535u16) { @LogDebug(["blit", "SKIP: shadowFB not created"]); return }
+            // 确保 shadowblit shader 已编译
+            let blitProgOpt = ShaderLibs.get("shadowblit")
+            if (let Some(blitSp) <- blitProgOpt) {
+                if (blitSp.programHandle.idx == 65535u16) {
+                    blitSp.compileBgfx()
                 }
+                let blitProg = blitSp.programHandle
+                if (blitProg.idx == 65535u16) { @LogDebug(["blit", "SKIP: shadowblit prog compile failed"]); return }
+
+                this.blitQuad.ensureBlitVB()
+                // 仓颉不支持多元素 tuple match，改为逐层解构
+                if (let Some(vb) <- this.blitQuad._blitVB && let Some(ib) <- this.blitQuad._blitIB && let Some(layout) <- this.blitQuad._blitLayout) {
+                    // 绑定阴影贴图纹理到 sampler stage 0（shadowblit shader 的 shadowBlitSampler）
+                    // 关键：attachment 0 = color texture（RGBA8，depth shader 写 gl_FragCoord.z 到 color）
+                    let shadowTex = bgfx_get_texture_cj(slot.frameBuffer, 0u8)
+                    @LogDebug(["blit", "shadowTex idx=${shadowTex.idx} shadowFB idx=${slot.frameBuffer.idx}"])
+                    let blitSampler = this.uniforms.createUniform("shadowBlitSampler", UniformType.Sampler.value())
+                    bgfx_set_texture_cj(SamplerStages.STAGE_SHADOW_BLIT, blitSampler.value, shadowTex, 0u32)
+
+                    bgfx_set_vertex_buffer_with_layout_cj(0u8, vb, 0u32, 0xFFFFFFFFu32, layout)
+                    bgfx_set_index_buffer_cj(ib, 0u32, 0xFFFFFFFFu32)
+                    // 关键：blit 不需要深度测试（全屏四边形 z=0），关掉 DEPTH_TEST 避免被主 pass 深度挡
+                    let blitState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A | BgfxConstants.FRONT_CCW
+                    bgfx_set_state_cj(blitState, 0x00000000u32)
+                    bgfx_submit_cj(mainViewId, blitProg, 0u32, 0xFFu8)
+                    @LogDebug(["blit", "submit OK mainViewId=${mainViewId}"])
+                } else {
+                    @LogDebug(["blit", "SKIP: blitVB/IB/Layout None"])
+                }
+            } else {
+                @LogDebug(["blit", "SKIP: shadowblit shader not registered"])
+            }
+        } else {
+            @LogDebug(["blit", "SKIP: no dir shadow slot"])
         }
     }
 
@@ -1836,8 +2470,14 @@ public class BgfxBackend <: Backend {
         // bgfx4cj 统一左手系：view 和 proj 矩阵已按左手系生成，直接传递
         @LogTrace(["viewTransform", "view[0]=" + view[0].toString() + " view[5]=" + view[5].toString() + " view[10]=" + view[10].toString()])
         @LogTrace(["viewTransform", "proj[0]=" + proj[0].toString() + " proj[5]=" + proj[5].toString() + " proj[10]=" + proj[10].toString() + " proj[14]=" + proj[14].toString()])
-        let viewMem = BgfxMemory(64u32)
-        let projMem = BgfxMemory(64u32)
+        // 复用的上传缓冲：原实现每次调用新建 2 块 BgfxMemory（走 bgfx_alloc，
+        // 内存不会归还 → 逐帧调用等于持续泄漏原生内存）。
+        // view/proj 必须是两块独立缓冲：二者在同一调用内同时写入后一起传给
+        // bgfx_set_view_transform_cj，共用一块会让后写覆盖先写的数据。
+        // 复用安全性：bgfx_set_view_transform 调用时即 memcpy 两者（View::setTransform），
+        // 数据在返回前已被引擎取走。
+        let viewMem = this._uMem64
+        let projMem = this._viewProjMem
         viewMem.writeFloats(view, 16)
         projMem.writeFloats(proj, 16)
         let viewData = viewMem.data()
@@ -1862,20 +2502,33 @@ public class BgfxBackend <: Backend {
      * 必须绑定 DFG LUT 到 stage 23（与 lights_physical_pars_fragment 的 SAMPLER2D(dfgLUT, 23) 一致）；
      * stage 23 避开 shadow 区段（0..15）与材质区段（16..21）。
      */
+    @Zone[three.rendering.bgfx.BgfxBackend._bindSceneTextures]
     private func _bindSceneTextures(): Unit {
         // 绑定 DFG LUT（16x16 RG16F 半浮点数据）
         // 注意：格式必须用 TextureFormat.RG16F.value()（=56），不能用 92——
         // 92 是 BGFX_TEXTURE_FORMAT_D16F（深度浮点格式），若用错则纹理采样异常，
         // dfgLUT 采样为 0 → EssMs=0 → 1.0/EssMs 无穷 → 高光爆炸（向光面全白）。
-        // 采样 flags 必须用 CLAMP（对照 Three.js dfgLUT 的 ClampToEdgeWrapping）：
+        // 采样 flags 必须用 CLAMP（对照通用引擎 dfgLUT 的 ClampToEdgeWrapping）：
         // 否则 wrap 模式下 roughness≈1（粗糙球）时 u 坐标接近 1.0 会绕回 0，
         // 采到错误 LUT 数据 → EssMs 异常 → multiScatteringCompensation 错误 → 黑色光斑。
-        let dfgLutTex = getDFGLUT()
-        let cacheKey = dfgLutTex.uuid.hashCode()
+        // ★逐 draw 调用：纹理句柄与采样器句柄只解析一次并缓存（避免每 draw 重复
+        //   uuid 字符串哈希 + 字符串键 HashMap 查找），绑定动作仍需每 draw 执行
+        //   （submit 用 DISCARD_ALL 会清空纹理绑定）。
         let lutFlags = UInt64(SAMPLER_U_CLAMP) | UInt64(SAMPLER_V_CLAMP)
-        let handle = match (this._matTexCache.get(cacheKey)) {
-            case Some(h) => h
-            case None =>
+        let sampler = if (let Some(h) <- this._dfgLutSampler) {
+            h
+        } else {
+            let h = this._cachedUniform("dfgLUT", UniformType.Sampler.value())
+            this._dfgLutSampler = Some(h)
+            h
+        }
+        var handle = this._dfgLutHandle
+        if (handle.idx == 65535u16) {
+            let dfgLutTex = getDFGLUT()
+            let cacheKey = dfgLutTex.id
+            handle = if (let Some(h) <- this._matTexCache.get(cacheKey)) {
+                h
+            } else {
                 let w = dfgLutTex.width
                 let h = dfgLutTex.height
                 let img = dfgLutTex.image
@@ -1888,16 +2541,16 @@ public class BgfxBackend <: Backend {
                 let newHandle = bgfx_create_texture_2d_cj(UInt16(w), UInt16(h), false, 1u16, TextureFormat.RG16F.value(), lutFlags, mem.get())
                 if (newHandle.idx != 65535u16) {
                     this._matTexCache.add(cacheKey, newHandle)
+                    this._dfgLutHandle = newHandle
                 }
                 newHandle
+            }
         }
         if (handle.idx == 65535u16) {
             @LogWarn(["bindScene", "dfgLUT handle INVALID, skip"])
             return
         }
-        let sampler = this.uniforms.createUniform("dfgLUT", UniformType.Sampler.value())
         bgfx_set_texture_cj(SamplerStages.STAGE_DFGLUT, sampler.value, handle, UInt32(lutFlags))
-        @LogDebug(["bindScene", "dfgLUT bound stage=${SamplerStages.STAGE_DFGLUT.toString()} w=${dfgLutTex.width.toString()} h=${dfgLutTex.height.toString()}"])
     }
 
     // ===== 阴影状态字段 + 全屏 blit 资源已迁出至 BgfxShadowPass / BgfxBlitQuad =====

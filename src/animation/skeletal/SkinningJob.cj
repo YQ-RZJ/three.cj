@@ -35,6 +35,8 @@ package three.animation.skeletal
 
 import std.math.*
 import three.core.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 蒙皮权重输入
@@ -237,14 +239,8 @@ public class SkinningJob {
      * @brief[en] Validates the inputs
      */
     public func validate(): Bool {
-        let w = match (this.weights) {
-            case Some(w) => w
-            case None => return false
-        }
-        let inp = match (this.input) {
-            case Some(i) => i
-            case None => return false
-        }
+        let w = if (let Some(w) <- this.weights) { w } else { return false }
+        let inp = if (let Some(i) <- this.input) { i } else { return false }
 
         let numVerts = inp.numVertices
         let numInfl = w.numInfluences
@@ -270,17 +266,12 @@ public class SkinningJob {
      *                  2. Accumulates the weighted joint matrix * original position/normal/tangent
      *                  3. Writes to the output buffers
      */
+    @Zone[three.animation.skeletal.SkinningJob.run, name=SkinningJob.run]
     public func run(): Bool {
         if (!this.validate()) { return false }
 
-        let inp = match (this.input) {
-            case Some(i) => i
-            case None => return false
-        }
-        let w = match (this.weights) {
-            case Some(ww) => ww
-            case None => return false
-        }
+        let inp = if (let Some(i) <- this.input) { i } else { return false }
+        let w = if (let Some(ww) <- this.weights) { ww } else { return false }
         let numVerts = inp.numVertices
         let numInfl = w.numInfluences
 
@@ -292,21 +283,32 @@ public class SkinningJob {
         let inNormals = inp.normals
         let inTangents = inp.tangents
 
-        // 准备输出
-        this.output.positions = Array<Float32>(numVerts * 3, { _ => 0.0f32 })
-        let outNormals: ?Array<Float32> = match (inNormals) {
-            case Some(_) =>
-                let arr = Array<Float32>(numVerts * 3, { _ => 0.0f32 })
-                this.output.normals = Some(arr)
-                Some(arr)
-            case None => None
+        // 准备输出：尺寸一致时复用已有缓冲，避免每帧重新分配大数组
+        // （逐帧蒙皮是热路径，输出缓冲的分配/回收是可观的固定开销）
+        if (this.output.positions.size != numVerts * 3) {
+            this.output.positions = Array<Float32>(numVerts * 3, { _ => 0.0f32 })
         }
-        let outTangents: ?Array<Float32> = match (inTangents) {
-            case Some(_) =>
-                let arr = Array<Float32>(numVerts * 4, { _ => 0.0f32 })
-                this.output.tangents = Some(arr)
-                Some(arr)
-            case None => None
+        let outNormals: ?Array<Float32> = if (let Some(_) <- inNormals) {
+            let arr = if (let Some(a) <- this.output.normals) {
+                if (a.size == numVerts * 3) { a } else { Array<Float32>(numVerts * 3, { _ => 0.0f32 }) }
+            } else {
+                Array<Float32>(numVerts * 3, { _ => 0.0f32 })
+            }
+            this.output.normals = Some(arr)
+            Some(arr)
+        } else {
+            None
+        }
+        let outTangents: ?Array<Float32> = if (let Some(_) <- inTangents) {
+            let arr = if (let Some(a) <- this.output.tangents) {
+                if (a.size == numVerts * 4) { a } else { Array<Float32>(numVerts * 4, { _ => 0.0f32 }) }
+            } else {
+                Array<Float32>(numVerts * 4, { _ => 0.0f32 })
+            }
+            this.output.tangents = Some(arr)
+            Some(arr)
+        } else {
+            None
         }
 
         for (v in 0..numVerts) {
@@ -342,31 +344,27 @@ public class SkinningJob {
                 oz += (this.jointMatrices[mBase + 2] * px + this.jointMatrices[mBase + 6] * py + this.jointMatrices[mBase + 10] * pz + this.jointMatrices[mBase + 14]) * jointWeight
 
                 // 法线变换（仅旋转部分，不包含平移）
-                match (inNormals) {
-                    case Some(n) =>
-                        let nx = n[v * normStride]
-                        let ny = n[v * normStride + 1]
-                        let nz = n[v * normStride + 2]
+                if (let Some(n) <- inNormals) {
+                    let nx = n[v * normStride]
+                    let ny = n[v * normStride + 1]
+                    let nz = n[v * normStride + 2]
 
-                        onx += (this.jointMatrices[mBase + 0] * nx + this.jointMatrices[mBase + 4] * ny + this.jointMatrices[mBase + 8] * nz) * jointWeight
-                        ony += (this.jointMatrices[mBase + 1] * nx + this.jointMatrices[mBase + 5] * ny + this.jointMatrices[mBase + 9] * nz) * jointWeight
-                        onz += (this.jointMatrices[mBase + 2] * nx + this.jointMatrices[mBase + 6] * ny + this.jointMatrices[mBase + 10] * nz) * jointWeight
-                    case None => ()
+                    onx += (this.jointMatrices[mBase + 0] * nx + this.jointMatrices[mBase + 4] * ny + this.jointMatrices[mBase + 8] * nz) * jointWeight
+                    ony += (this.jointMatrices[mBase + 1] * nx + this.jointMatrices[mBase + 5] * ny + this.jointMatrices[mBase + 9] * nz) * jointWeight
+                    onz += (this.jointMatrices[mBase + 2] * nx + this.jointMatrices[mBase + 6] * ny + this.jointMatrices[mBase + 10] * nz) * jointWeight
                 }
 
                 // 切线变换
-                match (inTangents) {
-                    case Some(t) =>
-                        let tx = t[v * tanStride]
-                        let ty = t[v * tanStride + 1]
-                        let tz = t[v * tanStride + 2]
-                        let tw = t[v * tanStride + 3]
+                if (let Some(t) <- inTangents) {
+                    let tx = t[v * tanStride]
+                    let ty = t[v * tanStride + 1]
+                    let tz = t[v * tanStride + 2]
+                    let tw = t[v * tanStride + 3]
 
-                        otx += (this.jointMatrices[mBase + 0] * tx + this.jointMatrices[mBase + 4] * ty + this.jointMatrices[mBase + 8] * tz) * jointWeight
-                        oty += (this.jointMatrices[mBase + 1] * tx + this.jointMatrices[mBase + 5] * ty + this.jointMatrices[mBase + 9] * tz) * jointWeight
-                        otz += (this.jointMatrices[mBase + 2] * tx + this.jointMatrices[mBase + 6] * ty + this.jointMatrices[mBase + 10] * tz) * jointWeight
-                        otw += tw * jointWeight
-                    case None => ()
+                    otx += (this.jointMatrices[mBase + 0] * tx + this.jointMatrices[mBase + 4] * ty + this.jointMatrices[mBase + 8] * tz) * jointWeight
+                    oty += (this.jointMatrices[mBase + 1] * tx + this.jointMatrices[mBase + 5] * ty + this.jointMatrices[mBase + 9] * tz) * jointWeight
+                    otz += (this.jointMatrices[mBase + 2] * tx + this.jointMatrices[mBase + 6] * ty + this.jointMatrices[mBase + 10] * tz) * jointWeight
+                    otw += tw * jointWeight
                 }
             }
 
@@ -375,39 +373,35 @@ public class SkinningJob {
             this.output.positions[v * 3 + 2] = oz
 
             // 归一化法线
-            match (outNormals) {
-                case Some(norms) =>
-                    let len = sqrt(onx * onx + ony * ony + onz * onz)
-                    if (len > 1e-12f32) {
-                        let inv = 1.0f32 / len
-                        norms[v * 3] = onx * inv
-                        norms[v * 3 + 1] = ony * inv
-                        norms[v * 3 + 2] = onz * inv
-                    } else {
-                        norms[v * 3] = 0.0f32
-                        norms[v * 3 + 1] = 1.0f32
-                        norms[v * 3 + 2] = 0.0f32
-                    }
-                case None => ()
+            if (let Some(norms) <- outNormals) {
+                let len = sqrt(onx * onx + ony * ony + onz * onz)
+                if (len > 1e-12f32) {
+                    let inv = 1.0f32 / len
+                    norms[v * 3] = onx * inv
+                    norms[v * 3 + 1] = ony * inv
+                    norms[v * 3 + 2] = onz * inv
+                } else {
+                    norms[v * 3] = 0.0f32
+                    norms[v * 3 + 1] = 1.0f32
+                    norms[v * 3 + 2] = 0.0f32
+                }
             }
 
             // 归一化切线
-            match (outTangents) {
-                case Some(tans) =>
-                    let len = sqrt(otx * otx + oty * oty + otz * otz)
-                    if (len > 1e-12f32) {
-                        let inv = 1.0f32 / len
-                        tans[v * 4] = otx * inv
-                        tans[v * 4 + 1] = oty * inv
-                        tans[v * 4 + 2] = otz * inv
-                        tans[v * 4 + 3] = otw
-                    } else {
-                        tans[v * 4] = 1.0f32
-                        tans[v * 4 + 1] = 0.0f32
-                        tans[v * 4 + 2] = 0.0f32
-                        tans[v * 4 + 3] = 1.0f32
-                    }
-                case None => ()
+            if (let Some(tans) <- outTangents) {
+                let len = sqrt(otx * otx + oty * oty + otz * otz)
+                if (len > 1e-12f32) {
+                    let inv = 1.0f32 / len
+                    tans[v * 4] = otx * inv
+                    tans[v * 4 + 1] = oty * inv
+                    tans[v * 4 + 2] = otz * inv
+                    tans[v * 4 + 3] = otw
+                } else {
+                    tans[v * 4] = 1.0f32
+                    tans[v * 4 + 1] = 0.0f32
+                    tans[v * 4 + 2] = 0.0f32
+                    tans[v * 4 + 3] = 1.0f32
+                }
             }
         }
 

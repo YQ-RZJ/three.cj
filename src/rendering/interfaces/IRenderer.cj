@@ -23,7 +23,7 @@
  *
  * @file[zh-cn] IRenderer 渲染器接口
  * @brief[zh-cn] 渲染器接口，声明 CubeCamera.update 所需的渲染目标切换方法
- * @explain[zh-cn] Three.js 的 CubeCamera.update(renderer, scene) 参数是 WebGLRenderer（renderers 包）。
+ * @explain[zh-cn] CubeCamera.update(renderer, scene) 参数是 WebGLRenderer（renderers 包）。
  * 仓颉侧 cameras 包若直接 import renderers 会形成循环（renderers 依赖 cameras），
  * 因此将"渲染器"抽象为接口，声明 CubeCamera.update 语义上需要的方法：
  * - 实现方（renderers 包 BgfxRenderer）实现本接口；
@@ -33,7 +33,7 @@
  *
  * @file[en] IRenderer Renderer interface
  * @brief[en] Renderer interface, declaring render target switching methods needed by CubeCamera.update
- * @explain[en] In Three.js, CubeCamera.update(renderer, scene) expects a WebGLRenderer (renderers package).
+ * @explain[en] CubeCamera.update(renderer, scene) expects a WebGLRenderer (renderers package).
  * If the Cangjie cameras package directly imports renderers, a circular dependency forms
  * (renderers depends on cameras), so "renderer" is abstracted as an interface declaring
  * methods semantically needed by CubeCamera.update:

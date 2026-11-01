@@ -157,17 +157,15 @@ internal func flattenJSON(jsonKeys: Array<HashMap<String, Any>>, times: ArrayLis
     match (key) {
         case dict: HashMap<String, Any> =>
             let valOpt = dict.get(valuePropertyName)
-            match (valOpt) {
-                case Some(value) =>
-                    match (value) {
-                        case arr: Array<Any> =>
-                            // 值是数组类型 — 逐个提取
-                            _flattenJSONLoop(jsonKeys, i, times, values, valuePropertyName, true)
-                        case _ =>
-                            // 值是标量类型 — 直接添加
-                            _flattenJSONLoop(jsonKeys, i, times, values, valuePropertyName, false)
-                    }
-                case None => ()
+            if (let Some(value) <- valOpt) {
+                match (value) {
+                    case arr: Array<Any> =>
+                        // 值是数组类型 — 逐个提取
+                        _flattenJSONLoop(jsonKeys, i, times, values, valuePropertyName, true)
+                    case _ =>
+                        // 值是标量类型 — 直接添加
+                        _flattenJSONLoop(jsonKeys, i, times, values, valuePropertyName, false)
+                }
             }
         case _ => ()
     }
@@ -197,36 +195,29 @@ internal func _flattenJSONLoop(jsonKeys: Array<HashMap<String, Any>>, startIndex
         match (jsonKeys[idx]) {
             case k: HashMap<String, Any> =>
                 let valOpt = k.get(valuePropertyName)
-                match (valOpt) {
-                    case Some(v) =>
-                        let timeOpt = k.get("time")
-                        match (timeOpt) {
-                            case Some(t) =>
-                                match (t) {
-                                    case timeVal: Float64 =>
-                                        times.add(timeVal)
-                                        if (isArray) {
-                                            match (v) {
-                                                case arr: Array<Any> =>
-                                                    for (elem in arr) {
-                                                        match (elem) {
-                                                            case f: Float64 => values.add(f)
-                                                            case _ => ()
-                                                        }
-                                                    }
-                                                case _ => ()
-                                            }
-                                        } else {
-                                            match (v) {
+                if (let Some(v) <- valOpt && let Some(t) <- k.get("time")) {
+                    match (t) {
+                        case timeVal: Float64 =>
+                            times.add(timeVal)
+                            if (isArray) {
+                                match (v) {
+                                    case arr: Array<Any> =>
+                                        for (elem in arr) {
+                                            match (elem) {
                                                 case f: Float64 => values.add(f)
                                                 case _ => ()
                                             }
                                         }
                                     case _ => ()
                                 }
-                            case None => ()
-                        }
-                    case None => ()
+                            } else {
+                                match (v) {
+                                    case f: Float64 => values.add(f)
+                                    case _ => ()
+                                }
+                            }
+                        case _ => ()
+                    }
                 }
             case _ => ()
         }
@@ -341,14 +332,12 @@ internal func makeClipAdditive(targetClip: AnimationClip, referenceFrame!: Int64
         if (referenceTrack.createInterpolant(None).settings.isSome()) {
             let settings = referenceTrack.createInterpolant(None).settings.getOrThrow()
             let isGLTF = settings.get("isInterpolantFactoryMethodGLTFCubicSpline")
-            match (isGLTF) {
-                case Some(v) =>
-                    match (v) {
-                        case b: Bool =>
-                            if (b) { referenceOffset = referenceValueSize / 3 }
-                        case _ => ()
-                    }
-                case None => ()
+            if (let Some(v) <- isGLTF) {
+                match (v) {
+                    case b: Bool =>
+                        if (b) { referenceOffset = referenceValueSize / 3 }
+                    case _ => ()
+                }
             }
         }
 
@@ -359,14 +348,12 @@ internal func makeClipAdditive(targetClip: AnimationClip, referenceFrame!: Int64
         if (targetTrackVal.createInterpolant(None).settings.isSome()) {
             let settings = targetTrackVal.createInterpolant(None).settings.getOrThrow()
             let isGLTF = settings.get("isInterpolantFactoryMethodGLTFCubicSpline")
-            match (isGLTF) {
-                case Some(v) =>
-                    match (v) {
-                        case b: Bool =>
-                            if (b) { targetOffset = targetValueSize / 3 }
-                        case _ => ()
-                    }
-                case None => ()
+            if (let Some(v) <- isGLTF) {
+                match (v) {
+                    case b: Bool =>
+                        if (b) { targetOffset = targetValueSize / 3 }
+                    case _ => ()
+                }
             }
         }
 
@@ -430,11 +417,11 @@ internal func makeClipAdditive(targetClip: AnimationClip, referenceFrame!: Int64
 /**
  * @brief[zh-cn] 动画工具类，提供静态方法包装
  * @explain[zh-cn] 
- * 对应 Three.js AnimationUtils 类，以静态方法的形式对外暴露关键帧处理工具
+ * 以静态方法的形式对外暴露关键帧处理工具
  *
  * @brief[en] Animation utility class, providing static method wrappers
  * @explain[en] 
- * Corresponds to the Three.js AnimationUtils class, exposing keyframe processing utilities as static methods
+ * Exposes keyframe processing utilities as static methods
  */
 public class AnimationUtils {
     // 已移除：public convertArray/isTypedArray（仓颉 Array 即高性能定长数组，无 JS TypedArray

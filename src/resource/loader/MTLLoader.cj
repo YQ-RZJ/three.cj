@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] MTLLoader Wavefront MTL 材质库加载器
- * @brief[zh-cn] 对应 Three.js examples/jsm/loaders/MTLLoader.js 的仓颉侧实现
+ * @brief[zh-cn] Wavefront MTL 材质库加载器的仓颉侧实现
  * @explain[zh-cn] Wavefront MTL 材质库加载器：解析 newmtl/Ka/Kd/Ks/Ke/Ns/d/illum/map_Kd 等指令，生成 MaterialCreator（材质字典 + create(name) 创建入口），供 OBJLoader 使用。
  *
  * @file[en] MTLLoader  Wavefront MTL material library loader
- * @brief[en] Cangjie implementation corresponding to Three.js examples/jsm/loaders/MTLLoader.js
+ * @brief[en] Cangjie implementation of the Wavefront MTL material library loader
  * @explain[en] Wavefront MTL material library loader: parses newmtl/Ka/Kd/Ks/Ke/Ns/d/illum/map_Kd directives, generates MaterialCreator (material dictionary + create(name) entry), used by OBJLoader.
  */
 package three.resource.loader
@@ -269,73 +269,63 @@ public class MaterialCreator <: ILoadResult {
         if (this.materials.contains(name)) {
             return Some(this.materials[name])
         }
-        match (this.materialsInfo.get(name)) {
-            case Some(infoVal) =>
-                match (infoVal) {
-                    case info: HashMap<String, Any> =>
-                        
-                        let material = MeshPhongMaterial()
-                        material.name = name
+        if (let Some(infoVal) <- this.materialsInfo.get(name)) {
+            match (infoVal) {
+                case info: HashMap<String, Any> =>
+                    
+                    let material = MeshPhongMaterial()
+                    material.name = name
 
-                        
-                        match (info.get("kd")) {
-                            case Some(v) =>
-                                match (v) {
-                                    case arr: Array<Float64> =>
-                                        if (arr.size >= 3) {
-                                            material.color.setRGB(arr[0], arr[1], arr[2])
-                                        }
-                                    case _ => ()
+                    
+                    if (let Some(v) <- info.get("kd")) {
+                        match (v) {
+                            case arr: Array<Float64> =>
+                                if (arr.size >= 3) {
+                                    material.color.setRGB(arr[0], arr[1], arr[2])
                                 }
-                            case None => ()
+                            case _ => ()
                         }
-                        
-                        match (info.get("ks")) {
-                            case Some(v) =>
-                                match (v) {
-                                    case arr: Array<Float64> =>
-                                        if (arr.size >= 3) {
-                                            material.specular.setRGB(arr[0], arr[1], arr[2])
-                                        }
-                                    case _ => ()
+                    }
+                    
+                    if (let Some(v) <- info.get("ks")) {
+                        match (v) {
+                            case arr: Array<Float64> =>
+                                if (arr.size >= 3) {
+                                    material.specular.setRGB(arr[0], arr[1], arr[2])
                                 }
-                            case None => ()
+                            case _ => ()
                         }
-                        
-                        match (info.get("ns")) {
-                            case Some(v) =>
-                                match (v) {
-                                    case s: String => material.shininess = _parseFloat(s)
-                                    case _ => ()
-                                }
-                            case None => ()
+                    }
+                    
+                    if (let Some(v) <- info.get("ns")) {
+                        match (v) {
+                            case s: String => material.shininess = _parseFloat(s)
+                            case _ => ()
                         }
-                        
-                        var dVal: Float64 = 1.0
-                        match (info.get("d")) {
-                            case Some(v) =>
-                                match (v) {
-                                    case s: String => dVal = _parseFloat(s)
-                                    case _ => ()
-                                }
-                            case None => ()
+                    }
+                    
+                    var dVal: Float64 = 1.0
+                    if (let Some(v) <- info.get("d")) {
+                        match (v) {
+                            case s: String => dVal = _parseFloat(s)
+                            case _ => ()
                         }
-                        match (info.get("tr")) {
-                            case Some(v) =>
-                                match (v) {
-                                    case s: String => dVal = 1.0 - _parseFloat(s)
-                                    case _ => ()
-                                }
-                            case None => ()
+                    }
+                    if (let Some(v) <- info.get("tr")) {
+                        match (v) {
+                            case s: String => dVal = 1.0 - _parseFloat(s)
+                            case _ => ()
                         }
-                        material.opacity = dVal
-                        material.transparent = (dVal < 1.0)
+                    }
+                    material.opacity = dVal
+                    material.transparent = (dVal < 1.0)
 
-                        this.materials.add(name, material)
-                        return Some(material)
-                    case _ => return None
-                }
-            case None => return None
+                    this.materials.add(name, material)
+                    return Some(material)
+                case _ => return None
+            }
+        } else {
+            return None
         }
     }
 }

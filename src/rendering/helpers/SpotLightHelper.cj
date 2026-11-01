@@ -24,13 +24,13 @@
  * @file[zh-cn] 聚光灯辅助对象
  * @brief[zh-cn] 聚光灯辅助对象，用于可视化聚光灯的锥体范围
  * @explain[zh-cn] 
- * 对应 Three.js helpers/SpotLightHelper.js。用锥体线框可视化聚光灯的照射范围，
+ * 用锥体线框可视化聚光灯的照射范围，
  * 当光源变换或属性改变时，需要调用 update() 方法更新。
  *
  * @file[en] Spot Light Helper
  * @brief[en] Spot light helper for visualizing spot light cone range
  * @explain[en] 
- * Corresponds to Three.js helpers/SpotLightHelper.js. Visualizes spot light illumination range
+ * Visualizes spot light illumination range
  * with a cone wireframe. Call update() when the light or its properties change.
  */
 package three.rendering.helpers
@@ -150,13 +150,12 @@ public class SpotLightHelper <: Object3D {
         }
 
         
-        match (this.parent) {
-            case Some(p) =>
-                p.updateWorldMatrix(true, false, false)
-                let inv = Matrix4().copy(p.matrixWorld).invert()
-                this.matrix.copy(inv).multiply(this.light.matrixWorld)
-            case None =>
-                this.matrix.copy(this.light.matrixWorld)
+        if (let Some(p) <- this.parent) {
+            p.updateWorldMatrix(true, false, false)
+            let inv = Matrix4().copy(p.matrixWorld).invert()
+            this.matrix.copy(inv).multiply(this.light.matrixWorld)
+        } else {
+            this.matrix.copy(this.light.matrixWorld)
         }
         this.matrixWorldNeedsUpdate = true
 
@@ -179,10 +178,7 @@ public class SpotLightHelper <: Object3D {
         }
         this.cone.lookAt(targetPos)
 
-        match (this.color) {
-            case Some(c) => this.cone.material.color.copy(c)
-            case None => this.cone.material.color.copy(this.light.color)
-        }
+        if (let Some(c) <- this.color) { this.cone.material.color.copy(c) } else { this.cone.material.color.copy(this.light.color) }
     }
 
     /**
