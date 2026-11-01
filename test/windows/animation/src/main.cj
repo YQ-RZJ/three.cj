@@ -22,6 +22,7 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
+import three.profiler.*
 
 public class TestWindow <: WindowEngine {
     var _mouse: Option<MouseProvider> = None
@@ -121,6 +122,7 @@ public class TestWindow <: WindowEngine {
         this.camera.updateProjectionMatrix()
 
         this.renderer.render(this.scene, this.camera)
+        ProfFrame.mark()
 
         if (this.frame % 60 == 1) {
             let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0

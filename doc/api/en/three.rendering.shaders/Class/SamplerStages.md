@@ -109,7 +109,7 @@ emissiveMap texture stage
 ```cj
 public static let STAGE_ENV_MAP: UInt8 = 14u8
 ```
-Environment map stage (u_envMap, SAMPLERCUBE)
+Environment map stage (u_envMap, SAMPLER2D - PMREM CubeUV atlas)
 
 ### let STAGE\_FIXED\_BASE
 ```cj

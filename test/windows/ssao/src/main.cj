@@ -88,7 +88,7 @@ public class TestWindow <: WindowEngine {
         // ---- 步骤 4: 进入渲染循环（RenderPass → SSAOPass → 上屏） ----
         println("[4/5] 进入渲染循环（相机公转，onFrame 由窗口泵线程驱动）...")
         println("  鼠标左键拖动：手动调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
-        // 对齐 Three.js EffectComposer 用法（对照 bloom 测试）：
+        // 按后处理链的标准用法组织（对照 bloom 测试）：
         //   const composer = new EffectComposer(renderer)
         //   composer.addPass(new RenderPass(scene, camera))
         //   composer.addPass(new SSAOPass(scene, camera, ...))
@@ -113,7 +113,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 更新球体位置（来回移动） ----
         for (sphere in this.spheres) {
@@ -183,7 +183,7 @@ public class TestWindow <: WindowEngine {
         this.camera.aspect = Float64(w) / Float64(if (h > 1i32) { h } else { 1i32 })
         this.camera.updateProjectionMatrix()
 
-        // SSAO 后处理 pass 链（对照 three.js EffectComposer）：
+        // SSAO 后处理 pass 链（标准 EffectComposer 组织方式）：
         // RenderPass（场景渲到 readBuffer）→ BgfxSSAOPass（法线/深度/遮蔽/blur/apply 输出）
         match (this.composer) {
             case Some(composer) => composer.render()

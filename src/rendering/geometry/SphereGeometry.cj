@@ -25,13 +25,11 @@
  * @brief[zh-cn] 球体几何体，由经纬线网格构成
  * @explain[zh-cn] 
  * SphereGeometry 继承自 BufferGeometry，生成球体的顶点、法线、UV 和索引数据。
- * 对应 Three.js geometries/SphereGeometry.js。
  *
  * @file[en] Sphere Geometry
  * @brief[en] Sphere geometry composed of latitude/longitude grid lines
  * @explain[en] 
  * SphereGeometry extends BufferGeometry, generating vertex, normal, UV and index data for a sphere.
- * Corresponds to Three.js geometries/SphereGeometry.js.
  */
 package three.rendering.geometry
 

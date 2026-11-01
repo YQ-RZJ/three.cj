@@ -155,9 +155,9 @@ public class SamplerStages {
 
     // ===== 固定段：非材质（14..15）=====
     /**
-     * @brief[zh-cn] 环境贴图 stage（u_envMap, SAMPLERCUBE）
+     * @brief[zh-cn] 环境贴图 stage（u_envMap, SAMPLER2D —— PMREM CubeUV 图集）
      *
-     * @brief[en] Environment map stage (u_envMap, SAMPLERCUBE)
+     * @brief[en] Environment map stage (u_envMap, SAMPLER2D - PMREM CubeUV atlas)
      */
     public static let STAGE_ENV_MAP: UInt8 = 14u8
     /**

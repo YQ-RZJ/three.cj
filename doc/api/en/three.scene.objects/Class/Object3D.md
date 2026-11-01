@@ -216,7 +216,7 @@ public open func getWorldBoundingSphere(): Option < Array < Float64 >>
 
 Return: 
 
-- Some([cx, cy, cz, radius]) or None (no geometry)计算对象的世界空间包围球open：允许 Sprite 等子类覆写特殊包围球计算
+- Some([cx, cy, cz, radius]) or None (no geometry)计算对象的世界空间包围球（带缓存：脏时重算，否则直接返回缓存值。前提是 matrixWorld 已是最新——渲染循环在收集前统一调用 updateMatrixWorld）open：允许 Sprite 等子类覆写特殊包围球计算
 
 ### func getWorldDirection\(Vector3\)
 ```cj
@@ -271,6 +271,12 @@ Parameter:
 public init()
 ```
 
+
+### func invalidateWorldBounds\(\)
+```cj
+public func invalidateWorldBounds(): Unit
+```
+Manually invalidate the world bounding sphere cache
 
 ### func localToWorld\(Vector3\)
 ```cj
@@ -615,6 +621,12 @@ public open mut prop userDataJson: String
 ```
 
 
+### prop worldBoundingSphereDirty: Bool
+```cj
+public prop worldBoundingSphereDirty: Bool
+```
+Whether the cached world bounding sphere is stale
+
 ### var animations
 ```cj
 public var animations: ArrayList < IAnimationClip >
@@ -632,6 +644,12 @@ public var castShadow: Bool
 public var children: ArrayList < Object3D >
 ```
 
+
+### var cullVisible
+```cj
+public var cullVisible: Bool = true
+```
+This frame's spatial culling result (written by the renderer's spatial index)
 
 ### var customDepthMaterial
 ```cj
@@ -721,7 +739,7 @@ public var normalMatrix: Matrix3
 ```cj
 public var parent: Option < Object3D >
 ```
-parent：与 children 构成循环引用，序列化忽略（与 three.js 一致，由 add/remove 维护）
+parent：与 children 构成循环引用，序列化忽略（与主流引擎惯例一致，由 add/remove 维护）
 
 ### var pivot
 ```cj
@@ -764,6 +782,12 @@ public var rotation: Euler
 public var scale: Vector3
 ```
 
+
+### var structureVersion
+```cj
+public static var structureVersion: Int64 = 0
+```
+Global scene structure version
 
 ### var up
 ```cj

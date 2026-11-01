@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] EventDispatcher
  * @brief[zh-cn] 提供自定义对象的事件监听和分发机制
- * @explain[zh-cn] 参考 Three.js EventDispatcher 实现，支持 addEventListener/removeEventListener/hasEventListener/dispatchEvent 标准事件 API，同时保留 on/off/emit 兼容方法。由于仓颉语言中函数类型无法直接进行引用相等比较，使用 ListenerHandle 包装类来实现监听器的添加、移除和查重。调用方需保存 addEventListener 返回的 ListenerHandle，以便后续调用 removeEventListener/hasEventListener 时使用。
+ * @explain[zh-cn] 参考主流引擎的事件分发器实现，支持 addEventListener/removeEventListener/hasEventListener/dispatchEvent 标准事件 API，同时保留 on/off/emit 兼容方法。由于仓颉语言中函数类型无法直接进行引用相等比较，使用 ListenerHandle 包装类来实现监听器的添加、移除和查重。调用方需保存 addEventListener 返回的 ListenerHandle，以便后续调用 removeEventListener/hasEventListener 时使用。
  *
  * @file[en] EventDispatcher
  * @brief[en] Provides event listening and dispatching mechanism for custom objects
- * @explain[en] Modeled after the Three.js EventDispatcher implementation, supporting addEventListener/removeEventListener/hasEventListener/dispatchEvent standard event API, with on/off/emit compatibility methods. Since the Cangjie language does not support reference equality comparison for function types directly, the ListenerHandle wrapper class is used to enable adding, removing, and deduplicating listeners. Callers must save the ListenerHandle returned by addEventListener for subsequent removeEventListener/hasEventListener calls.
+ * @explain[en] Modeled after the event dispatcher implementation of mainstream engines, supporting addEventListener/removeEventListener/hasEventListener/dispatchEvent standard event API, with on/off/emit compatibility methods. Since the Cangjie language does not support reference equality comparison for function types directly, the ListenerHandle wrapper class is used to enable adding, removing, and deduplicating listeners. Callers must save the ListenerHandle returned by addEventListener for subsequent removeEventListener/hasEventListener calls.
  */
 package three.core.event
 

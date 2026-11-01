@@ -22,7 +22,7 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] MaterialLoader 材质加载器
- * @brief[zh-cn] 对应 Three.js loaders/MaterialLoader.js，加载 JSON 格式的材质
+ * @brief[zh-cn] 加载 JSON 格式的材质
  * @explain[zh-cn] 材质加载器，从 JSON 数据解析并创建 Material 对象。支持通过类型名分发创建对应材质子类实例，并由 Material.fromJSON 反序列化属性。
  *
  * @file[en] MaterialLoader  Material loader
@@ -148,17 +148,15 @@ public open class MaterialLoader <: Loader {
     public open func createMaterialFromType(`type`: String): Material {
         
         // 仓颉侧复用 Material.createFromJSON 的类型分发逻辑（MeshDistanceMaterial 在此补充）
-        // 2026-08-20 去 Any：Three.js 侧返回 Material 具体类型，所有 match 分支均为 Material 子类
+        // 2026-08-20 去 Any：通用实现侧返回 Material 具体类型，所有 match 分支均为 Material 子类
         match (`type`) {
             case "MeshDistanceMaterial" => return MeshDistanceMaterial()
             case "Material" => return Material()
             case _ =>
                 let json = HashMap<String, Any>()
                 json.add("type", `type`)
-                match (Material.createFromJSON(json, this.textures)) {
-                    case Some(m) => return m
-                    case None => return Material()
-                }
+                if (let Some(m) <- Material.createFromJSON(json, this.textures)) { return m }
+                return Material()
         }
     }
 

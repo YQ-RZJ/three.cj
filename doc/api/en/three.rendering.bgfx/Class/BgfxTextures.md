@@ -9,7 +9,7 @@ bgfx texture management
 ```cj
 public static func convertTextureFlags(sRGB: Bool, renderTarget: Bool, msaa: Int64): UInt64
 ```
-Convert three.js texture parameters to bgfx texture flags
+Convert engine texture parameters to bgfx texture flags
 
 Parameter: 
 

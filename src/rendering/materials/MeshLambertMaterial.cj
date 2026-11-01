@@ -24,13 +24,13 @@
  * @file[zh-cn] Lambert材质
  * @brief[zh-cn] Lambert材质，支持自发光、环境贴图和flatShading
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshLambertMaterial.js。支持 emissive/map、specularMap、combine、
+ * 支持 emissive/map、specularMap、combine、
  * reflectivity/refractionRatio、flatShading。Lambert 模型仅计算漫反射，不考虑镜面高光。
  *
  * @file[en] Mesh Lambert Material
  * @brief[en] Lambert material, supporting emissive, environment map, and flatShading
  * @explain[en] 
- * Corresponds to Three.js materials/MeshLambertMaterial.js. Supports emissive/map, specularMap, combine,
+ * Supports emissive/map, specularMap, combine,
  * reflectivity/refractionRatio, flatShading. The Lambert model only calculates diffuse reflection, without specular highlights.
  */
 package three.rendering.materials
@@ -46,11 +46,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] Lambert材质，支持自发光、环境贴图和flatShading
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshLambertMaterial.js。Lambert 模型仅计算漫反射，不考虑镜面高光。
+ * Lambert 模型仅计算漫反射，不考虑镜面高光。
  *
  * @brief[en] Lambert material, supporting emissive, environment map, and flatShading
  * @explain[en] 
- * Corresponds to Three.js materials/MeshLambertMaterial.js. The Lambert model only calculates diffuse reflection.
+ * The Lambert model only calculates diffuse reflection.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]
 public class MeshLambertMaterial <: Material {

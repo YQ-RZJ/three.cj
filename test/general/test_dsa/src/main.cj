@@ -19,5 +19,7 @@ main(): Int64 {
     testPackage.registerSuite({ => StackTest().asTestSuite() })
     testPackage.registerSuite({ => RingBufferTest().asTestSuite() })
     testPackage.registerSuite({ => BitArrayTest().asTestSuite() })
+    testPackage.registerSuite({ => BvhTest().asTestSuite() })
+    testPackage.registerSuite({ => DsaStructuresTest().asTestSuite() })
     return entryMain(testPackage)
 }

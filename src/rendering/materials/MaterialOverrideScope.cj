@@ -24,7 +24,7 @@
  * @file[zh-cn] 材质替换器栈
  * @brief[zh-cn] per-mesh临时材质替换器栈，用完自动还原
  * @explain[zh-cn] 
- * 对照 Three.js SSRPass._renderMetalness 的范式。Three.js 没有"机制化"的材质替换器，
+ * 对照主流引擎 SSRPass._renderMetalness 的范式。主流引擎没有"机制化"的材质替换器，
  * 只在 SSRPass 内联临时替换 mesh.material 字段。Three.cj 将此范式工具化：
  * 栈式嵌套安全，多个 override scope 可层叠，restore 时按入栈逆序还原。
  * 本类只依赖 std.collection（零 three 依赖，绝对无环），
@@ -33,7 +33,7 @@
  * @file[en] Material Override Scope
  * @brief[en] Per-mesh temporary material override stack with automatic restore
  * @explain[en] 
- * Corresponds to the pattern in Three.js SSRPass._renderMetalness. Three.js has no "mechanized" material override,
+ * Corresponds to the pattern in mainstream engine SSRPass._renderMetalness. Mainstream engines have no "mechanized" material override,
  * only inlining temporary mesh.material replacement in SSRPass. Three.cj toolifies this pattern:
  * Stack nesting is safe, multiple override scopes can stack, and restore reverses in LIFO order.
  * This class only depends on std.collection (zero three dependencies, absolutely no cycles),

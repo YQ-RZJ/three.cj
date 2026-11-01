@@ -260,10 +260,24 @@ main(): Int64 {
     println("")
 
     // ========== 结果汇总 ==========
+
+    // ---- [S] Lockstep + SnapshotBuffer（three.network.sync） ----
+    println("[S] three.network.sync（Lockstep/SnapshotBuffer）")
+    test_lockstep_advance()
+    test_lockstep_timeout()
+    test_snapshot_buffer()
+    println("")
+
+    // ---- [P] PacketCodec + ReliableChannel（protocol/transport） ----
+    println("[P] three.network.protocol / transport")
+    test_packet_codec()
+    test_reliable_channel()
+    println("")
+
     println("=== 测试结果 ===")
-    println("  PASS: ${_passCount}")
-    println("  FAIL: ${_failCount}")
-    let allPass = _failCount == 0
+    println("  PASS: ${_passCount + syncPassCount() + protoPassCount()}")
+    println("  FAIL: ${_failCount + syncFailCount() + protoFailCount()}")
+    let allPass = _failCount == 0 && syncFailCount() == 0 && protoFailCount() == 0
     if (allPass) {
         println("  == 全部通过 ==")
     } else {

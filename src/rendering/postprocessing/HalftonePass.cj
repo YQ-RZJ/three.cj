@@ -79,6 +79,8 @@ import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] RGB 半色调后处理 pass
@@ -171,11 +173,6 @@ public class HalftonePass <: Pass {
     private var _halftoneProg: Option<ProgramHandle> = None
 
     /**
-     * uniform 管理器缓存（复用实例，避免 render() 内每帧新建 13 个 uniform 句柄导致泄漏）。
-     */
-    private var _uniforms = BgfxUniforms()
-
-    /**
      * @brief[zh-cn] 构造 HalftonePass
      * @brief[en] Constructs HalftonePass
      * @param[zh-cn] shape 网点形状（默认 1=Dot）
@@ -256,41 +253,46 @@ public class HalftonePass <: Pass {
      * 编译 halftone shader。
      */
     private func _compileHalftone(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("halftone")) {
-            case Some(sp) =>
-                if (!this._halftoneCompiled) {
-                    sp.compileBgfx()
-                    this._halftoneProg = Some(Box(sp.programHandle))
-                    this._halftoneCompiled = true
-                    @LogTrace(["halftone", "halftone shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._halftoneProg
-            case None =>
-                @LogTrace(["halftone", "halftone shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("halftone")) {
+            if (!this._halftoneCompiled) {
+                sp.compileBgfx()
+                this._halftoneProg = Some(Box(sp.programHandle))
+                this._halftoneCompiled = true
+                @LogTrace(["halftone", "halftone shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._halftoneProg
+        } else {
+            @LogTrace(["halftone", "halftone shader not registered"])
+            return None
         }
     }
 
     /**
-     * 设置单个 vec4 uniform（x=value, y/z/w=0）。
-     * 辅助方法，简化 12 个 uniforms 的设置代码。
+     * @brief[zh-cn] 设置单个 vec4 uniform（x=value, y/z/w=0）
+     * @explain[zh-cn] 辅助方法，简化 12 个 uniforms 的设置代码。
+     * @param[zh-cn] renderer 渲染器
+     * @param[zh-cn] name uniform 名称
+     * @param[zh-cn] slot 复用上传缓冲槽位（每个 uniform 一个固定槽位）
+     * @param[zh-cn] value uniform 值（写入 vec4.x）
      *
-     * @param renderer 渲染器
-     * @param uniforms uniform 管理器
-     * @param name uniform 名称
-     * @param value uniform 值（写入 vec4.x）
+     * @brief[en] Sets a single vec4 uniform (x=value, y/z/w=0)
+     * @explain[en] Helper method to simplify the setup of the 12 uniforms.
+     * @param[en] renderer Renderer
+     * @param[en] name Uniform name
+     * @param[en] slot Reused upload buffer slot (one fixed slot per uniform)
+     * @param[en] value Uniform value (written to vec4.x)
      */
     private func setUniformVec4(
         renderer: ThreeRenderer,
-        uniforms: BgfxUniforms,
         name: String,
+        slot: Int64,
         value: Float64
     ): Unit {
-        let handle = uniforms.createUniform(name, UniformType.Vec4.value())
-        let mem = BgfxMemory(16u32)
-        mem.writeFloats([value, 0.0, 0.0, 0.0], 4)
-        this.setUniform(renderer, handle, mem, num: 1u16)
+        // 句柄按名缓存（首次创建后复用，省去每帧 createUniform 的全局锁 + 字符串哈希）
+        let handle = this._cachedUniform(name, UniformType.Vec4.value())
+        // 复用槽位上传缓冲（原实现每帧新建 BgfxMemory，走 bgfx_alloc 且不归还 → 逐帧泄漏）
+        this._setScalarUniform(renderer, handle, slot, value)
     }
 
     /**
@@ -311,6 +313,7 @@ public class HalftonePass <: Pass {
      *         2. sets the 12 uniforms (width/height taken from the renderer size);
      *         3. submits the full-screen quad (overwrite state).
      */
+    @Zone[three.rendering.postprocessing.HalftonePass.render, name=halftonePass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -332,60 +335,58 @@ public class HalftonePass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileHalftone()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["halftone", "halftone prog invalid, skip"])
-                    return
-                }
+        if (let Some(prog) <- this._compileHalftone()) {
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["halftone", "halftone prog invalid, skip"])
+                return
+            }
 
-                @LogTrace(["halftone", "render STEP-1: prog OK, about to create uniforms"])
-                let uniforms = this._uniforms
+            @LogTrace(["halftone", "render STEP-1: prog OK, about to create uniforms"])
 
-                // stage 0 = tDiffuse（readBuffer 的 color 0）
-                @LogTrace(["halftone", "render STEP-2: createUniform(tDiffuse)"])
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
-                @LogTrace(["halftone", "render STEP-3: bindTexture tDiffuse"])
-                this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
+            // stage 0 = tDiffuse（readBuffer 的 color 0）
+            @LogTrace(["halftone", "render STEP-2: createUniform(tDiffuse)"])
+            let uDiffuse = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
+            @LogTrace(["halftone", "render STEP-3: bindTexture tDiffuse"])
+            this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
 
-                // 12 个 uniforms（bgfx 最小单位 vec4，x=value）
-                // int/bool 用 Float64 传入，shader 内 u_shape.x == 1.0 视为 shape=1
-                @LogTrace(["halftone", "render STEP-4: 12x setUniformVec4"])
-                this.setUniformVec4(renderer, uniforms, "u_shape",        Float64(this.shape))
-                this.setUniformVec4(renderer, uniforms, "u_radius",       this.radius)
-                this.setUniformVec4(renderer, uniforms, "u_rotateR",      this.rotateR)
-                this.setUniformVec4(renderer, uniforms, "u_rotateG",      this.rotateG)
-                this.setUniformVec4(renderer, uniforms, "u_rotateB",      this.rotateB)
-                this.setUniformVec4(renderer, uniforms, "u_scatter",      this.scatter)
-                // width/height 取自 renderer 尺寸（setSize 时同步更新）
-                this.setUniformVec4(renderer, uniforms, "u_width",        Float64(renderer.width))
-                this.setUniformVec4(renderer, uniforms, "u_height",       Float64(renderer.height))
-                this.setUniformVec4(renderer, uniforms, "u_blending",     this.blending)
-                this.setUniformVec4(renderer, uniforms, "u_blendingMode", Float64(this.blendingMode))
-                this.setUniformVec4(renderer, uniforms, "u_greyscale",   if (this.greyscale) { 1.0 } else { 0.0 })
-                this.setUniformVec4(renderer, uniforms, "u_disable",     if (this.disable) { 1.0 } else { 0.0 })
+            // 12 个 uniforms（bgfx 最小单位 vec4，x=value）
+            // int/bool 用 Float64 传入，shader 内 u_shape.x == 1.0 视为 shape=1
+            @LogTrace(["halftone", "render STEP-4: 12x setUniformVec4"])
+            this.setUniformVec4(renderer, "u_shape",        0, Float64(this.shape))
+            this.setUniformVec4(renderer, "u_radius",       1, this.radius)
+            this.setUniformVec4(renderer, "u_rotateR",      2, this.rotateR)
+            this.setUniformVec4(renderer, "u_rotateG",      3, this.rotateG)
+            this.setUniformVec4(renderer, "u_rotateB",      4, this.rotateB)
+            this.setUniformVec4(renderer, "u_scatter",      5, this.scatter)
+            // width/height 取自 renderer 尺寸（setSize 时同步更新）
+            this.setUniformVec4(renderer, "u_width",        6, Float64(renderer.width))
+            this.setUniformVec4(renderer, "u_height",       7, Float64(renderer.height))
+            this.setUniformVec4(renderer, "u_blending",     8, this.blending)
+            this.setUniformVec4(renderer, "u_blendingMode", 9, Float64(this.blendingMode))
+            this.setUniformVec4(renderer, "u_greyscale",   10, if (this.greyscale) { 1.0 } else { 0.0 })
+            this.setUniformVec4(renderer, "u_disable",     11, if (this.disable) { 1.0 } else { 0.0 })
 
-                // 全屏 quad submit（覆盖写 state）
-                @LogTrace(["halftone", "render STEP-5: submitQuad"])
-                this.submitQuad(viewId, prog)
-                @LogTrace(["halftone", "render DONE"])
+            // 全屏 quad submit（覆盖写 state）
+            @LogTrace(["halftone", "render STEP-5: submitQuad"])
+            this.submitQuad(viewId, prog)
+            @LogTrace(["halftone", "render DONE"])
 
-                @LogTrace(["halftone", "pass: view=" + viewId.toString() +
-                              " shape=" + this.shape.toString() +
-                              " radius=" + this.radius.toString() +
-                              " rotateR=" + this.rotateR.toString() +
-                              " rotateG=" + this.rotateG.toString() +
-                              " rotateB=" + this.rotateB.toString() +
-                              " scatter=" + this.scatter.toString() +
-                              " blending=" + this.blending.toString() +
-                              " blendingMode=" + this.blendingMode.toString() +
-                              " greyscale=" + this.greyscale.toString() +
-                              " disable=" + this.disable.toString() +
-                              " tSize=" + renderer.width.toString() + "x" +
-                              renderer.height.toString()])
-            case None =>
-                @LogTrace(["halftone", "halftone shader compile failed, skip pass"])
+            @LogTrace(["halftone", "pass: view=" + viewId.toString() +
+                          " shape=" + this.shape.toString() +
+                          " radius=" + this.radius.toString() +
+                          " rotateR=" + this.rotateR.toString() +
+                          " rotateG=" + this.rotateG.toString() +
+                          " rotateB=" + this.rotateB.toString() +
+                          " scatter=" + this.scatter.toString() +
+                          " blending=" + this.blending.toString() +
+                          " blendingMode=" + this.blendingMode.toString() +
+                          " greyscale=" + this.greyscale.toString() +
+                          " disable=" + this.disable.toString() +
+                          " tSize=" + renderer.width.toString() + "x" +
+                          renderer.height.toString()])
+        } else {
+            @LogTrace(["halftone", "halftone shader compile failed, skip pass"])
         }
     }
 

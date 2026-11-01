@@ -46,6 +46,22 @@ Parameter:
 |---|---|---|
 |slot|ShadowSlot|Shadow slot|
 
+### func \_getShadowCasters\(Scene\)
+```cj
+public func _getShadowCasters(scene: Scene): ArrayList < RenderObject >
+```
+Get this frame's shadow caster list (collected on first use, shared by all lights)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|scene|Scene|Scene|
+
+Return: 
+
+- This frame's shadow caster list
+
 ### func beginFrame\(\)
 ```cj
 public func beginFrame(): Unit
@@ -63,6 +79,12 @@ Bind shadow uniforms to main pass draw (called in _drawRenderObject)
 public func dispose(): Unit
 ```
 Destroy all persistent shadow resources (_shadowResources), called by BgfxBackend.dispose
+
+### func hasShadowSlots\(\)
+```cj
+public func hasShadowSlots(): Bool
+```
+Whether the current frame has any shadow slots to bind (false when no shadow-casting light)
 
 ### func init\(\)
 ```cj

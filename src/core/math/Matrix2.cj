@@ -255,9 +255,10 @@ public class Matrix2 {
      * @return[en] Array containing the matrix elements
      */
     public func toArray(array!: Option<Array<Float64>> = None, offset!: Int64 = 0): Array<Float64> {
-        let arr = match (array) {
-            case Some(a) => a
-            case None => Array<Float64>(4, { _ => 0.0 })
+        let arr = if (let Some(a) <- array) {
+            a
+        } else {
+            Array<Float64>(4, { _ => 0.0 })
         }
         arr[offset] = this.elements[0]
         arr[offset + 1] = this.elements[1]

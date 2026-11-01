@@ -24,13 +24,13 @@
  * @file[zh-cn] 聚光源
  * @brief[zh-cn] 从某点沿某方向以圆锥形照射的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/SpotLight.js。圆锥边缘随距离增加而变宽，圆锥之外无光。
+ * 圆锥边缘随距离增加而变宽，圆锥之外无光。
  * 聚光源通过 SpotLightShadow 生成阴影贴图，并可通过 target 属性指定照射方向。
  *
  * @file[en] Spot Light
  * @brief[en] A light that emits from a point in a cone shape along a direction
  * @explain[en] 
- * Corresponds to Three.js lights/SpotLight.js. The cone edge widens with distance, and there is no light outside the cone.
+ * The cone edge widens with distance, and there is no light outside the cone.
  * Spot lights generate shadow maps through SpotLightShadow and can specify the illumination direction via the target property.
  */
 package three.rendering.lights
@@ -51,12 +51,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 从某点沿某方向以圆锥形照射的光源
  * @explain[zh-cn] 
- * 对应 Three.js lights/SpotLight.js。圆锥边缘随距离增加而变宽，圆锥之外无光。
+ * 圆锥边缘随距离增加而变宽，圆锥之外无光。
  * 聚光源通过 SpotLightShadow 生成阴影贴图，并可通过 target 属性指定照射方向。
  *
  * @brief[en] A light that emits from a point in a cone shape along a direction
  * @explain[en] 
- * Corresponds to Three.js lights/SpotLight.js. The cone edge widens with distance, and there is no light outside the cone.
+ * The cone edge widens with distance, and there is no light outside the cone.
  * Spot lights generate shadow maps through SpotLightShadow and can specify the illumination direction via the target property.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Light]

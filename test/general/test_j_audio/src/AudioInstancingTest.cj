@@ -1,6 +1,6 @@
 /**
  * @file AudioInstancingTest
- * @brief 迁移 three.js test/unit/src/audio 目录 tests.js 的 Instancing 断言
+ * @brief 迁移上游 JS 库 test/unit/src/audio 目录 tests.js 的 Instancing 断言
  *
  * 对照 JS:
  *   new AudioListener() → 可实例化

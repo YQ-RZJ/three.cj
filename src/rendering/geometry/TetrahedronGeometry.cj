@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * 对齐 JS 继承链：TetrahedronGeometry → PolyhedronGeometry → BufferGeometry。
  * 通过 super(vertices, indices, radius, detail) 复用 PolyhedronGeometry 构建。
- * 对应 Three.js geometries/TetrahedronGeometry.js。
  *
  * @file[en] Tetrahedron Geometry
  * @brief[en] Tetrahedron geometry, a polyhedron special case
  * @explain[en] 
  * Aligned with JS inheritance: TetrahedronGeometry → PolyhedronGeometry → BufferGeometry.
  * Reuses PolyhedronGeometry construction via super(vertices, indices, radius, detail).
- * Corresponds to Three.js geometries/TetrahedronGeometry.js.
  */
 package three.rendering.geometry
 

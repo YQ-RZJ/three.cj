@@ -81,7 +81,7 @@ public class TestWindow <: WindowEngine {
         this.camera = camera
         this.spheres = spheres
 
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   composer.addPass(new RenderPass(scene, camera))   // 场景渲到 readBuffer（RGBA16F HDR）
         //   composer.addPass(new OutputPass())                // 色调映射 + sRGB 转换上屏
         // 视觉效果：HDR 球（color ×3/×4 > 1）经 ACESFilmic 压缩到 [0,1]，

@@ -24,6 +24,25 @@ Parameter:
 |z|Float64||
 |group|Int64||
 
+### func reset\(Int64,Object3D,BufferGeometry,Material,Int64,Int64,Float64,Int64\)
+```cj
+public func reset(id: Int64, object: Object3D, geometry: BufferGeometry, material: Material, groupOrder: Int64, renderOrder: Int64, z: Float64, group: Int64): Unit
+```
+Reuses this render item: resets its fields for the new frame (pooling path)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|id|Int64||
+|object|Object3D||
+|geometry|BufferGeometry||
+|material|Material||
+|groupOrder|Int64||
+|renderOrder|Int64||
+|z|Float64||
+|group|Int64||
+
 ### var \`object\`
 ```cj
 public var `object`: Object3D
@@ -48,9 +67,9 @@ public var group: Int64
 ```
 Group index
 
-### let id
+### var id
 ```cj
-public let id: Int64
+public var id: Int64
 ```
 Unique ID (auto-increment, for stable sorting)
 
@@ -65,6 +84,12 @@ Material
 public var renderOrder: Int64
 ```
 Render order
+
+### var routeSuppressed
+```cj
+public var routeSuppressed: Bool = false
+```
+Whether this item was superseded by aggregate routing this frame (batch-removal flag)
 
 ### var z
 ```cj

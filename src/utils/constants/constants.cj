@@ -22,16 +22,16 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] constants 常量定义
- * @brief[zh-cn] 定义 three.js 兼容的全局常量：交互、渲染状态、纹理、动画、模板等
+ * @brief[zh-cn] 定义引擎通用的全局常量：交互、渲染状态、纹理、动画、模板等
  * @explain[zh-cn] 本文件集中存放渲染状态与配置相关的具名常量，供各模块以符号引用，
- * 避免魔法数字。常量按主题分组，数值与 three.js 保持一致。
+ * 避免魔法数字。常量按主题分组，数值与主流引擎惯例保持一致。
  *
  * @file[en] constants  Constant definitions
- * @brief[en] Defines three.js-compatible global constants for interaction, render state,
+ * @brief[en] Defines engine-wide global constants for interaction, render state,
  * textures, animation, stencil, etc.
  * @explain[en] This file holds named constants for render state and configuration,
  * referenced symbolically across modules to avoid magic numbers. Constants are
- * grouped by topic, and values match three.js.
+ * grouped by topic, and values follow mainstream engine conventions.
  *
  * @package three.utils.constants
  */

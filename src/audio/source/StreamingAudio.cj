@@ -82,6 +82,8 @@ import three.audio.device.*
 import three.audio.listener.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 流式音频，继承 Audio
@@ -383,6 +385,7 @@ public open class StreamingAudio <: Audio {
      * playback continuous. If the decoder reaches EOF and looping is disabled, the
      * playback ends naturally.
      */
+    @Zone[three.audio.source.StreamingAudio.updateStream, name=streamingAudioUpdate]
     public func updateStream(): StreamingAudio {
         if (!this.isPlaying) { return this }
         if (this.sourceId == 0u32) { return this }
@@ -397,7 +400,7 @@ public open class StreamingAudio <: Audio {
         let sampleRate = Int32(this._sampleRate)
         let isLoop = this.loop
 
-        this.context.execAudio({ =>
+        this.context.postAudio({ =>
             // 查询已处理的缓冲数
             let procPtr = unsafe { LibC.malloc<Int32>() }
             alGetSourcei_cj(srcId, AL_BUFFERS_PROCESSED, procPtr)

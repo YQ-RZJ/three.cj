@@ -27,7 +27,7 @@ public init()
 ```cj
 public var angularVelocityX: Float64 = 0.0
 ```
-角速度（参照 Three.js targetRay/grip 的 angularVelocity）
+角速度（对应 targetRay/grip 的 angularVelocity）
 
 ### var angularVelocityY
 ```cj
@@ -45,7 +45,7 @@ public var angularVelocityZ: Float64 = 0.0
 ```cj
 public var eventsEnabled: Bool = true
 ```
-事件是否启用（参照 Three.js grip.eventsEnabled）
+事件是否启用（对应 grip.eventsEnabled）
 
 ### var hasAngularVelocity
 ```cj
@@ -69,19 +69,19 @@ public var hasLinearVelocity: Bool = false
 ```cj
 public var inputState: HashMap < String, Any >
 ```
-输入状态（参照 Three.js hand.inputState）
+输入状态（对应 hand.inputState）
 
 ### var joints
 ```cj
 public var joints: HashMap < String, XRControllerSpace >
 ```
-手部关节映射（参照 Three.js hand.joints）
+手部关节映射（对应 hand.joints）
 
 ### var linearVelocityX
 ```cj
 public var linearVelocityX: Float64 = 0.0
 ```
-线速度（参照 Three.js targetRay/grip 的 linearVelocity）
+线速度（对应 targetRay/grip 的 linearVelocity）
 
 ### var linearVelocityY
 ```cj

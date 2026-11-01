@@ -221,6 +221,12 @@ public var height: Int64
 ```
 贴图高度（像素）
 
+### let id
+```cj
+public let id: Int64
+```
+进程内唯一整数标识（构造时分配，自增）
+
 ### var image
 ```cj
 public var image: Array < UInt8 >

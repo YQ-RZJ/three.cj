@@ -64,6 +64,8 @@ import three.rendering.types.*
 import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 颜色分级（LUT）后处理 pass
@@ -135,29 +137,42 @@ public class LUTPass <: ShaderPass {
      */
     public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUniforms): Unit {
         // 3D LUT 纹理绑定（stage 1，SAMPLER3D(lut, 1)）
-        let uLut = uniforms.createUniform("lut", UniformType.Sampler.value())
+        // 句柄按名缓存（首次创建后复用，省去每帧 createUniform 的全局锁 + 字符串哈希）
+        let uLut = this._cachedUniform("lut", UniformType.Sampler.value())
         this.bindTexture(renderer, 1u8, uLut, this.lut, 0u32)
         // lutSize / intensity（bgfx 最小单位 vec4，x=value）
-        this.setUniformVec4(renderer, uniforms, "u_lutSize",   Float64(this.lutSize))
-        this.setUniformVec4(renderer, uniforms, "u_intensity", this.intensity)
+        this.setUniformVec4(renderer, "u_lutSize",   0, Float64(this.lutSize))
+        this.setUniformVec4(renderer, "u_intensity", 1, this.intensity)
         @LogTrace(["lut", "bindExtraUniforms: lutIdx=" + Handle.idx(this.lut).toString() +
                       " lutSize=" + this.lutSize.toString() +
                       " intensity=" + this.intensity.toString()])
     }
 
     /**
-     * 设置单个 vec4 uniform（x=value, y/z/w=0）。辅助方法，简化 uniforms 设置。
+     * @brief[zh-cn] 设置单个 vec4 uniform（x=value, y/z/w=0）
+     * @explain[zh-cn] 辅助方法，简化 uniforms 设置。
+     * @param[zh-cn] renderer 渲染器
+     * @param[zh-cn] name uniform 名称
+     * @param[zh-cn] slot 复用上传缓冲槽位（每个 uniform 一个固定槽位）
+     * @param[zh-cn] value uniform 值（写入 vec4.x）
+     *
+     * @brief[en] Sets a single vec4 uniform (x=value, y/z/w=0)
+     * @explain[en] Helper method to simplify the uniform setup.
+     * @param[en] renderer Renderer
+     * @param[en] name Uniform name
+     * @param[en] slot Reused upload buffer slot (one fixed slot per uniform)
+     * @param[en] value Uniform value (written to vec4.x)
      */
     private func setUniformVec4(
         renderer: ThreeRenderer,
-        uniforms: BgfxUniforms,
         name: String,
+        slot: Int64,
         value: Float64
     ): Unit {
-        let handle = uniforms.createUniform(name, UniformType.Vec4.value())
-        let mem = BgfxMemory(16u32)
-        mem.writeFloats([value, 0.0, 0.0, 0.0], 4)
-        this.setUniform(renderer, handle, mem, num: 1u16)
+        // 句柄按名缓存 + 复用槽位上传缓冲
+        // （原实现每帧新建 BgfxMemory，走 bgfx_alloc 且不归还 → 逐帧泄漏）
+        let handle = this._cachedUniform(name, UniformType.Vec4.value())
+        this._setScalarUniform(renderer, handle, slot, value)
     }
 
     /**
@@ -178,6 +193,7 @@ public class LUTPass <: ShaderPass {
      *         2. bindExtraUniforms binds lut (stage 1) + u_lutSize/u_intensity;
      *         3. submits the full-screen quad (overwrite state).
      */
+    @Zone[three.rendering.postprocessing.LUTPass.render, name=lUTPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,

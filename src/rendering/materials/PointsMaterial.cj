@@ -24,12 +24,12 @@
  * @file[zh-cn] 点材质
  * @brief[zh-cn] 点材质，用于点云渲染，支持点大小和距离衰减
  * @explain[zh-cn] 
- * 对应 Three.js materials/PointsMaterial.js。支持 size/sizeAttenuation、map/alphaMap。
+ * 支持 size/sizeAttenuation、map/alphaMap。
  *
  * @file[en] Points Material
  * @brief[en] Points material, used for point cloud rendering, supporting point size and distance attenuation
  * @explain[en] 
- * Corresponds to Three.js materials/PointsMaterial.js. Supports size/sizeAttenuation, map/alphaMap.
+ * Supports size/sizeAttenuation, map/alphaMap.
  */
 package three.rendering.materials
 
@@ -42,11 +42,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 点材质，用于点云渲染，支持点大小和距离衰减
  * @explain[zh-cn] 
- * 对应 Three.js materials/PointsMaterial.js。支持 size/sizeAttenuation、map/alphaMap。
+ * 支持 size/sizeAttenuation、map/alphaMap。
  *
  * @brief[en] Points material, used for point cloud rendering, supporting point size and distance attenuation
  * @explain[en] 
- * Corresponds to Three.js materials/PointsMaterial.js. Supports size/sizeAttenuation, map/alphaMap.
+ * Supports size/sizeAttenuation, map/alphaMap.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]
 public class PointsMaterial <: Material {

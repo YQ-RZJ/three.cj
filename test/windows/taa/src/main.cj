@@ -7,7 +7,7 @@ package taa
  * - renderer.cj: 场景设置（盒子 + 多色球 + 地面，边缘清晰的几何体，静止场景）与 createScene
  *                 pass 链：TAARenderPass（跨帧累加 jitter 样本，accumulate=true）
  *
- * TAA 正确使用姿势（对照 three.js 官方 webgl_postprocessing_taa 示例）：
+ * TAA 正确使用姿势（参照 webgl_postprocessing_taa 官方示例）：
  *   - 场景静止（不旋转几何体）时，TAA 跨帧累积约 32 帧后达到完整 32 样本 AA 结果，
  *     边缘最平滑、画面稳定。
  *   - 相机轨道旋转会产生残影（TAA 无重投影，非 TRAA）——这是预期行为，旋转停止后
@@ -88,7 +88,7 @@ public class TestWindow <: WindowEngine {
         println("  场景静止：约 32 帧累积后边缘最平滑（TAA 收敛）")
         println("  鼠标左键拖动：调整公转角度（会产生残影，停止后重新收敛）；滚轮：缩放\n")
 
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   const taaRenderPass = new TAARenderPass(scene, camera)
         //   taaRenderPass.accumulate = true
         //   composer.addPass(taaRenderPass)
@@ -104,7 +104,7 @@ public class TestWindow <: WindowEngine {
     // ===== 生命周期：每循环（读固定快照——逻辑+渲染） =====
     public override func onFrame(dt: Float64): Unit {
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         if (_mouse.getOrThrow().isMouseButtonDown(MouseButton.LEFT)) {
             this.orbitTheta -= Float64(_mouse.getOrThrow().getMouseDX()) * 0.005

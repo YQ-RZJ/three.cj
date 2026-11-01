@@ -50,7 +50,7 @@ public const worldpos_vertex: String = #"
 
 	#ifdef USE_INSTANCING
 
-		worldPosition = instanceMatrix * worldPosition;
+		worldPosition = bgfxApplyInstanceMatrix( worldPosition );
 
 	#endif
 

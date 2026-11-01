@@ -148,7 +148,7 @@ public class AudioEffect <: IAudioEffect {
         if (this.effectId == 0u32) { this.create() }
         let eid = this.effectId
         let v = Int32(effectType.value())
-        this.context.execAudio({ => alEffecti_cj(eid, AL_EFFECT_TYPE, v) })
+        this.context.postAudio({ => alEffecti_cj(eid, AL_EFFECT_TYPE, v) })
         return this
     }
 
@@ -169,7 +169,7 @@ public class AudioEffect <: IAudioEffect {
     public func setParamf(param: UInt32, value: Float32): AudioEffect {
         if (this.effectId == 0u32) { return this }
         let eid = this.effectId
-        this.context.execAudio({ => alEffectf_cj(eid, param, value) })
+        this.context.postAudio({ => alEffectf_cj(eid, param, value) })
         return this
     }
 
@@ -212,7 +212,7 @@ public class AudioEffect <: IAudioEffect {
     public func setParami(param: UInt32, value: Int32): AudioEffect {
         if (this.effectId == 0u32) { return this }
         let eid = this.effectId
-        this.context.execAudio({ => alEffecti_cj(eid, param, value) })
+        this.context.postAudio({ => alEffecti_cj(eid, param, value) })
         return this
     }
 

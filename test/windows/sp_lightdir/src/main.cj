@@ -77,10 +77,10 @@ public class TestWindow <: WindowEngine {
         this.objs = createScene(w, h)
 
         // ---- 步骤 3.5: 启用 debug mode 4（光源方向可视化） ----
-        // 新架构对齐 Three.js：renderer.setDebugMode 已移除。
-        // Debug 可视化用 Three.js 标准 scene.overrideMaterial：
+        // 新架构不再提供 renderer.setDebugMode。
+        // Debug 可视化用标准 scene.overrideMaterial：
         //   scene.overrideMaterial = Some(LightDirMaterial())
-        // LightDirMaterial 是 bgfx4cj 扩展内置材质（对照 Three.js 无），kind 映射到
+        // LightDirMaterial 是 bgfx4cj 扩展内置材质（参考实现无对应物），kind 映射到
         // ShaderLibs 已注册的 "lightdir" 程序，将 N·L 映射为灰度：朝光面=白、背光面=黑，
         // 用于验证方向光 u_lightDir0 是否正确传递。
         println("  设置 Debug overrideMaterial: LightDirMaterial (N·L 光源方向可视化)")
@@ -99,7 +99,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

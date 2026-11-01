@@ -231,6 +231,12 @@ public init()
 ```
 Constructs a new buffer geometry
 
+### func invalidateBounds\(\)
+```cj
+public func invalidateBounds(): Unit
+```
+Invalidates the cross-frame bounding box/sphere cache
+
 ### func lookAt\(Vector3\)
 ```cj
 public func lookAt(vector: Vector3): BufferGeometry
@@ -455,6 +461,12 @@ Determines the part of geometry to render, set via setDrawRange()
 public var groups: ArrayList < BufferGeometryGroup >
 ```
 Divides geometry into multiple draw groups, each using different materials, edited via addGroup/clearGroups
+
+### let id
+```cj
+public let id: Int64
+```
+Process-unique integer identifier (assigned at construction)
 
 ### var index
 ```cj

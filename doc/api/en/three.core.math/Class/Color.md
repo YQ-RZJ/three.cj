@@ -384,7 +384,7 @@ Parameter:
 ```cj
 public init(r: Float64, g: Float64, b: Float64, a: Float64)
 ```
-与 three.js 惯例对齐的 RGBA 写法使用；alpha 分量被忽略。
+与主流引擎惯例对齐的 RGBA 写法使用；alpha 分量被忽略。
 
 Parameter: 
 

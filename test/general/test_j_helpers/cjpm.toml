@@ -6,7 +6,7 @@
 [package]
   cjc-version = "1.1.0"
   compile-option = "-Woff unused -g -O0"
-  description = "test_j_helpers - migrate three.js unit/src/helpers tests"
+  description = "test_j_helpers"
   link-option = ""
   name = "test_j_helpers"
   output-type = "executable"

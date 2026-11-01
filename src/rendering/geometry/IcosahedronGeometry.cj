@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * 对齐 JS 继承链：IcosahedronGeometry → PolyhedronGeometry → BufferGeometry。
  * 通过 super(vertices, indices, radius, detail) 复用 PolyhedronGeometry 构建。
- * 对应 Three.js geometries/IcosahedronGeometry.js。
  *
  * @file[en] Icosahedron Geometry
  * @brief[en] Icosahedron geometry, a polyhedron special case
  * @explain[en] 
  * Aligned with JS inheritance: IcosahedronGeometry → PolyhedronGeometry → BufferGeometry.
  * Reuses PolyhedronGeometry construction via super(vertices, indices, radius, detail).
- * Corresponds to Three.js geometries/IcosahedronGeometry.js.
  */
 package three.rendering.geometry
 

@@ -89,7 +89,7 @@ public class TestWindow <: WindowEngine {
         println("[4/5] 进入渲染循环（RenderPass + MaskPass + ClearMaskPass via EffectComposer）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
 
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   composer.addPass(new RenderPass(scene, camera))       // 场景渲到 readBuffer
         //   composer.addPass(new MaskPass(scene, camera))         // 用 stencil buffer 标记遮罩区域
         //   composer.addPass(new ShaderPass(copy))                // 只在遮罩区域透传场景（主体可见、背景被遮盖）

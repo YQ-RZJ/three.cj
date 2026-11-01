@@ -6,9 +6,9 @@ package particles
  * - 两个 Sprite 精灵（SpriteMaterial + 圆点纹理，广告牌始终朝向相机）
  * - 相机轨道旋转 + 粒子自转，验证 POINTS 图元 / size / sizeAttenuation / map 采样 / Sprite 广告牌
  *
- * 对照 three.js:
+ * 通用参考做法:
  *   - Points：`new THREE.Points(geometry, new THREE.PointsMaterial({ size, map, transparent }))`
- *     three.js 示例 webgl_points_sprites / webgl_points_dynamic 的点云形态
+ *     官方示例 webgl_points_sprites / webgl_points_dynamic 的点云形态
  *   - Sprite：`new THREE.Sprite(new THREE.SpriteMaterial({ map, color }))` 广告牌精灵
  *
  * 按键交互（详见 win32.cj printHelp）：
@@ -110,11 +110,11 @@ public func createScene(
     scene.add(ambient)
     println("  灯光创建成功: ambient")
 
-    // ===== 程序生成圆点纹理（对照 three.js CanvasTexture 画圆点；DataTexture 由管线自动上传）=====
+    // ===== 程序生成圆点纹理（参照 CanvasTexture 画圆点；DataTexture 由管线自动上传）=====
     let dotTex = createDotTexture(64)
     println("  圆点纹理创建成功")
 
-    // ===== Points 星云（球壳分布，对照 three.js PointsMaterial map 点精灵示例）=====
+    // ===== Points 星云（球壳分布，对照 PointsMaterial map 点精灵示例）=====
     let ptsCount = PARTICLE_COUNT
     let ptsPositions = Array<Float64>(ptsCount * 3, { _ => 0.0 })
     let ptsColors = Array<Float64>(ptsCount * 3, { _ => 0.0 })
@@ -131,7 +131,7 @@ public func createScene(
         ptsPositions[i * 3] = r * cp * cos(theta)
         ptsPositions[i * 3 + 1] = r * sin(phi) * 0.6  // 垂直压扁成盘状星云
         ptsPositions[i * 3 + 2] = r * cp * sin(theta)
-        // 颜色渐变（中心偏暖色，边缘偏冷色，对照 three.js 点精灵示例 vertexColors）
+        // 颜色渐变（中心偏暖色，边缘偏冷色，对照点精灵示例 vertexColors）
         let t = clamp((r - 4.0) / 3.0, 0.0, 1.0)
         ptsColors[i * 3] = 0.9 + 0.1 * t
         ptsColors[i * 3 + 1] = 0.5 + 0.3 * (1.0 - t)
@@ -153,7 +153,7 @@ public func createScene(
     scene.add(points)
     println("  Points 星云创建成功: ${ptsCount} 粒子, size=${DEFAULT_PARTICLE_SIZE}")
 
-    // ===== Sprite 精灵（广告牌，对照 three.js Sprite + SpriteMaterial map 示例）=====
+    // ===== Sprite 精灵（广告牌，对照 Sprite + SpriteMaterial map 示例）=====
     let spriteMat = SpriteMaterial()
     spriteMat.color = Color(0xffdd44)
     spriteMat.map = Some(dotTex)
@@ -170,7 +170,7 @@ public func createScene(
 
 /**
  * 创建圆点纹理（程序生成 DataTexture，RGBA8，中心亮边缘透明）。
- * 对照 three.js CanvasTexture 画圆形渐变点；仓颉侧沿用 textures 测试项目范式——
+ * 参照 CanvasTexture 画圆形渐变点；仓颉侧沿用 textures 测试项目范式——
  * 创建 DataTexture 纯数据对象，材质 map = Some(tex)，由渲染管线按 needsUpdate 自动上传 GPU 纹理。
  *
  * @param size 纹理边长（像素，如 64）

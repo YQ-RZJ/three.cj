@@ -222,19 +222,19 @@ void main() {
 	#elif DEPTH_PACKING == 3201
 
 		// TODO Deprecate
-		// Ignore: JS 原文 TODO Deprecate，DEPTH_PACKING 3201 分支标记弃用，属 three.js 上游项。
+		// Ignore: JS 原文 TODO Deprecate，DEPTH_PACKING 3201 分支标记弃用，属上游项。
 		gl_FragColor = packDepthToRGBA( fragCoordZ );
 
 	#elif DEPTH_PACKING == 3202
 
 		// TODO Deprecate
-		// Ignore: JS 原文 TODO Deprecate，DEPTH_PACKING 3202 分支标记弃用，属 three.js 上游项。
+		// Ignore: JS 原文 TODO Deprecate，DEPTH_PACKING 3202 分支标记弃用，属上游项。
 		gl_FragColor = vec4( packDepthToRGB( fragCoordZ ), 1.0 );
 
 	#elif DEPTH_PACKING == 3203
 
 		// TODO Deprecate
-		// Ignore: JS 原文 TODO Deprecate，DEPTH_PACKING 3203 分支标记弃用，属 three.js 上游项。
+		// Ignore: JS 原文 TODO Deprecate，DEPTH_PACKING 3203 分支标记弃用，属上游项。
 		gl_FragColor = vec4( packDepthToRG( fragCoordZ ), 0.0, 1.0 );
 
 	#endif
@@ -1208,8 +1208,8 @@ varying vec3 vViewPosition;
 #include <lightmap_pars_fragment>
 #include <emissivemap_pars_fragment>
 #include <iridescence_fragment>
-#include <cube_uv_reflection_fragment>
 #include <envmap_common_pars_fragment>
+#include <cube_uv_reflection_fragment>
 #include <envmap_physical_pars_fragment>
 #include <fog_pars_fragment>
 

@@ -23,12 +23,17 @@
  *
  * @file[zh-cn] envmap_physical_pars_fragment  ShaderChunk GLSL 片段
  * @brief[zh-cn] ShaderChunk GLSL 片段: envmap_physical_pars_fragment
- *
+ * @explain[zh-cn] 基于 PMREM（CubeUV）环境贴图的 IBL 光照明：
+ *         getIBLIrradiance 提供漫反射辐照度（roughness=1 采样最模糊层级 ×PI），
+ *         getIBLRadiance 提供镜面反射辐射度（按材质 roughness 选择 CubeUV 层级）。
+ *         sampler 名 u_envMap 与强度 u_envMapIntensity 由 envmap_common_pars_fragment 声明。
+
  * @file[en] envmap_physical_pars_fragment  ShaderChunk GLSL fragment
  * @brief[en] ShaderChunk GLSL fragment: envmap_physical_pars_fragment
- * 该 GLSL 片段由 ShaderLib 在构建完整着色器程序时按需拼接。
- * 在 bgfx4cj 渲染后端中,由 BgfxShader/BgfxShaderCache 在运行时
- * 拼接为完整 GLSL 源码后交给 bgfx4j 封装的 shaderc API 编译。
+ * @explain[en] PMREM (CubeUV) environment-map based IBL:
+ *         getIBLIrradiance returns diffuse irradiance (roughness=1 sampled from the blurriest level, x PI),
+ *         getIBLRadiance returns specular radiance (CubeUV level selected by material roughness).
+ *         The sampler u_envMap and intensity u_envMapIntensity are declared in envmap_common_pars_fragment.
  */
 package three.rendering.shaders.ShaderChunk
 
@@ -44,15 +49,16 @@ public const envmap_physical_pars_fragment: String = #"
 
 		#ifdef ENVMAP_TYPE_CUBE_UV
 
-			vec3 worldNormal = transformNormalByInverseViewMatrix( normal, viewMatrix );
+			// ★本引擎约定：vNormal 已是世界空间（u_normalMatrix = 物体世界矩阵 3x3，
+			// 光源 uniform 也是世界空间），故直接用世界法线采样环境贴图，不可再做
+			// 逆视图变换（否则会随相机旋转而错位，反射与天空盒对不上）。
+			vec3 envMapColor = textureCubeUV( normal, 1.0 );
 
-			vec4 envMapColor = textureCubeUV( envMap, envMapRotation * worldNormal, 1.0 );
-
-			return PI * envMapColor.rgb * envMapIntensity;
+			return PI * envMapColor * u_envMapIntensity.x;
 
 		#else
 
-			return vec3(0.0, 0.0, 0.0);
+			return vec3( 0.0, 0.0, 0.0 );
 
 		#endif
 
@@ -62,20 +68,22 @@ public const envmap_physical_pars_fragment: String = #"
 
 		#ifdef ENVMAP_TYPE_CUBE_UV
 
+			// ★本引擎约定：geometryNormal 与 geometryViewDir 均为世界空间
+			// （见 lights_fragment_begin：geometryViewDir = normalize(u_cameraPos - v_worldPos)，
+			//   法线由 u_normalMatrix（世界模型矩阵）变换得到），环境贴图也在世界空间，
+			//   故直接求反射方向，绝不可再做视图空间↔世界空间变换。
 			vec3 reflectVec = reflect( - viewDir, normal );
 
 			// Mixing the reflection with the normal is more accurate and keeps rough objects from gathering light from behind their tangent plane.
 			reflectVec = normalize( mix( reflectVec, normal, pow4( roughness ) ) );
 
-			reflectVec = transformDirectionByInverseViewMatrix( reflectVec, viewMatrix );
+			vec3 envMapColor = textureCubeUV( reflectVec, roughness );
 
-			vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness );
-
-			return envMapColor.rgb * envMapIntensity;
+			return envMapColor * u_envMapIntensity.x;
 
 		#else
 
-			return vec3(0.0, 0.0, 0.0);
+			return vec3( 0.0, 0.0, 0.0 );
 
 		#endif
 
@@ -87,7 +95,7 @@ public const envmap_physical_pars_fragment: String = #"
 
 			#ifdef ENVMAP_TYPE_CUBE_UV
 
-			  // https://google.github.io/filament/Filament.md.html#lighting/imagebasedlights/anisotropy
+				// https://google.github.io/filament/Filament.md.html#lighting/imagebasedlights/anisotropy
 				vec3 bentNormal = cross( bitangent, viewDir );
 				bentNormal = normalize( cross( bentNormal, bitangent ) );
 				bentNormal = normalize( mix( bentNormal, normal, pow2( pow2( 1.0 - anisotropy * ( 1.0 - roughness ) ) ) ) );
@@ -96,7 +104,7 @@ public const envmap_physical_pars_fragment: String = #"
 
 			#else
 
-				return vec3(0.0, 0.0, 0.0);
+				return vec3( 0.0, 0.0, 0.0 );
 
 			#endif
 

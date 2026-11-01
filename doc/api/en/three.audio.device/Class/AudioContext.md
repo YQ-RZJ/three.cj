@@ -12,10 +12,11 @@ public func execAudio(cmd:() -> Unit): Unit
 Public thread-serialization entry point that submits an OpenAL API call
 to the audio thread and executes it synchronously
 
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>External modules (e.g. AudioLoader/StreamingAudio/EffectComposer) must queue
-their OpenAL calls through this method to avoid data races. Closures run on the
-audio thread in submission order; calling other _execAudio-based methods
-(e.g. initialize) from inside the closure self-deadlocks.</p>
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>External modules (e.g. AudioLoader/StreamingAudio/AudioRecorder) must queue
+their OpenAL calls through this method to avoid data races; closures run on the
+audio thread in submission order. Use this method when the result is needed
+(e.g. handles filled by alGenBuffers); pure writes that do not care when they
+take effect may use postAudio (never blocks the caller).</p>
 
 Parameter: 
 
@@ -94,6 +95,52 @@ Return:
 
 - Whether initialization succeeded
 
+### func postAudio\(\(\)\->Unit\)
+```cj
+public func postAudio(cmd:() -> Unit): Unit
+```
+Public post entry: queues an OpenAL call onto the audio thread **without waiting
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|cmd|()->Unit|Closure to execute (raw OpenAL calls only; must not read back any result)|
+
+### func postTransform\(AudioTransformSlot,Float32,Float32,Float32,Float32,Float32,Float32,Float32,Float32,Float32,Float32\)
+```cj
+public func postTransform(slot: AudioTransformSlot, px: Float32, py: Float32, pz: Float32, ox: Float32, oy: Float32, oz: Float32, ux: Float32, uy: Float32, uz: Float32, gain: Float32): Unit
+```
+Asynchronously submits an audio object's transform (render thread, non-blocking)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|slot|AudioTransformSlot|The transform slot|
+|px|Float32|Position X|
+|py|Float32|Position Y|
+|pz|Float32|Position Z|
+|ox|Float32|Orientation/direction X|
+|oy|Float32|Orientation/direction Y|
+|oz|Float32|Orientation/direction Z|
+|ux|Float32|Up axis/velocity X|
+|uy|Float32|Up axis/velocity Y|
+|uz|Float32|Up axis/velocity Z|
+|gain|Float32|Master gain (effective for listener slots only)|
+
+### func registerTransformSlot\(AudioTransformSlot\)
+```cj
+public func registerTransformSlot(slot: AudioTransformSlot): Unit
+```
+Registers an audio transform slot
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|slot|AudioTransformSlot|The transform slot (owned by the caller, must outlive the registration)|
+
 ### func selectHrtf\(Int32\)
 ```cj
 public func selectHrtf(id: Int32): Unit
@@ -170,6 +217,18 @@ Shuts down the audio context and releases resources
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Cleanup runs on the audio thread to ensure OpenAL calls are issued on the
 thread that owns the context.</p>
+
+### func unregisterTransformSlot\(AudioTransformSlot\)
+```cj
+public func unregisterTransformSlot(slot: AudioTransformSlot): Unit
+```
+Unregisters an audio transform slot
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|slot|AudioTransformSlot|The transform slot|
 
 ### prop alcContext: CPointer < Unit >
 ```cj

@@ -87,7 +87,7 @@ public class TestWindow <: WindowEngine {
         println("  [loop] === FRAME ${this.frame + 1} START ===")
         println("  [loop] frame ${this.frame + 1} after msgs")
 
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

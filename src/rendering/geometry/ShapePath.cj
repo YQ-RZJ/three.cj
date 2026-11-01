@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * ShapePath 提供 moveTo/lineTo/bezierCurveTo 等方法创建子路径，
  * 并可将子路径转换为 Shape 对象数组。
- * 对应 Three.js extras/core/ShapePath.js。
  *
  * @file[en] Shape Path
  * @brief[en] Container class managing multiple sub-paths for building complex 2D shapes
  * @explain[en] 
  * ShapePath provides moveTo/lineTo/bezierCurveTo methods to create sub-paths,
  * and can convert sub-paths into an array of Shape objects.
- * Corresponds to Three.js extras/core/ShapePath.js.
  */
 package three.rendering.geometry
 
@@ -56,16 +54,10 @@ public class ShapePath {
         this.subPaths.add(p)
     }
     public func lineTo(x: Float64, y: Float64): Unit {
-        match (this.currentPath) {
-            case Some(p) => p.lineTo(x, y)
-            case None => ()
-        }
+        if (let Some(p) <- this.currentPath) { p.lineTo(x, y) }
     }
     public func quadraticCurveTo(cpx: Float64, cpy: Float64, x: Float64, y: Float64): Unit {
-        match (this.currentPath) {
-            case Some(p) => p.quadraticCurveTo(cpx, cpy, x, y)
-            case None => ()
-        }
+        if (let Some(p) <- this.currentPath) { p.quadraticCurveTo(cpx, cpy, x, y) }
     }
     /**
      * @brief[zh-cn] 从当前点画三次贝塞尔曲线到指定位置
@@ -85,16 +77,10 @@ public class ShapePath {
      * y Target Y coordinate
      */
     public func bezierCurveTo(cp1x: Float64, cp1y: Float64, cp2x: Float64, cp2y: Float64, x: Float64, y: Float64): Unit {
-        match (this.currentPath) {
-            case Some(p) => p.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y)
-            case None => ()
-        }
+        if (let Some(p) <- this.currentPath) { p.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) }
     }
     public func splineThru(points: Array<Vector3>): Unit {
-        match (this.currentPath) {
-            case Some(p) => p.splineThru(points)
-            case None => ()
-        }
+        if (let Some(p) <- this.currentPath) { p.splineThru(points) }
     }
     /**
      * @brief[zh-cn] 将所有子路径转换为 Shape 对象数组

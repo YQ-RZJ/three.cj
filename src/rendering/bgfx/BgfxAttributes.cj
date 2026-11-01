@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 顶点属性缓冲管理
  * @brief[zh-cn] 替代 WebGLAttributes，使用 bgfx VertexBufferHandle/IndexBufferHandle 管理顶点缓冲
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLAttributes.js。在 WebGL 中通过 gl.createBuffer/gl.bufferData 管理缓冲，在 bgfx 中通过 bgfx_create_vertex_buffer_cj/bgfx_create_index_buffer_cj 管理。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.createBuffer/gl.bufferData 管理缓冲，在 bgfx 中通过 bgfx_create_vertex_buffer_cj/bgfx_create_index_buffer_cj 管理。
  *
  * @file[en] bgfx Vertex Attribute Buffer Management
  * @brief[en] Replace WebGLAttributes, manage vertex buffers using bgfx VertexBufferHandle/IndexBufferHandle
- * @explain[en] Mirrors three.js/src/renderers/webgl/WebGLAttributes.js. In WebGL, buffers are managed via gl.createBuffer/gl.bufferData; in bgfx, via bgfx_create_vertex_buffer_cj/bgfx_create_index_buffer_cj.
+ * @explain[en] In WebGL, buffers are managed via gl.createBuffer/gl.bufferData; in bgfx, via bgfx_create_vertex_buffer_cj/bgfx_create_index_buffer_cj.
  */
 package three.rendering.bgfx
 
@@ -189,10 +189,7 @@ public class BgfxAttributes {
      */
     public func destroyVertexLayout(layout: VertexLayoutHandle): Unit {
         bgfx_destroy_vertex_layout_cj(layout)
-        match (this.layoutPtrs.get(layout.idx)) {
-            case Some(holder) => holder.dispose()
-            case None => ()
-        }
+        if (let Some(holder) <- this.layoutPtrs.get(layout.idx)) { holder.dispose() }
         this.layoutPtrs.remove(layout.idx)
     }
 
@@ -234,14 +231,11 @@ public class BgfxAttributes {
      * @param[en] attributeId Attribute object ID
      */
     public func removeVertexBuffer(attributeId: Int64): Unit {
-        match (vertexBuffers.get(attributeId)) {
-            case Some(data) =>
-                if (data.handle.idx != 0xFFFFu16) {
-                    bgfx_destroy_vertex_buffer_cj(data.handle)
-                }
-                vertexBuffers.remove(attributeId)
-            case None =>
-                ()
+        if (let Some(data) <- vertexBuffers.get(attributeId)) {
+            if (data.handle.idx != 0xFFFFu16) {
+                bgfx_destroy_vertex_buffer_cj(data.handle)
+            }
+            vertexBuffers.remove(attributeId)
         }
     }
 
@@ -253,14 +247,11 @@ public class BgfxAttributes {
      * @param[en] attributeId Attribute object ID
      */
     public func removeIndexBuffer(attributeId: Int64): Unit {
-        match (indexBuffers.get(attributeId)) {
-            case Some(data) =>
-                if (data.handle.idx != 0xFFFFu16) {
-                    bgfx_destroy_index_buffer_cj(data.handle)
-                }
-                indexBuffers.remove(attributeId)
-            case None =>
-                ()
+        if (let Some(data) <- indexBuffers.get(attributeId)) {
+            if (data.handle.idx != 0xFFFFu16) {
+                bgfx_destroy_index_buffer_cj(data.handle)
+            }
+            indexBuffers.remove(attributeId)
         }
     }
 
@@ -287,35 +278,31 @@ public class BgfxAttributes {
      */
     public func updateVertexBuffer(attributeId: Int64, mem: BgfxMemory, layout: VertexLayoutHandle,
         size: Int64, bytesPerElement: Int64, version: Int64, dynamic: Bool): Unit {
-        let layoutPtr = match (this.layoutPtrs.get(layout.idx)) {
-            case Some(holder) => holder.get()
-            case None => CPointer<VertexLayout>()
-        }
-        match (vertexBuffers.get(attributeId)) {
-            case Some(cached) =>
-                if (cached.version < version) {
-                    // 版本更新，需要重建缓冲
-                    if (cached.handle.idx != 0xFFFFu16) {
-                        bgfx_destroy_vertex_buffer_cj(cached.handle)
-                    }
-                    let flags: UInt16 = 0u16  // bgfx 缓冲标志（动态缓冲使用 DynamicVertexBufferHandle）
-                    let handle = bgfx_create_vertex_buffer_cj(mem.get(), layoutPtr, flags)
-                    cached.handle = handle
-                    cached.size = size
-                    cached.version = version
-                    cached.bytesPerElement = bytesPerElement
-                    cached.dynamic = dynamic
+        let layoutPtr = if (let Some(holder) <- this.layoutPtrs.get(layout.idx)) { holder.get() } else { CPointer<VertexLayout>() }
+        if (let Some(cached) <- vertexBuffers.get(attributeId)) {
+            if (cached.version < version) {
+                // 版本更新，需要重建缓冲
+                if (cached.handle.idx != 0xFFFFu16) {
+                    bgfx_destroy_vertex_buffer_cj(cached.handle)
                 }
-            case None =>
-                let flags: UInt16 = 0u16  // bgfx 缓冲标志
+                let flags: UInt16 = 0u16  // bgfx 缓冲标志（动态缓冲使用 DynamicVertexBufferHandle）
                 let handle = bgfx_create_vertex_buffer_cj(mem.get(), layoutPtr, flags)
-                let info = VertexBufferInfo()
-                info.handle = handle
-                info.bytesPerElement = bytesPerElement
-                info.version = version
-                info.size = size
-                info.dynamic = dynamic
-                vertexBuffers.add(attributeId, info)
+                cached.handle = handle
+                cached.size = size
+                cached.version = version
+                cached.bytesPerElement = bytesPerElement
+                cached.dynamic = dynamic
+            }
+        } else {
+            let flags: UInt16 = 0u16  // bgfx 缓冲标志
+            let handle = bgfx_create_vertex_buffer_cj(mem.get(), layoutPtr, flags)
+            let info = VertexBufferInfo()
+            info.handle = handle
+            info.bytesPerElement = bytesPerElement
+            info.version = version
+            info.size = size
+            info.dynamic = dynamic
+            vertexBuffers.add(attributeId, info)
         }
     }
 
@@ -336,26 +323,25 @@ public class BgfxAttributes {
      */
     public func updateIndexBuffer(attributeId: Int64, mem: BgfxMemory,
         size: Int64, bytesPerElement: Int64, version: Int64): Unit {
-        match (indexBuffers.get(attributeId)) {
-            case Some(cached) =>
-                if (cached.version < version) {
-                    if (cached.handle.idx != 0xFFFFu16) {
-                        bgfx_destroy_index_buffer_cj(cached.handle)
-                    }
-                    let handle = bgfx_create_index_buffer_cj(mem.get(), 0u16)
-                    cached.handle = handle
-                    cached.size = size
-                    cached.version = version
-                    cached.bytesPerElement = bytesPerElement
+        if (let Some(cached) <- indexBuffers.get(attributeId)) {
+            if (cached.version < version) {
+                if (cached.handle.idx != 0xFFFFu16) {
+                    bgfx_destroy_index_buffer_cj(cached.handle)
                 }
-            case None =>
                 let handle = bgfx_create_index_buffer_cj(mem.get(), 0u16)
-                let info = IndexBufferInfo()
-                info.handle = handle
-                info.bytesPerElement = bytesPerElement
-                info.version = version
-                info.size = size
-                indexBuffers.add(attributeId, info)
+                cached.handle = handle
+                cached.size = size
+                cached.version = version
+                cached.bytesPerElement = bytesPerElement
+            }
+        } else {
+            let handle = bgfx_create_index_buffer_cj(mem.get(), 0u16)
+            let info = IndexBufferInfo()
+            info.handle = handle
+            info.bytesPerElement = bytesPerElement
+            info.version = version
+            info.size = size
+            indexBuffers.add(attributeId, info)
         }
     }
 

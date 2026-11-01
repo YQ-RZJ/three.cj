@@ -25,13 +25,11 @@
  * @brief[zh-cn] 起止两点构成的 3D 直线段
  * @explain[zh-cn] 
  * LineCurve3 继承 Curve，由两个端点 v1、v2 定义 3D 直线段。
- * 对应 Three.js extras/curves/LineCurve3.js。
  *
  * @file[en] 3D Line Curve
  * @brief[en] 3D line segment defined by start and end points
  * @explain[en] 
  * LineCurve3 extends Curve, defining a 3D line segment by two endpoints v1 and v2.
- * Corresponds to Three.js extras/curves/LineCurve3.js.
  */
 package three.rendering.geometry
 import std.collection.*

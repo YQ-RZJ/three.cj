@@ -13,9 +13,11 @@
 |  Name   | Describe  |
 |  ----  | ----  |
 |[Condition](./Class/Condition.md#class-condition)|Condition variable|
+|[FrameFence](./Class/FrameFence.md#class-framefence)|Frame fence: the submitter remembers a sequence, the consumer advances the done sequence, and waiters block until their sequence|
 |[Mutex](./Class/Mutex.md#class-mutex)|Mutex|
 |[RWLock](./Class/RWLock.md#class-rwlock)|Read-write lock (multiple readers, single writer)|
 |[RecursiveMutex](./Class/RecursiveMutex.md#class-recursivemutex)|Reentrant mutex|
+|[SPSCQueue<T>](./Class/SPSCQueue.md#class-spscqueue-t-)|Lock-free fixed-capacity single-producer single-consumer queue|
 |[SThread<T>](./Class/SThread.md#class-sthread-t-)|System thread class|
 |[Semaphore](./Class/Semaphore.md#class-semaphore)|Semaphore|
 

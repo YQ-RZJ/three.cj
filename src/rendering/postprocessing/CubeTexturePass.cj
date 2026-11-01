@@ -73,6 +73,8 @@ import three.rendering.types.*
 import three.rendering.bgfx.BgfxAttributeDesc
 import std.collection.*
 import std.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 立方体贴图背景 pass
@@ -134,6 +136,17 @@ public class CubeTexturePass <: Pass {
      */
     private var _cubeLayout: Option<VertexLayoutHandle> = None
 
+    /**
+     * 单位矩阵（cube 在世界原点，model 恒等）——复用字段，
+     * 原实现每帧新建一个 16 元素数组字面量。
+     */
+    private let _identityMtx: Array<Float64> = [
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    ]
+
     /** 渲染器引用（render() 时缓存，dispose 经其高阶 API 销毁 GPU 资源） */
     private var _renderer: Option<ThreeRenderer> = None
 
@@ -160,10 +173,7 @@ public class CubeTexturePass <: Pass {
      * cube shader 只用 position，故 VB 仅存 position（8 顶点，36 索引）。
      */
     private func _ensureCubeMesh(renderer: ThreeRenderer): Unit {
-        match (this._cubeVB) {
-            case Some(_) => return
-            case None => ()
-        }
+        if (let Some(_) <- this._cubeVB) { return }
 
         // 8 顶点的 BoxGeometry（100x100x100），BackSide 需 CCW 翻转索引
         // 注意：cube 背景（天空盒）要求相机位于 cube 内部；测试相机 orbitDist 可达 40，
@@ -248,6 +258,7 @@ public class CubeTexturePass <: Pass {
      * @param readBuffer 读 buffer（renderToScreen=false 时写这里）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.CubeTexturePass.render, name=cubeTexturePass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -257,130 +268,111 @@ public class CubeTexturePass <: Pass {
         this._renderer = Some(renderer)
         // 取 cube shader + 编译（仅首次）
         // cube shader 已在 ShaderLib.cj 注册
-        match (this._cubeProg) {
-            case None =>
-                // 用 PostProcessingShaders.cj 注册的 cube_tex（真正采样 textureCube 的天空盒 shader），
-                // 替代 ShaderLibs 中 basic 占位的 "cube"（basic 无 textureCube 采样，背景不会显示）。
-                match (PostProcessingShaders.get("cube_tex")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._cubeProg = Some(Box(sp.programHandle))
-                    case None =>
-                        @LogTrace(["CubeTexturePass", "cube_tex shader not registered in PostProcessingShaders"])
-                        return
-                }
-            case Some(_) => ()
+        if (let Some(_) <- this._cubeProg) {
+        } else {
+            // 用 PostProcessingShaders.cj 注册的 cube_tex（真正采样 textureCube 的天空盒 shader），
+            // 替代 ShaderLibs 中 basic 占位的 "cube"（basic 无 textureCube 采样，背景不会显示）。
+            if (let Some(sp) <- PostProcessingShaders.get("cube_tex")) {
+                sp.compileBgfx()
+                this._cubeProg = Some(Box(sp.programHandle))
+            } else {
+                @LogTrace(["CubeTexturePass", "cube_tex shader not registered in PostProcessingShaders"])
+                return
+            }
         }
 
-        match (this._cubeProg) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["CubeTexturePass", "cube program compile FAILED"])
-                    return
-                }
-                let viewId = CubeTexturePass.CUBE_VIEW_ID
-                let w = UInt16(renderer.width)
-                let h = UInt16(renderer.height)
-                let rt = this.renderToScreen
-                // 取 cubeTex 对应的 bgfx cube 纹理句柄
-                // CubeTexture 在场景中已加载并上传到 bgfx cube 纹理句柄
-                // 这里经 renderer 的 CubeTexture→bgfx TextureHandle 桥接取句柄
-                let cubeTexHandleRaw = this._getCubeTextureHandle(renderer)
-                if (!Handle.isValid(cubeTexHandleRaw)) {
-                    @LogTrace(["CubeTexturePass", "cubeTex bgfx handle invalid (CubeTexture not uploaded?)"])
-                    return
-                }
-                // 调试日志用的 idx（UInt16 普通值）
-                let progIdx = Handle.idx(prog)
-                let cubeTexIdx = Handle.idx(cubeTexHandleRaw)
+        if (let Some(prog) <- this._cubeProg) {
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["CubeTexturePass", "cube program compile FAILED"])
+                return
+            }
+            let viewId = CubeTexturePass.CUBE_VIEW_ID
+            let w = UInt16(renderer.width)
+            let h = UInt16(renderer.height)
+            let rt = this.renderToScreen
+            // 取 cubeTex 对应的 bgfx cube 纹理句柄
+            // CubeTexture 在场景中已加载并上传到 bgfx cube 纹理句柄
+            // 这里经 renderer 的 CubeTexture→bgfx TextureHandle 桥接取句柄
+            let cubeTexHandleRaw = this._getCubeTextureHandle(renderer)
+            if (!Handle.isValid(cubeTexHandleRaw)) {
+                @LogTrace(["CubeTexturePass", "cubeTex bgfx handle invalid (CubeTexture not uploaded?)"])
+                return
+            }
+            // 调试日志用的 idx（UInt16 普通值）
+            let progIdx = Handle.idx(prog)
+            let cubeTexIdx = Handle.idx(cubeTexHandleRaw)
 
-                // 计算相机 view/projection 矩阵
-                // cube shader 用 modelMatrix（=identity）→ vWorldDirection = position
-                // gl_Position = projectionMatrix * viewMatrix * modelMatrix * position
-                let viewMtx = this.camera.matrixWorldInverse.elements
-                let projMtx = this.camera.projectionMatrix.elements
-                // modelMatrix = identity（cube 在世界原点）
-                let modelMtx: Array<Float64> = [
-                    1.0, 0.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0, 0.0,
-                    0.0, 0.0, 1.0, 0.0,
-                    0.0, 0.0, 0.0, 1.0
-                ]
-                // tFlip：CubeTexture 通常是 -1（背景立方体贴图翻转 X）
-                let tFlip: Float64 = -1.0
-                let op = this.opacity
+            // 计算相机 view/projection 矩阵
+            // cube shader 用 modelMatrix（=identity）→ vWorldDirection = position
+            // gl_Position = projectionMatrix * viewMatrix * modelMatrix * position
+            let viewMtx = this.camera.matrixWorldInverse.elements
+            let projMtx = this.camera.projectionMatrix.elements
+            // modelMatrix = identity（cube 在世界原点）
+            // 复用字段（原实现每帧新建一个 16 元素数组字面量）
+            let modelMtx = this._identityMtx
+            // tFlip：CubeTexture 通常是 -1（背景立方体贴图翻转 X）
+            let tFlip: Float64 = -1.0
+            let op = this.opacity
 
-                // 确保 cube mesh 资源已创建
-                this._ensureCubeMesh(renderer)
-                @LogTrace(["CubeTexturePass", "render: viewId=" + viewId.toString() + " prog=" + progIdx.toString() + " cubeTex=" + cubeTexIdx.toString() + " vb=" + (match (this._cubeVB) { case Some(v) => Handle.idx(v).toString() case None => "-1" }) + " ib=" + (match (this._cubeIB) { case Some(v) => Handle.idx(v).toString() case None => "-1" }) + " layout=" + (match (this._cubeLayout) { case Some(v) => Handle.idx(v).toString() case None => "-1" })])
+            // 确保 cube mesh 资源已创建
+            this._ensureCubeMesh(renderer)
+            @LogTrace(["CubeTexturePass", "render: viewId=" + viewId.toString() + " prog=" + progIdx.toString() + " cubeTex=" + cubeTexIdx.toString() + " vb=" + (if (let Some(v) <- this._cubeVB) { Handle.idx(v).toString() } else { "-1" }) + " ib=" + (if (let Some(v) <- this._cubeIB) { Handle.idx(v).toString() } else { "-1" }) + " layout=" + (if (let Some(v) <- this._cubeLayout) { Handle.idx(v).toString() } else { "-1" })])
 
-                // 设置 view 视口（Pass 基类高阶 API，内部走 renderer.execBgfx）
-                this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
-                if (rt) {
-                    this.setRenderTarget(renderer, viewId, INVALID_FRAME_BUFFER_HANDLE)
-                } else {
-                    this.setRenderTarget(renderer, viewId, readBuffer)
-                }
-                // 不清任何（保留 RenderPass 场景的 COLOR + DEPTH）：
-                // cube 用 DEPTH_TEST_LEQUAL + z=w（深度=1.0 远平面），
-                // 背景处 depth=1.0 通过 → 写 cube；场景物体处 depth<1.0 不通过 → 保留场景。
-                // 本 pass：cube 渲到 readBuffer 不 clear，depthTest 仅填背景。
-                this.clearRenderTarget(renderer, viewId, 0x0000u16, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
+            // 设置 view 视口（Pass 基类高阶 API，内部走 renderer.execBgfx）
+            this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
+            if (rt) {
+                this.setRenderTarget(renderer, viewId, INVALID_FRAME_BUFFER_HANDLE)
+            } else {
+                this.setRenderTarget(renderer, viewId, readBuffer)
+            }
+            // 不清任何（保留 RenderPass 场景的 COLOR + DEPTH）：
+            // cube 用 DEPTH_TEST_LEQUAL + z=w（深度=1.0 远平面），
+            // 背景处 depth=1.0 通过 → 写 cube；场景物体处 depth<1.0 不通过 → 保留场景。
+            // 本 pass：cube 渲到 readBuffer 不 clear，depthTest 仅填背景。
+            this.clearRenderTarget(renderer, viewId, 0x0000u16, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-                // 绑 view transform（view + projection）—— renderer.setViewTransform 高阶 API
-                let viewMem = BgfxMemory(64u32)
-                viewMem.writeFloats(viewMtx, 16)
-                let projMem = BgfxMemory(64u32)
-                projMem.writeFloats(projMtx, 16)
-                renderer.setViewTransform(viewId, viewMem, projMem)
+            // 绑 view transform（view + projection）—— renderer.setViewTransform 高阶 API
+            // 复用的上传缓冲（原实现每帧新建 2 块 BgfxMemory，走 bgfx_alloc 且不归还 → 逐帧泄漏）
+            // view/proj 必须是两块独立缓冲：二者在同一调用内同时写入后一起传给
+            // bgfx_set_view_transform_cj，共用一块会让后写覆盖先写的数据。
+            let viewMem = this._uploadMem(0, 64u32)
+            let projMem = this._uploadMem(1, 64u32)
+            viewMem.writeFloats(viewMtx, 16)
+            projMem.writeFloats(projMtx, 16)
+            renderer.setViewTransform(viewId, viewMem, projMem)
 
-                // 绑 model matrix（identity）—— 几何提交 API，保留直接 bgfx 调用
-                let modelMem = BgfxMemory(64u32)
-                modelMem.writeFloats(modelMtx, 16)
-                renderer.setTransform(modelMem, num: 1u16)
+            // 绑 model matrix（identity）—— 几何提交 API，保留直接 bgfx 调用
+            let modelMem = this._uploadMem(2, 64u32)
+            modelMem.writeFloats(modelMtx, 16)
+            renderer.setTransform(modelMem, num: 1u16)
 
-                // 绑 cube texture 到 tCube sampler（stage 0）—— Pass 基类高阶 API
-                let uniforms = BgfxUniforms()
-                let uCube = uniforms.createUniform("tCube", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uCube, cubeTexHandleRaw, 0u32)
+            // 绑 cube texture 到 tCube sampler（stage 0）—— Pass 基类高阶 API
+            let uniforms = this._passUniforms()
+            let uCube = uniforms.createUniform("tCube", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uCube, cubeTexHandleRaw, 0u32)
 
-                // tFlip uniform（float，bgfx 用 vec4）—— 名须与 cube_tex FS 的 u_tFlip 一致
-                let uFlip = uniforms.createUniform("u_tFlip", UniformType.Vec4.value())
-                let flipMem = BgfxMemory(16u32)
-                flipMem.writeFloats([tFlip, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uFlip, flipMem, num: 1u16)
+            // tFlip uniform（float，bgfx 用 vec4）—— 名须与 cube_tex FS 的 u_tFlip 一致
+            let uFlip = uniforms.createUniform("u_tFlip", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uFlip, 3, tFlip)
 
-                // opacity uniform
-                let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                let opMem = BgfxMemory(16u32)
-                opMem.writeFloats([op, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uOpacity, opMem, num: 1u16)
+            // opacity uniform
+            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uOpacity, 4, op)
 
-                // 绑 cube mesh VB/IB —— 几何提交 API，保留直接 bgfx 调用（CubeTexturePass 渲 BoxGeometry 几何体）
-                match (this._cubeVB) {
-                    case Some(vb) =>
-                        match (this._cubeIB) {
-                            case Some(ib) =>
-                                match (this._cubeLayout) {
-                                    case Some(layout) =>
-                                        renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                                        // state：写 RGB/A，FrontCCW（cube 用 BackSide，但 bgfx 翻转面序后 CCW 正确）
-                                        // DEPTH_TEST_LEQUAL：cube 深度=1.0（远平面），
-                                        // 背景处(已清 depth=1.0 或 RenderPass 背景 depth=1.0)通过 → 填 cube；
-                                        // 场景物体处(depth<1.0)不通过 → 保留场景前景。
-                                        // 本 pass：depthTest 仅填背景、depthWrite=false。
-                                        let cubeState: UInt64 = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                                                BgfxConstants.DEPTH_TEST_LEQUAL | BgfxConstants.FRONT_CCW
-                                        renderer.setState(cubeState, rgba: 0x00000000u32)
-                                        renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
-                                    case None => ()
-                                }
-                            case None => ()
-                        }
-                    case None => ()
-                }
-            case None => ()
+            // 绑 cube mesh VB/IB —— 几何提交 API，保留直接 bgfx 调用（CubeTexturePass 渲 BoxGeometry 几何体）
+            if (let Some(vb) <- this._cubeVB && let Some(ib) <- this._cubeIB && let Some(layout) <- this._cubeLayout) {
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
+                // state：写 RGB/A，FrontCCW（cube 用 BackSide，但 bgfx 翻转面序后 CCW 正确）
+                // DEPTH_TEST_LEQUAL：cube 深度=1.0（远平面），
+                // 背景处(已清 depth=1.0 或 RenderPass 背景 depth=1.0)通过 → 填 cube；
+                // 场景物体处(depth<1.0)不通过 → 保留场景前景。
+                // 本 pass：depthTest 仅填背景、depthWrite=false。
+                let cubeState: UInt64 = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                        BgfxConstants.DEPTH_TEST_LEQUAL | BgfxConstants.FRONT_CCW
+                renderer.setState(cubeState, rgba: 0x00000000u32)
+                renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
+            }
         }
     }
 
@@ -395,10 +387,7 @@ public class CubeTexturePass <: Pass {
      */
     private func _getCubeTextureHandle(renderer: ThreeRenderer): TextureHandle {
         // 缓存命中直接返回
-        match (this._cubeTexHandleCache) {
-            case Some(h) => return h
-            case None => ()
-        }
+        if (let Some(h) <- this._cubeTexHandleCache) { return h }
         let imgs = this.cubeTex.images
         if (imgs.size < 6) {
             @LogTrace(["CubeTexturePass", "cubeTex.images 不足 6 面（size=" + imgs.size.toString() + "），无法上传 cube 纹理"])
@@ -451,27 +440,19 @@ public class CubeTexturePass <: Pass {
      * 释放 CubeTexturePass 占用的 GPU 资源（cube mesh + shader 缓存）。
      */
     public override func dispose(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                match (this._cubeVB) {
-                    case Some(vb) =>
-                        renderer.destroyVertexBuffer(vb)
-                        this._cubeVB = None
-                    case None => ()
-                }
-                match (this._cubeIB) {
-                    case Some(ib) =>
-                        renderer.destroyIndexBuffer(ib)
-                        this._cubeIB = None
-                    case None => ()
-                }
-                match (this._cubeLayout) {
-                    case Some(layout) =>
-                        renderer.destroyVertexLayout(layout)
-                        this._cubeLayout = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            if (let Some(vb) <- this._cubeVB) {
+                renderer.destroyVertexBuffer(vb)
+                this._cubeVB = None
+            }
+            if (let Some(ib) <- this._cubeIB) {
+                renderer.destroyIndexBuffer(ib)
+                this._cubeIB = None
+            }
+            if (let Some(layout) <- this._cubeLayout) {
+                renderer.destroyVertexLayout(layout)
+                this._cubeLayout = None
+            }
         }
         this._cubeProg = None
     }

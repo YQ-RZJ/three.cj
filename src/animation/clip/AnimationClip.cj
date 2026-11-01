@@ -248,11 +248,11 @@ internal func _getFloat(map: HashMap<String, Any>, key: String, defaultVal: Floa
 /**
  * @brief[zh-cn] 动画剪辑，包含一组关键帧轨道
  * @explain[zh-cn] 
- * 对应 Three.js AnimationClip 类，实现 IAnimationClip 与 ILoadResult 接口，支持 JSON 解析与序列化
+ * 实现 IAnimationClip 与 ILoadResult 接口，支持 JSON 解析与序列化
  *
  * @brief[en] An animation clip, containing a group of keyframe tracks
  * @explain[en] 
- * Corresponds to the Three.js AnimationClip class, implementing the IAnimationClip and ILoadResult interfaces, supporting JSON parsing and serialization
+ * Implements the IAnimationClip and ILoadResult interfaces, supporting JSON parsing and serialization
  */
 @JsonAdapter
 public class AnimationClip <: IAnimationClip & ILoadResult {
@@ -414,26 +414,21 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
         
         // 仓颉侧：使用 cjfast_json 解析 userData 字符串为 HashMap<String, Any>
         let userDataOpt = json.get("userData")
-        match (userDataOpt) {
-            case Some(userDataVal) =>
-                match (userDataVal) {
-                    case s: String =>
-                        // 空字符串或 '{}' 解析为空 HashMap
-                        let trimmed = s.trimAscii()
-                        if (trimmed != "" && trimmed != "{}") {
-                            clip.userData = parseUserData(s)
-                        }
-                    case m: HashMap<String, Any> =>
-                        // 直接是 HashMap 的情况
-                        for (k in m.keys()) {
-                            match (m.get(k)) {
-                                case Some(v) => clip.userData.add(k, v)
-                                case None => ()
-                            }
-                        }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(userDataVal) <- userDataOpt) {
+            match (userDataVal) {
+                case s: String =>
+                    // 空字符串或 '{}' 解析为空 HashMap
+                    let trimmed = s.trimAscii()
+                    if (trimmed != "" && trimmed != "{}") {
+                        clip.userData = parseUserData(s)
+                    }
+                case m: HashMap<String, Any> =>
+                    // 直接是 HashMap 的情况
+                    for (k in m.keys()) {
+                        if (let Some(v) <- m.get(k)) { clip.userData.add(k, v) }
+                    }
+                case _ => ()
+            }
         }
 
         return clip
@@ -625,19 +620,17 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
             let morphTargetName = _getMorphTargetName(morphTarget)
             let parts = pattern.find(morphTargetName)
 
-            match (parts) {
-                case Some(m) =>
-                    // parts[1] 是第一个捕获组（动画名前缀）
-                    let name = m.matchString(1)
-                    let existing = animationToMorphTargets.get(name)
-                    match (existing) {
-                        case Some(list) => list.add(morphTarget)
-                        case None =>
-                            let newList = ArrayList<Any>()
-                            newList.add(morphTarget)
-                            animationToMorphTargets.add(name, newList)
-                    }
-                case None => ()
+            if (let Some(m) <- parts) {
+                // parts[1] 是第一个捕获组（动画名前缀）
+                let name = m.matchString(1)
+                let existing = animationToMorphTargets.get(name)
+                if (let Some(list) <- existing) {
+                    list.add(morphTarget)
+                } else {
+                    let newList = ArrayList<Any>()
+                    newList.add(morphTarget)
+                    animationToMorphTargets.add(name, newList)
+                }
             }
         }
 
@@ -736,10 +729,7 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
         // 深拷贝 userData
         for (key in this.userData.keys()) {
             let val = this.userData.get(key)
-            match (val) {
-                case Some(v) => clip.userData.add(key, v)
-                case None => ()
-            }
+            if (let Some(v) <- val) { clip.userData.add(key, v) }
         }
 
         return clip

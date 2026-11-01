@@ -217,6 +217,12 @@ public var forceSinglePass: Bool
 ```
 Whether to force single-pass rendering, default false
 
+### let id
+```cj
+public let id: Int64
+```
+Process-unique integer identifier (assigned at construction, auto-incrementing)
+
 ### var name
 ```cj
 public var name: String

@@ -82,7 +82,7 @@ public class TestWindow <: WindowEngine {
     // ===== 生命周期：每循环（读固定快照——逻辑+渲染） =====
     public override func onFrame(dt: Float64): Unit {
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 几何体公转（速度降一半）+ 每个几何体自传 ----
         let speed = 0.25

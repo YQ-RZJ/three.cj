@@ -89,7 +89,7 @@ public class TestWindow <: WindowEngine {
         this.frame++
         this.totalFrames++
 
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 更新球体位置（来回移动） ----
         for (sphere in this.spheres) {

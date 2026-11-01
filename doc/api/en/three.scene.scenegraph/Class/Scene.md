@@ -32,6 +32,16 @@ Return:
 
 - Returns this
 
+### func getBackground\(\)
+```cj
+public func getBackground(): Option < IBackground >
+```
+Get the scene background (IScene interface implementation)
+
+Return: 
+
+- Background object (Color / Texture / CubeTexture); None when unset
+
 ### func init\(\)
 ```cj
 public init()

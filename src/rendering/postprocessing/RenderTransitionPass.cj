@@ -104,14 +104,14 @@ package three.rendering.postprocessing
 
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
-import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
 import three.utils.memory.AutoFreePtr
-import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.scene.scenegraph.Scene
 import three.rendering.cameras.Camera
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 场景过渡渲染 pass
@@ -336,24 +336,22 @@ public class RenderTransitionPass <: Pass {
 
     /** 销毁场景 A/B RT（setSize 重建或 dispose 时调用） */
     private func _destroyRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                let fbA = this._renderTargetAFB; let fbB = this._renderTargetBFB
-                let texA = this._renderTargetATex; let depthA = this._renderTargetADepthTex
-                let texB = this._renderTargetBTex; let depthB = this._renderTargetBDepthTex
-                if (Handle.isValid(fbA)) { renderer.destroyFrameBuffer(fbA) }
-                if (Handle.isValid(fbB)) { renderer.destroyFrameBuffer(fbB) }
-                if (Handle.isValid(texA)) { renderer.destroyTexture(texA) }
-                if (Handle.isValid(depthA)) { renderer.destroyTexture(depthA) }
-                if (Handle.isValid(texB)) { renderer.destroyTexture(texB) }
-                if (Handle.isValid(depthB)) { renderer.destroyTexture(depthB) }
-                this._renderTargetAFB = INVALID_FRAME_BUFFER_HANDLE
-                this._renderTargetBFB = INVALID_FRAME_BUFFER_HANDLE
-                this._renderTargetATex = INVALID_TEXTURE_HANDLE
-                this._renderTargetADepthTex = INVALID_TEXTURE_HANDLE
-                this._renderTargetBTex = INVALID_TEXTURE_HANDLE
-                this._renderTargetBDepthTex = INVALID_TEXTURE_HANDLE
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            let fbA = this._renderTargetAFB; let fbB = this._renderTargetBFB
+            let texA = this._renderTargetATex; let depthA = this._renderTargetADepthTex
+            let texB = this._renderTargetBTex; let depthB = this._renderTargetBDepthTex
+            if (Handle.isValid(fbA)) { renderer.destroyFrameBuffer(fbA) }
+            if (Handle.isValid(fbB)) { renderer.destroyFrameBuffer(fbB) }
+            if (Handle.isValid(texA)) { renderer.destroyTexture(texA) }
+            if (Handle.isValid(depthA)) { renderer.destroyTexture(depthA) }
+            if (Handle.isValid(texB)) { renderer.destroyTexture(texB) }
+            if (Handle.isValid(depthB)) { renderer.destroyTexture(depthB) }
+            this._renderTargetAFB = INVALID_FRAME_BUFFER_HANDLE
+            this._renderTargetBFB = INVALID_FRAME_BUFFER_HANDLE
+            this._renderTargetATex = INVALID_TEXTURE_HANDLE
+            this._renderTargetADepthTex = INVALID_TEXTURE_HANDLE
+            this._renderTargetBTex = INVALID_TEXTURE_HANDLE
+            this._renderTargetBDepthTex = INVALID_TEXTURE_HANDLE
         }
     }
 
@@ -363,19 +361,18 @@ public class RenderTransitionPass <: Pass {
      * 编译 transition shader（合成 pass 用）。
      */
     private func _compileTransition(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("transition")) {
-            case Some(sp) =>
-                if (!this._transitionCompiled) {
-                    sp.compileBgfx()
-                    this._transitionProg = Some(Box(sp.programHandle))
-                    this._transitionCompiled = true
-                    @LogTrace(["transition", "transition shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._transitionProg
-            case None =>
-                @LogTrace(["transition", "transition shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("transition")) {
+            if (!this._transitionCompiled) {
+                sp.compileBgfx()
+                this._transitionProg = Some(Box(sp.programHandle))
+                this._transitionCompiled = true
+                @LogTrace(["transition", "transition shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._transitionProg
+        } else {
+            @LogTrace(["transition", "transition shader not registered"])
+            return None
         }
     }
 
@@ -395,6 +392,7 @@ public class RenderTransitionPass <: Pass {
      * @param readBuffer 读 buffer（本 pass 不用，场景自渲）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.RenderTransitionPass.render, name=renderTransitionPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -414,40 +412,30 @@ public class RenderTransitionPass <: Pass {
         let camAOpt = this.cameraA
         let sceneBOpt = this.sceneB
         let camBOpt = this.cameraB
-        match (sceneAOpt) {
-            case Some(sA) => match (camAOpt) {
-                case Some(cA) => match (sceneBOpt) {
-                    case Some(sB) => match (camBOpt) {
-                        case Some(cB) =>
-                            this._ensureRTs(renderer)
-                            if (!Handle.isValid(this._renderTargetAFB) ||
-                                !Handle.isValid(this._renderTargetBFB)) {
-                                @LogTrace(["transition", "render: _ensureRTs failed, RT invalid"])
-                                return
-                            }
-
-                            let baseView = RenderTransitionPass.TRANSITION_VIEW_ID_BASE
-
-                            // ===== 1. 场景 A → RT_A（view 0 语义）=====
-                            this._renderSceneTo(renderer, sA, cA, this._renderTargetAFB, 0u16)
-
-                            // ===== 2. 场景 B → RT_B =====
-                            this._renderSceneTo(renderer, sB, cB, this._renderTargetBFB, 1u16)
-
-                            // ===== 3. 合成 pass（view+2）=====
-                            this._renderComposite(renderer, writeBuffer, UInt16(UInt16(baseView) + 2u16))
-
-                            @LogTrace(["transition", "render done: mixRatio=" + this.mixRatio.toString() +
-                                          " threshold=" + this.threshold.toString() +
-                                          " useTexture=" + this.useMixTexture.toString() +
-                                          " RT_A=${Handle.idx(this._renderTargetAFB)} RT_B=${Handle.idx(this._renderTargetBFB)}"])
-                        case None => ()
-                    }
-                    case None => ()
-                }
-                case None => ()
+        if (let Some(sA) <- sceneAOpt && let Some(cA) <- camAOpt &&
+            let Some(sB) <- sceneBOpt && let Some(cB) <- camBOpt) {
+            this._ensureRTs(renderer)
+            if (!Handle.isValid(this._renderTargetAFB) ||
+                !Handle.isValid(this._renderTargetBFB)) {
+                @LogTrace(["transition", "render: _ensureRTs failed, RT invalid"])
+                return
             }
-            case None => ()
+
+            let baseView = RenderTransitionPass.TRANSITION_VIEW_ID_BASE
+
+            // ===== 1. 场景 A → RT_A（view 0 语义）=====
+            this._renderSceneTo(renderer, sA, cA, this._renderTargetAFB, 0u16)
+
+            // ===== 2. 场景 B → RT_B =====
+            this._renderSceneTo(renderer, sB, cB, this._renderTargetBFB, 1u16)
+
+            // ===== 3. 合成 pass（view+2）=====
+            this._renderComposite(renderer, writeBuffer, UInt16(UInt16(baseView) + 2u16))
+
+            @LogTrace(["transition", "render done: mixRatio=" + this.mixRatio.toString() +
+                          " threshold=" + this.threshold.toString() +
+                          " useTexture=" + this.useMixTexture.toString() +
+                          " RT_A=${Handle.idx(this._renderTargetAFB)} RT_B=${Handle.idx(this._renderTargetBFB)}"])
         }
     }
 
@@ -509,58 +497,40 @@ public class RenderTransitionPass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileTransition()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["transition", "composite pass: transition program compile FAILED"])
-                    return
-                }
+        if (let Some(prog) <- this._compileTransition()) {
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["transition", "composite pass: transition program compile FAILED"])
+                return
+            }
 
-                let uniforms = BgfxUniforms()
+            // stage 0 = tDiffuse1（场景 A RT 的 color 0）
+            let uDiffuse1 = this._cachedUniform("tDiffuse1", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiffuse1, this._renderTargetATex, 0u32)
+            // stage 1 = tDiffuse2（场景 B RT 的 color 0）
+            let uDiffuse2 = this._cachedUniform("tDiffuse2", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uDiffuse2, this._renderTargetBTex, 0u32)
+            // stage 2 = tMixTexture（过渡纹理；无效时绑场景 A 纹理占位，shader 用 useTexture=0 分支）
+            let uMixTex = this._cachedUniform("tMixTexture", UniformType.Sampler.value())
+            let mixTex = if (Handle.isValid(this.tMixTexture)) { this.tMixTexture } else { this._renderTargetATex }
+            this.bindTexture(renderer, 2u8, uMixTex, mixTex, 0u32)
 
-                // stage 0 = tDiffuse1（场景 A RT 的 color 0）
-                let uDiffuse1 = uniforms.createUniform("tDiffuse1", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiffuse1, this._renderTargetATex, 0u32)
-                // stage 1 = tDiffuse2（场景 B RT 的 color 0）
-                let uDiffuse2 = uniforms.createUniform("tDiffuse2", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uDiffuse2, this._renderTargetBTex, 0u32)
-                // stage 2 = tMixTexture（过渡纹理；无效时绑场景 A 纹理占位，shader 用 useTexture=0 分支）
-                let uMixTex = uniforms.createUniform("tMixTexture", UniformType.Sampler.value())
-                let mixTex = if (Handle.isValid(this.tMixTexture)) { this.tMixTexture } else { this._renderTargetATex }
-                this.bindTexture(renderer, 2u8, uMixTex, mixTex, 0u32)
+            // mixRatio / threshold / useTexture（vec4.x=值，槽位复用上传缓冲）
+            this._setScalarUniform(renderer, this._cachedUniform("u_mixRatio", UniformType.Vec4.value()), 0, this.mixRatio)
+            this._setScalarUniform(renderer, this._cachedUniform("u_threshold", UniformType.Vec4.value()), 1, this.threshold)
+            this._setScalarUniform(renderer, this._cachedUniform("u_useTexture", UniformType.Vec4.value()), 2, if (this.useMixTexture) { 1.0 } else { 0.0 })
 
-                // mixRatio / threshold / useTexture（vec4.x=值）
-                this.setUniformVec4(renderer, uniforms, "u_mixRatio",   this.mixRatio)
-                this.setUniformVec4(renderer, uniforms, "u_threshold",  this.threshold)
-                this.setUniformVec4(renderer, uniforms, "u_useTexture", if (this.useMixTexture) { 1.0 } else { 0.0 })
+            // 全屏 quad submit（覆盖写 state）
+            this.submitQuad(viewId, prog)
 
-                // 全屏 quad submit（覆盖写 state）
-                this.submitQuad(viewId, prog)
-
-                @LogTrace(["transition", "composite pass: view=" + viewId.toString() +
-                              " mixRatio=" + this.mixRatio.toString() +
-                              " threshold=" + this.threshold.toString() +
-                              " useTexture=" + this.useMixTexture.toString() +
-                              " mixTexIdx=" + Handle.idx(mixTex).toString() +
-                              " RT_A=${Handle.idx(this._renderTargetATex)} RT_B=${Handle.idx(this._renderTargetBTex)}"])
-            case None =>
-                @LogTrace(["transition", "composite pass: transition shader compile failed, skip pass"])
+            @LogTrace(["transition", "composite pass: view=" + viewId.toString() +
+                          " mixRatio=" + this.mixRatio.toString() +
+                          " threshold=" + this.threshold.toString() +
+                          " useTexture=" + this.useMixTexture.toString() +
+                          " mixTexIdx=" + Handle.idx(mixTex).toString() +
+                          " RT_A=${Handle.idx(this._renderTargetATex)} RT_B=${Handle.idx(this._renderTargetBTex)}"])
+        } else {
+            @LogTrace(["transition", "composite pass: transition shader compile failed, skip pass"])
         }
-    }
-
-    /**
-     * 设置单个 vec4 uniform（x=value, y/z/w=0）。辅助方法，简化 uniforms 设置。
-     */
-    private func setUniformVec4(
-        renderer: ThreeRenderer,
-        uniforms: BgfxUniforms,
-        name: String,
-        value: Float64
-    ): Unit {
-        let handle = uniforms.createUniform(name, UniformType.Vec4.value())
-        let mem = BgfxMemory(16u32)
-        mem.writeFloats([value, 0.0, 0.0, 0.0], 4)
-        this.setUniform(renderer, handle, mem, num: 1u16)
     }
 
     /**
@@ -570,6 +540,7 @@ public class RenderTransitionPass <: Pass {
      */
     public override func dispose(): Unit {
         this._destroyRTs()
+        this._disposePassUniforms()
         @LogTrace(["transition", "disposed"])
     }
 }

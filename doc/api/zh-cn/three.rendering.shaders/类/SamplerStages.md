@@ -109,7 +109,7 @@ emissiveMap 纹理 stage
 ```cj
 public static let STAGE_ENV_MAP: UInt8 = 14u8
 ```
-环境贴图 stage（u_envMap, SAMPLERCUBE）
+环境贴图 stage（u_envMap, SAMPLER2D —— PMREM CubeUV 图集）
 
 ### let STAGE\_FIXED\_BASE
 ```cj

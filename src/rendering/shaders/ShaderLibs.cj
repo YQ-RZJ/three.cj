@@ -22,10 +22,10 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] ShaderLibs  着色器库
- * @brief[zh-cn] 定义 Three.js ShaderLib 的 bgfx 实现
+ * @brief[zh-cn] 定义 ShaderLib 的 bgfx 实现
  *
  * @file[en] ShaderLibs  Shader library
- * @brief[en] Define the bgfx implementation of Three.js ShaderLib
+ * @brief[en] Define the bgfx implementation of ShaderLib
  * @note[en] bgfx shaders require precompiled .bin files, or offline compilation with the shaderc tool.
  * At runtime an empty shader is created as a placeholder; in practice precompiled .bin files must be loaded.
  * To enable dynamic shader compilation, the full libshaderc library must be linked.
@@ -101,7 +101,7 @@ public let SHADER_PLATFORM: String = "windows"
 public let SHADER_PROFILE: String = "spirv"
 
 // ===== 着色器语言宏定义（跨平台） =====
-// 参照 Three.js/src/renderers/shaders/ShaderLib.js 和 shaderc.cpp
+// 参照参考实现的 src/renderers/shaders/ShaderLib.js 和 shaderc.cpp
 // 用于 shaderc 编译时正确设置 BGFX_SHADER_LANGUAGE_* 宏
 // Windows: Direct3D11 → HLSL (s_5_0 profile id = 500)
 @When[os == "Windows"]
@@ -252,6 +252,62 @@ public class ShaderProgram <: IShaderProgram {
     // 内部无参构造，供 createVariant 使用以避免重复 chunk resolve
     private static func _empty(): ShaderProgram {
         return ShaderProgram("_empty", "", "")
+    }
+
+    /**
+     * @brief[zh-cn] 向顶点着色器源码注入 USE_INSTANCING 所需代码
+     * @explain[zh-cn] 两处注入（对照方案 C2）：
+     * 1. 首个 $input 行后追加实例属性输入 i_data0..3（bgfx 实例数据流，semantic 映射 TEXCOORD31/30/29/28）；
+     * 2. void main() 之前注入实例矩阵换算宏 bgfxApplyInstanceMatrix（vec4 标量算术）——
+     *    用宏而非函数：转译后 i_data0..3 是 main 的形参，只有宏在 main 内展开才能引用。
+     *    不用 mat4 重建矩阵：bgfx 的 D3D 后端把 mat4 直接 #define 成 float4x4，
+     *    而 HLSL 不支持 float4x4(v0,v1,v2,v3) 构造，也不支持 m[0]=v 下标赋值。
+     * 仅在实例化变体编译路径调用，base 源码不变体。
+     * @param[zh-cn] vs 已解析的 bgfx VS 源码
+     * @return[zh-cn] 注入后的 VS 源码
+     *
+     * @brief[en] Inject USE_INSTANCING code into the vertex shader source
+     * @explain[en] Two injections (per plan C2):
+     * 1. After the first $input line, append instance attribute inputs i_data0..3 (bgfx instance data stream, semantics TEXCOORD31/30/29/28);
+     * 2. Before the 'void main()' line, inject the instance-matrix macro bgfxApplyInstanceMatrix (vec4 scalar arithmetic) —
+     *    a macro rather than a function because after transpilation i_data0..3 are parameters of main,
+     *    visible only where the macro expands. No mat4 reconstruction: bgfx's D3D backend #defines mat4 to
+     *    float4x4, and HLSL supports neither float4x4(v0,v1,v2,v3) construction nor m[0]=v indexed assignment.
+     * Called only on the instancing variant compile path; base source unchanged.
+     * @param[en] vs Resolved bgfx VS source
+     * @return[en] Injected VS source
+     */
+    private static func _injectInstancingVS(vs: String): String {
+        let lines = vs.split("\n")
+        let out = StringBuilder()
+        var injectedInputs = false
+        for (line in lines) {
+            out.append(line)
+            out.append("\n")
+            let trimmed = line.trimAscii()
+            if (!injectedInputs && trimmed.startsWith("$input")) {
+                // 实例属性紧跟首个 $input 声明
+                out.append("$input i_data0\n$input i_data1\n$input i_data2\n$input i_data3\n")
+                injectedInputs = true
+            }
+            if (trimmed == "void main()") {
+                // 实例矩阵换算：不用 mat4 重建，改用 vec4 标量算术的宏。
+                //
+                // 原因：bgfx 的 D3D 后端（tools/shaderc/shaderc.cpp）把 GLSL 文本转译成 HLSL，
+                // 其类型映射是 `#define mat4 float4x4` 这类对象宏。而 HLSL 不支持用 4 个向量
+                // 构造矩阵（float4x4(v0,v1,v2,v3) 非法），也不支持 m[0] = v 这种矩阵下标赋值，
+                // 因此 `mat4 instanceMatrix = mat4(i_data0..3)` 在 D3D11 上必然编译失败：
+                // D3DCompile 报 X3020 type mismatch（累乘 mvPosition 处）。
+                // vec4 * scalar 的四路加法在 GLSL 与 HLSL 中均合法，转译后依旧成立。
+                //
+                // 用宏而非函数：转译后 i_data0..3 是 main 的形参，函数体看不到形参，
+                // 宏在 main 内展开才能引用它们。
+                out.append("#ifdef USE_INSTANCING\n")
+                out.append("#define bgfxApplyInstanceMatrix(v) ( i_data0 * ((v).x) + i_data1 * ((v).y) + i_data2 * ((v).z) + i_data3 * ((v).w) )\n")
+                out.append("#endif\n")
+            }
+        }
+        return out.toString()
     }
 
     /**
@@ -408,8 +464,39 @@ public class ShaderProgram <: IShaderProgram {
     public func compileBgfx(extraDefines!: Array<String> = Array<String>()): Unit {
         // 延迟 resolve：确保源码已解析（构造函数不再立即 resolve）
         this._ensureResolved()
+
+        // USE_INSTANCING 变体检测：变体 defines 含 USE_INSTANCING 时，
+        // 向 VS 注入实例属性输入与 instanceMatrix 局部定义（见 _injectInstancingVS）。
+        // 仅注入到本变体的编译源码，base 的 vertexShaderBgfx 不被污染，其他变体不受影响。
+        var hasInstancing = false
+        for (d in extraDefines) {
+            if (d.startsWith("USE_INSTANCING")) { hasInstancing = true; break }
+        }
+        let instancingVS = if (hasInstancing) {
+            ShaderProgram._injectInstancingVS(this.vertexShaderBgfx)
+        } else {
+            this.vertexShaderBgfx
+        }
+
         // 使用着色器自带的 varying def（.sc 格式）或默认 def（旧版 chunk 格式）
-        let varyingDef = if (this.varyingDef != "") { this.varyingDef } else { "vec3 a_position  : POSITION;\n" }
+        var varyingDef = if (this.varyingDef != "") { this.varyingDef } else { "vec3 a_position  : POSITION;\n" }
+        // 实例化变体：varying def 追加 i_data0..3 输入声明。
+        // semantic 必须是 TEXCOORD31/30/29/28（递减），这是 bgfx 的硬约定：
+        //   src/config.h            BGFX_CONFIG_INSTANCE_DATA_FIRST_TEXCOORD = 31
+        //   src/renderer_d3d11.cpp  index = BGFX_CONFIG_INSTANCE_DATA_FIRST_TEXCOORD - ii
+        // i_data0→TEXCOORD31、i_data1→TEXCOORD30、i_data2→TEXCOORD29、i_data3→TEXCOORD28。
+        // 后端为每个 i_dataN 生成 SemanticName="TEXCOORD"、SemanticIndex=31-N、
+        // InputSlot=numStreams、AlignedByteOffset=N*16 的 PER_INSTANCE_DATA 输入元素，
+        // 并与 VS 形参的 semantic 配对。若这里写成别的索引（如 TEXCOORD4..7），
+        // D3D11 input layout 里就没有 i_data0..3 对应的元素，顶点着色器读到的实例属性全为 0，
+        // mvPosition 的 w 变 0 → 透视除零 → 三角形被拉到屏幕外，画面退化成一块巨大的色面。
+        if (hasInstancing) {
+            varyingDef = varyingDef +
+                "vec4 i_data0 : TEXCOORD31;\n" +
+                "vec4 i_data1 : TEXCOORD30;\n" +
+                "vec4 i_data2 : TEXCOORD29;\n" +
+                "vec4 i_data3 : TEXCOORD28;\n"
+        }
         let varyingDefBytes = varyingDef.toArray()
         let varyingDefHolder = AutoFreePtr<UInt8>(unsafe { LibC.malloc<UInt8>(count: Int64(varyingDefBytes.size + 1)) })
         let varyingDefPtr = varyingDefHolder.get()
@@ -450,9 +537,13 @@ public class ShaderProgram <: IShaderProgram {
         let numExtraDefines = UInt32(extraDefines.size)
         let totalDefines = 1u32 + numExtraDefines
         // 诊断：打印编译 defines，确认 USE_UV/USE_MAP 传入
-        var defsDiag = ""
-        for (d in extraDefines) { defsDiag += d + ";" }
-        @LogDebug(["defsDiag", "numDefines=${totalDefines.toString()} defs=${defsDiag}"])
+        // 字符串拼接同样以 debug 档位为开关（info 档位下输出被裁剪，拼接是纯浪费）
+        // @LogLevelEnabled(4) 展开为 true/false 字面量 → 整段在非 debug 档位被常量折叠消除
+        if (@LogLevelEnabled(4)) {
+            var defsDiag = ""
+            for (d in extraDefines) { defsDiag += d + ";" }
+            @LogDebug(["defsDiag", "numDefines=${totalDefines.toString()} defs=${defsDiag}"])
+        }
         let definesArrHolder = AutoFreePtr<CPointer<UInt8>>(unsafe { LibC.malloc<CPointer<UInt8>>(count: Int64(totalDefines)) })
         let definesArr = definesArrHolder.get()
         unsafe { definesArr.write(CPointer<UInt8>(langDefinePtr)) }
@@ -471,30 +562,36 @@ public class ShaderProgram <: IShaderProgram {
         }
 
         // VS 诊断：打印源码预览和 UV 赋值链路
-        let vsSrc = this.vertexShaderBgfx
-        let vsDebug = if (vsSrc.size > 100) { vsSrc[0..100] } else { vsSrc }
-        @LogDebug(["shader", "VS source preview: " + vsDebug.replace("\n", "\\n")])
-        let vsLinesDiag = vsSrc.split("\n")
-        for (li in 0..vsLinesDiag.size) {
-            let vline = vsLinesDiag[li]
-            if (vline.contains("v_mapUv") || vline.contains("vUv") || vline.contains("MAP_UV") || vline.contains("uv_vertex") || vline.contains("a_texcoord0")) {
-                @LogDebug(["vs-dbg", "L${li.toString()}: ${vline}"])
+        // 诊断扫描（split + 逐行 contains）代价随 shader 源码长度线性增长，
+        // 在 info 档位下输出会被丢弃（@LogDebug 编译期裁剪），扫描却是无条件执行的
+        // → 纯浪费。故整段诊断以 debug 档位为开关，info 档位直接跳过。
+        if (@LogLevelEnabled(4)) {
+            let vsSrc = instancingVS
+            let vsDebug = if (vsSrc.size > 100) { vsSrc[0..100] } else { vsSrc }
+            @LogDebug(["shader", "VS source preview: " + vsDebug.replace("\n", "\\n")])
+            let vsLinesDiag = vsSrc.split("\n")
+            for (li in 0..vsLinesDiag.size) {
+                let vline = vsLinesDiag[li]
+                if (vline.contains("v_mapUv") || vline.contains("vUv") || vline.contains("MAP_UV") || vline.contains("uv_vertex") || vline.contains("a_texcoord0")) {
+                    @LogDebug(["vs-dbg", "L${li.toString()}: ${vline}"])
+                }
             }
-        }
 
-        // FS 诊断：打印方向光循环相关片段
-        let fsSrc = this.fragmentShaderBgfx
-        let fsLines = fsSrc.split("\n")
-        for (li in 0..fsLines.size) {
-            let line = fsLines[li]
-            if (line.contains("u_lightDir") || line.contains("NUM_DIR_LIGHTS") || line.contains("RE_Direct") || line.contains("directionalLight") || line.contains("unroll") || line.contains("v_normal") || line.contains("geometryNormal") || line.contains("texture2D") || line.contains("SAMPLER2D") || line.contains("vMapUv") || line.contains("USE_MAP")) {
-                @LogDebug(["fs-dbg", "L${li.toString()}: ${line}"])
+            // FS 诊断：打印方向光循环相关片段
+            let fsSrc = this.fragmentShaderBgfx
+            let fsLines = fsSrc.split("\n")
+            for (li in 0..fsLines.size) {
+                let line = fsLines[li]
+                if (line.contains("u_lightDir") || line.contains("NUM_DIR_LIGHTS") || line.contains("RE_Direct") || line.contains("directionalLight") || line.contains("unroll") || line.contains("v_normal") || line.contains("geometryNormal") || line.contains("texture2D") || line.contains("SAMPLER2D") || line.contains("vMapUv") || line.contains("USE_MAP")) {
+                    @LogDebug(["fs-dbg", "L${li.toString()}: ${line}"])
+                }
             }
         }
 
         // 编译顶点着色器和片段着色器（并行提交，利用 ShaderCompiler 并发加速）
         // 准备 VS 和 FS 各自的编译参数
-        let vsSrcBytes = this.vertexShaderBgfx.toArray()
+        // VS 用实例化注入后的源码（非实例化变体时与 vertexShaderBgfx 相同）
+        let vsSrcBytes = instancingVS.toArray()
         let vsSrcHolder = AutoFreePtr<UInt8>(unsafe { LibC.malloc<UInt8>(count: Int64(vsSrcBytes.size + 1)) })
         let vsSrcPtr = vsSrcHolder.get()
         unsafe {
@@ -617,10 +714,7 @@ public class ShaderLibs {
     public static func get(name: String): ?ShaderProgram {
         let p = programs.get(name)
         // 延迟 resolve：首次 get 时按需解析源码（ShaderLibs.initialize() 不再全量 resolve）
-        match (p) {
-            case Some(sp) => sp._ensureResolved()
-            case None => ()
-        }
+        if (let Some(sp) <- p) { sp._ensureResolved() }
         return p
     }
 
@@ -634,10 +728,10 @@ public class ShaderLibs {
         // 启动 shader 编译器（专用大栈线程，避免编译大 shader 时栈溢出）
         ShaderCompiler.start()
 
-        // 1. meshbasic - 基础材质（无光照），对照 three.js ShaderLib/meshbasic.glsl.js
+        // 1. meshbasic - 基础材质（无光照），对照参考实现 ShaderLib/meshbasic.glsl.js
         // 方案 A：shell 头部 $input/$output 用 #if defined(USE_*) 守护，fcpp 预处理器先跑删死分支，
-        // 只剩激活的 $ 行连续被 $ 解析器扫描；body 改回 #include <chunk> 风格真正复用 chunk（对齐 three.js）。
-        // 变量命名以 Three.js 为准（chunk body 实际统一用下划线 v_uv/v_mapUv 等，弃驼峰 vUv/vMapUv）。
+        // 只剩激活的 $ 行连续被 $ 解析器扫描；body 改回 #include <chunk> 风格真正复用 chunk（对齐参考实现）。
+        // 变量命名以 chunk 体约定为准（chunk body 实际统一用下划线 v_uv/v_mapUv 等，弃驼峰 vUv/vMapUv）。
         let basicVS = """
 $input a_position
 $input a_texcoord0
@@ -734,7 +828,7 @@ $output v_position
 
 #include <bgfx_shader.sh>
 
-// chunk pars：对照 three.js meshbasic.vert pars 段
+// chunk pars：对照参考实现 meshbasic.vert pars 段
 #include <common>
 #include <uv_pars_vertex>
 #include <envmap_pars_vertex>
@@ -755,7 +849,7 @@ void main()
     #include <fog_vertex>
 }
 """
-        // basic 片段：对照 three.js meshbasic.frag 的 #include 顺序
+        // basic 片段：对照参考实现 meshbasic.frag 的 #include 顺序
         // diffuse/opacity → chunk pars → main → chunk body → outgoingLight → envmap/output/tm/colorspace/fog/premult/dither
         let basicFS = """
 #if defined( USE_UV ) || defined( USE_ANISOTROPY )
@@ -854,7 +948,7 @@ $input v_position
 uniform vec4 u_color;
 uniform vec4 u_opacity;
 
-// chunk pars：对照 three.js meshbasic.frag pars 段
+// chunk pars：对照参考实现 meshbasic.frag pars 段
 #include <common>
 #include <dithering_pars_fragment>
 #include <color_pars_fragment>
@@ -950,7 +1044,7 @@ vec2 v_thicknessMapUv : TEXCOORD14 = vec2(0.0, 0.0);
 """
         programs.add("basic", ShaderProgram("basic", basicVS, basicFS, varyingDef: basicVaryingDef))
 
-        // 2. meshlambert - Lambert 漫反射光照，对照 three.js ShaderLib/meshlambert.glsl.js
+        // 2. meshlambert - Lambert 漫反射光照，对照参考实现 ShaderLib/meshlambert.glsl.js
         // 比 basic 多 normal 路径（VS 输出 v_normal，FS 用 N·L 漫反射）与 lights_* chunk
         // 裁剪：morphtarget/skinning/batching/color 路径无 CPU 绑定，不引用
         let lambertVS = """
@@ -1069,7 +1163,7 @@ $output vDirectionalShadowCoord
 
 uniform mat3 u_normalMatrix;
 
-// chunk pars：对照 three.js meshlambert.vert pars 段
+// chunk pars：对照参考实现 meshlambert.vert pars 段
 #include <common>
 #include <uv_pars_vertex>
 #include <displacementmap_pars_vertex>
@@ -1099,7 +1193,7 @@ void main()
     #include <fog_vertex>
 }
 """
-        // lambert 片段：对照 three.js meshlambert.frag 的 #include 顺序
+        // lambert 片段：对照参考实现 meshlambert.frag 的 #include 顺序
         let lambertFS = """
 #if defined( USE_UV ) || defined( USE_ANISOTROPY )
 $input v_uv
@@ -1232,7 +1326,7 @@ uniform vec4 u_hemiGroundColor[NUM_HEMI_LIGHTS_MAX];
 uniform vec4 u_hemiDirection[NUM_HEMI_LIGHTS_MAX];
 uniform vec4 u_cameraPos;
 
-// chunk pars：对照 three.js meshlambert.frag pars 段
+// chunk pars：对照参考实现 meshlambert.frag pars 段
 #include <common>
 #include <color_pars_fragment>
 #include <uv_pars_fragment>
@@ -1361,7 +1455,7 @@ vec2 v_thicknessMapUv : TEXCOORD14 = vec2(0.0, 0.0);
         //   u_pointPosition(Vec4,4) u_pointColor(Vec4,4) u_pointParams(Vec4,4)  点光源
         //   u_ambientColor(Vec4,1)                         环境光
         //   receiveShadow(Vec4,1) directionalShadowMap(Sampler) directionalShadowMatrix(Mat4)  阴影
-        // 3. meshphong - Phong 高光光照，对照 three.js ShaderLib/meshphong.glsl.js
+        // 3. meshphong - Phong 高光光照，对照参考实现 ShaderLib/meshphong.glsl.js
         // 比 lambert 多 v_viewPos 与 lights_phong_*（specular + shininess）
         let phongVS = """
 $input a_position
@@ -1479,7 +1573,7 @@ $output vDirectionalShadowCoord
 
 uniform mat3 u_normalMatrix;
 
-// chunk pars：对照 three.js meshphong.vert pars 段
+// chunk pars：对照参考实现 meshphong.vert pars 段
 #include <common>
 #include <uv_pars_vertex>
 #include <displacementmap_pars_vertex>
@@ -1509,7 +1603,7 @@ void main()
     #include <fog_vertex>
 }
 """
-        // phong 片段：对照 three.js meshphong.frag 的 #include 顺序
+        // phong 片段：对照参考实现 meshphong.frag 的 #include 顺序
         let phongFS = """
 #if defined( USE_UV ) || defined( USE_ANISOTROPY )
 $input v_uv
@@ -1643,7 +1737,7 @@ uniform vec4 u_hemiSkyColor[NUM_HEMI_LIGHTS_MAX];
 uniform vec4 u_hemiGroundColor[NUM_HEMI_LIGHTS_MAX];
 uniform vec4 u_hemiDirection[NUM_HEMI_LIGHTS_MAX];
 
-// chunk pars：对照 three.js meshphong.frag pars 段
+// chunk pars：对照参考实现 meshphong.frag pars 段
 #include <common>
 #include <dithering_pars_fragment>
 #include <color_pars_fragment>
@@ -1769,7 +1863,7 @@ vec2 v_thicknessMapUv : TEXCOORD14 = vec2(0.0, 0.0);
 
         // 4. meshstandard - PBR (Metallic-Roughness) 材质
         // 顶点着色器：输出位置、法线、UV
-        // 4. meshstandard - PBR (Metallic-Roughness) 材质，对照 three.js ShaderLib/meshphysical.glsl.js（standard 与 physical 共用 vert/frag）
+        // 4. meshstandard - PBR (Metallic-Roughness) 材质，对照参考实现 ShaderLib/meshphysical.glsl.js（standard 与 physical 共用 vert/frag）
         // 顶点着色器：输出位置、法线、UV
         // 裁剪：morphtarget/skinning/batching/color 路径无 CPU 绑定，不引用
         let standardVS = """
@@ -1885,7 +1979,7 @@ $output vDirectionalShadowCoord
 
 uniform mat3 u_normalMatrix;
 
-// chunk pars：对照 three.js meshphysical.vert pars 段
+// chunk pars：对照参考实现 meshphysical.vert pars 段
 #include <common>
 #include <uv_pars_vertex>
 #include <displacementmap_pars_vertex>
@@ -1916,7 +2010,7 @@ void main()
     #include <fog_vertex>
 }
 """
-        // 片段着色器：PBR Metallic-Roughness，对照 three.js meshphysical.frag 的 #include 顺序
+        // 片段着色器：PBR Metallic-Roughness，对照参考实现 meshphysical.frag 的 #include 顺序
         // USE_TRANSMISSION 的 vWorldPosition 路径在 bgfx4cj 无绑定，裁剪
         let standardFS = """
 #if defined( USE_UV ) || defined( USE_ANISOTROPY )
@@ -2047,14 +2141,11 @@ uniform vec4 u_spotParams[NUM_SPOT_LIGHTS_MAX];
 uniform vec4 u_hemiSkyColor[NUM_HEMI_LIGHTS_MAX];
 uniform vec4 u_hemiGroundColor[NUM_HEMI_LIGHTS_MAX];
 uniform vec4 u_hemiDirection[NUM_HEMI_LIGHTS_MAX];
-uniform vec4 u_envMapIntensity;
-uniform vec4 u_useEnvMap;
-// 环境贴图（用 bgfx SAMPLERCUBE 宏声明：GLSL 分支展开为 uniform samplerCube，
-// HLSL 分支展开为 SamplerState+TextureCube+static BgfxSamplerCube，避免裸 samplerCube 在 HLSL 下 type mismatch）
-SAMPLERCUBE(u_envMap, __STAGE_ENV_MAP__);
+// 环境贴图（IBL）uniform（u_envMapIntensity / u_envMap）由 envmap_common_pars_fragment
+// 在 #ifdef USE_ENVMAP 下统一声明（sampler 用 bgfx SAMPLER2D 宏 + __STAGE_ENV_MAP__）。
 uniform vec4 shCoefficients[9];
 
-// chunk pars：对照 three.js meshphysical.frag pars 段
+// chunk pars：对照参考实现 meshphysical.frag pars 段
 #include <common>
 #include <dithering_pars_fragment>
 #include <color_pars_fragment>
@@ -2066,8 +2157,10 @@ uniform vec4 shCoefficients[9];
 #include <aomap_pars_fragment>
 #include <lightmap_pars_fragment>
 #include <emissivemap_pars_fragment>
-#include <cube_uv_reflection_fragment>
+// 顺序要求：envmap_common_pars_fragment（声明 u_envMap / u_envMapIntensity）
+// 必须先于 cube_uv_reflection_fragment（其函数体引用 u_envMap）
 #include <envmap_common_pars_fragment>
+#include <cube_uv_reflection_fragment>
 #include <envmap_physical_pars_fragment>
 #include <fog_pars_fragment>
 #include <lights_pars_begin>
@@ -2109,7 +2202,7 @@ void main()
     #include <alphamap_fragment>
     #include <alphatest_fragment>
     #include <alphahash_fragment>
-    // 对照 three.js meshphysical.glsl.js 的 `uniform float roughness/metalness;`：
+    // 对照参考实现 meshphysical.glsl.js 的 `uniform float roughness/metalness;`：
     // Three.cj 以 u_roughness/u_metalness（vec4）传入，此处补局部变量供
     // roughnessmap_fragment / metalnessmap_fragment 引用（否则 HLSL 下 undeclared 'roughness'）
     float roughness = u_roughness.x;
@@ -2192,7 +2285,7 @@ vec2 v_thicknessMapUv : TEXCOORD14 = vec2(0.0, 0.0);
         programs.add("physical", ShaderProgram("physical", standardVS, standardFS, varyingDef: standardVaryingDef))
 
         // 6. meshmatcap - Matcap 材质
-        // 对照 three.js ShaderLib/meshmatcap.glsl.js：
+        // 对照参考实现 ShaderLib/meshmatcap.glsl.js：
         //   VS 输出 vViewPosition，FS 用 viewDir 与法线构造正交基 x/y，
         //   matcapUV = vec2(dot(x, normal), dot(y, normal)) * 0.495 + 0.5；
         //   无 matcap 贴图时（测试场景无贴图）用默认渐变 mix(0.2, 0.8, uv.y)。
@@ -2220,12 +2313,12 @@ uniform vec4 u_opacity;
 void main()
 {
     vec4 diffuseColor = vec4(u_color.rgb, u_opacity.x);
-    // 对照 three.js meshmatcap.frag：viewDir 与 normal 构造正交基计算 matcapUV
+    // 对照参考实现 meshmatcap.frag：viewDir 与 normal 构造正交基计算 matcapUV
     vec3 viewDir = normalize(v_viewPos);
     vec3 x = normalize(vec3(viewDir.z, 0.0, -viewDir.x));
     vec3 y = cross(viewDir, x);
     vec2 uv = vec2(dot(x, v_normal), dot(y, v_normal)) * 0.495 + 0.5;
-    // 无 matcap 贴图时默认渐变（对照 three.js：vec4(vec3(mix(0.2, 0.8, uv.y)), 1.0)）
+    // 无 matcap 贴图时默认渐变（对照参考实现：vec4(vec3(mix(0.2, 0.8, uv.y)), 1.0)）
     vec3 matcapColor = vec3_splat(mix(0.2, 0.8, uv.y));
     vec3 outgoingLight = diffuseColor.rgb * matcapColor;
     gl_FragColor = vec4(outgoingLight, diffuseColor.a);
@@ -2234,7 +2327,7 @@ void main()
         // matcap 注册移到 normalVS/normalVaryingDef 定义之后（见 7. meshnormal 块后）
         // programs.add("matcap", ShaderProgram("matcap", normalVS, matcapFS, varyingDef: normalVaryingDef))
 
-        // 7. meshnormal - 法线可视化，对照 three.js ShaderLib/meshnormal.glsl.js
+        // 7. meshnormal - 法线可视化，对照参考实现 ShaderLib/meshnormal.glsl.js
         // 使用专用 VS（只输出 v_normal，不输出 v_worldPos），避免与 lambertVS 的 HLSL link 问题
         // 裁剪：envmap/worldpos/shadowmap/color/bumping/normalmap 路径，材质本质就是输出原始法线
         let normalVS = """
@@ -2258,7 +2351,7 @@ $output v_clipPosition
 
 uniform mat3 u_normalMatrix;
 
-// chunk pars：对照 three.js meshnormal.vert pars 段
+// chunk pars：对照参考实现 meshnormal.vert pars 段
 #include <common>
 #include <normal_pars_vertex>
 #include <logdepthbuf_pars_vertex>
@@ -2276,7 +2369,7 @@ void main()
     #include <clipping_planes_vertex>
 }
 """
-        // normal 片段：对照 three.js meshnormal.frag 的 #include 顺序
+        // normal 片段：对照参考实现 meshnormal.frag 的 #include 顺序
         // 法线可视化本质：normalize(vNormal) * 0.5 + 0.5 写 rgb，opacity 写 a
         let normalFS = """
 $input v_normal
@@ -2297,7 +2390,7 @@ $input v_clipPosition
 
 uniform vec4 u_opacity;
 
-// chunk pars：对照 three.js meshnormal.frag pars 段
+// chunk pars：对照参考实现 meshnormal.frag pars 段
 #include <dithering_pars_fragment>
 #include <logdepthbuf_pars_fragment>
 #include <clipping_planes_pars_fragment>
@@ -2334,7 +2427,7 @@ vec3 v_clipPosition : TEXCOORD10 = vec3(0.0, 0.0, 0.0);
         programs.add("normal", ShaderProgram("normal", normalVS, normalFS, varyingDef: normalVaryingDef))
 
         // 6b. meshmatcap - Matcap 材质（注册移到 normalVS/normalVaryingDef 定义之后）
-        // 对照 three.js ShaderLib/meshmatcap.glsl.js：
+        // 对照参考实现 ShaderLib/meshmatcap.glsl.js：
         //   VS 输出 vViewPosition，FS 用 viewDir 与法线构造正交基 x/y，
         //   matcapUV = vec2(dot(x, normal), dot(y, normal)) * 0.495 + 0.5；
         //   无 matcap 贴图时（测试场景无贴图）用默认渐变 mix(0.2, 0.8, uv.y)。
@@ -2344,7 +2437,7 @@ vec3 v_clipPosition : TEXCOORD10 = vec3(0.0, 0.0, 0.0);
         programs.add("matcap", ShaderProgram("matcap", normalVS, matcapFS, varyingDef: normalVaryingDef))
 
         // 8. meshtoon - 卡通着色
-        // 对照 three.js ShaderLib/meshtoon.glsl.js：
+        // 对照参考实现 ShaderLib/meshtoon.glsl.js：
         //   toon 光照本质 = NdotL → getGradientIrradiance（无 gradientMap 时 smoothstep 分阶）
         //   将连续漫反射量化为两档（阴影区/亮区），产生卡通硬边。
         // ★VS/FS 必须用同一组 varying：toon 复用 normalVS（输出 v_normal/v_viewPos），
@@ -2377,7 +2470,7 @@ void main()
     vec3 normal = normalize(v_normal);
     // 环境光基础
     vec3 outgoingLight = diffuseColor.rgb * u_ambientColor.rgb;
-    // 对每个方向光做卡通分阶（对照 three.js meshtoon getGradientIrradiance：
+    // 对每个方向光做卡通分阶（对照参考实现 meshtoon getGradientIrradiance：
     //   coord = NdotL*0.5+0.5；无 gradientMap 时 smoothstep(0.0,1.0,coord)）
     for (int i = 0; i < NUM_DIR_LIGHTS_MAX; i++) {
         // u_lightDir 为光源→场景方向，取反得场景→光源方向
@@ -2469,10 +2562,10 @@ vec3 a_position : POSITION;
         programs.add("distance", ShaderProgram("distance", depthVS, depthFS, varyingDef: depthVaryingDef))
 
         // 11. PointsMaterial - 点云材质
-        // 对照 three.js ShaderLib/points.glsl.js：
+        // 对照参考实现 ShaderLib/points.glsl.js：
         //   fragment 核心 = diffuseColor = vec4(diffuse, opacity)，输出颜色（非深度灰度）。
         // ★此前误注册为 depthVS/depthFS（深度着色器输出灰度）→ 点渲染为白色/灰度。
-        // 点大小：three.js 用 gl_PointSize = size，但本引擎 shaderc 转 HLSL 后
+        // 点大小：通用 GLSL 用 gl_PointSize = size，但本引擎 shaderc 转 HLSL 后
         //   gl_PointSize 未声明（X3004，bgfx_shader.sh 无该宏映射），故 VS 不设置点大小，
         //   用 bgfx 默认点大小渲染（点可见；尺寸由后端 POINTS 图元决定）。
         // ★VS/FS 必须用同一组 varying：pointsVS 只变换位置（无 varying 输出），
@@ -2491,14 +2584,14 @@ uniform vec4 u_color;
 uniform vec4 u_opacity;
 void main()
 {
-    // 对照 three.js points.frag：gl_FragColor = vec4( diffuseColor.rgb, diffuseColor.a )
+    // 对照参考实现 points.frag：gl_FragColor = vec4( diffuseColor.rgb, diffuseColor.a )
     gl_FragColor = vec4(u_color.rgb, u_opacity.x);
 }
 """
         programs.add("points", ShaderProgram("points", pointsVS, pointsFS, varyingDef: depthVaryingDef))
 
         // 12. SpriteMaterial - 精灵材质
-        // 对照 three.js ShaderLib/sprite.glsl.js：
+        // 对照参考实现 ShaderLib/sprite.glsl.js：
         //   vertex 核心：mvPosition = modelViewMatrix[3]（平移列），
         //     scale = (length(modelMatrix[0].xyz), length(modelMatrix[1].xyz))，
         //     mvPosition.xy += (position.xy - (center - 0.5)) * scale（rotation=0 简化），
@@ -2523,7 +2616,7 @@ $output v_clipPosition
 #include <bgfx_shader.sh>
 void main()
 {
-    // 对照 three.js sprite.vert：广告牌 = 模型视图平移列 + 面片 xy 缩放
+    // 对照参考实现 sprite.vert：广告牌 = 模型视图平移列 + 面片 xy 缩放
     //  bgfx 侧对应：modelViewMatrix[3] → mul(u_modelView, vec4(0,0,0,1)) 取平移列
     // ★不可直接写 u_modelView[3]：GLSL 列主序下 m[3] 取第 4 列（平移），
     //   而 shaderc 转 HLSL（行主序）后 m[3] 取第 4 行（非平移）→ mvPosition 错误、
@@ -2534,7 +2627,7 @@ void main()
         length(mul(u_model[0], vec4(0.0, 1.0, 0.0, 0.0)).xyz)
     );
     // center 默认 (0.5,0.5) 且 rotation=0（仓颉 SpriteMaterial 默认值），(position.xy - (center-0.5)) = position.xy
-    // ★朝向修正：three.js 右手系相机看向 -Z，面片本地法线 +Z 恰好朝向相机；
+    // ★朝向修正：WebGL 右手系相机看向 -Z，面片本地法线 +Z 恰好朝向相机；
     //   bgfx 左手系相机看向 +Z，法线 +Z 指向远离相机 → 背面朝相机被 FrontSide 剔除。
     //   绕 X 轴翻转面片（y 取反），法线变为 -Z 朝向相机，正面可见（非 DoubleSide 规避）。
     vec2 alignedPosition = vec2(a_position.x, -a_position.y) * scale;
@@ -2564,7 +2657,7 @@ SAMPLER2D(map, __STAGE_MAP__);
 #endif
 void main()
 {
-    // 对照 three.js sprite.frag：diffuseColor = vec4(diffuse, opacity)
+    // 对照参考实现 sprite.frag：diffuseColor = vec4(diffuse, opacity)
     vec4 diffuseColor = vec4(u_color.rgb, u_opacity.x);
     #ifdef USE_MAP
     // map_fragment：diffuseColor *= texture2D(map, vUv)
@@ -2576,7 +2669,7 @@ void main()
         programs.add("sprite", ShaderProgram("sprite", spriteVS, spriteFS, varyingDef: basicVaryingDef))
 
         // 13. ShadowMaterial - 阴影材质
-        // 对照 three.js ShaderLib/shadow.glsl.js：
+        // 对照参考实现 ShaderLib/shadow.glsl.js：
         //   fragment 核心 = gl_FragColor = vec4( shadowColor.rgb, shadowColor.a )，
         //   输出半透明阴影色（非深度灰度）。
         // ★此前误注册为 depthVS/depthFS（深度着色器输出灰度）→ 阴影渲染为白色。
@@ -2587,14 +2680,14 @@ uniform vec4 u_color;
 uniform vec4 u_opacity;
 void main()
 {
-    // 对照 three.js shadow.frag：输出 shadowColor（黑/半透明，由 blend 混合）
+    // 对照参考实现 shadow.frag：输出 shadowColor（黑/半透明，由 blend 混合）
     gl_FragColor = vec4(u_color.rgb, u_opacity.x);
 }
 """
         programs.add("shadow", ShaderProgram("shadow", depthVS, shadowFS, varyingDef: depthVaryingDef))
 
         // 14. LineDashedMaterial - 虚线材质
-        // 对照 three.js ShaderLib/line_dashed.glsl.js：
+        // 对照参考实现 ShaderLib/line_dashed.glsl.js：
         //   vertex 核心：vLineDistance = scale * lineDistance（沿线累积距离），
         //   fragment 核心：mod(vLineDistance, totalSize) > dashSize 则 discard。
         let linedashedVaryingDef = """
@@ -2639,7 +2732,7 @@ void main()
         programs.add("equirect", ShaderProgram("equirect", basicVS, basicFS, varyingDef: basicVaryingDef))
         programs.add("backgroundCube", ShaderProgram("backgroundCube", basicVS, basicFS, varyingDef: basicVaryingDef))
 
-        // VSM blur 着色器：对照 three.js ShaderLib/vsm.glsl.js
+        // VSM blur 着色器：对照参考实现 ShaderLib/vsm.glsl.js
         //   - vertex：全屏三角形，gl_Position = vec4(position.xy, 0, 1)
         //   - fragment：5-tap 高斯模糊，输出 vec4(mean, std_dev, 0, 1)
         //     通过 HORIZONTAL_PASS define 区分垂直/水平两个 pass
@@ -2667,7 +2760,7 @@ uniform vec4 u_radius;      // x=radius (texel scale)
 
 void main()
 {
-    // 对照 three.js vsm.glsl.js：VSM_SAMPLES = 5
+    // 对照参考实现 vsm.glsl.js：VSM_SAMPLES = 5
     const float samples = 5.0;
     float mean = 0.0;
     float squared_mean = 0.0;
@@ -2918,13 +3011,13 @@ vec2 v_blitUV : TEXCOORD0 = vec2(0.0, 0.0);
         // ===== 后处理 shader 已迁移至 postprocessing/PostProcessingShaders.cj =====
         // copy/output/bloom/fxaa/smaa/ssao 系列注册已移出，由后处理 pass 内部注册表管理。
         // OutputShader：色调映射 + sRGB 色彩空间转换，OutputPass 专用。
-        // 对照 three.js OutputShader.fragmentShader（含 7 种 ToneMapping + SRGB_TRANSFER）。
-        // bgfx 无 three.js 的 tonemapping_pars_fragment/colorspace_pars_fragment shader chunk，
+        // 对照参考实现 OutputShader.fragmentShader（含 7 种 ToneMapping + SRGB_TRANSFER）。
+        // bgfx 无对应的 tonemapping_pars_fragment/colorspace_pars_fragment shader chunk，
         // 故把 7 种 ToneMapping 函数体内联，sRGB OETF 用 sqrt 近似（人眼感知线性）。
         // （OutputShader FS 源码已迁移至 postprocessing/PostProcessingShaders.cj）
 
         // ===== 抗锯齿全屏 shader =====
-        // 对照 three.js examples/jsm/shaders/{FXAAShader,SMAAShader}.js
+        // 对照参考实现 examples/jsm/shaders/{FXAAShader,SMAAShader}.js
         // （fxaa/smaa 系列 FS 源码已迁移至 postprocessing/PostProcessingShaders.cj，
         //   注册由 FXAAPass/SMAAPass 经 PostProcessingShaders.get 取用）
 
@@ -2981,7 +3074,7 @@ vec2 a_texcoord0 : TEXCOORD0;
         let packdepthFS = shadow_packdepth_fragment
         programs.add("packdepth", ShaderProgram("packdepth", packdepthVS, packdepthFS, varyingDef: packdepthVaryingDef))
 
-        // reflector：GroundReflector 专用（对照 three.js GroundReflector.js 内嵌 ReflectorShader
+        // reflector：GroundReflector 专用（对照参考实现 GroundReflector.js 内嵌 ReflectorShader
         // 完整非简化移植，含 useDepthTexture / DISTANCE_ATTENUATION / FRESNEL defines）
         // uniforms: u_textureMatrix(mat4), tDiffuse(sampler0), tDepth(sampler1),
         //           u_color(vec4 rgb), u_maxDistance/u_opacity/u_fresnelCoe/u_virtualCameraNear/
@@ -3039,7 +3132,7 @@ float getDepth(vec2 uv) {
 float getViewZ(float depth) {
     // bgfx 左手系 perspectiveDepthToViewZ：viewZ 为正，depth∈[0,1]（near→0, far→1）
     // 对照 Three.cj packing.cj（SSAO/GTAO 同款左手系反投影），
-    // 与 three.js 右手系 packing 公式（负 viewZ）符号相反。
+    // 与右手坐标系下的 packing 公式（负 viewZ）符号相反。
     return (u_virtualCameraNear.x * u_virtualCameraFar.x) / (u_virtualCameraFar.x - (u_virtualCameraFar.x - u_virtualCameraNear.x) * depth);
 }
 vec3 getViewPosition(vec2 uv, float depth, float clipW) {
@@ -3161,9 +3254,10 @@ vec2 a_texcoord0 : TEXCOORD0;
                     // 构造着色器源码（含 $input/$output 头 + #include <bgfx_shader.sh> + #include <shadow_common> + defines + color_lighting body）
                     // VS: varying def + bgfx_shader +所有 #define + color_lighting vertex body
                     let vsKey = typeName + "_" + depthName
-                    let vsBody = match (linearVSOverrides.get(vsKey)) {
-                        case Some(v) => v
-                        case None => vsBase
+                    let vsBody = if (let Some(v) <- linearVSOverrides.get(vsKey)) {
+                        v
+                    } else {
+                        vsBase
                     }
                     let vsSource = "#define " + allDefines.replace("=", " ") + "\n" + vsBody
                     let fsSource = "#define " + allDefines.replace("=", " ") + "\n#include <shadow_common>\n" + commonFS

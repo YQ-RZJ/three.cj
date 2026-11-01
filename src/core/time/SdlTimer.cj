@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] SdlTimer
  * @brief[zh-cn] 基于 SDL_timer 的高精度定时器工具
- * @explain[zh-cn] 基于 sdl4cj 库做高级封装（对应 SDL_timer.h），与 core/time 内已有的 Clock / Timer（Three.js 风格，基于 MonoTime）互补：Clock / Timer 用于引擎内帧计时、时间缩放、固定步长；SdlTimer 用于低层 SDL 计时原语（自 SDL 初始化起的 tick、高精度性能计数器、延时）。全部为静态方法，无需实例化。
+ * @explain[zh-cn] 基于 sdl4cj 库做高级封装（对应 SDL_timer.h），与 core/time 内已有的 Clock / Timer（引擎内建风格，基于 MonoTime）互补：Clock / Timer 用于引擎内帧计时、时间缩放、固定步长；SdlTimer 用于低层 SDL 计时原语（自 SDL 初始化起的 tick、高精度性能计数器、延时）。全部为静态方法，无需实例化。
  *
  * @file[en] SdlTimer
  * @brief[en] High-precision timer utility based on SDL_timer
- * @explain[en] High-level wrapper based on sdl4cj library (corresponding to SDL_timer.h), complementing the existing Clock / Timer in core/time (Three.js style, based on MonoTime): Clock / Timer for engine frame timing, time scaling, fixed step; SdlTimer for low-level SDL timing primitives (ticks since SDL init, high-precision performance counter, delay). All methods are static, no instantiation needed.
+ * @explain[en] High-level wrapper based on sdl4cj library (corresponding to SDL_timer.h), complementing the existing Clock / Timer in core/time (built-in engine style, based on MonoTime): Clock / Timer for engine frame timing, time scaling, fixed step; SdlTimer for low-level SDL timing primitives (ticks since SDL init, high-precision performance counter, delay). All methods are static, no instantiation needed.
  */
 package three.core.time
 

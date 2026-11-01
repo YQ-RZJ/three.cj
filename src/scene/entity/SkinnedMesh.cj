@@ -44,6 +44,8 @@ import three.core.math.*
 import three.rendering.materials.*
 import three.utils.constants.*
 import three.animation.skeletal.*
+import three.profiler.*
+import three.profiler.macros.*
 import std.collection.*
 import std.math.*
 import fastjson.*
@@ -115,6 +117,35 @@ public class SkinnedMesh <: Mesh {
     private var _bindNormals: ?Array<Float32>
 
     /**
+     * @brief[zh-cn] 蒙皮权重缓存（关节索引 + 权重，运行时蒙皮缓存，不参与 JSON）
+     * @explain[zh-cn] skinIndex/skinWeight 是静态数据（逐帧不变），每帧重建
+     *                  权重数组是纯浪费：首次构建后缓存复用，顶点数变化时重建。
+     *
+     * @brief[en] Cached skin weights (joint indices + weights; runtime cache, excluded from JSON)
+     * @explain[en] skinIndex/skinWeight are static data; rebuilding the weight arrays
+     *              every frame is pure waste. Cached after the first build and
+     *              rebuilt only when the vertex count changes.
+     */
+    @JsonIgnore
+    private var _skinWeightsCache: ?SkinWeights
+
+    /**
+     * @brief[zh-cn] 关节矩阵暂存缓冲（boneWorld × boneInverse，运行时缓存，不参与 JSON）
+     *
+     * @brief[en] Scratch buffer for joint matrices (runtime cache, excluded from JSON)
+     */
+    @JsonIgnore
+    private var _jointMatrixBuf: ?Array<Float32>
+
+    /**
+     * @brief[zh-cn] 矩阵乘法暂存对象（避免逐骨骼分配 Matrix4，运行时缓存，不参与 JSON）
+     *
+     * @brief[en] Scratch matrix for multiplications (avoids per-bone Matrix4 allocation)
+     */
+    @JsonIgnore
+    private var _matrixScratch: Matrix4 = Matrix4()
+
+    /**
      * @brief[zh-cn] 构造一个新的蒙皮网格
      * @param[zh-cn] geometry 顶点/索引几何
      * material 材质
@@ -131,6 +162,8 @@ public class SkinnedMesh <: Mesh {
         this.skeleton = Skeleton()
         this._bindPositions = None
         this._bindNormals = None
+        this._skinWeightsCache = None
+        this._jointMatrixBuf = None
     }
 
     /**
@@ -146,12 +179,12 @@ public class SkinnedMesh <: Mesh {
      */
     public func bind(skeleton: Skeleton, bindMatrix!: Option<Matrix4> = None): Unit {
         this.skeleton = skeleton
-        match (bindMatrix) {
-            case Some(m) => this.bindMatrix.copy(m)
-            case None =>
-                this.updateMatrixWorld(true)
-                this.skeleton.calculateInverses()
-                this.bindMatrix.copy(this.matrixWorld)
+        if (let Some(m) <- bindMatrix) {
+            this.bindMatrix.copy(m)
+        } else {
+            this.updateMatrixWorld(true)
+            this.skeleton.calculateInverses()
+            this.bindMatrix.copy(this.matrixWorld)
         }
         this.bindMatrixInverse.copy(this.bindMatrix).invert()
     }
@@ -172,20 +205,18 @@ public class SkinnedMesh <: Mesh {
      */
     public func normalizeSkinWeights(): Unit {
         let geo = this.geometry
-        match (geo.getAttribute("skinWeight")) {
-            case Some(skinWeight) =>
-                for (i in 0..skinWeight.count) {
-                    let x = skinWeight.getX(i)
-                    let y = skinWeight.getY(i)
-                    let z = skinWeight.getZ(i)
-                    let scale = 1.0 / (abs(x) + abs(y) + abs(z))
-                    if (scale != Float64.Inf) {
-                        skinWeight.setXYZ(i, x * scale, y * scale, z * scale)
-                    } else {
-                        skinWeight.setXYZ(i, 1.0, 0.0, 0.0)
-                    }
+        if (let Some(skinWeight) <- geo.getAttribute("skinWeight")) {
+            for (i in 0..skinWeight.count) {
+                let x = skinWeight.getX(i)
+                let y = skinWeight.getY(i)
+                let z = skinWeight.getZ(i)
+                let scale = 1.0 / (abs(x) + abs(y) + abs(z))
+                if (scale != Float64.Inf) {
+                    skinWeight.setXYZ(i, x * scale, y * scale, z * scale)
+                } else {
+                    skinWeight.setXYZ(i, 1.0, 0.0, 0.0)
                 }
-            case None => ()
+            }
         }
     }
 
@@ -211,9 +242,10 @@ public class SkinnedMesh <: Mesh {
      * @brief[en] Compute geometry bounding box
      */
     public func computeBoundingBox(): Unit {
-        match (this.geometry.boundingBox) {
-            case Some(_) => ()
-            case None => this.geometry.computeBoundingBox()
+        if (let Some(_) <- this.geometry.boundingBox) {
+            ()
+        } else {
+            this.geometry.computeBoundingBox()
         }
     }
 
@@ -223,9 +255,10 @@ public class SkinnedMesh <: Mesh {
      * @brief[en] Compute geometry bounding sphere
      */
     public func computeBoundingSphere(): Unit {
-        match (this.geometry.boundingSphere) {
-            case Some(_) => ()
-            case None => this.geometry.computeBoundingSphere()
+        if (let Some(_) <- this.geometry.boundingSphere) {
+            ()
+        } else {
+            this.geometry.computeBoundingSphere()
         }
     }
 
@@ -251,15 +284,11 @@ public class SkinnedMesh <: Mesh {
         // _skinIndex.fromBufferAttribute(geometry.attributes.skinIndex, index) — 仓颉侧用 getX/Y/Z/W 拼装
         var skinIndex = Vector4()
         var skinWeight = Vector4()
-        match (geometry.getAttribute("skinIndex")) {
-            case Some(skinIndexAttr) =>
-                skinIndex = skinIndex.set(skinIndexAttr.getX(index), skinIndexAttr.getY(index), skinIndexAttr.getZ(index), skinIndexAttr.getW(index))
-            case None => ()
+        if (let Some(skinIndexAttr) <- geometry.getAttribute("skinIndex")) {
+            skinIndex = skinIndex.set(skinIndexAttr.getX(index), skinIndexAttr.getY(index), skinIndexAttr.getZ(index), skinIndexAttr.getW(index))
         }
-        match (geometry.getAttribute("skinWeight")) {
-            case Some(skinWeightAttr) =>
-                skinWeight = skinWeight.set(skinWeightAttr.getX(index), skinWeightAttr.getY(index), skinWeightAttr.getZ(index), skinWeightAttr.getW(index))
-            case None => ()
+        if (let Some(skinWeightAttr) <- geometry.getAttribute("skinWeight")) {
+            skinWeight = skinWeight.set(skinWeightAttr.getX(index), skinWeightAttr.getY(index), skinWeightAttr.getZ(index), skinWeightAttr.getW(index))
         }
 
         // target 为 Vector3：_baseVector.set(...target, 1); target.set(0,0,0)
@@ -334,18 +363,34 @@ public class SkinnedMesh <: Mesh {
      *                  and invokes SkinningJob to perform batch CPU skinning.
      *                  Results are written directly into the geometry's position attribute.
      */
+    @Zone[three.scene.entity.SkinnedMesh.applySkinningJob, name=applySkinningJob]
     public func applySkinningJob(): Unit {
         let geo = this.geometry
         let skeleton = this.skeleton
         let numBones = skeleton.bones.size
 
         // 构建关节矩阵数组：offset = bone.matrixWorld × boneInverse（世界姿势 × 逆绑定矩阵），
-        // 每个矩阵 16 个 Float32（列主序）
-        let jointMatrices = Array<Float32>(numBones * 16, { _ => 0.0f32 })
+        // 每个矩阵 16 个 Float32（列主序）；缓冲与乘法对象复用，免逐帧分配
+        let jointMatrices = if (let Some(buf) <- this._jointMatrixBuf) {
+            if (buf.size == numBones * 16) {
+                buf
+            } else {
+                let fresh = Array<Float32>(numBones * 16, { _ => 0.0f32 })
+                this._jointMatrixBuf = Some(fresh)
+                fresh
+            }
+        } else {
+            let fresh = Array<Float32>(numBones * 16, { _ => 0.0f32 })
+            this._jointMatrixBuf = Some(fresh)
+            fresh
+        }
+        let mtx = this._matrixScratch
         for (b in 0..numBones) {
-            let offset = Matrix4().multiplyMatrices(skeleton.bones[b].matrixWorld, skeleton.boneInverses[b])
+            mtx.multiplyMatrices(skeleton.bones[b].matrixWorld, skeleton.boneInverses[b])
+            let dst = b * 16
+            let src = mtx.elements
             for (e in 0..16) {
-                jointMatrices[b * 16 + e] = Float32(offset.elements[e])
+                jointMatrices[dst + e] = Float32(src[e])
             }
         }
 
@@ -353,93 +398,121 @@ public class SkinnedMesh <: Mesh {
         var idxAttrOpt = geo.getAttribute("skinIndex")
         var wgtAttrOpt = geo.getAttribute("skinWeight")
 
-        match (idxAttrOpt) {
-            case Some(idxAttr) =>
-                match (wgtAttrOpt) {
-                    case Some(wgtAttr) =>
-                        match (geo.getAttribute("position")) {
-                            case Some(posAttr) =>
-                                let numVertices = idxAttr.count
-                                let numInfluences = 4
+        if (let Some(idxAttr) <- idxAttrOpt && let Some(wgtAttr) <- wgtAttrOpt && let Some(posAttr) <- geo.getAttribute("position")) {
+            let numVertices = idxAttr.count
+            let numInfluences = 4
 
-                                // 位置输入：优先使用绑定姿势缓存，避免逐帧蒙皮结果累积变形
-                                let posArr = match (this._bindPositions) {
-                                    case Some(cached) => cached
-                                    case None =>
-                                        let fresh = Array<Float32>(numVertices * 3, { _ => 0.0f32 })
-                                        for (i in 0..numVertices) {
-                                            fresh[i * 3] = Float32(posAttr.getX(i))
-                                            fresh[i * 3 + 1] = Float32(posAttr.getY(i))
-                                            fresh[i * 3 + 2] = Float32(posAttr.getZ(i))
-                                        }
-                                        this._bindPositions = Some(fresh)
-                                        fresh
-                                }
-
-                                // 法线输入：同样缓存绑定姿势法线
-                                var normalsOpt: ?Array<Float32> = None
-                                match (geo.getAttribute("normal")) {
-                                    case Some(normAttr) =>
-                                        normalsOpt = match (this._bindNormals) {
-                                            case Some(cached) => Some(cached)
-                                            case None =>
-                                                let fresh = Array<Float32>(numVertices * 3, { _ => 0.0f32 })
-                                                for (i in 0..numVertices) {
-                                                    fresh[i * 3] = Float32(normAttr.getX(i))
-                                                    fresh[i * 3 + 1] = Float32(normAttr.getY(i))
-                                                    fresh[i * 3 + 2] = Float32(normAttr.getZ(i))
-                                                }
-                                                this._bindNormals = Some(fresh)
-                                                Some(fresh)
-                                        }
-                                    case None => ()
-                                }
-
-                                var jointIndices = Array<Int16>(numVertices * numInfluences, { _ => 0i16 })
-                                var jointWeights = Array<Float32>(numVertices * numInfluences, { _ => 0.0f32 })
-                                for (v in 0..numVertices) {
-                                    jointIndices[v * 4] = Int16(idxAttr.getX(v))
-                                    jointIndices[v * 4 + 1] = Int16(idxAttr.getY(v))
-                                    jointIndices[v * 4 + 2] = Int16(idxAttr.getZ(v))
-                                    jointIndices[v * 4 + 3] = Int16(idxAttr.getW(v))
-                                    jointWeights[v * 4] = Float32(wgtAttr.getX(v))
-                                    jointWeights[v * 4 + 1] = Float32(wgtAttr.getY(v))
-                                    jointWeights[v * 4 + 2] = Float32(wgtAttr.getZ(v))
-                                    jointWeights[v * 4 + 3] = Float32(wgtAttr.getW(v))
-                                }
-
-                                let weights = SkinWeights(numInfluences, jointIndices, jointWeights)
-                                let skinInput = SkinInput(numVertices, posArr, normals: normalsOpt)
-                                let job = SkinningJob()
-                                job.jointMatrices = jointMatrices
-                                job.weights = weights
-                                job.input = skinInput
-
-                                if (job.validate() && job.run()) {
-                                    var resultPositions = job.output.positions
-                                    for (i in 0..numVertices) {
-                                        posAttr.setXYZ(i, Float64(resultPositions[i * 3]), Float64(resultPositions[i * 3 + 1]), Float64(resultPositions[i * 3 + 2]))
-                                    }
-                                    posAttr.version += 1
-                                    match (geo.getAttribute("normal")) {
-                                        case Some(normAttr) =>
-                                            match (job.output.normals) {
-                                                case Some(resultNormals) =>
-                                                    for (i in 0..numVertices) {
-                                                        normAttr.setXYZ(i, Float64(resultNormals[i * 3]), Float64(resultNormals[i * 3 + 1]), Float64(resultNormals[i * 3 + 2]))
-                                                    }
-                                                    normAttr.version += 1
-                                                case None => ()
-                                            }
-                                        case None => ()
-                                    }
-                                }
-                            case None => ()
-                        }
-                    case None => ()
+            // 位置输入：优先使用绑定姿势缓存，避免逐帧蒙皮结果累积变形
+            let posArr = if (let Some(cached) <- this._bindPositions) {
+                cached
+            } else {
+                let fresh = Array<Float32>(numVertices * 3, { _ => 0.0f32 })
+                for (i in 0..numVertices) {
+                    fresh[i * 3] = Float32(posAttr.getX(i))
+                    fresh[i * 3 + 1] = Float32(posAttr.getY(i))
+                    fresh[i * 3 + 2] = Float32(posAttr.getZ(i))
                 }
-            case None => ()
+                this._bindPositions = Some(fresh)
+                fresh
+            }
+
+            // 法线输入：同样缓存绑定姿势法线
+            var normalsOpt: ?Array<Float32> = None
+            if (let Some(normAttr) <- geo.getAttribute("normal")) {
+                normalsOpt = if (let Some(cached) <- this._bindNormals) {
+                    Some(cached)
+                } else {
+                    let fresh = Array<Float32>(numVertices * 3, { _ => 0.0f32 })
+                    for (i in 0..numVertices) {
+                        fresh[i * 3] = Float32(normAttr.getX(i))
+                        fresh[i * 3 + 1] = Float32(normAttr.getY(i))
+                        fresh[i * 3 + 2] = Float32(normAttr.getZ(i))
+                    }
+                    this._bindNormals = Some(fresh)
+                    Some(fresh)
+                }
+            }
+
+            // 权重（关节索引 + 权重）是静态数据：首次构建后缓存复用
+            let weights = if (let Some(cached) <- this._skinWeightsCache) {
+                if (cached.jointIndices.size == numVertices * numInfluences) {
+                    cached
+                } else {
+                    this._buildSkinWeights(idxAttr, wgtAttr, numVertices, numInfluences)
+                }
+            } else {
+                this._buildSkinWeights(idxAttr, wgtAttr, numVertices, numInfluences)
+            }
+
+            let skinInput = SkinInput(numVertices, posArr, normals: normalsOpt)
+            let job = SkinningJob()
+            job.jointMatrices = jointMatrices
+            job.weights = weights
+            job.input = skinInput
+
+            if (job.validate() && job.run()) {
+                var resultPositions = job.output.positions
+                // 写回 position：非归一化属性直接写底层数组（免逐顶点方法调用）
+                let posData = posAttr.array
+                let posStride = posAttr.itemSize
+                if (posAttr.normalized) {
+                    for (i in 0..numVertices) {
+                        posAttr.setXYZ(i, Float64(resultPositions[i * 3]), Float64(resultPositions[i * 3 + 1]), Float64(resultPositions[i * 3 + 2]))
+                    }
+                } else {
+                    for (i in 0..numVertices) {
+                        let base = i * posStride
+                        posData[base] = Float64(resultPositions[i * 3])
+                        posData[base + 1] = Float64(resultPositions[i * 3 + 1])
+                        posData[base + 2] = Float64(resultPositions[i * 3 + 2])
+                    }
+                }
+                posAttr.version += 1
+                if (let Some(normAttr) <- geo.getAttribute("normal")) {
+                    if (let Some(resultNormals) <- job.output.normals) {
+                        for (i in 0..numVertices) {
+                            normAttr.setXYZ(i, Float64(resultNormals[i * 3]), Float64(resultNormals[i * 3 + 1]), Float64(resultNormals[i * 3 + 2]))
+                        }
+                        normAttr.version += 1
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * @brief[zh-cn] 由 skinIndex/skinWeight 属性构建蒙皮权重（首次调用时缓存）
+     * @param[zh-cn] idxAttr skinIndex 属性
+     * wgtAttr skinWeight 属性
+     * numVertices 顶点数
+     * numInfluences 影响数
+     * @return[zh-cn] 构建好的权重对象
+     *
+     * @brief[en] Builds skin weights from the skinIndex/skinWeight attributes (cached on first use)
+     * @param[en] idxAttr skinIndex attribute
+     * wgtAttr skinWeight attribute
+     * numVertices Number of vertices
+     * numInfluences Number of influences
+     * @return[en] The built weights object
+     */
+    private func _buildSkinWeights(idxAttr: BufferAttribute, wgtAttr: BufferAttribute,
+                                   numVertices: Int64, numInfluences: Int): SkinWeights {
+        let jointIndices = Array<Int16>(numVertices * numInfluences, { _ => 0i16 })
+        let jointWeights = Array<Float32>(numVertices * numInfluences, { _ => 0.0f32 })
+        for (v in 0..numVertices) {
+            let base = v * numInfluences
+            jointIndices[base] = Int16(idxAttr.getX(v))
+            jointIndices[base + 1] = Int16(idxAttr.getY(v))
+            jointIndices[base + 2] = Int16(idxAttr.getZ(v))
+            jointIndices[base + 3] = Int16(idxAttr.getW(v))
+            jointWeights[base] = Float32(wgtAttr.getX(v))
+            jointWeights[base + 1] = Float32(wgtAttr.getY(v))
+            jointWeights[base + 2] = Float32(wgtAttr.getZ(v))
+            jointWeights[base + 3] = Float32(wgtAttr.getW(v))
+        }
+        let weights = SkinWeights(numInfluences, jointIndices, jointWeights)
+        this._skinWeightsCache = Some(weights)
+        return weights
     }
 
     /**

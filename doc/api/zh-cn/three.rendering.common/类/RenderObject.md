@@ -43,7 +43,7 @@ public func getMaterialId(): Int64
 
 返回: 
 
-- 材质哈希 ID
+- 材质 ID
 
 ### func getMatrix\(\)
 ```cj
@@ -142,6 +142,26 @@ public func onRemove(): Unit
 public func onUpdate(): Unit
 ```
 属性更新时调用
+
+### func resetFor\(Object3D,BufferGeometry,Material\)
+```cj
+public func resetFor(mesh: Object3D, geometry: BufferGeometry, material: Material): Unit
+```
+复用渲染对象：按新的网格/几何体/材质重置各字段（池化路径）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|mesh|Object3D|新的渲染对象（Mesh/Line/Points 等）geometry 几何体material 材质|
+|geometry|BufferGeometry||
+|material|Material||
+
+### func syncWorldMatrix\(\)
+```cj
+public func syncWorldMatrix(): Unit
+```
+同步世界矩阵（场景图已在本帧全量更新过时使用）
 
 ### func updateWorldMatrix\(\)
 ```cj

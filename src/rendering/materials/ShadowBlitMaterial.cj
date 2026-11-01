@@ -24,14 +24,14 @@
  * @file[zh-cn] 阴影贴图全屏blit材质
  * @brief[zh-cn] 阴影贴图全屏blit材质（bgfx4cj扩展），用全屏四边形采样shadowMap铺满屏幕
  * @explain[zh-cn] 
- * 对应 Three.js 无（bgfx4cj 扩展）。用一个全屏四边形 + 简单 sampler2D 采样把 shadowMap 铺满屏幕。
+ * 通用引擎无对应材质（bgfx4cj 扩展）。用一个全屏四边形 + 简单 sampler2D 采样把 shadowMap 铺满屏幕。
  * 用于 debug mode 6：直观查看阴影贴图内容是否正确生成。
  * 关联 ShaderLibs 程序名 "shadowblit"。
  *
  * @file[en] Shadow Blit Material
  * @brief[en] Shadow map fullscreen blit material (bgfx4cj extension), samples shadowMap with fullscreen quad
  * @explain[en] 
- * No Three.js counterpart (bgfx4cj extension). Uses a fullscreen quad with simple sampler2D sampling to fill the screen with the shadow map.
+ * No mainstream engine counterpart (bgfx4cj extension). Uses a fullscreen quad with simple sampler2D sampling to fill the screen with the shadow map.
  * Used in debug mode 6 to visually inspect shadow map content.
  * Associated ShaderLibs program name "shadowblit".
  */
@@ -40,11 +40,11 @@ package three.rendering.materials
 /**
  * @brief[zh-cn] 阴影贴图全屏blit材质，用全屏四边形采样shadowMap铺满屏幕
  * @explain[zh-cn] 
- * 对应 Three.js 无（bgfx4cj 扩展）。用于 debug mode 6：直观查看阴影贴图内容是否正确生成。
+ * 通用引擎无对应材质（bgfx4cj 扩展）。用于 debug mode 6：直观查看阴影贴图内容是否正确生成。
  *
  * @brief[en] Shadow map fullscreen blit material, samples shadowMap with fullscreen quad
  * @explain[en] 
- * No Three.js counterpart (bgfx4cj extension). Used in debug mode 6 to visually inspect shadow map content.
+ * No mainstream engine counterpart (bgfx4cj extension). Used in debug mode 6 to visually inspect shadow map content.
  */
 public class ShadowBlitMaterial <: Material {
     /**

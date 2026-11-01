@@ -132,10 +132,7 @@ public class InputEngine {
      * @return[en] true if held down, or false if no window is bound or no KeyboardProvider registered
      */
     public func isKeyDown(scancode: UInt32): Bool {
-        match (this._keyboard) {
-            case Some(kb) => kb.isKeyDown(scancode)
-            case None => false
-        }
+        if (let Some(kb) <- this._keyboard) { kb.isKeyDown(scancode) } else { false }
     }
 
     /**
@@ -148,10 +145,7 @@ public class InputEngine {
      * @return[en] true if just pressed, or false if no window is bound
      */
     public func isKeyPressed(scancode: UInt32): Bool {
-        match (this._keyboard) {
-            case Some(kb) => kb.isKeyPressed(scancode)
-            case None => false
-        }
+        if (let Some(kb) <- this._keyboard) { kb.isKeyPressed(scancode) } else { false }
     }
 
     /**
@@ -164,10 +158,7 @@ public class InputEngine {
      * @return[en] true if just released, or false if no window is bound
      */
     public func isKeyReleased(scancode: UInt32): Bool {
-        match (this._keyboard) {
-            case Some(kb) => kb.isKeyReleased(scancode)
-            case None => false
-        }
+        if (let Some(kb) <- this._keyboard) { kb.isKeyReleased(scancode) } else { false }
     }
 
     // =========================================================================
@@ -182,10 +173,7 @@ public class InputEngine {
      * @return[en] The mouse X coordinate, or 0.0 if no window is bound
      */
     public func getMouseX(): Float32 {
-        match (this._mouse) {
-            case Some(m) => m.getMouseX()
-            case None => 0.0
-        }
+        if (let Some(m) <- this._mouse) { m.getMouseX() } else { 0.0 }
     }
 
     /**
@@ -196,10 +184,7 @@ public class InputEngine {
      * @return[en] The mouse Y coordinate, or 0.0 if no window is bound
      */
     public func getMouseY(): Float32 {
-        match (this._mouse) {
-            case Some(m) => m.getMouseY()
-            case None => 0.0
-        }
+        if (let Some(m) <- this._mouse) { m.getMouseY() } else { 0.0 }
     }
 
     /**
@@ -210,10 +195,7 @@ public class InputEngine {
      * @return[en] The mouse X delta, or 0.0 if no window is bound
      */
     public func getMouseDX(): Float32 {
-        match (this._mouse) {
-            case Some(m) => m.getMouseDX()
-            case None => 0.0
-        }
+        if (let Some(m) <- this._mouse) { m.getMouseDX() } else { 0.0 }
     }
 
     /**
@@ -224,10 +206,7 @@ public class InputEngine {
      * @return[en] The mouse Y delta, or 0.0 if no window is bound
      */
     public func getMouseDY(): Float32 {
-        match (this._mouse) {
-            case Some(m) => m.getMouseDY()
-            case None => 0.0
-        }
+        if (let Some(m) <- this._mouse) { m.getMouseDY() } else { 0.0 }
     }
 
     /**
@@ -240,10 +219,7 @@ public class InputEngine {
      * @return[en] true if held down, or false if no window is bound
      */
     public func isMouseButtonDown(button: UInt8): Bool {
-        match (this._mouse) {
-            case Some(m) => m.isMouseButtonDown(button)
-            case None => false
-        }
+        if (let Some(m) <- this._mouse) { m.isMouseButtonDown(button) } else { false }
     }
 
     /**
@@ -254,10 +230,7 @@ public class InputEngine {
      * @return[en] The horizontal scroll amount, or 0.0 if no window is bound
      */
     public func getWheelX(): Float32 {
-        match (this._mouse) {
-            case Some(m) => m.getWheelX()
-            case None => 0.0
-        }
+        if (let Some(m) <- this._mouse) { m.getWheelX() } else { 0.0 }
     }
 
     /**
@@ -268,10 +241,7 @@ public class InputEngine {
      * @return[en] The vertical scroll amount, or 0.0 if no window is bound
      */
     public func getWheelY(): Float32 {
-        match (this._mouse) {
-            case Some(m) => m.getWheelY()
-            case None => 0.0
-        }
+        if (let Some(m) <- this._mouse) { m.getWheelY() } else { 0.0 }
     }
 
     // =========================================================================
@@ -286,10 +256,7 @@ public class InputEngine {
      * @return[en] The number of touch points, or 0 if no window is bound
      */
     public func getTouchCount(): Int64 {
-        match (this._touch) {
-            case Some(t) => t.getTouchCount()
-            case None => 0i64
-        }
+        if (let Some(t) <- this._touch) { t.getTouchCount() } else { 0i64 }
     }
 
     /**
@@ -302,10 +269,7 @@ public class InputEngine {
      * @return[en] The touch point data, or None if index is out of bounds or no window is bound
      */
     public func getTouch(index: Int64): Option<TouchPoint> {
-        match (this._touch) {
-            case Some(t) => t.getTouch(index)
-            case None => None
-        }
+        if (let Some(t) <- this._touch) { t.getTouch(index) } else { None }
     }
 
     /**
@@ -318,10 +282,7 @@ public class InputEngine {
      * @return[en] The touch point data, or None if not found or no window is bound
      */
     public func getTouchByID(fingerID: Int64): Option<TouchPoint> {
-        match (this._touch) {
-            case Some(t) => t.getTouchByID(fingerID)
-            case None => None
-        }
+        if (let Some(t) <- this._touch) { t.getTouchByID(fingerID) } else { None }
     }
 
     // =========================================================================
@@ -349,10 +310,7 @@ public class InputEngine {
      * @return[en] Whether the gamepad was opened successfully
      */
     public func openGamepadAt(index: Int32): Bool {
-        match (this._gamepad) {
-            case Some(gp) => gp.openGamepadAt(index)
-            case None => false
-        }
+        if (let Some(gp) <- this._gamepad) { gp.openGamepadAt(index) } else { false }
     }
 
     /**
@@ -361,10 +319,7 @@ public class InputEngine {
      * @brief[en] Closes the gamepad
      */
     public func closeGamepad(): Unit {
-        match (this._gamepad) {
-            case Some(gp) => gp.closeGamepad()
-            case None => ()
-        }
+        if (let Some(gp) <- this._gamepad) { gp.closeGamepad() } else { () }
     }
 
     /**
@@ -375,10 +330,7 @@ public class InputEngine {
      * @return[en] true if connected, or false if not opened
      */
     public func isGamepadConnected(): Bool {
-        match (this._gamepad) {
-            case Some(gp) => gp.isGamepadConnected()
-            case None => false
-        }
+        if (let Some(gp) <- this._gamepad) { gp.isGamepadConnected() } else { false }
     }
 
     /**
@@ -389,10 +341,7 @@ public class InputEngine {
      * @return[en] The gamepad instance ID, or -1 if not opened
      */
     public func getGamepadInstanceID(): Int64 {
-        match (this._gamepad) {
-            case Some(gp) => gp.getGamepadInstanceID()
-            case None => -1i64
-        }
+        if (let Some(gp) <- this._gamepad) { gp.getGamepadInstanceID() } else { -1i64 }
     }
 
     /**
@@ -405,10 +354,7 @@ public class InputEngine {
      * @return[en] The axis value, or 0 if not connected
      */
     public func getGamepadAxis(axis: GamepadAxis): Int16 {
-        match (this._gamepad) {
-            case Some(gp) => gp.getGamepadAxis(axis)
-            case None => 0i16
-        }
+        if (let Some(gp) <- this._gamepad) { gp.getGamepadAxis(axis) } else { 0i16 }
     }
 
     /**
@@ -421,10 +367,7 @@ public class InputEngine {
      * @return[en] true if pressed, or false if not connected
      */
     public func getGamepadButton(button: GamepadButton): Bool {
-        match (this._gamepad) {
-            case Some(gp) => gp.getGamepadButton(button)
-            case None => false
-        }
+        if (let Some(gp) <- this._gamepad) { gp.getGamepadButton(button) } else { false }
     }
 
     /**
@@ -435,9 +378,6 @@ public class InputEngine {
      * @return[en] The gamepad name, or an empty string if not connected
      */
     public func getGamepadName(): String {
-        match (this._gamepad) {
-            case Some(gp) => gp.getGamepadName()
-            case None => ""
-        }
+        if (let Some(gp) <- this._gamepad) { gp.getGamepadName() } else { "" }
     }
 }

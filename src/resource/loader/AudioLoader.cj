@@ -22,17 +22,19 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] AudioLoader 音频文件加载器
- * @brief[zh-cn] 对应 Three.js loaders/AudioLoader.js，使用 miniaudio 解码音频文件为 PCM 数据
- * @explain[zh-cn] Three.js 使用 Web Audio API 的 decodeAudioData 解码，Three.cj 使用 miniaudio 的 ma_decode_file_cj 解码为 16-bit PCM。解码后创建 AudioBuffer（封装 OpenAL Buffer），可直接传给 Audio/PositionalAudio。
+ * @brief[zh-cn] 使用 miniaudio 解码音频文件为 PCM 数据
+ * @explain[zh-cn] 通用做法是使用 Web Audio API 的 decodeAudioData 解码，本引擎使用 miniaudio 的 ma_decode_file_cj 解码为 16-bit PCM。解码后创建 AudioBuffer（封装 OpenAL Buffer），可直接传给 Audio/PositionalAudio。
  *
  * @file[en] AudioLoader  Audio file loader
  * @brief[en] Decodes audio files to PCM data using miniaudio
- * @explain[en] Three.js uses Web Audio API's decodeAudioData for decoding, while Three.cj uses miniaudio's ma_decode_file_cj to decode to 16-bit PCM. After decoding, creates AudioBuffer (wrapping OpenAL Buffer) that can be passed to Audio/PositionalAudio.
+ * @explain[en] The common approach uses Web Audio API's decodeAudioData for decoding, while this engine uses miniaudio's ma_decode_file_cj to decode to 16-bit PCM. After decoding, creates AudioBuffer (wrapping OpenAL Buffer) that can be passed to Audio/PositionalAudio.
  */
 package three.resource.loader
 
 import three.core.interfaces.ILoadResult
 import three.audio.source.AudioBuffer
+import three.profiler.*
+import three.profiler.macros.*
 import openalsoft4cj.miniaudio.*
 import openalsoft4cj.al.*
 import std.io.*
@@ -113,6 +115,7 @@ public class AudioLoader <: Loader {
      *
      * @throws[en] Exception Thrown when decoding fails
      */
+    @Zone[three.resource.loader.AudioLoader.loadFromBytes, name=audioLoadFromBytes]
     public func loadFromBytes(data: Array<UInt8>): AudioBuffer {
         if (data.size == 0) {
             throw Exception("AudioLoader: 空音频数据")
@@ -184,6 +187,7 @@ public class AudioLoader <: Loader {
      * 解码音频文件为 16-bit PCM 并创建 AudioBuffer
      * 使用 miniaudio 的 ma_decode_file_cj 一次性解码整个文件。
      */
+    @Zone[three.resource.loader.AudioLoader.decodeFile, name=audioDecodeFile]
     private func _decodeFile(filePath: String): AudioBuffer {
         // 将仓颉字符串转为 CString
         let pathCs = unsafe { LibC.mallocCString(filePath) }

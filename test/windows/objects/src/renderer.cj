@@ -130,7 +130,7 @@ public func createScene(width: Int32, height: Int32): SceneObjects {
     lineSegments.name = "LineSegmentsWire"
     scene.add(lineSegments)
 
-    // ---- 5. Sprite 广告牌（对照 three.js Sprite：无 geometry，材质面片由 spriteVS 广告牌变换）----
+    // ---- 5. Sprite 广告牌（通用 Sprite 做法：无 geometry，材质面片由 spriteVS 广告牌变换）----
     let spriteMat = SpriteMaterial()
     spriteMat.color = Color(0xffff44)
     let sprite = Sprite(material: spriteMat)

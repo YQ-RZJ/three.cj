@@ -240,16 +240,16 @@ public class GpuSkinningJob {
      * @brief[en] Validates the inputs
      */
     public func validate(): Bool {
-        match (this.input) {
-            case Some(inp) =>
-                if (inp.numVertices <= 0 || inp.numJoints <= 0) { return false }
-                if (inp.numInfluences < 1 || inp.numInfluences > 4) { return false }
-                if (inp.bindPositions.size != inp.numVertices * 3) { return false }
-                if (inp.jointIndices.size != inp.numVertices * inp.numInfluences) { return false }
-                if (inp.jointWeights.size != inp.numVertices * inp.numInfluences) { return false }
-                if (inp.jointMatrices.size != inp.numJoints * 16) { return false }
-                true
-            case None => false
+        if (let Some(inp) <- this.input) {
+            if (inp.numVertices <= 0 || inp.numJoints <= 0) { return false }
+            if (inp.numInfluences < 1 || inp.numInfluences > 4) { return false }
+            if (inp.bindPositions.size != inp.numVertices * 3) { return false }
+            if (inp.jointIndices.size != inp.numVertices * inp.numInfluences) { return false }
+            if (inp.jointWeights.size != inp.numVertices * inp.numInfluences) { return false }
+            if (inp.jointMatrices.size != inp.numJoints * 16) { return false }
+            true
+        } else {
+            false
         }
     }
 
@@ -271,24 +271,24 @@ public class GpuSkinningJob {
     public func run(): Bool {
         if (!this.validate()) { return false }
 
-        match (this.input) {
-            case Some(inp) =>
-                let effectiveMode = this.mode
+        if (let Some(inp) <- this.input) {
+            let effectiveMode = this.mode
 
-                // 当前实现：GPU compute 尚未集成，统一走 CPU fallback
-                // TODO: 当 bgfx compute shader 支持可用时，在此添加 GPU 路径
-                let isGpuPath = match (effectiveMode) {
-                    case SkinningMode.GPU => true
-                    case SkinningMode.Auto => true
-                    case _ => false
-                }
-                if (isGpuPath) {
-                    // 回退到 CPU
-                    return this._runCpu(inp)
-                }
+            // 当前实现：GPU compute 尚未集成，统一走 CPU fallback
+            // TODO: 当 bgfx compute shader 支持可用时，在此添加 GPU 路径
+            let isGpuPath = match (effectiveMode) {
+                case SkinningMode.GPU => true
+                case SkinningMode.Auto => true
+                case _ => false
+            }
+            if (isGpuPath) {
+                // 回退到 CPU
+                return this._runCpu(inp)
+            }
 
-                this._runCpu(inp)
-            case None => false
+            this._runCpu(inp)
+        } else {
+            false
         }
     }
 
@@ -318,9 +318,8 @@ public class GpuSkinningJob {
             let out = GpuSkinningOutput(inp.numVertices)
             out.skinnedPositions = this._cpuJob.output.positions
 
-            match (this._cpuJob.output.normals) {
-                case Some(normals) => out.skinnedNormals = Some(normals)
-                case None => ()
+            if (let Some(normals) <- this._cpuJob.output.normals) {
+                out.skinnedNormals = Some(normals)
             }
 
             this.output = Some(out)

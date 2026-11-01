@@ -226,13 +226,13 @@ public class Semaphore {
 
     /**
      * @brief[zh-cn] 构造器：创建信号量
-     * @param[zh-cn] initialValue 初始计数值
+     * @param[zh-cn] initVal 初始计数值
      *
      * @brief[en] Constructor: create a semaphore
-     * @param[en] initialValue Initial count value
+     * @param[en] initVal Initial count value
      */
-    public init(initialValue!: UInt32 = 0) {
-        this._sem = SDL_CreateSemaphore_cj(initialValue)
+    public init(initVal!: UInt32 = 0) {
+        this._sem = SDL_CreateSemaphore_cj(initVal)
     }
 
     /**

@@ -86,14 +86,13 @@ public class GltfImportAdapter {
             let name = GltfImportAdapter.nodeName(nodes, nodeIdx, "joint_${i}")
             let parentIdx = GltfImportAdapter.findParentJoint(nodeIdx, nodes, nodeToJoint)
             let joint = raw.addJoint(name, parentIdx)
-            match (GltfImportAdapter.getNode(nodes, nodeIdx)) {
-                case Some(node) =>
-                    GltfImportAdapter.applyNodeLocalTransform(node, joint)
-                    if (i == 2 || i == 10 || i == 16) {
-                        @LogDebug(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} parent=${parentIdx} t=[${joint.localTranslation.x},${joint.localTranslation.y},${joint.localTranslation.z}]"])
-                    }
-                case None =>
-                    @LogWarn(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} getNode=None!"])
+            if (let Some(node) <- GltfImportAdapter.getNode(nodes, nodeIdx)) {
+                GltfImportAdapter.applyNodeLocalTransform(node, joint)
+                if (i == 2 || i == 10 || i == 16) {
+                    @LogDebug(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} parent=${parentIdx} t=[${joint.localTranslation.x},${joint.localTranslation.y},${joint.localTranslation.z}]"])
+                }
+            } else {
+                @LogWarn(["glTFImportAdapter", "buildRawSkel joint${i} node=${nodeIdx} getNode=None!"])
             }
         }
 
@@ -138,62 +137,59 @@ public class GltfImportAdapter {
         var maxTime: Float32 = 0.0f32
         for (channel in animData.channels) {
             let jointIdxOpt = nodeToJoint.get(Int64(channel.targetNode))
-            match (jointIdxOpt) {
-                case Some(jointIdx) =>
-                    if (channel.sampler < 0 || channel.sampler >= animData.samplers.size) { continue }
-                    let sampler = animData.samplers[channel.sampler]
+            // 目标节点不是关节，跳过
+            if (let Some(jointIdx) <- jointIdxOpt) {
+                if (channel.sampler < 0 || channel.sampler >= animData.samplers.size) { continue }
+                let sampler = animData.samplers[channel.sampler]
 
-                    let times = GltfImportAdapter.readAccessorFloats(
-                        sampler.input, accessors, bufferViews, loadedBuffers)
-                    let values = GltfImportAdapter.readAccessorFloats(
-                        sampler.output, accessors, bufferViews, loadedBuffers)
-                    if (times.size == 0) { continue }
+                let times = GltfImportAdapter.readAccessorFloats(
+                    sampler.input, accessors, bufferViews, loadedBuffers)
+                let values = GltfImportAdapter.readAccessorFloats(
+                    sampler.output, accessors, bufferViews, loadedBuffers)
+                if (times.size == 0) { continue }
 
-                    // 旋转通道分量数为 4（四元数），平移/缩放为 3
-                    let comp = if (channel.targetPath == "rotation") { 4 } else { 3 }
-                    // CUBICSPLINE 每关键帧输出 3 组分量（入切线、值、出切线），取中间的值组
-                    let cubic = sampler.interpolation == "CUBICSPLINE"
-                    let groupStride = if (cubic) { comp * 3 } else { comp }
-                    let valueOffset = if (cubic) { comp } else { 0 }
+                // 旋转通道分量数为 4（四元数），平移/缩放为 3
+                let comp = if (channel.targetPath == "rotation") { 4 } else { 3 }
+                // CUBICSPLINE 每关键帧输出 3 组分量（入切线、值、出切线），取中间的值组
+                let cubic = sampler.interpolation == "CUBICSPLINE"
+                let groupStride = if (cubic) { comp * 3 } else { comp }
+                let valueOffset = if (cubic) { comp } else { 0 }
 
-                    for (ki in 0..times.size) {
-                        let t = times[ki]
-                        let base = ki * groupStride + valueOffset
-                        if (base + comp > values.size) { break }
+                for (ki in 0..times.size) {
+                    let t = times[ki]
+                    let base = ki * groupStride + valueOffset
+                    if (base + comp > values.size) { break }
 
-                        if (channel.targetPath == "translation") {
-                            raw.addTranslationKeyframe(jointIdx, t,
-                                Vector3F(values[base], values[base + 1], values[base + 2]))
-                        } else if (channel.targetPath == "scale") {
-                            raw.addScaleKeyframe(jointIdx, t,
-                                Vector3F(values[base], values[base + 1], values[base + 2]))
-                        } else if (channel.targetPath == "rotation") {
-                            raw.addRotationKeyframe(jointIdx, t,
-                                values[base], values[base + 1], values[base + 2], values[base + 3])
-                        }
-                        if (t > maxTime) { maxTime = t }
+                    if (channel.targetPath == "translation") {
+                        raw.addTranslationKeyframe(jointIdx, t,
+                            Vector3F(values[base], values[base + 1], values[base + 2]))
+                    } else if (channel.targetPath == "scale") {
+                        raw.addScaleKeyframe(jointIdx, t,
+                            Vector3F(values[base], values[base + 1], values[base + 2]))
+                    } else if (channel.targetPath == "rotation") {
+                        raw.addRotationKeyframe(jointIdx, t,
+                            values[base], values[base + 1], values[base + 2], values[base + 3])
                     }
-                case None => ()  // 目标节点不是关节，跳过
+                    if (t > maxTime) { maxTime = t }
+                }
             }
         }
 
         // 为没有动画通道的关节填充 rest pose 关键帧（避免 BlendingJob 用零值覆盖 rest pose）
         // 按通道分别检查：translation/rotation/scale 缺失时分别填充
-        match (rawSkeleton) {
-            case Some(skel) =>
-                for (ji in 0..numJoints) {
-                    let joint = skel.joints[ji]
-                    if (ji < raw.translations.size && raw.translations[ji].size == 0) {
-                        raw.addTranslationKeyframe(ji, 0.0f32, joint.localTranslation)
-                    }
-                    if (ji < raw.rotations.size && raw.rotations[ji].size == 0) {
-                        raw.addRotationKeyframe(ji, 0.0f32, joint.localRotation.x, joint.localRotation.y, joint.localRotation.z, joint.localRotation.w)
-                    }
-                    if (ji < raw.scales.size && raw.scales[ji].size == 0) {
-                        raw.addScaleKeyframe(ji, 0.0f32, joint.localScale)
-                    }
+        if (let Some(skel) <- rawSkeleton) {
+            for (ji in 0..numJoints) {
+                let joint = skel.joints[ji]
+                if (ji < raw.translations.size && raw.translations[ji].size == 0) {
+                    raw.addTranslationKeyframe(ji, 0.0f32, joint.localTranslation)
                 }
-            case None => ()
+                if (ji < raw.rotations.size && raw.rotations[ji].size == 0) {
+                    raw.addRotationKeyframe(ji, 0.0f32, joint.localRotation.x, joint.localRotation.y, joint.localRotation.z, joint.localRotation.w)
+                }
+                if (ji < raw.scales.size && raw.scales[ji].size == 0) {
+                    raw.addScaleKeyframe(ji, 0.0f32, joint.localScale)
+                }
+            }
         }
 
         raw.duration = maxTime
@@ -225,16 +221,13 @@ public class GltfImportAdapter {
      * @brief[en] Gets the node name, falling back to the given value when missing
      */
     private static func nodeName(nodes: Array<Any>, nodeIdx: Int, fallback: String): String {
-        match (GltfImportAdapter.getNode(nodes, nodeIdx)) {
-            case Some(node) =>
-                match (node.get("name")) {
-                    case Some(n) => match (n) {
-                        case s: String => s
-                        case _ => fallback
-                    }
-                    case None => fallback
-                }
-            case None => fallback
+        if (let Some(node) <- GltfImportAdapter.getNode(nodes, nodeIdx) && let Some(n) <- node.get("name")) {
+            match (n) {
+                case s: String => s
+                case _ => fallback
+            }
+        } else {
+            fallback
         }
     }
 
@@ -256,19 +249,18 @@ public class GltfImportAdapter {
         for (n in 0..nodes.size) {
             match (nodes[n]) {
                 case node: HashMap<String, Any> =>
-                    match (node.get("children")) {
-                        case Some(childrenVal) =>
-                            let children = GltfImportAdapter.asArray(childrenVal)
-                            for (c in children) {
-                                if (GltfImportAdapter.asInt(c) == nodeIdx) {
-                                    // 父节点须也是关节
-                                    match (nodeToJoint.get(Int64(n))) {
-                                        case Some(parentJoint) => return parentJoint
-                                        case None => return -1
-                                    }
+                    if (let Some(childrenVal) <- node.get("children")) {
+                        let children = GltfImportAdapter.asArray(childrenVal)
+                        for (c in children) {
+                            if (GltfImportAdapter.asInt(c) == nodeIdx) {
+                                // 父节点须也是关节
+                                if (let Some(parentJoint) <- nodeToJoint.get(Int64(n))) {
+                                    return parentJoint
+                                } else {
+                                    return -1
                                 }
                             }
-                        case None => ()
+                        }
                     }
                 case _ => ()
             }
@@ -291,74 +283,66 @@ public class GltfImportAdapter {
      *                  glTF TRS) are read directly.
      */
     private static func applyNodeLocalTransform(node: HashMap<String, Any>, joint: RawJoint): Unit {
-        match (node.get("matrix")) {
-            case Some(matrixVal) =>
-                let arr = GltfImportAdapter.asArray(matrixVal)
-                if (arr.size >= 16) {
-                    let m = Array<Float64>(16, { i => GltfImportAdapter.asFloat64(arr[i]) })
+        if (let Some(matrixVal) <- node.get("matrix")) {
+            let arr = GltfImportAdapter.asArray(matrixVal)
+            if (arr.size >= 16) {
+                let m = Array<Float64>(16, { i => GltfImportAdapter.asFloat64(arr[i]) })
 
-                    // 列主序：列 c 行 r 的元素在 m[c*4+r]
-                    let r00 = m[0]; let r10 = m[1]; let r20 = m[2]
-                    let r01 = m[4]; let r11 = m[5]; let r21 = m[6]
-                    let r02 = m[8]; let r12 = m[9]; let r22 = m[10]
+                // 列主序：列 c 行 r 的元素在 m[c*4+r]
+                let r00 = m[0]; let r10 = m[1]; let r20 = m[2]
+                let r01 = m[4]; let r11 = m[5]; let r21 = m[6]
+                let r02 = m[8]; let r12 = m[9]; let r22 = m[10]
 
-                    // 缩放 = 各列向量长度
-                    let sx = sqrt(r00 * r00 + r10 * r10 + r20 * r20)
-                    let sy = sqrt(r01 * r01 + r11 * r11 + r21 * r21)
-                    let sz = sqrt(r02 * r02 + r12 * r12 + r22 * r22)
-                    joint.localScale.set(Float32(sx), Float32(sy), Float32(sz))
+                // 缩放 = 各列向量长度
+                let sx = sqrt(r00 * r00 + r10 * r10 + r20 * r20)
+                let sy = sqrt(r01 * r01 + r11 * r11 + r21 * r21)
+                let sz = sqrt(r02 * r02 + r12 * r12 + r22 * r22)
+                joint.localScale.set(Float32(sx), Float32(sy), Float32(sz))
 
-                    // 平移
-                    joint.localTranslation.set(Float32(m[12]), Float32(m[13]), Float32(m[14]))
+                // 平移
+                joint.localTranslation.set(Float32(m[12]), Float32(m[13]), Float32(m[14]))
 
-                    // 旋转：归一化列得到纯旋转矩阵后提取四元数
-                    let q = GltfImportAdapter.rotationMatrixToQuaternion(
-                        r00, r01, r02,
-                        r10, r11, r12,
-                        r20, r21, r22,
-                        sx, sy, sz
-                    )
-                    joint.localRotation.set(q.x, q.y, q.z, q.w)
-                    return
-                }
-            case None => ()
+                // 旋转：归一化列得到纯旋转矩阵后提取四元数
+                let q = GltfImportAdapter.rotationMatrixToQuaternion(
+                    r00, r01, r02,
+                    r10, r11, r12,
+                    r20, r21, r22,
+                    sx, sy, sz
+                )
+                joint.localRotation.set(q.x, q.y, q.z, q.w)
+                return
+            }
         }
 
         // TRS 路径
-        match (node.get("translation")) {
-            case Some(t) =>
-                let arr = GltfImportAdapter.asArray(t)
-                if (arr.size >= 3) {
-                    joint.localTranslation.set(
-                        GltfImportAdapter.asFloat32(arr[0]),
-                        GltfImportAdapter.asFloat32(arr[1]),
-                        GltfImportAdapter.asFloat32(arr[2]))
-                }
-            case None => ()
+        if (let Some(t) <- node.get("translation")) {
+            let arr = GltfImportAdapter.asArray(t)
+            if (arr.size >= 3) {
+                joint.localTranslation.set(
+                    GltfImportAdapter.asFloat32(arr[0]),
+                    GltfImportAdapter.asFloat32(arr[1]),
+                    GltfImportAdapter.asFloat32(arr[2]))
+            }
         }
-        match (node.get("rotation")) {
-            case Some(r) =>
-                let arr = GltfImportAdapter.asArray(r)
-                if (arr.size >= 4) {
-                    joint.localRotation.set(
-                        GltfImportAdapter.asFloat32(arr[0]),
-                        GltfImportAdapter.asFloat32(arr[1]),
-                        GltfImportAdapter.asFloat32(arr[2]),
-                        GltfImportAdapter.asFloat32(arr[3]))
-                    joint.localRotation.normalize()
-                }
-            case None => ()
+        if (let Some(r) <- node.get("rotation")) {
+            let arr = GltfImportAdapter.asArray(r)
+            if (arr.size >= 4) {
+                joint.localRotation.set(
+                    GltfImportAdapter.asFloat32(arr[0]),
+                    GltfImportAdapter.asFloat32(arr[1]),
+                    GltfImportAdapter.asFloat32(arr[2]),
+                    GltfImportAdapter.asFloat32(arr[3]))
+                joint.localRotation.normalize()
+            }
         }
-        match (node.get("scale")) {
-            case Some(s) =>
-                let arr = GltfImportAdapter.asArray(s)
-                if (arr.size >= 3) {
-                    joint.localScale.set(
-                        GltfImportAdapter.asFloat32(arr[0]),
-                        GltfImportAdapter.asFloat32(arr[1]),
-                        GltfImportAdapter.asFloat32(arr[2]))
-                }
-            case None => ()
+        if (let Some(s) <- node.get("scale")) {
+            let arr = GltfImportAdapter.asArray(s)
+            if (arr.size >= 3) {
+                joint.localScale.set(
+                    GltfImportAdapter.asFloat32(arr[0]),
+                    GltfImportAdapter.asFloat32(arr[1]),
+                    GltfImportAdapter.asFloat32(arr[2]))
+            }
         }
     }
 
@@ -458,12 +442,13 @@ public class GltfImportAdapter {
 
         let componentType = GltfImportAdapter.asIntOpt(accessor.get("componentType"))
         let count = GltfImportAdapter.asIntOpt(accessor.get("count"))
-        let typeStr = match (accessor.get("type")) {
-            case Some(s) => match (s) {
+        let typeStr = if (let Some(s) <- accessor.get("type")) {
+            match (s) {
                 case str: String => str
                 case _ => "SCALAR"
             }
-            case None => "SCALAR"
+        } else {
+            "SCALAR"
         }
         let numComponents = match (typeStr) {
             case "SCALAR" => 1
@@ -561,9 +546,10 @@ public class GltfImportAdapter {
      * @brief[en] Any(Option) → Int; JSON integers are Int64
      */
     private static func asIntOpt(v: Option<Any>): Int {
-        match (v) {
-            case Some(x) => GltfImportAdapter.asInt(x)
-            case None => 0
+        if (let Some(x) <- v) {
+            GltfImportAdapter.asInt(x)
+        } else {
+            0
         }
     }
 

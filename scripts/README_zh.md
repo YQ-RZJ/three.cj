@@ -10,8 +10,12 @@ three.cj 工程辅助脚本（Python 3.9+，无第三方依赖，仅使用标准
 | [`check_so_deps.py`](./check_so_deps.py) | 递归分析 `.so` 的 `DT_NEEDED` 依赖链，输出 Markdown | 排查 OHOS HAP / Linux 跨平台 SDK 的 so 加载失败 |
 | [`add_license_header.py`](./add_license_header.py) | 为 `src/**/*.cj` 的文件首 `/**...*/` 文档注释块插入（或新建）`@LICENSE` 版权头，幂等可重复执行 | 首次引入 LICENSE 头、或新增源文件后补齐版权注释 |
 | [`generate_structure.py`](./generate_structure.py) | 生成目录的文件清单或树状层级 Markdown | 生成源码目录结构文档 |
+| [`tracy_receiver.py`](./tracy_receiver.py) | 无 GUI 的 Tracy 协议接收端：主动连接被测进程，落盘原始流/解压流/结构化事件/元数据，并直接产出热点统计（调用次数、耗时、P50/P95/P99） | 无 Tracy GUI 环境下采集剖析数据、CI 性能基线、离线重放复现问题 |
+| [`tracy_queue_table.py`](./tracy_queue_table.py) | Tracy 协议 QueueType 表（132 项负载长度、字符串类型、时间戳基准等），由上游 `TracyQueue.hpp` 转录 | 编写/校验协议解析器时作为唯一查表来源 |
+| [`tracy_hotspots.py`](./tracy_hotspots.py) | 格式化 `stats.json`，打印帧统计与热点 Top N（调用次数/总耗时/均值/P50/P95） | 采集结束后快速看热点表 |
+| [`tracy_selftime.py`](./tracy_selftime.py) | 按 zone 还原嵌套关系，输出调用次数 / 总耗时 / **自耗时**（扣除子区间）；客户端 zone 名失效时用源码行号兜底还原 | 定位引擎自身开销（区分"这层自己慢"与"子层慢"）、跨采集对比热点 |
 
-所有脚本均支持 `-h` / `--help` 查看完整参数。
+所有脚本均支持 `-h` / `--help` 查看完整参数（`tracy_queue_table.py` 为被导入的常量表模块，不提供命令行入口）。
 
 ---
 
@@ -190,3 +194,187 @@ python scripts/generate_structure.py --mode 2 --root D:/other/src -o structure.m
 | `--mode` | （必填） | `1`/`list`：文件清单（`- [ ]` 形式）；`2`/`tree`：树状层级（`├──`/`└──` 连接线） |
 | `--root` | 脚本同级的 `../src`（即引擎 `src/`） | 要扫描的根目录 |
 | `-o`, `--output` | 模式 1 → `File List.md`；模式 2 → `Tree structure.md` | 输出 Markdown 路径 |
+
+---
+
+## tracy_receiver.py
+
+### 背景
+
+Tracy GUI 需要人工交互查看数据，无法进入 CI 流水线。被测进程静态链接 `libtracyc.a` 后本身就是
+Tracy 服务端并监听 TCP 端口，本脚本扮演 Tracy GUI/Worker 的角色**主动连接**被测进程，
+按协议解析并把完整数据落盘，同时直接产出可读的热点统计。
+
+协议事实来源（上游源码，已逐项核对）：
+
+- `tracy/public/common/TracyProtocol.hpp` / `TracyQueue.hpp`
+- `tracy/public/client/TracyProfiler.cpp/.hpp`
+- `tracy/server/TracyWorker.cpp`
+
+关键协议点：
+
+| 环节 | 说明 |
+|---|---|
+| 握手 | 接收端先发 `"TracyPrf"` + `uint32(82)`，再读 1 字节 HandshakeStatus，再读 1170 字节 WelcomeMessage |
+| 数据块 | `uint32 compressedSize` + compressed bytes；LZ4 有状态流，跨块共享 64KiB 字典，不能当独立 block 解压 |
+| 时间戳 | 客户端写盘时对 TSC 差值做偏移改写（32 位事件减 `ProtocolOffset32Bit`、16 位事件减 `ProtocolOffset16Bit`），最终纳秒 = `(ref - welcome.initBegin) * welcome.timerMul` |
+| 文本 | `SingleStringData = uint16 sz(+256) + 文本`；`SingleStringData8 = uint8 sz + 文本`；文本事件本身不携带内容，`ZoneText`/`ZoneName`/`Message*` 消费"前一条" pending single string |
+
+### 用法
+
+```bash
+# 等待被测进程出现并自动连接（缺省先 UDP 广播发现，再扫描 8086-8105）
+python scripts/tracy_receiver.py --out captures/run1
+
+# 固定端口 + 采集时长上限 + 等待被测进程出现的超时
+python scripts/tracy_receiver.py --out captures/run1 --port 8086 --max-seconds 120 --scan-timeout 120
+
+# 离线路自测：伪造协议流验证解析器，无需被测进程
+python scripts/tracy_receiver.py --self-test
+
+# 离线重放已采集的原始流（目标目录须已有 metadata.json）
+python scripts/tracy_receiver.py --replay captures/run1/raw_stream.bin --out captures/run1_replay
+```
+
+> 离线重放是复现与定位解析问题的主要手段：把一次采集的 `raw_stream.bin` 重放若干次，
+> 可稳定复现只有在特定收尾时序下才出现的现象。
+
+### 参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `--host` | `127.0.0.1` | 被测进程地址 |
+| `--port` | 自动发现 | 固定数据端口；缺省先 UDP 发现再扫描 8086-8105 |
+| `--out` | `captures/run1` | 产物目录 |
+| `--max-seconds` | `0`（不限） | 最长采集时长 |
+| `--scan-timeout` | `60.0` | 等待被测进程出现的最长时间（秒） |
+| `--self-test` | 关 | 离线路自测，伪造协议流 |
+| `--replay` | 无 | 离线重放指定的 `raw_stream.bin` |
+
+### 产物
+
+| 文件 | 内容 |
+|------|------|
+| `raw_stream.bin` | 线上原始流，逐块写入 `[uint32 size][compressed bytes]` |
+| `decompressed_stream.bin` | LZ4 流式解压后的连续队列流 |
+| `events.jsonl` | 结构化事件（zone / plot / frame / message） |
+| `metadata.json` | 握手、Welcome、协议版本、线程名、源码位置与名称缓存 |
+| `stats.json` | 热点统计：调用次数 / 总耗时 / 均值 / P50 / P95 / P99，含帧耗时统计 |
+
+客户端退出后接收端自动收尾、落盘 `stats.json` 并自行退出（退出码 0），全程无需人工干预。
+
+> **注意** <br/>
+> 大体积流文件（`raw_stream.bin` / `decompressed_stream.bin` / `events.jsonl`）是可再生产物，
+> 长期存档只需保留 `stats.json` 与 `metadata.json`。
+
+---
+
+## tracy_queue_table.py
+
+Tracy 协议 QueueType 表，由上游 `tracy/public/common/TracyQueue.hpp` 转录而来，
+是 `tracy_receiver.py` 解析器的唯一查表来源。
+
+- `PROTOCOL_VERSION = 82`；`QUEUE_TYPE_ORDER` 下标即 QueueType 数值；
+- `QUEUE_DATA_SIZE`：各类型的线上基础负载字节数（含 1 字节 QueueHeader）；
+- `STRING_TYPES` / `STRING_LEN_OFFSET` / `STRING_LEN_KIND` / `STRING_LEN_BIAS`：
+  哪些类型在固定负载之后追加变长字符串、长度字段偏移与类型、`SingleStringData` 的 +256 偏置；
+- `TIME_REF_KIND`：各类型的时间戳还原基准（`thread` / `serial` / `context` / `gpu` / 绝对时间）。
+
+上游协议变更时（Tracy 升版本）需同步更新本表，并复核 `tracy_receiver.py` 的解析分支。
+
+---
+
+## tracy_selftime.py
+
+按 zone 还原嵌套关系，输出每个 zone 的调用次数、总耗时与**自耗时**（总耗时扣除子区间）。
+
+### 背景
+
+`stats.json` 里的 zone 总耗时**包含所有子区间**，无法区分"这一层自己慢"与"子层慢"。
+例如 `finishRender` 独占一整帧，而 `drawLoop` 的总耗时里大部分来自 `draw`——
+只看总耗时会把父层的开销误记到子层头上。本脚本按每条 zone 事件的
+(起始时刻, 时长, 线程) 还原嵌套栈，算出每个 zone 的自耗时。
+
+聚合键为 `名字@行号`：同名不同处的 zone（如 `ThreeRenderer.render` / `Renderer.render` /
+`EffectComposer.render` 三处都叫 render）不会混在一起。
+
+部分采集里客户端上报的 zone **名字符串会失效**（显示成 `0x...` 地址）：Tracy 的静态
+源位置是"服务端按指针回查客户端内存"，字符串缓冲一旦被复用到就取不回名字。事件流中
+**源位置行号仍然完好**，故脚本扫描引擎源码里的 `@Zone` 声明建立"声明行号 → zone 名"
+映射，用它给失效的名字兜底。
+
+### 用法
+
+```bash
+# 热点 + 自耗时（Top 25）
+python scripts/tracy_selftime.py captures/t_audio/events.jsonl 25
+
+# 带源码行号兜底（客户端 zone 名失效时必需）
+python scripts/tracy_selftime.py captures/t_audio/events.jsonl 25 src
+```
+
+### 参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `events.jsonl` | （必填） | `tracy_receiver.py` 产出的结构化事件文件 |
+| `topN` | 25 | 按总耗时排序输出的条目数 |
+| `src_root` | 空 | 引擎源码根目录；给出时启用行号兜底还原 zone 名 |
+
+### 输出
+
+```
+zone@line                                 count    total(ms)    mean(us)     self(ms)    self(us)
+----------------------------------------------------------------------------------------------------
+execBgfxQueued@370                         3596   10352.552     2878.91    10352.552     2878.91
+render@403                                 3585    9586.484     2674.05       22.779        6.35
+finishRender@2237                          3584    3232.564      901.94     3232.564      901.94
+beginRender@552                            3585     135.259       37.73      135.259       37.73
+```
+
+`self(us)` 为该 zone 扣除子区间后的平均自耗时——**引擎自身开销以自耗时为准**。
+
+---
+
+## tracy_hotspots.py
+
+格式化 `tracy_receiver.py` 产出的 `stats.json`，打印帧统计与热点 Top N。
+
+### 背景
+
+`stats.json` 已按 zone 聚合好调用次数与耗时分位数（由接收端在收尾时算好），
+本脚本只做格式化输出——采集结束后想立刻看一张热点表时用它，无需再解析事件流。
+
+与 [`tracy_selftime.py`](./tracy_selftime.py) 的分工：
+本脚本看**总耗时**（含子区间，附带 P50/P95 分位数），`tracy_selftime.py` 看
+**自耗时**（扣除子区间，并能在客户端 zone 名失效时按源码行号还原名字）。
+排查"到底是谁在慢"时，先用本脚本定位大块，再用 `tracy_selftime.py` 拆到具体层。
+
+### 用法
+
+```bash
+# 热点 Top 25（标签 run）
+python scripts/tracy_hotspots.py captures/t_base/stats.json run 25
+
+# 默认 Top 25
+python scripts/tracy_hotspots.py captures/t_base/stats.json
+```
+
+### 参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `stats.json` | （必填） | `tracy_receiver.py` 产出的热点统计文件 |
+| 标签 | `run` | 打印在标题里的采集名（如项目名） |
+| `topN` | 25 | 热点表输出条目数 |
+
+### 输出
+
+```
+==== [base] frames=31851 mean=0.42ms p50=0.18ms p95=1.02ms p99=0.00ms ====
+zone                              count    total(ms)    mean(us)     p50(us)     p95(us)
+----------------------------------------------------------------------------------------
+render                            31850    23326.827      732.40      493.31     2696.59
+finishRender                      15924    8088.433      507.94      286.71     2417.07
+beginRender                       15924     860.380       54.03       48.46       83.99
+```

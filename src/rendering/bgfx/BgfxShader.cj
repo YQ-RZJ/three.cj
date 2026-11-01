@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 着色器编译
  * @brief[zh-cn] 替代 WebGLShader，使用 bgfx ShaderHandle 编译着色器
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLShader.js。在 WebGL 中通过 gl.createShader/gl.shaderSource/gl.compileShader 编译着色器，在 bgfx 中通过 bgfx_create_shader_cj 编译着色器。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.createShader/gl.shaderSource/gl.compileShader 编译着色器，在 bgfx 中通过 bgfx_create_shader_cj 编译着色器。
  *
  * @file[en] bgfx Shader Compilation
  * @brief[en] Replaces WebGLShader, compiles shaders using bgfx ShaderHandle
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLShader.js. In WebGL, shaders are compiled via gl.createShader/gl.shaderSource/gl.compileShader; in bgfx, shaders are compiled via bgfx_create_shader_cj.
+ * @explain[en] In WebGL, shaders are compiled via gl.createShader/gl.shaderSource/gl.compileShader; in bgfx, shaders are compiled via bgfx_create_shader_cj.
  */
 package three.rendering.bgfx
 

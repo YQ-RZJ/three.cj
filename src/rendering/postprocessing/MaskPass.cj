@@ -108,6 +108,8 @@ import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
 import std.collection.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * bgfx stencil 位域宏（对照 bgfx.h BGFX_STENCIL_* 定义）。
@@ -233,9 +235,8 @@ public open class MaskPass <: Pass {
      * 取共享顶点 layout handle（position+normal+color+uv，缓存复用）。
      */
     private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
-        match (this._layoutHandleCache) {
-            case Some(lh) => return lh
-            case None => ()
+        if (let Some(lh) <- this._layoutHandleCache) {
+            return lh
         }
         // 经 renderer.createVertexLayout(attrs) 高阶 API 创建布局句柄（封装 begin/add/end/create 序列）。
         // _createVB 经 renderer.createVertexBufferFromLayout(handle) 创建顶点缓冲
@@ -283,81 +284,70 @@ public open class MaskPass <: Pass {
      * 创建/复用 geometry 的顶点缓冲（按 geomId 缓存）。
      */
     private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._vbCache.get(geomId)) {
-            case Some(vb) => return vb
-            case None => ()
+        let geomId = geom.id
+        if (let Some(vb) <- this._vbCache.get(geomId)) {
+            return vb
         }
         let posAttrOpt = geom.getAttribute("position")
-        match (posAttrOpt) {
-            case Some(pos) =>
-                let vc = pos.count
-                if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
-                let vertStride: Int64 = 12   // position(3) + normal(3) + color(4) + uv(2)
-                let totalFloats = vc * vertStride
-                let data = Array<Float64>(totalFloats, { i => 0.0 })
-                let normAttrOpt = geom.getAttribute("normal")
-                let colAttrOpt = geom.getAttribute("color")
-                let uvAttrOpt = geom.getAttribute("uv")
-                for (vi in 0..vc) {
-                    let base = vi * vertStride
-                    data[base] = pos.getX(vi)
-                    data[base + 1] = pos.getY(vi)
-                    data[base + 2] = pos.getZ(vi)
-                    match (normAttrOpt) {
-                        case Some(na) =>
-                            data[base + 3] = na.getX(vi)
-                            data[base + 4] = na.getY(vi)
-                            data[base + 5] = na.getZ(vi)
-                        case None => data[base + 5] = 1.0
-                    }
-                    match (colAttrOpt) {
-                        case Some(ca) =>
-                            data[base + 6] = ca.getX(vi)
-                            data[base + 7] = ca.getY(vi)
-                            data[base + 8] = ca.getZ(vi)
-                            data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
-                        case None =>
-                            for (j in 0..4) { data[base + 6 + j] = 1.0 }
-                    }
-                    match (uvAttrOpt) {
-                        case Some(ua) =>
-                            data[base + 10] = ua.getX(vi)
-                            data[base + 11] = ua.getY(vi)
-                        case None => ()
-                    }
+        if (let Some(pos) <- posAttrOpt) {
+            let vc = pos.count
+            if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
+            let vertStride: Int64 = 12   // position(3) + normal(3) + color(4) + uv(2)
+            let totalFloats = vc * vertStride
+            let data = Array<Float64>(totalFloats, { i => 0.0 })
+            let normAttrOpt = geom.getAttribute("normal")
+            let colAttrOpt = geom.getAttribute("color")
+            let uvAttrOpt = geom.getAttribute("uv")
+            for (vi in 0..vc) {
+                let base = vi * vertStride
+                data[base] = pos.getX(vi)
+                data[base + 1] = pos.getY(vi)
+                data[base + 2] = pos.getZ(vi)
+                if (let Some(na) <- normAttrOpt) {
+                    data[base + 3] = na.getX(vi)
+                    data[base + 4] = na.getY(vi)
+                    data[base + 5] = na.getZ(vi)
+                } else { data[base + 5] = 1.0 }
+                if (let Some(ca) <- colAttrOpt) {
+                    data[base + 6] = ca.getX(vi)
+                    data[base + 7] = ca.getY(vi)
+                    data[base + 8] = ca.getZ(vi)
+                    data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
+                } else {
+                    for (j in 0..4) { data[base + 6 + j] = 1.0 }
                 }
-                let mem = BgfxMemory(UInt32(totalFloats * 4))
-                mem.writeFloats(data, totalFloats)
-                let layout = this._getOrCreateLayout(renderer)
-                let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
-                this._vbCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_VERTEX_BUFFER_HANDLE
-        }
+                if (let Some(ua) <- uvAttrOpt) {
+                    data[base + 10] = ua.getX(vi)
+                    data[base + 11] = ua.getY(vi)
+                }
+            }
+            let mem = BgfxMemory(UInt32(totalFloats * 4))
+            mem.writeFloats(data, totalFloats)
+            let layout = this._getOrCreateLayout(renderer)
+            let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
+            this._vbCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_VERTEX_BUFFER_HANDLE }
     }
 
     /**
      * 创建/复用 geometry 的索引缓冲（按 geomId 缓存）。
      */
     private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._ibCache.get(geomId)) {
-            case Some(ib) => return ib
-            case None => ()
+        let geomId = geom.id
+        if (let Some(ib) <- this._ibCache.get(geomId)) {
+            return ib
         }
-        match (geom.index) {
-            case Some(idxAttr) =>
-                let count = idxAttr.count
-                if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
-                let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
-                let mem = BgfxMemory(UInt32(count * 2))
-                mem.writeUInt16(idxData, count)
-                let handle = renderer.createIndexBuffer(mem, flags: 0u16)
-                this._ibCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_INDEX_BUFFER_HANDLE
-        }
+        if (let Some(idxAttr) <- geom.index) {
+            let count = idxAttr.count
+            if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
+            let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
+            let mem = BgfxMemory(UInt32(count * 2))
+            mem.writeUInt16(idxData, count)
+            let handle = renderer.createIndexBuffer(mem, flags: 0u16)
+            this._ibCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_INDEX_BUFFER_HANDLE }
     }
 
     /**
@@ -366,30 +356,14 @@ public open class MaskPass <: Pass {
     private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
         let viewArr = camera.matrixWorldInverse.elements
         let projArr = camera.projectionMatrix.elements
-        let viewMem = BgfxMemory(64u32)
-        let projMem = BgfxMemory(64u32)
+        // 复用上传缓冲（原实现每帧新建 2 块 BgfxMemory，走 bgfx_alloc 且不归还 → 逐帧泄漏）
+        // view/proj 必须是两块独立缓冲：二者在同一调用内同时写入后一起传给 setViewTransform，
+        // 共用一块会让后写覆盖先写的数据。
+        let viewMem = this._uploadMem(0, 64u32)
+        let projMem = this._uploadMem(1, 64u32)
         viewMem.writeFloats(viewArr, 16)
         projMem.writeFloats(projArr, 16)
         renderer.setViewTransform(viewId, viewMem, projMem)
-    }
-
-    /**
-     * 递归收集场景中的 Mesh（参照 OutlinePass/SSAO._collectMeshes）。
-     */
-    private func _collectMeshes(obj: Object3D, renderObjects: ArrayList<RenderObject>): Unit {
-        for (child in obj.children) {
-            if (child.children.size > 0) {
-                this._collectMeshes(child, renderObjects)
-            }
-            if (child.kind == "Mesh") {
-                match (child as Mesh) {
-                    case Some(mesh) =>
-                        let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
-                        renderObjects.add(ro)
-                    case None => ()
-                }
-            }
-        }
     }
 
     /**
@@ -398,23 +372,21 @@ public open class MaskPass <: Pass {
      * stencil 写入由 bgfx_set_stencil_cj 控制，与 FS 输出颜色无关。
      */
     private func _ensureProg(): Option<ProgramHandle> {
-        match (this._prog) {
-            case Some(p) => return Some(p)
-            case None => ()
+        if (let Some(p) <- this._prog) {
+            return Some(p)
         }
-        match (PostProcessingShaders.get("outline_white")) {
-            case Some(sp) =>
-                sp.compileBgfx()
-                let p = Box(sp.programHandle)
-                if (!Handle.isValid(p)) {
-                    @LogTrace(["MaskPass", "outline_white compile FAILED"])
-                    return None
-                }
-                this._prog = Some(p)
-                return Some(p)
-            case None =>
-                @LogTrace(["MaskPass", "outline_white shader NOT REGISTERED"])
+        if (let Some(sp) <- PostProcessingShaders.get("outline_white")) {
+            sp.compileBgfx()
+            let p = Box(sp.programHandle)
+            if (!Handle.isValid(p)) {
+                @LogTrace(["MaskPass", "outline_white compile FAILED"])
                 return None
+            }
+            this._prog = Some(p)
+            return Some(p)
+        } else {
+            @LogTrace(["MaskPass", "outline_white shader NOT REGISTERED"])
+            return None
         }
     }
 
@@ -438,15 +410,15 @@ public open class MaskPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_DEPTH | BgfxConstants.CLEAR_STENCIL, 0x00000000u32, depth: 1.0f32, stencil: UInt8(clearValue))
         this._setViewTransformFor(renderer, viewId, this.camera)
 
-        let renderObjects = ArrayList<RenderObject>()
-        this._collectMeshes(this.scene, renderObjects)
+        let renderObjects = renderer.getSceneMeshes(this.scene)
         let layout = this._getOrCreateLayout(renderer)
         var submitCnt: Int64 = 0
         for (ro in renderObjects) {
             let vb = this._createVB(renderer, ro.geometry)
             if (!Handle.isValid(vb)) { continue }
             let mtxArr = ro.worldMatrix.elements
-            let mtxMem = BgfxMemory(64u32)
+            // 复用上传缓冲（原实现每次 draw 新建 BgfxMemory，走 bgfx_alloc 且不归还 → 逐帧泄漏）
+            let mtxMem = this._uploadMem(2, 64u32)
             mtxMem.writeFloats(mtxArr, 16)
             renderer.setTransform(mtxMem, num: 1u16)
             renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
@@ -464,11 +436,9 @@ public open class MaskPass <: Pass {
             let state: UInt64 = BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
                                 BgfxConstants.FRONT_CCW
             renderer.setState(state, rgba: 0x00000000u32)
-            match (this._ensureProg()) {
-                case Some(prog) =>
-                    renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
-                case None => ()
+            if (let Some(prog) <- this._ensureProg()) {
+                renderer.submit(viewId, prog, depth: 0u32, blend: 0xFFu8)
+                submitCnt += 1
             }
         }
         @LogTrace(["MaskPass", "_submitSceneToStencil view=" + viewId.toString() + " submitCnt=" + submitCnt.toString()])
@@ -482,6 +452,7 @@ public open class MaskPass <: Pass {
      * @param readBuffer 读 buffer
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.MaskPass.render, name=maskPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -510,21 +481,17 @@ public open class MaskPass <: Pass {
      * 释放 MaskPass 占用的 GPU 资源（几何缓存 + shader 缓存）。
      */
     public override func dispose(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                for ((_, vb) in this._vbCache) {
-                    renderer.destroyVertexBuffer(vb)
-                }
-                for ((_, ib) in this._ibCache) {
-                    renderer.destroyIndexBuffer(ib)
-                }
-                match (this._layoutHandleCache) {
-                    case Some(lh) =>
-                        renderer.destroyVertexLayout(lh)
-                        this._layoutHandleCache = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            for ((_, vb) in this._vbCache) {
+                renderer.destroyVertexBuffer(vb)
+            }
+            for ((_, ib) in this._ibCache) {
+                renderer.destroyIndexBuffer(ib)
+            }
+            if (let Some(lh) <- this._layoutHandleCache) {
+                renderer.destroyVertexLayout(lh)
+                this._layoutHandleCache = None
+            }
         }
         this._vbCache.clear()
         this._ibCache.clear()
@@ -564,6 +531,7 @@ public class ClearMaskPass <: Pass {
      * @param readBuffer 读 buffer（本 pass 不用）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.MaskPass.render, name=maskPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,

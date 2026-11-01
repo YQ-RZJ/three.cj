@@ -86,6 +86,8 @@ import three.rendering.types.*
 import std.collection.*
 import std.math.*
 import three.core.dsa.*
+import three.profiler.*
+import three.profiler.macros.*
 
 
 
@@ -286,39 +288,37 @@ public class GTAOPass <: Pass {
     }
 
     private func _destroyRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                let normalFB = this._normalFB; let depthFB = this._depthFB
-                let gtaoFB = this._gtaoFB; let pdFB = this._pdFB
-                let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
-                let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
-                let gtaoTex = this._gtaoTex; let pdTex = this._pdTex
-                let gtaoNoiseTex = this._gtaoNoiseTex; let pdNoiseTex = this._pdNoiseTex
-                if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
-                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (Handle.isValid(gtaoFB)) { renderer.destroyFrameBuffer(gtaoFB) }
-                if (Handle.isValid(pdFB)) { renderer.destroyFrameBuffer(pdFB) }
-                if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
-                if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
-                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-                if (Handle.isValid(gtaoTex)) { renderer.destroyTexture(gtaoTex) }
-                if (Handle.isValid(pdTex)) { renderer.destroyTexture(pdTex) }
-                if (Handle.isValid(gtaoNoiseTex)) { renderer.destroyTexture(gtaoNoiseTex) }
-                if (Handle.isValid(pdNoiseTex)) { renderer.destroyTexture(pdNoiseTex) }
-                this._normalFB = INVALID_FRAME_BUFFER_HANDLE
-                this._normalTex = INVALID_TEXTURE_HANDLE
-                this._normalDepthTex = INVALID_TEXTURE_HANDLE
-                this._depthFB = INVALID_FRAME_BUFFER_HANDLE
-                this._depthTex = INVALID_TEXTURE_HANDLE
-                this._depthDepthTex = INVALID_TEXTURE_HANDLE
-                this._gtaoFB = INVALID_FRAME_BUFFER_HANDLE
-                this._gtaoTex = INVALID_TEXTURE_HANDLE
-                this._pdFB = INVALID_FRAME_BUFFER_HANDLE
-                this._pdTex = INVALID_TEXTURE_HANDLE
-                this._gtaoNoiseTex = INVALID_TEXTURE_HANDLE
-                this._pdNoiseTex = INVALID_TEXTURE_HANDLE
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            let normalFB = this._normalFB; let depthFB = this._depthFB
+            let gtaoFB = this._gtaoFB; let pdFB = this._pdFB
+            let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
+            let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
+            let gtaoTex = this._gtaoTex; let pdTex = this._pdTex
+            let gtaoNoiseTex = this._gtaoNoiseTex; let pdNoiseTex = this._pdNoiseTex
+            if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
+            if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+            if (Handle.isValid(gtaoFB)) { renderer.destroyFrameBuffer(gtaoFB) }
+            if (Handle.isValid(pdFB)) { renderer.destroyFrameBuffer(pdFB) }
+            if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
+            if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
+            if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+            if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+            if (Handle.isValid(gtaoTex)) { renderer.destroyTexture(gtaoTex) }
+            if (Handle.isValid(pdTex)) { renderer.destroyTexture(pdTex) }
+            if (Handle.isValid(gtaoNoiseTex)) { renderer.destroyTexture(gtaoNoiseTex) }
+            if (Handle.isValid(pdNoiseTex)) { renderer.destroyTexture(pdNoiseTex) }
+            this._normalFB = INVALID_FRAME_BUFFER_HANDLE
+            this._normalTex = INVALID_TEXTURE_HANDLE
+            this._normalDepthTex = INVALID_TEXTURE_HANDLE
+            this._depthFB = INVALID_FRAME_BUFFER_HANDLE
+            this._depthTex = INVALID_TEXTURE_HANDLE
+            this._depthDepthTex = INVALID_TEXTURE_HANDLE
+            this._gtaoFB = INVALID_FRAME_BUFFER_HANDLE
+            this._gtaoTex = INVALID_TEXTURE_HANDLE
+            this._pdFB = INVALID_FRAME_BUFFER_HANDLE
+            this._pdTex = INVALID_TEXTURE_HANDLE
+            this._gtaoNoiseTex = INVALID_TEXTURE_HANDLE
+            this._pdNoiseTex = INVALID_TEXTURE_HANDLE
         }
     }
 
@@ -414,9 +414,8 @@ public class GTAOPass <: Pass {
     // ===== 自建场景几何体 VB/IB/layout（对齐 BgfxBackend._createVB/_createIB 模式） =====
 
     private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
-        match (this._layoutHandleCache) {
-            case Some(lh) => return lh
-            case None => ()
+        if (let Some(lh) <- this._layoutHandleCache) {
+            return lh
         }
         // 经 renderer.createVertexLayout(attrs) 高阶 API 创建布局句柄（封装 begin/add/end/create 序列）。
         // _createVB 经 renderer.createVertexBufferFromLayout(handle) 创建顶点缓冲
@@ -461,79 +460,68 @@ public class GTAOPass <: Pass {
     }
 
     private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._vbCache.get(geomId)) {
-            case Some(vb) => return vb
-            case None => ()
+        let geomId = geom.id
+        if (let Some(vb) <- this._vbCache.get(geomId)) {
+            return vb
         }
         let posAttrOpt = geom.getAttribute("position")
-        match (posAttrOpt) {
-            case Some(pos) =>
-                let vc = pos.count
-                if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
-                // position(3) + normal(3) + color(4) + uv(2) = 12 floats
-                let vertStride: Int64 = 12
-                let totalFloats = vc * vertStride
-                let data = Array<Float64>(totalFloats, { i => 0.0 })
-                let normAttrOpt = geom.getAttribute("normal")
-                let colAttrOpt = geom.getAttribute("color")
-                let uvAttrOpt = geom.getAttribute("uv")
-                for (vi in 0..vc) {
-                    let base = vi * vertStride
-                    data[base] = pos.getX(vi)
-                    data[base + 1] = pos.getY(vi)
-                    data[base + 2] = pos.getZ(vi)
-                    match (normAttrOpt) {
-                        case Some(na) =>
-                            data[base + 3] = na.getX(vi)
-                            data[base + 4] = na.getY(vi)
-                            data[base + 5] = na.getZ(vi)
-                        case None => data[base + 5] = 1.0
-                    }
-                    match (colAttrOpt) {
-                        case Some(ca) =>
-                            data[base + 6] = ca.getX(vi)
-                            data[base + 7] = ca.getY(vi)
-                            data[base + 8] = ca.getZ(vi)
-                            data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
-                        case None =>
-                            for (j in 0..4) { data[base + 6 + j] = 1.0 }
-                    }
-                    match (uvAttrOpt) {
-                        case Some(ua) =>
-                            data[base + 10] = ua.getX(vi)
-                            data[base + 11] = ua.getY(vi)
-                        case None => ()
-                    }
+        if (let Some(pos) <- posAttrOpt) {
+            let vc = pos.count
+            if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
+            // position(3) + normal(3) + color(4) + uv(2) = 12 floats
+            let vertStride: Int64 = 12
+            let totalFloats = vc * vertStride
+            let data = Array<Float64>(totalFloats, { i => 0.0 })
+            let normAttrOpt = geom.getAttribute("normal")
+            let colAttrOpt = geom.getAttribute("color")
+            let uvAttrOpt = geom.getAttribute("uv")
+            for (vi in 0..vc) {
+                let base = vi * vertStride
+                data[base] = pos.getX(vi)
+                data[base + 1] = pos.getY(vi)
+                data[base + 2] = pos.getZ(vi)
+                if (let Some(na) <- normAttrOpt) {
+                    data[base + 3] = na.getX(vi)
+                    data[base + 4] = na.getY(vi)
+                    data[base + 5] = na.getZ(vi)
+                } else { data[base + 5] = 1.0 }
+                if (let Some(ca) <- colAttrOpt) {
+                    data[base + 6] = ca.getX(vi)
+                    data[base + 7] = ca.getY(vi)
+                    data[base + 8] = ca.getZ(vi)
+                    data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
+                } else {
+                    for (j in 0..4) { data[base + 6 + j] = 1.0 }
                 }
-                let mem = BgfxMemory(UInt32(totalFloats * 4))
-                mem.writeFloats(data, totalFloats)
-                let layout = this._getOrCreateLayout(renderer)
-                let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
-                this._vbCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_VERTEX_BUFFER_HANDLE
-        }
+                if (let Some(ua) <- uvAttrOpt) {
+                    data[base + 10] = ua.getX(vi)
+                    data[base + 11] = ua.getY(vi)
+                }
+            }
+            let mem = BgfxMemory(UInt32(totalFloats * 4))
+            mem.writeFloats(data, totalFloats)
+            let layout = this._getOrCreateLayout(renderer)
+            let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
+            this._vbCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_VERTEX_BUFFER_HANDLE }
     }
 
     private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._ibCache.get(geomId)) {
-            case Some(ib) => return ib
-            case None => ()
+        let geomId = geom.id
+        if (let Some(ib) <- this._ibCache.get(geomId)) {
+            return ib
         }
-        match (geom.index) {
-            case Some(idxAttr) =>
-                let count = idxAttr.count
-                if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
-                let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
-                let mem = BgfxMemory(UInt32(count * 2))
-                mem.writeUInt16(idxData, count)
-                let handle = renderer.createIndexBuffer(mem, flags: 0u16)
-                this._ibCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_INDEX_BUFFER_HANDLE
-        }
+        if (let Some(idxAttr) <- geom.index) {
+            let count = idxAttr.count
+            if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
+            let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
+            let mem = BgfxMemory(UInt32(count * 2))
+            mem.writeUInt16(idxData, count)
+            let handle = renderer.createIndexBuffer(mem, flags: 0u16)
+            this._ibCache.add(geomId, handle)
+            return handle
+        } else { return INVALID_INDEX_BUFFER_HANDLE }
     }
 
     // ===== Pass.render 入口 =====
@@ -550,6 +538,7 @@ public class GTAOPass <: Pass {
      * 调用 bgfx，这些高阶 API 自身走 renderer.execBgfx 序列化到渲染线程，
      * 故不再外层包裹 renderer.execBgfx（避免嵌套死锁）。
      */
+    @Zone[three.rendering.postprocessing.GTAOPass.render, name=gTAOPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -566,29 +555,24 @@ public class GTAOPass <: Pass {
 
         let sceneOpt = this._scene
         let camOpt = this._camera
-        match (sceneOpt) {
-            case Some(scene) => match (camOpt) {
-                case Some(camera) =>
-                    this._ensureRTs(renderer)
-                    if (!Handle.isValid(this._normalFB)) { @LogTrace(["gtao", "render: _ensureRTs failed, normalFB invalid"]); return }
+        if (let Some(scene) <- sceneOpt && let Some(camera) <- camOpt) {
+            this._ensureRTs(renderer)
+            if (!Handle.isValid(this._normalFB)) { @LogTrace(["gtao", "render: _ensureRTs failed, normalFB invalid"]); return }
 
-                    let baseView = GTAOPass.GTAO_VIEW_ID_BASE
-                    let uniforms = this._uniforms
+            let baseView = GTAOPass.GTAO_VIEW_ID_BASE
+            let uniforms = this._uniforms
 
-                    // ===== 1. 法线 pass（view+0）：normal shader 渲场景到法线 RT =====
-                    this._renderNormals(renderer, scene, camera, baseView)
-                    // ===== 2. 深度 pass（view+1）：aodepth shader 渲 NDC 深度到深度 RT =====
-                    this._renderDepth(renderer, scene, camera, UInt16(UInt16(baseView) + 1u16))
-                    // ===== 3. GTAO 计算 pass（view+2）：全屏四边形采样法线/深度/噪声 =====
-                    this._renderGTAOCalc(renderer, camera, UInt16(UInt16(baseView) + 2u16), uniforms)
-                    // ===== 4. PoissonDenoise pass（view+3）：保边降噪 AO =====
-                    this._renderPD(renderer, camera, UInt16(UInt16(baseView) + 3u16), uniforms)
-                    // ===== 5. 输出 pass（view+4）：按 output 模式写 writeBuffer/屏幕 =====
-                    this._renderOutput(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 4u16))
-                    @LogTrace(["gtao", "render: 5-pass chain done"])
-                case None => ()
-            }
-            case None => ()
+            // ===== 1. 法线 pass（view+0）：normal shader 渲场景到法线 RT =====
+            this._renderNormals(renderer, scene, camera, baseView)
+            // ===== 2. 深度 pass（view+1）：aodepth shader 渲 NDC 深度到深度 RT =====
+            this._renderDepth(renderer, scene, camera, UInt16(UInt16(baseView) + 1u16))
+            // ===== 3. GTAO 计算 pass（view+2）：全屏四边形采样法线/深度/噪声 =====
+            this._renderGTAOCalc(renderer, camera, UInt16(UInt16(baseView) + 2u16), uniforms)
+            // ===== 4. PoissonDenoise pass（view+3）：保边降噪 AO =====
+            this._renderPD(renderer, camera, UInt16(UInt16(baseView) + 3u16), uniforms)
+            // ===== 5. 输出 pass（view+4）：按 output 模式写 writeBuffer/屏幕 =====
+            this._renderOutput(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 4u16))
+            @LogTrace(["gtao", "render: 5-pass chain done"])
         }
     }
 
@@ -604,75 +588,72 @@ public class GTAOPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x8080FFu32, depth: 1.0f32, stencil: 0u8)
 
         let normalProgOpt = ShaderLibs.get("normal")
-        match (normalProgOpt) {
-            case Some(normalSp) =>
-                if (!Handle.isValid(Box(normalSp.programHandle))) {
-                    normalSp.compileBgfx()
-                }
-                let normalProg = Box(normalSp.programHandle)
-                if (!Handle.isValid(normalProg)) { @LogTrace(["gtao", "normal prog compile failed"]); return }
+        if (let Some(normalSp) <- normalProgOpt) {
+            if (!Handle.isValid(Box(normalSp.programHandle))) {
+                normalSp.compileBgfx()
+            }
+            let normalProg = Box(normalSp.programHandle)
+            if (!Handle.isValid(normalProg)) { @LogTrace(["gtao", "normal prog compile failed"]); return }
 
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                // view 矩阵 3x3（法线 RT 需要 view space 法线，u_normalMatrix = mat3(view) × mat3(model)）
-                let viewMtx = camera.matrixWorldInverse.elements
-                let uniforms = this._uniforms
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let posAttrOpt = ro.geometry.getAttribute("position")
-                    match (posAttrOpt) {
-                        case Some(_) =>
-                            let mtxArr = ro.worldMatrix.elements
-                            let mtxMem = BgfxMemory(64u32)
-                            mtxMem.writeFloats(mtxArr, 16)
-                            renderer.setTransform(mtxMem, num: 1u16)
+            let layout = this._getOrCreateLayout(renderer)
+            let renderObjects = renderer.getSceneMeshes(scene)
+            // view 矩阵 3x3（法线 RT 需要 view space 法线，u_normalMatrix = mat3(view) × mat3(model)）
+            let viewMtx = camera.matrixWorldInverse.elements
+            let uniforms = this._uniforms
+            // 复用上传缓冲（原实现：mtxMem 每帧 1 块 + 每对象各 1 块 nmMem/oMem + nmData 数组）。
+            // 槽位隔离：4=模型矩阵(64B)，2=法线矩阵(48B)，0=标量 vec4(16B)。
+            let mtxMem = this._uploadMem(4, 64u32)
+            let nmMem = this._uploadMem(2, 48u32)
+            let oMem = this._uploadMem(0, 16u32)
+            let nmData = Array<Float64>(12, { i => 0.0 })
+            // 不变量 uniform（循环外提交一次即可，避免逐对象重复 createUniform + setUniform）
+            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
+            oMem.writeFloats([1.0, 1.0, 1.0, 1.0], 4)
+            this.setUniform(renderer, uOpacity, oMem)
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                let posAttrOpt = ro.geometry.getAttribute("position")
+                if (let Some(_) <- posAttrOpt) {
+                    let mtxArr = ro.worldMatrix.elements
+                    mtxMem.writeFloats(mtxArr, 16)
+                    renderer.setTransform(mtxMem, num: 1u16)
 
-                            // u_normalMatrix = mat3(view) × mat3(model)（3x3 列主序 → 紧凑 9 floats）
-                            // 用户仓颉 SSR 实验验证：PostProcessingShaders 自定义 shader 中
-                            //   mat3 uniform 实际按紧凑 9 float 读取（每列不 pad 到 vec4），
-                            //   故必须用 c*3+r 紧凑布局（主渲染器 BgfxBackend 的 vec4 pad 格式在这里会错位）。
-                            // 仓颉 0..3 = 0,1,2（不包含 3），不会迭代第 4 列/行，无越界。
-                            let nmData = Array<Float64>(12, { i => 0.0 })
-                            for (c in 0..3) {
-                                for (r in 0..3) {
-                                    var acc = 0.0
-                                    for (k in 0..3) {
-                                        acc += viewMtx[k * 4 + r] * mtxArr[c * 4 + k]
-                                    }
-                                    nmData[c * 3 + r] = acc
-                                }
+                    // u_normalMatrix = mat3(view) × mat3(model)（3x3 列主序 → 紧凑 9 floats）
+                    // 用户仓颉 SSR 实验验证：PostProcessingShaders 自定义 shader 中
+                    //   mat3 uniform 实际按紧凑 9 float 读取（每列不 pad 到 vec4），
+                    //   故必须用 c*3+r 紧凑布局（主渲染器 BgfxBackend 的 vec4 pad 格式在这里会错位）。
+                    // 仓颉 0..3 = 0,1,2（不包含 3），不会迭代第 4 列/行，无越界。
+                    for (c in 0..3) {
+                        for (r in 0..3) {
+                            var acc = 0.0
+                            for (k in 0..3) {
+                                acc += viewMtx[k * 4 + r] * mtxArr[c * 4 + k]
                             }
-                            let uNormalMat = uniforms.createUniform("u_normalMatrix", UniformType.Mat3.value())
-                            let nmMem = BgfxMemory(48u32)
-                            nmMem.writeFloats(nmData, 12)
-                            this.setUniform(renderer, uNormalMat, nmMem)
-
-                            //  补：normalFS 用 u_opacity 写 alpha（vec4(u_opacity.rgb, u_opacity.x)），
-                            //  未设置时 alpha=0；法线 RT 采样只用 rgb，但补齐保持材质语义（opacity=1）
-                            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                            let oMem = BgfxMemory(16u32)
-                            oMem.writeFloats([1.0, 1.0, 1.0, 1.0], 4)
-                            this.setUniform(renderer, uOpacity, oMem)
-
-                            renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                            let ib = this._createIB(renderer, ro.geometry)
-                            if (Handle.isValid(ib)) {
-                                renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                            }
-                            let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                              BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                              BgfxConstants.FRONT_CCW
-                            renderer.setState(normalState, rgba: 0x00000000u32)
-                            renderer.submit(viewId, normalProg, depth: 0u32, blend: 0xFFu8)
-                            submitCnt += 1
-                        case None => ()
+                            nmData[c * 3 + r] = acc
+                        }
                     }
+                    let uNormalMat = uniforms.createUniform("u_normalMatrix", UniformType.Mat3.value())
+                    nmMem.writeFloats(nmData, 12)
+                    this.setUniform(renderer, uNormalMat, nmMem)
+
+                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                    let ib = this._createIB(renderer, ro.geometry)
+                    if (Handle.isValid(ib)) {
+                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
+                    }
+                    let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                      BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                      BgfxConstants.FRONT_CCW
+                    renderer.setState(normalState, rgba: 0x00000000u32)
+                    renderer.submit(viewId, normalProg, depth: 0u32, blend: 0xFFu8)
+                    submitCnt += 1
                 }
-                @LogTrace(["gtao", "normal pass submitCnt=${submitCnt}"])
-            case None => @LogTrace(["gtao", "normal shader not registered"])
+            }
+            @LogTrace(["gtao", "normal pass submitCnt=${submitCnt}"])
+        } else {
+            @LogTrace(["gtao", "normal shader not registered"])
         }
     }
 
@@ -688,38 +669,37 @@ public class GTAOPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
 
         let depthProgOpt = PostProcessingShaders.get("aodepth")
-        match (depthProgOpt) {
-            case Some(depthSp) =>
-                if (!Handle.isValid(Box(depthSp.programHandle))) {
-                    depthSp.compileBgfx()
-                }
-                let depthProg = Box(depthSp.programHandle)
-                if (!Handle.isValid(depthProg)) { @LogTrace(["gtao", "depth: aodepth program compile FAILED"]); return }
-                @LogTrace(["gtao", "depth: aodepth prog idx=${Handle.idx(depthProg)}"])
+        if (let Some(depthSp) <- depthProgOpt) {
+            if (!Handle.isValid(Box(depthSp.programHandle))) {
+                depthSp.compileBgfx()
+            }
+            let depthProg = Box(depthSp.programHandle)
+            if (!Handle.isValid(depthProg)) { @LogTrace(["gtao", "depth: aodepth program compile FAILED"]); return }
+            @LogTrace(["gtao", "depth: aodepth prog idx=${Handle.idx(depthProg)}"])
 
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                for (ro in renderObjects) {
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(renderer, ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                           BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                           BgfxConstants.FRONT_CCW
-                    renderer.setState(depthRenderState, rgba: 0x00000000u32)
-                    renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
+            let layout = this._getOrCreateLayout(renderer)
+            let renderObjects = renderer.getSceneMeshes(scene)
+            // 复用的 bgfx 变换内存（set_transform 调用时即 memcpy，可安全复用）
+            let mtxMem = this._uploadMem(4, 64u32)
+            for (ro in renderObjects) {
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                mtxMem.writeFloats(ro.worldMatrix.elements, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(renderer, ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
-                @LogTrace(["gtao", "depth: submitted renderObjects=${renderObjects.size}"])
-            case None => @LogTrace(["gtao", "depth: aodepth shader NOT REGISTERED in PostProcessingShaders"])
+                let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                       BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                       BgfxConstants.FRONT_CCW
+                renderer.setState(depthRenderState, rgba: 0x00000000u32)
+                renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
+            }
+            @LogTrace(["gtao", "depth: submitted renderObjects=${renderObjects.size}"])
+        } else {
+            @LogTrace(["gtao", "depth: aodepth shader NOT REGISTERED in PostProcessingShaders"])
         }
     }
 
@@ -733,68 +713,69 @@ public class GTAOPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
 
         let gtaoProgOpt = PostProcessingShaders.get("gtao")
-        match (gtaoProgOpt) {
-            case Some(gtaoSp) =>
-                if (!Handle.isValid(Box(gtaoSp.programHandle))) {
-                    gtaoSp.compileBgfx()
-                }
-                let gtaoProg = Box(gtaoSp.programHandle)
-                if (!Handle.isValid(gtaoProg)) { @LogTrace(["gtao", "gtao prog compile failed"]); return }
-                @LogTrace(["gtao", "gtaoCalc: prog idx=${Handle.idx(gtaoProg)} normalTex=${Handle.idx(this._normalTex)} depthTex=${Handle.idx(this._depthTex)} noiseTex=${Handle.idx(this._gtaoNoiseTex)}"])
+        if (let Some(gtaoSp) <- gtaoProgOpt) {
+            if (!Handle.isValid(Box(gtaoSp.programHandle))) {
+                gtaoSp.compileBgfx()
+            }
+            let gtaoProg = Box(gtaoSp.programHandle)
+            if (!Handle.isValid(gtaoProg)) { @LogTrace(["gtao", "gtao prog compile failed"]); return }
+            @LogTrace(["gtao", "gtaoCalc: prog idx=${Handle.idx(gtaoProg)} normalTex=${Handle.idx(this._normalTex)} depthTex=${Handle.idx(this._depthTex)} noiseTex=${Handle.idx(this._gtaoNoiseTex)}"])
 
-                // 采样器：stage 0=法线, 1=深度, 2=噪声
-                let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uNormal, this._normalTex, 0u32)
-                let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uDepth, this._depthTex, 0u32)
-                let uNoise = uniforms.createUniform("tNoise", UniformType.Sampler.value())
-                this.bindTexture(renderer, 2u8, uNoise, this._gtaoNoiseTex, 0u32)
+            // 采样器：stage 0=法线, 1=深度, 2=噪声
+            let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uNormal, this._normalTex, 0u32)
+            let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uDepth, this._depthTex, 0u32)
+            let uNoise = uniforms.createUniform("tNoise", UniformType.Sampler.value())
+            this.bindTexture(renderer, 2u8, uNoise, this._gtaoNoiseTex, 0u32)
 
-                // resolution
-                let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                let resMem = BgfxMemory(16u32)
-                resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
-                this.setUniform(renderer, uRes, resMem)
+            // 复用上传缓冲（原实现每帧新建 7 块 BgfxMemory + 数组字面量）。
+            // 槽位隔离：0=resolution，1=noiseResolution，2=nearFar，3=proj，5=invProj，6=gtaoParams，7=scale
+            let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
+            let resMem = this._uploadMem(0, 16u32)
+            resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
+            this.setUniform(renderer, uRes, resMem)
 
-                // noiseResolution（magic square 5x5）
-                let uNoiseRes = uniforms.createUniform("u_noiseResolution", UniformType.Vec4.value())
-                let nrMem = BgfxMemory(16u32)
-                nrMem.writeFloats([5.0, 5.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uNoiseRes, nrMem)
+            // noiseResolution（magic square 5x5）
+            let uNoiseRes = uniforms.createUniform("u_noiseResolution", UniformType.Vec4.value())
+            let nrMem = this._uploadMem(1, 16u32)
+            nrMem.writeFloats([5.0, 5.0, 0.0, 0.0], 4)
+            this.setUniform(renderer, uNoiseRes, nrMem)
 
-                // cameraNear/Far
-                let uNearFar = uniforms.createUniform("u_cameraNearFar", UniformType.Vec4.value())
-                let nfMem = BgfxMemory(16u32)
-                nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
-                this.setUniform(renderer, uNearFar, nfMem)
+            // cameraNear/Far
+            let uNearFar = uniforms.createUniform("u_cameraNearFar", UniformType.Vec4.value())
+            let nfMem = this._uploadMem(2, 16u32)
+            nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
+            this.setUniform(renderer, uNearFar, nfMem)
 
-                // projection / inverse projection
-                let uProj = uniforms.createUniform("u_projMatrix", UniformType.Mat4.value())
-                let projMem = BgfxMemory(64u32)
-                projMem.writeFloats(camera.projectionMatrix.elements, 16)
-                this.setUniform(renderer, uProj, projMem)
+            // projection / inverse projection
+            let uProj = uniforms.createUniform("u_projMatrix", UniformType.Mat4.value())
+            let projMem = this._uploadMem(3, 64u32)
+            projMem.writeFloats(camera.projectionMatrix.elements, 16)
+            this.setUniform(renderer, uProj, projMem)
 
-                let invProj = camera.projectionMatrix.clone().invert()
-                let uInvProj = uniforms.createUniform("u_invProjMatrix", UniformType.Mat4.value())
-                let invMem = BgfxMemory(64u32)
-                invMem.writeFloats(invProj.elements, 16)
-                this.setUniform(renderer, uInvProj, invMem)
+            let invProj = camera.projectionMatrix.clone().invert()
+            let uInvProj = uniforms.createUniform("u_invProjMatrix", UniformType.Mat4.value())
+            let invMem = this._uploadMem(5, 64u32)
+            invMem.writeFloats(invProj.elements, 16)
+            this.setUniform(renderer, uInvProj, invMem)
 
-                // gtaoParams: x=radius, y=distanceExponent, z=thickness, w=distanceFallOff
-                let uParams = uniforms.createUniform("u_gtaoParams", UniformType.Vec4.value())
-                let pMem = BgfxMemory(16u32)
-                pMem.writeFloats([this.radius, this.distanceExponent, this.thickness, this.distanceFallOff], 4)
-                this.setUniform(renderer, uParams, pMem)
+            // gtaoParams: x=radius, y=distanceExponent, z=thickness, w=distanceFallOff
+            let uParams = uniforms.createUniform("u_gtaoParams", UniformType.Vec4.value())
+            let pMem = this._uploadMem(6, 16u32)
+            pMem.writeFloats([this.radius, this.distanceExponent, this.thickness, this.distanceFallOff], 4)
+            this.setUniform(renderer, uParams, pMem)
 
-                // scale
-                let uScale = uniforms.createUniform("u_scale", UniformType.Vec4.value())
-                let sMem = BgfxMemory(16u32)
-                sMem.writeFloats([this.scale, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uScale, sMem)
+            // scale
+            let uScale = uniforms.createUniform("u_scale", UniformType.Vec4.value())
+            let sMem = this._uploadMem(7, 16u32)
+            sMem.writeFloats([this.scale, 0.0, 0.0, 0.0], 4)
+            this.setUniform(renderer, uScale, sMem)
 
-                // 全屏四边形 submit
-                this.submitQuad(viewId, gtaoProg)
-            case None => @LogTrace(["gtao", "gtao shader not registered"])
+            // 全屏四边形 submit
+            this.submitQuad(viewId, gtaoProg)
+        } else {
+            @LogTrace(["gtao", "gtao shader not registered"])
         }
     }
 
@@ -808,59 +789,60 @@ public class GTAOPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
 
         let pdProgOpt = PostProcessingShaders.get("gtaopd")
-        match (pdProgOpt) {
-            case Some(pdSp) =>
-                if (!Handle.isValid(Box(pdSp.programHandle))) {
-                    pdSp.compileBgfx()
-                }
-                let pdProg = Box(pdSp.programHandle)
-                if (!Handle.isValid(pdProg)) { @LogTrace(["gtao", "pd: gtaopd program compile FAILED"]); return }
-                @LogTrace(["gtao", "pd: prog idx=${Handle.idx(pdProg)} gtaoTex=${Handle.idx(this._gtaoTex)} pdNoiseTex=${Handle.idx(this._pdNoiseTex)}"])
+        if (let Some(pdSp) <- pdProgOpt) {
+            if (!Handle.isValid(Box(pdSp.programHandle))) {
+                pdSp.compileBgfx()
+            }
+            let pdProg = Box(pdSp.programHandle)
+            if (!Handle.isValid(pdProg)) { @LogTrace(["gtao", "pd: gtaopd program compile FAILED"]); return }
+            @LogTrace(["gtao", "pd: prog idx=${Handle.idx(pdProg)} gtaoTex=${Handle.idx(this._gtaoTex)} pdNoiseTex=${Handle.idx(this._pdNoiseTex)}"])
 
-                // 采样器：stage 0=tDiffuse(gtao AO 图), 1=tNormal, 2=tDepth, 3=tNoise(pd 噪声)
-                let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiff, this._gtaoTex, 0u32)
-                let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uNormal, this._normalTex, 0u32)
-                let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                this.bindTexture(renderer, 2u8, uDepth, this._depthTex, 0u32)
-                let uNoise = uniforms.createUniform("tNoise", UniformType.Sampler.value())
-                this.bindTexture(renderer, 3u8, uNoise, this._pdNoiseTex, 0u32)
+            // 采样器：stage 0=tDiffuse(gtao AO 图), 1=tNormal, 2=tDepth, 3=tNoise(pd 噪声)
+            let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiff, this._gtaoTex, 0u32)
+            let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uNormal, this._normalTex, 0u32)
+            let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
+            this.bindTexture(renderer, 2u8, uDepth, this._depthTex, 0u32)
+            let uNoise = uniforms.createUniform("tNoise", UniformType.Sampler.value())
+            this.bindTexture(renderer, 3u8, uNoise, this._pdNoiseTex, 0u32)
 
-                // resolution
-                let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                let resMem = BgfxMemory(16u32)
-                resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
-                this.setUniform(renderer, uRes, resMem)
+            // 复用上传缓冲（原实现每帧新建 5 块 BgfxMemory + 数组字面量）。
+            // 槽位隔离：0=resolution，1=noiseResolution，5=invProj，8=pdParams，9=poissonDisk
+            let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
+            let resMem = this._uploadMem(0, 16u32)
+            resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
+            this.setUniform(renderer, uRes, resMem)
 
-                // noiseResolution（pd 噪声 64x64）
-                let uNoiseRes = uniforms.createUniform("u_noiseResolution", UniformType.Vec4.value())
-                let nrMem = BgfxMemory(16u32)
-                nrMem.writeFloats([64.0, 64.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uNoiseRes, nrMem)
+            // noiseResolution（pd 噪声 64x64）
+            let uNoiseRes = uniforms.createUniform("u_noiseResolution", UniformType.Vec4.value())
+            let nrMem = this._uploadMem(1, 16u32)
+            nrMem.writeFloats([64.0, 64.0, 0.0, 0.0], 4)
+            this.setUniform(renderer, uNoiseRes, nrMem)
 
-                // inverse projection
-                let invProj = camera.projectionMatrix.clone().invert()
-                let uInvProj = uniforms.createUniform("u_invProjMatrix", UniformType.Mat4.value())
-                let invMem = BgfxMemory(64u32)
-                invMem.writeFloats(invProj.elements, 16)
-                this.setUniform(renderer, uInvProj, invMem)
+            // inverse projection
+            let invProj = camera.projectionMatrix.clone().invert()
+            let uInvProj = uniforms.createUniform("u_invProjMatrix", UniformType.Mat4.value())
+            let invMem = this._uploadMem(5, 64u32)
+            invMem.writeFloats(invProj.elements, 16)
+            this.setUniform(renderer, uInvProj, invMem)
 
-                // pdParams: x=lumaPhi, y=depthPhi, z=normalPhi, w=radius
-                let uParams = uniforms.createUniform("u_pdParams", UniformType.Vec4.value())
-                let pMem = BgfxMemory(16u32)
-                pMem.writeFloats([this.lumaPhi, this.depthPhi, this.normalPhi, this.pdRadius], 4)
-                this.setUniform(renderer, uParams, pMem)
+            // pdParams: x=lumaPhi, y=depthPhi, z=normalPhi, w=radius
+            let uParams = uniforms.createUniform("u_pdParams", UniformType.Vec4.value())
+            let pMem = this._uploadMem(8, 16u32)
+            pMem.writeFloats([this.lumaPhi, this.depthPhi, this.normalPhi, this.pdRadius], 4)
+            this.setUniform(renderer, uParams, pMem)
 
-                // poisson disk 数组 uniform（16 个 vec4）
-                let uDisk = uniforms.createUniform("u_poissonDisk", UniformType.Vec4.value(), 16u16)
-                let diskMem = BgfxMemory(UInt32(64 * 4))
-                diskMem.writeFloats(this._poissonDisk, 64)
-                this.setUniform(renderer, uDisk, diskMem, num: 16u16)
+            // poisson disk 数组 uniform（16 个 vec4）
+            let uDisk = uniforms.createUniform("u_poissonDisk", UniformType.Vec4.value(), 16u16)
+            let diskMem = this._uploadMem(9, UInt32(64 * 4))
+            diskMem.writeFloats(this._poissonDisk, 64)
+            this.setUniform(renderer, uDisk, diskMem, num: 16u16)
 
-                // 全屏四边形 submit
-                this.submitQuad(viewId, pdProg)
-            case None => @LogTrace(["gtao", "pd: gtaopd shader NOT REGISTERED in PostProcessingShaders"])
+            // 全屏四边形 submit
+            this.submitQuad(viewId, pdProg)
+        } else {
+            @LogTrace(["gtao", "pd: gtaopd shader NOT REGISTERED in PostProcessingShaders"])
         }
     }
 
@@ -890,25 +872,24 @@ public class GTAOPass <: Pass {
         // Depth 模式：gtaodepth shader（tDepth + cameraNearFar）
         if (this.output == GTAOPass.OUTPUT_DEPTH) {
             let depthProgOpt = PostProcessingShaders.get("gtaodepth")
-            match (depthProgOpt) {
-                case Some(depthSp) =>
-                    if (!Handle.isValid(Box(depthSp.programHandle))) {
-                        depthSp.compileBgfx()
-                    }
-                    let depthProg = Box(depthSp.programHandle)
-                    if (!Handle.isValid(depthProg)) { @LogTrace(["gtao", "output depth: gtaodepth compile FAILED"]); return }
-                    let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                    this.bindTexture(renderer, 0u8, uDepth, this._depthTex, 0u32)
-                    match (this._camera) {
-                        case Some(camera) =>
-                            let uNearFar = uniforms.createUniform("u_cameraNearFar", UniformType.Vec4.value())
-                            let nfMem = BgfxMemory(16u32)
-                            nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
-                            this.setUniform(renderer, uNearFar, nfMem)
-                        case None => ()
-                    }
-                    this.submitQuad(viewId, depthProg)
-                case None => @LogTrace(["gtao", "output depth: gtaodepth shader NOT REGISTERED"])
+            if (let Some(depthSp) <- depthProgOpt) {
+                if (!Handle.isValid(Box(depthSp.programHandle))) {
+                    depthSp.compileBgfx()
+                }
+                let depthProg = Box(depthSp.programHandle)
+                if (!Handle.isValid(depthProg)) { @LogTrace(["gtao", "output depth: gtaodepth compile FAILED"]); return }
+                let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
+                this.bindTexture(renderer, 0u8, uDepth, this._depthTex, 0u32)
+                if (let Some(camera) <- this._camera) {
+                    let uNearFar = uniforms.createUniform("u_cameraNearFar", UniformType.Vec4.value())
+                    // 复用上传缓冲槽位（原实现每帧新建 BgfxMemory + 数组字面量）
+                    let nfMem = this._uploadMem(2, 16u32)
+                    nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
+                    this.setUniform(renderer, uNearFar, nfMem)
+                }
+                this.submitQuad(viewId, depthProg)
+            } else {
+                @LogTrace(["gtao", "output depth: gtaodepth shader NOT REGISTERED"])
             }
             return
         }
@@ -916,25 +897,26 @@ public class GTAOPass <: Pass {
         // Default 模式：gtaoapply（sceneColor × mix(1, ao, intensity)）
         if (this.output == GTAOPass.OUTPUT_DEFAULT) {
             let applyProgOpt = PostProcessingShaders.get("gtaoapply")
-            match (applyProgOpt) {
-                case Some(applySp) =>
-                    if (!Handle.isValid(Box(applySp.programHandle))) {
-                        applySp.compileBgfx()
-                    }
-                    let applyProg = Box(applySp.programHandle)
-                    if (!Handle.isValid(applyProg)) { @LogTrace(["gtao", "output default: gtaoapply compile FAILED"]); return }
-                    let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
-                    let uScene = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                    this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
-                    let uAO = uniforms.createUniform("tAO", UniformType.Sampler.value())
-                    this.bindTexture(renderer, 1u8, uAO, this._pdTex, 0u32)
-                    let uIntensity = uniforms.createUniform("u_intensity", UniformType.Vec4.value())
-                    let iMem = BgfxMemory(16u32)
-                    iMem.writeFloats([this.blendIntensity, 0.0, 0.0, 0.0], 4)
-                    this.setUniform(renderer, uIntensity, iMem)
-                    @LogTrace(["gtao", "output default: sceneTex=${Handle.idx(sceneTex)} pdTex=${Handle.idx(this._pdTex)}"])
-                    this.submitQuad(viewId, applyProg)
-                case None => @LogTrace(["gtao", "output default: gtaoapply shader NOT REGISTERED"])
+            if (let Some(applySp) <- applyProgOpt) {
+                if (!Handle.isValid(Box(applySp.programHandle))) {
+                    applySp.compileBgfx()
+                }
+                let applyProg = Box(applySp.programHandle)
+                if (!Handle.isValid(applyProg)) { @LogTrace(["gtao", "output default: gtaoapply compile FAILED"]); return }
+                let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
+                let uScene = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+                this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
+                let uAO = uniforms.createUniform("tAO", UniformType.Sampler.value())
+                this.bindTexture(renderer, 1u8, uAO, this._pdTex, 0u32)
+                let uIntensity = uniforms.createUniform("u_intensity", UniformType.Vec4.value())
+                // 复用上传缓冲槽位（原实现每帧新建 BgfxMemory + 数组字面量）
+                let iMem = this._uploadMem(10, 16u32)
+                iMem.writeFloats([this.blendIntensity, 0.0, 0.0, 0.0], 4)
+                this.setUniform(renderer, uIntensity, iMem)
+                @LogTrace(["gtao", "output default: sceneTex=${Handle.idx(sceneTex)} pdTex=${Handle.idx(this._pdTex)}"])
+                this.submitQuad(viewId, applyProg)
+            } else {
+                @LogTrace(["gtao", "output default: gtaoapply shader NOT REGISTERED"])
             }
             return
         }
@@ -949,22 +931,23 @@ public class GTAOPass <: Pass {
             srcTex = this._normalTex
         }
         let copyProgOpt = PostProcessingShaders.get("copy")
-        match (copyProgOpt) {
-            case Some(copySp) =>
-                if (!Handle.isValid(Box(copySp.programHandle))) {
-                    copySp.compileBgfx()
-                }
-                let copyProg = Box(copySp.programHandle)
-                if (!Handle.isValid(copyProg)) { @LogTrace(["gtao", "output copy: copy compile FAILED"]); return }
-                let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiff, srcTex, 0u32)
-                let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                let oMem = BgfxMemory(16u32)
-                oMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uOpacity, oMem)
-                @LogTrace(["gtao", "output copy: output=${this.output} srcTex=${Handle.idx(srcTex)}"])
-                this.submitQuad(viewId, copyProg)
-            case None => @LogTrace(["gtao", "output copy: copy shader NOT REGISTERED"])
+        if (let Some(copySp) <- copyProgOpt) {
+            if (!Handle.isValid(Box(copySp.programHandle))) {
+                copySp.compileBgfx()
+            }
+            let copyProg = Box(copySp.programHandle)
+            if (!Handle.isValid(copyProg)) { @LogTrace(["gtao", "output copy: copy compile FAILED"]); return }
+            let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiff, srcTex, 0u32)
+            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
+            // 复用上传缓冲槽位（原实现每帧新建 BgfxMemory + 数组字面量）
+            let oMem = this._uploadMem(11, 16u32)
+            oMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
+            this.setUniform(renderer, uOpacity, oMem)
+            @LogTrace(["gtao", "output copy: output=${this.output} srcTex=${Handle.idx(srcTex)}"])
+            this.submitQuad(viewId, copyProg)
+        } else {
+            @LogTrace(["gtao", "output copy: copy shader NOT REGISTERED"])
         }
     }
 
@@ -972,29 +955,13 @@ public class GTAOPass <: Pass {
      * 为指定 view 设置相机 view/proj 变换（改用 renderer.setViewTransform 高阶 API）。
      */
     private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
-        let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let viewMem = BgfxMemory(64u32)
-        let projMem = BgfxMemory(64u32)
-        viewMem.writeFloats(viewArr, 16)
-        projMem.writeFloats(projArr, 16)
+        // 复用上传缓冲槽位（原实现每帧新建 2 块 BgfxMemory + 2 个 16 元素数组）。
+        // 槽位隔离：12=view，13=proj。
+        let viewMem = this._uploadMem(12, 64u32)
+        let projMem = this._uploadMem(13, 64u32)
+        viewMem.writeFloats(camera.matrixWorldInverse.elements, 16)
+        projMem.writeFloats(camera.projectionMatrix.elements, 16)
         renderer.setViewTransform(viewId, viewMem, projMem)
-    }
-
-    private func _collectMeshes(obj: Object3D, renderObjects: ArrayList<RenderObject>): Unit {
-        for (child in obj.children) {
-            if (child.children.size > 0) {
-                this._collectMeshes(child, renderObjects)
-            }
-            if (child.kind == "Mesh") {
-                match (child as Mesh) {
-                    case Some(mesh) =>
-                        let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
-                        renderObjects.add(ro)
-                    case None => ()
-                }
-            }
-        }
     }
 
     /** 销毁全部 GPU 资源（composer.dispose 或 renderer.shutdown 调用） */
@@ -1002,21 +969,17 @@ public class GTAOPass <: Pass {
         this._destroyRTs()
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
         // 释放场景几何体缓存
-        match (this._renderer) {
-            case Some(renderer) =>
-                for ((_, vb) in this._vbCache) {
-                    renderer.destroyVertexBuffer(vb)
-                }
-                for ((_, ib) in this._ibCache) {
-                    renderer.destroyIndexBuffer(ib)
-                }
-                match (this._layoutHandleCache) {
-                    case Some(lh) =>
-                        renderer.destroyVertexLayout(lh)
-                        this._layoutHandleCache = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            for ((_, vb) in this._vbCache) {
+                renderer.destroyVertexBuffer(vb)
+            }
+            for ((_, ib) in this._ibCache) {
+                renderer.destroyIndexBuffer(ib)
+            }
+            if (let Some(lh) <- this._layoutHandleCache) {
+                renderer.destroyVertexLayout(lh)
+                this._layoutHandleCache = None
+            }
         }
         this._vbCache.clear()
         this._ibCache.clear()

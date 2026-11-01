@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] IBox3Expandable
  * @brief[zh-cn] 包围盒展开只读接口
- * @explain[zh-cn] three.js 的 Box3.setFromObject / expandByObject 直接接收 Object3D（core 包），遍历对象及其子对象的几何体包围盒并 union。cj 侧若让 math 依赖 core 会形成循环（core 依赖 math），因此将展开所需访问契约提取为本接口。实现方（Object3D 及子类）负责暴露世界矩阵更新、世界包围盒与子对象；使用方（Box3，math 包）仅读取数据并累加，不依赖实现类型。
+ * @explain[zh-cn] 主流引擎的 Box3.setFromObject / expandByObject 直接接收 Object3D（core 包），遍历对象及其子对象的几何体包围盒并 union。cj 侧若让 math 依赖 core 会形成循环（core 依赖 math），因此将展开所需访问契约提取为本接口。实现方（Object3D 及子类）负责暴露世界矩阵更新、世界包围盒与子对象；使用方（Box3，math 包）仅读取数据并累加，不依赖实现类型。
  *
  * @file[en] IBox3Expandable
  * @brief[en] Read-only interface for bounding box expansion
- * @explain[en] In three.js, Box3.setFromObject / expandByObject directly receives Object3D (core package) and traverses its and children's geometry bounding boxes with union. In Cangjie, if math depends on core it would form a cycle (core depends on math), so the expansion access contract is extracted into this interface. The implementer (Object3D and subclasses) exposes world matrix updates, world bounding boxes, and children; the consumer (Box3, math package) only reads data and accumulates without depending on implementation types. JS reference: Box3.expandByObject (conservative path: geometry boundingBox × matrixWorld).
+ * @explain[en] In mainstream engines, Box3.setFromObject / expandByObject directly receives Object3D (core package) and traverses its and children's geometry bounding boxes with union. In Cangjie, if math depends on core it would form a cycle (core depends on math), so the expansion access contract is extracted into this interface. The implementer (Object3D and subclasses) exposes world matrix updates, world bounding boxes, and children; the consumer (Box3, math package) only reads data and accumulates without depending on implementation types. JS reference: Box3.expandByObject (conservative path: geometry boundingBox × matrixWorld).
  */
 package three.core.interfaces
 

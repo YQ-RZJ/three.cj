@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-0.1.0-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-0.2.0-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-跨平台-lightgrey" style="display: inline-block;" />
@@ -34,10 +34,12 @@
 - **多材质体系** — MeshBasic/Lambert/Phong/Standard/Physical/Toon/Matcap/Normal/Depth 等材质，支持自定义 ShaderMaterial
 - **完整后处理管线** — FXAA/SMAA/SSAO/SSR/GTAO/Bloom/UnrealBloom/Outline/Glitch/Halftone 等 30+ 后期处理 Pass
 - **资源加载体系** — glTF/OBJ/MTL/PLY/STL 模型，DDS/KTX/PVR/EXR/HDR/TGA 纹理，Font/Animation/Audio 等加载器，含缓存与序列化
+- **资源管线** — AssetBundle 打包/按名读取 + AssetManager 异步分帧加载 + AssetCache 引用计数卸载
 - **动画系统** — AnimationClip / AnimationMixer / AnimationAction / KeyframeTrack（布尔/颜色/数值/四元数/字符串/向量）
 - **物理引擎集成** — 基于 Jolt 的可插拔物理后端，物理世界独立线程运行，支持刚体/角色/约束/Object3D 绑定，以及高度场地形、布料软体、载具、布娃娃等扩展物理对象与调试渲染器
 - **音频子系统** — 基于 OpenAL，音频上下文 / 监听器 / 静态·位置·流式音源 / 录音 / EFX 效果与滤波器
 - **脚本系统** — 基于 LuaJIT，仓颉与 Lua 双向绑定 + 脚本热更新
+- **游戏网络栈** — PacketWriter/PacketReader 协议编解码 + Connection/ReliableChannel 可靠传输 + Lockstep 帧同步/SnapshotBuffer 快照插值
 - **窗口与输入引擎** — 基于 SDL3 的跨平台窗口引擎 v2（生命周期回调 + 每窗口独立事件泵），键盘/鼠标/触摸/手柄输入提供者
 - **GUI 子系统** — 基于 ImGui（imgui4cj）的即时模式 UI（`three.window.ui`）：`WindowEngine.useGui()` 一键启用，SDL3 事件桥接 + bgfx 渲染后端自动接入（均路由到对应系统线程），提供 30+ 控件（窗口/按钮/输入框/滑条/树/列表框/颜色选择等）与布局/菜单/标签页/表格/弹窗/拖放/字体/样式主题/自定义绘制列表能力
 - **性能剖析子系统** — 基于 Tracy（tracy4cj）的实时剖析（`three.profiler`）：Zone 耗时区间、帧标记、曲线图（Plot）、消息、内存事件、GPU 时间域、锁竞争、纤维（Fiber）、调用栈采样；作用域类（ProfZone/ProfGpuZone/ProfLockZone/FiberScope）实现 `Resource` 接口，可直接用于 try-with-resources；门面类带 `Prof` 前缀（ProfZone/ProfFrame/ProfPlot/ProfMessage/ProfFiber/ProfMemory 等），与同名宏不冲突，`import three.profiler.*` 与 `import three.profiler.macros.*` 可共存
@@ -54,11 +56,15 @@
 | `three.animation` | 动画系统（剪辑、混合、动作调度、关键帧轨道） | `src/animation/` |
 | `three.audio` | 音频子系统（OpenAL：上下文/监听器/音源/录音/EFX） | `src/audio/` |
 | `three.core` | 核心基础设施（数学、数据结构、事件、帧调度、线程、时间） | `src/core/` |
-| `three.network` | 网络模块（HTTP / Socket） | `src/network/` |
+| `three.network` | 网络模块（HTTP / Socket / 协议编解码 / 可靠传输 / 帧同步与快照插值） | `src/network/` |
+| `three.network.protocol` | 游戏协议编解码（PacketWriter/PacketReader 大端字节流） | `src/network/protocol/` |
+| `three.network.transport` | 可靠传输（TCP Connection 组帧/心跳/重连 + UDP ReliableChannel） | `src/network/transport/` |
+| `three.network.sync` | 同步模型（LockstepSession 确定性帧同步 + SnapshotBuffer 快照插值） | `src/network/sync/` |
 | `three.physics` | 物理系统（Jolt：世界/刚体/角色/约束/绑定/高度场/软体/载具/布娃娃/调试渲染） | `src/physics/` |
 | `three.profiler` | 性能剖析子系统（Tracy：Zone/帧标记/曲线图/消息/内存/GPU 时间域/锁竞争/纤维/采样，及自动化侵入宏） | `src/profiler/` |
 | `three.rendering` | 渲染系统（bgfx 后端、相机、几何体、材质、灯光、后处理、着色器） | `src/rendering/` |
-| `three.resource` | 资源加载与缓存（模型/纹理/动画加载器、序列化） | `src/resource/` |
+| `three.resource` | 资源加载与缓存（模型/纹理/动画加载器、序列化、资源管线） | `src/resource/` |
+| `three.resource.pipeline` | 资源管线（AssetBundle 打包/读取、AssetManager 异步分帧加载、AssetCache 引用计数卸载） | `src/resource/pipeline/` |
 | `three.scene` | 场景管理（场景图、实体、ECS、Object3D、射线） | `src/scene/` |
 | `three.script` | 脚本系统（LuaJIT VM、双向绑定、热更新） | `src/script/` |
 | `three.utils` | 工具库（日志、编解码、对象池、内存、分配器） | `src/utils/` |
@@ -103,7 +109,10 @@ three/
 │   │   └── time/           # 时间（Clock/Timer）
 │   ├── network/            # 网络模块
 │   │   ├── http/           # HTTP 客户端（基于 httpclient4cj）
-│   │   └── socket/         # Socket 客户端/服务器/UDP
+│   │   ├── protocol/       # 游戏协议编解码（PacketCodec：PacketWriter/PacketReader 大端字节流）
+│   │   ├── socket/         # Socket 客户端/服务器/UDP
+│   │   ├── sync/           # 同步模型（Lockstep：LockstepSession 帧同步/SnapshotBuffer 快照插值）
+│   │   └── transport/      # 可靠传输（Connection：TCP 组帧/心跳/重连；ReliableChannel：可靠 UDP）
 │   ├── physics/            # 物理系统（Jolt）
 │   │   ├── backend/        # 物理后端适配（JoltBackend）
 │   │   ├── binding/        # Object3D ↔ 刚体绑定（PhysicsBinding）
@@ -141,6 +150,7 @@ three/
 │   │   ├── bgfx/           # bgfx 底层资源操作
 │   │   ├── cache/          # 资源缓存（Cache）
 │   │   ├── loader/         # 加载器（glTF/OBJ/MTL/PLY/STL/DDS/KTX/PVR/EXR/HDR/TGA/Font...）
+│   │   ├── pipeline/       # 资源管线（AssetBundle/AssetBundleBuilder 打包读取、AssetManager 异步分帧加载、AssetCache 引用计数卸载）
 │   │   └── serializer/     # 序列化（Serializer）
 │   ├── scene/              # 场景管理
 │   │   ├── ecs/            # ECS 框架（World/Entity/Component/System/Registry）
@@ -163,7 +173,7 @@ three/
 │   └── window/             # 窗口与输入引擎（WindowEngine v2 + 输入提供者）
 │       └── ui/             # 即时模式 UI（ImGui 控件/布局/菜单/标签页/表格/弹窗/拖放/字体/样式/绘制）
 └── test/                   # 测试项目
-    ├── general/            # 通用功能测试（数学/数据结构/ECS/网络/序列化/编码...）
+    ├── general/            # 通用功能测试（数学/数据结构/ECS/网络/资源管线/序列化/编码...）
     ├── ohos/               # HarmonyOS 测试工程（audio/base/gui/pc/physics）
     └── windows/            # Windows 测试案例（boxshow/geometries/materials/helpers/后期处理/glTF/physics/gui...）
 ```
@@ -274,6 +284,11 @@ export THREE_PROFILER=three.render
 调用即侵入。剖析数据的查看端为 Tracy GUI（tracy4cj 仓库提供），profiler 采样与 GUI 连接由
 `three.profiler.Sampling` / `ProfilerState` 控制。
 
+无 GUI 环境（CI 等）可用 `scripts/tracy_receiver.py` 代替 GUI/Worker：它主动连接被测进程、落盘原始与
+结构化产物，并直接产出热点统计（调用次数、耗时、P50/P95/P99）；真实渲染路径的性能基线测试程序位于
+`test/windows/perf_render/`。详见
+[`doc/materials/zh-cn/profiler使用说明.md`](./doc/materials/zh-cn/profiler使用说明.md) 第七节。
+
 > 注意：与 `THREE_LOG_LEVEL` 一致，链路在宏展开（编译期）时读取并烧入产物，与运行期环境无关；
 > 修改后建议 `cjpm clean` 全量重建。
 
@@ -314,6 +329,10 @@ import three.scene.entity.*        // 实体（Mesh/Points/Line/Sprite...）
 import three.core.math.*           // 数学工具
 import three.window.*              // 窗口与输入（WindowEngine）
 import three.resource.*            // 资源加载
+import three.resource.pipeline.*   // 资源管线（AssetBundle/AssetManager/AssetCache）
+import three.network.protocol.*    // 协议编解码（PacketWriter/PacketReader）
+import three.network.transport.*   // 可靠传输（Connection/ReliableChannel）
+import three.network.sync.*        // 同步模型（LockstepSession/SnapshotBuffer）
 import three.physics.*             // 物理
 import three.audio.*               // 音频
 import three.script.*              // 脚本
@@ -329,7 +348,8 @@ import three.window.ui.*          // 即时模式 UI（ImGui 控件）
 | `BgfxRenderer` | 全部 bgfx API 经 `_execBgfx` 串行化到专用渲染系统线程（`SThread`）执行 |
 | `AudioContext` | 全部 OpenAL 调用串行化到音频系统线程 |
 | `PhysicsWorld` | 物理后端调用经 `_execPhysics` 串行化到物理线程，渲染线程仅回读 transform 同步 |
-| `WindowEngine` | SDL 主线程 API 固定在一个系统线程（事件泵），每窗口一条用户态泵线程（读固定事件快照 + 生命周期回调） |
+| `WindowEngine` | SDL 主线程 API 固定在一个系统线程（事件泵），每窗口一条用户态泵线程（读固定事件快照 + 生命周期回调）；主循环每帧自动泵 `AssetManager`，在时间预算内分帧派发异步加载完成回调 |
+| `Connection` / `ReliableChannel` | `connect()`/`bind()` 后各 spawn 一条收包线程（阻塞读帧 / `receiveFrom`），负责心跳回应、ack 回执与乱序缓存；`onMessage` 与连接状态回调统一在主循环 `update()` 派发，`send`/`update` 与收包线程并发安全 |
 | `ShaderCompiler` | 运行时 shader 编译按需启动专用系统线程（`SThread`，自定义栈默认 8MB），单 worker 串行编译（glslang 非线程安全），经 `start()`/`restart()` 启停 |
 
 ## API 文档

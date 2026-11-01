@@ -194,9 +194,10 @@ public open class Entity <: EcsObject {
      * @return[en] Component instance, or None if not found
      */
     public func getComponent<T>(cptId: ComponentId): ?T where T <: Component {
-        match (_components.get(cptId)) {
-            case Some(c) => c as T
-            case None => None
+        if (let Some(c) <- _components.get(cptId)) {
+            (c as T)
+        } else {
+            None
         }
     }
 
@@ -274,9 +275,10 @@ public open class Entity <: EcsObject {
      * @return[en] The removed component, or None if not found
      */
     public func removeComponent<T>(cptId: ComponentId): ?T where T <: Component {
-        match (removeComponentById(cptId)) {
-            case Some(c) => c as T
-            case None => None
+        if (let Some(c) <- removeComponentById(cptId)) {
+            (c as T)
+        } else {
+            None
         }
     }
 
@@ -302,9 +304,8 @@ public open class Entity <: EcsObject {
      * @brief[en] Triggers the component change listener
      */
     private func _notifyChanged(oldMask: Array<UInt8>): Unit {
-        match (monitorComponentChanges) {
-            case Some(f) => f(oldMask, this)
-            case None => ()
+        if (let Some(f) <- monitorComponentChanges) {
+            f(oldMask, this)
         }
     }
 }

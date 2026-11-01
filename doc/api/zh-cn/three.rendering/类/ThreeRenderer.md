@@ -5,6 +5,12 @@ public class ThreeRenderer <: Renderer & IRenderer
 ```
 bgfx 渲染器 — Renderer 薄实现
 
+### func \_syncRenderStats\(\)
+```cj
+public override func _syncRenderStats(): Unit
+```
+同步 bgfx 后端渲染统计到抽象层 info（帧末钩子）
+
 ### func attachmentInit\(CPointer<bgfx\.Attachment>,TextureHandle,UInt32,UInt16,UInt16,UInt16,UInt8\)
 ```cj
 public func attachmentInit(attachment: CPointer < bgfx.Attachment >, tex: TextureHandle, access: UInt32, layer: UInt16, numLayers: UInt16, mip: UInt16, resolve: UInt8): Unit
@@ -195,6 +201,24 @@ public func createFrameBufferScaled(ratio: UInt32, format: UInt32, textureFlags:
 |format|UInt32||
 |textureFlags|UInt64||
 
+### func createFrameBuffer\(UInt8,Array<TextureHandle>,Bool\)
+```cj
+public func createFrameBuffer(numAttachments: UInt8, handles: Array < TextureHandle >, destroyHandles: Bool): FrameBufferHandle
+```
+由多个纹理句柄创建 frame buffer
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|numAttachments|UInt8|attachment 数量handles attachments 纹理句柄数组destroyHandles bgfx 销毁 FB 时是否自动销毁这些 texture 句柄|
+|handles|Array<TextureHandle>||
+|destroyHandles|Bool||
+
+返回: 
+
+- frame buffer 句柄
+
 ### func createFrameBuffer\(UInt16,UInt16,UInt32,UInt64\)
 ```cj
 public func createFrameBuffer(w: UInt16, h: UInt16, format: UInt32, depthFlags: UInt64): FrameBufferHandle
@@ -209,24 +233,6 @@ public func createFrameBuffer(w: UInt16, h: UInt16, format: UInt32, depthFlags: 
 |h|UInt16||
 |format|UInt32||
 |depthFlags|UInt64||
-
-返回: 
-
-- frame buffer 句柄
-
-### func createFrameBuffer\(UInt8,Array<TextureHandle>,Bool\)
-```cj
-public func createFrameBuffer(numAttachments: UInt8, handles: Array < TextureHandle >, destroyHandles: Bool): FrameBufferHandle
-```
-由多个纹理句柄创建 frame buffer
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|numAttachments|UInt8|attachment 数量handles attachments 纹理句柄数组destroyHandles bgfx 销毁 FB 时是否自动销毁这些 texture 句柄|
-|handles|Array<TextureHandle>||
-|destroyHandles|Bool||
 
 返回: 
 
@@ -1548,9 +1554,9 @@ public func getUniformInfo(handle: UniformHandle, info: UniformInfoPtr): Unit
 |handle|UniformHandle|uniform 句柄info 输出 UniformInfo 指针|
 |info|UniformInfoPtr||
 
-### func initBgfx\(UIntNative,Int32,Int32\)
+### func initBgfx\(UIntNative,Int32,Int32,Bool,UInt32,UInt32,UInt8,UInt8\)
 ```cj
-public func initBgfx(hwnd: UIntNative, width: Int32, height: Int32): Bool
+public func initBgfx(hwnd: UIntNative, width: Int32, height: Int32, vsync!: Bool = false, msaa!: UInt32 = RESET_NONE, maxAnisotropy!: UInt32 = RESET_NONE, numBackBuffers!: UInt8 = 2u8, maxFrameLatency!: UInt8 = 2u8): Bool
 ```
 初始化 bgfx 渲染器
 
@@ -1558,9 +1564,14 @@ public func initBgfx(hwnd: UIntNative, width: Int32, height: Int32): Bool
 
 |名称|类型|描述|
 |---|---|---|
-|hwnd|UIntNative|原生窗口句柄width 窗口逻辑宽度height 窗口逻辑高度|
+|hwnd|UIntNative|原生窗口句柄width 窗口逻辑宽度height 窗口逻辑高度vsync 是否开启垂直同步（默认 false，即不锁定刷新率）。开启后帧率被显示器刷新率锁死（60Hz 显示器即 60FPS 上限）；关闭则按 CPU/GPU 实际耗时出帧，简单场景可达数百 FPS，但可能出现画面撕裂、帧间隔不均。msaa 多重采样档位，取 bgfx.RESET_MSAA_* 常量组合（0 表示关闭）。maxAnisotropy 最大各向异性过滤（0 = 不启用）。numBackBuffers 后备缓冲数量（1~MAX_BACK_BUFFERS，越大越能掩盖 GPU 抖动，延迟也越高）。maxFrameLatency DXGI 允许的最大帧排队数。|
 |width|Int32||
 |height|Int32||
+|vsync|Bool||
+|msaa|UInt32||
+|maxAnisotropy|UInt32||
+|numBackBuffers|UInt8||
+|maxFrameLatency|UInt8||
 
 返回: 
 
@@ -1724,7 +1735,7 @@ public func reset(width: UInt32, height: UInt32, flags: UInt32, format: UInt32):
 ```cj
 public func setClearColor(color: Color, alpha!: Float64 = 1.0): Unit
 ```
-设置清除色 — Three.js 对齐：renderer.setClearColor(color, alpha)
+设置清除色 — 对齐 renderer.setClearColor(color, alpha)
 
 参数: 
 

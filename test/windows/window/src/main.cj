@@ -109,25 +109,25 @@ public class TestWindow <: WindowEngine {
             return
         }
 
-        // WASD / 方向键移动立方体
-        let speed = 0.06
+        // WASD / 方向键移动立方体（按秒的速率 × 真实帧间隔 → 帧率无关）
+        let speed = 3.6
         if (this.input.isKeyDown(KeyCode.W) || this.input.isKeyDown(KeyCode.UP)) {
-            this.mesh.position.z -= speed
+            this.mesh.position.z -= speed * dt
         }
         if (this.input.isKeyDown(KeyCode.S) || this.input.isKeyDown(KeyCode.DOWN)) {
-            this.mesh.position.z += speed
+            this.mesh.position.z += speed * dt
         }
         if (this.input.isKeyDown(KeyCode.A) || this.input.isKeyDown(KeyCode.LEFT)) {
-            this.mesh.position.x -= speed
+            this.mesh.position.x -= speed * dt
         }
         if (this.input.isKeyDown(KeyCode.D) || this.input.isKeyDown(KeyCode.RIGHT)) {
-            this.mesh.position.x += speed
+            this.mesh.position.x += speed * dt
         }
 
-        // 鼠标拖动旋转立方体（按住左键拖动才生效）
+        // 鼠标拖动旋转立方体（按住左键拖动才生效；rad/s × dt → 帧率无关）
         if (this.input.isMouseButtonDown(MouseButton.LEFT)) {
-            this.mesh.rotation.y += Float64(this.input.getMouseDX()) * 0.01
-            this.mesh.rotation.x += Float64(this.input.getMouseDY()) * 0.01
+            this.mesh.rotation.y += Float64(this.input.getMouseDX()) * 0.6 * dt
+            this.mesh.rotation.x += Float64(this.input.getMouseDY()) * 0.6 * dt
         }
 
         // 空格换色（边沿触发，本循环快照固定）

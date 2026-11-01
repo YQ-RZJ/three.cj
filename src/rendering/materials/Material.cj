@@ -24,13 +24,13 @@
  * @file[zh-cn] 材质抽象基类
  * @brief[zh-cn] 材质抽象基类，所有具体材质类型继承本类
  * @explain[zh-cn] 
- * 对应 Three.js materials/Material.js。定义通用渲染状态（混合、深度、模板、多边形偏移等）与序列化/反序列化接口。
+ * 定义通用渲染状态（混合、深度、模板、多边形偏移等）与序列化/反序列化接口。
  * 继承 EventDispatcher 以支持 dispose 事件；子类扩展字段（如 map/color/roughness 等）。
  *
  * @file[en] Material Abstract Base Class
  * @brief[en] Abstract base class for materials, subclassed by all concrete material types
  * @explain[en] 
- * Corresponds to Three.js materials/Material.js. Defines common rendering state (blending, depth, stencil, polygon offset, etc.)
+ * Defines common rendering state (blending, depth, stencil, polygon offset, etc.)
  * and serialization/deserialization interfaces. Inherits EventDispatcher to support dispose events;
  * subclasses extend with fields such as map, color, roughness, etc.
  */
@@ -47,6 +47,7 @@ import three.scene.objects.deepCopyUserData
 import three.rendering.cameras.Camera
 import three.core.interfaces.IMaterial
 import three.core.interfaces.ILoadResult
+import three.utils.allocator.IdAllocator
 import three.rendering.interfaces.IRenderer
 import three.scene.interfaces.IScene
 import three.scene.interfaces.IGroup
@@ -59,12 +60,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 材质抽象基类，所有具体材质类型继承本类
  * @explain[zh-cn] 
- * 对应 Three.js materials/Material.js。定义通用渲染状态（混合、深度、模板、多边形偏移等）与序列化/反序列化接口。
+ * 定义通用渲染状态（混合、深度、模板、多边形偏移等）与序列化/反序列化接口。
  * 继承 EventDispatcher 以支持 dispose 事件；子类扩展字段（如 map/color/roughness 等）。
  *
  * @brief[en] Abstract base class for materials, subclassed by all concrete material types
  * @explain[en] 
- * Corresponds to Three.js materials/Material.js. Defines common rendering state (blending, depth, stencil, polygon offset, etc.)
+ * Defines common rendering state (blending, depth, stencil, polygon offset, etc.)
  * and serialization/deserialization interfaces. Inherits EventDispatcher to support dispose events;
  * subclasses extend with fields such as map, color, roughness, etc.
  */
@@ -133,6 +134,23 @@ public open class Material <: EventDispatcher & IMaterial & ILoadResult {
      * @brief[en] Unique identifier
      */
     public var uuid: String
+
+    /**
+     * @brief[zh-cn] 进程内唯一整数标识（构造时分配，自增）
+     * @explain[zh-cn] 与 uuid 等价但为整数，供渲染热路径做map 键使用：
+     * 逐 draw 用 uuid.hashCode() 会对36 字符字符串重算哈希，而渲染每帧每 draw 都要取键，
+     * 在800+ draw 的大场景里是纯浪费。uuid 仍保留给序列化 / 外部引用。
+     *
+     * @brief[en] Process-unique integer identifier (assigned at construction, auto-incrementing)
+     * @explain[en] Equivalent to uuid but an integer, for use as a map key in render hot paths:
+     * using uuid.hashCode() per draw recomputes a hash over a 36-char string every frame for every draw,
+     * which is pure overhead in scenes with 800+ draws. uuid is retained for serialization / external references.
+     */
+    @JsonIgnore
+    public let id: Int64
+
+    @JsonIgnore
+    private static let _idGen: IdAllocator = IdAllocator(startId: 1)
 
     /**
      * @brief[zh-cn] 用户可命名标签
@@ -442,6 +460,7 @@ public open class Material <: EventDispatcher & IMaterial & ILoadResult {
      */
     public init() {
         super()
+        this.id = Material._idGen.allocate()
         this.uuid = MathUtils.generateUUID()
         this.name = ""
         this.color = Color(0xffffff)
@@ -574,15 +593,15 @@ public open class Material <: EventDispatcher & IMaterial & ILoadResult {
      * @param[en] values HashMap containing field names and values
      */
     public func setValues(values: HashMap<String, Any>): Unit {
-        match (values.get("opacity")) { case Some(v) => match (v) { case f: Float64 => this.opacity = f; case _ => () }; case None => () }
-        match (values.get("transparent")) { case Some(v) => match (v) { case b: Bool => this.transparent = b; case _ => () }; case None => () }
-        match (values.get("side")) { case Some(v) => match (v) { case i: Int64 => this.side = i; case _ => () }; case None => () }
-        match (values.get("color")) { case Some(v) => match (v) { case c: Color => this.color.copy(c); case i: Int64 => this.color.setHex(UInt32(i)); case _ => () }; case None => () }
-        match (values.get("depthTest")) { case Some(v) => match (v) { case b: Bool => this.depthTest = b; case _ => () }; case None => () }
-        match (values.get("depthWrite")) { case Some(v) => match (v) { case b: Bool => this.depthWrite = b; case _ => () }; case None => () }
-        match (values.get("blending")) { case Some(v) => match (v) { case i: Int64 => this.blending = i; case _ => () }; case None => () }
-        match (values.get("visible")) { case Some(v) => match (v) { case b: Bool => this.visible = b; case _ => () }; case None => () }
-        match (values.get("fog")) { case Some(v) => match (v) { case b: Bool => this.fog = b; case _ => () }; case None => () }
+        if (let Some(v) <- values.get("opacity")) { if (v is Float64) { this.opacity = (v as Float64).getOrThrow() } }
+        if (let Some(v) <- values.get("transparent")) { if (v is Bool) { this.transparent = (v as Bool).getOrThrow() } }
+        if (let Some(v) <- values.get("side")) { if (v is Int64) { this.side = (v as Int64).getOrThrow() } }
+        if (let Some(v) <- values.get("color")) { if (v is Color) { this.color.copy((v as Color).getOrThrow()) } else if (v is Int64) { this.color.setHex(UInt32((v as Int64).getOrThrow())) } }
+        if (let Some(v) <- values.get("depthTest")) { if (v is Bool) { this.depthTest = (v as Bool).getOrThrow() } }
+        if (let Some(v) <- values.get("depthWrite")) { if (v is Bool) { this.depthWrite = (v as Bool).getOrThrow() } }
+        if (let Some(v) <- values.get("blending")) { if (v is Int64) { this.blending = (v as Int64).getOrThrow() } }
+        if (let Some(v) <- values.get("visible")) { if (v is Bool) { this.visible = (v as Bool).getOrThrow() } }
+        if (let Some(v) <- values.get("fog")) { if (v is Bool) { this.fog = (v as Bool).getOrThrow() } }
     }
 
     /**
@@ -631,13 +650,11 @@ public open class Material <: EventDispatcher & IMaterial & ILoadResult {
         _setFromJsonBool(json, "forceSinglePass", { v => this.forceSinglePass = v })
 
         // userData
-        match (json.get("userData")) {
-            case Some(v) => match (v) {
-                case m: HashMap<String, Any> =>
-                    for ((k, val) in m) { this.userData.add(k, val) }
-                case _ => ()
+        if (let Some(v) <- json.get("userData")) {
+            if (v is HashMap<String, Any>) {
+                let m = (v as HashMap<String, Any>).getOrThrow()
+                for ((k, val) in m) { this.userData.add(k, val) }
             }
-            case None => ()
         }
     }
 
@@ -653,9 +670,10 @@ public open class Material <: EventDispatcher & IMaterial & ILoadResult {
      * @return[en] Constructed material instance, or None if type is unknown
      */
     public static func createFromJSON(json: HashMap<String, Any>, textures: HashMap<String, Texture>): Option<Material> {
-        let typeStr = match (json.get("type")) {
-            case Some(v) => match (v) { case s: String => s; case _ => return None }
-            case None => return None
+        let typeStr = if (let Some(v) <- json.get("type")) {
+            if (v is String) { (v as String).getOrThrow() } else { return None }
+        } else {
+            return None
         }
 
         var material: Material
@@ -715,9 +733,8 @@ public open class Material <: EventDispatcher & IMaterial & ILoadResult {
  * setter Setter callback
  */
 internal func _setFromJsonStr(json: HashMap<String, Any>, key: String, setter: (String) -> Unit): Unit {
-    match (json.get(key)) {
-        case Some(v) => match (v) { case s: String => setter(s); case _ => () }
-        case None => ()
+    if (let Some(v) <- json.get(key)) {
+        if (v is String) { setter((v as String).getOrThrow()) }
     }
 }
 
@@ -733,9 +750,8 @@ internal func _setFromJsonStr(json: HashMap<String, Any>, key: String, setter: (
  * setter Setter callback
  */
 internal func _setFromJsonFloat(json: HashMap<String, Any>, key: String, setter: (Float64) -> Unit): Unit {
-    match (json.get(key)) {
-        case Some(v) => match (v) { case f: Float64 => setter(f); case i: Int64 => setter(Float64(i)); case _ => () }
-        case None => ()
+    if (let Some(v) <- json.get(key)) {
+        if (v is Float64) { setter((v as Float64).getOrThrow()) } else if (v is Int64) { setter(Float64((v as Int64).getOrThrow())) }
     }
 }
 
@@ -751,9 +767,8 @@ internal func _setFromJsonFloat(json: HashMap<String, Any>, key: String, setter:
  * setter Setter callback
  */
 internal func _setFromJsonInt(json: HashMap<String, Any>, key: String, setter: (Int64) -> Unit): Unit {
-    match (json.get(key)) {
-        case Some(v) => match (v) { case i: Int64 => setter(i); case f: Float64 => setter(Int64(f)); case _ => () }
-        case None => ()
+    if (let Some(v) <- json.get(key)) {
+        if (v is Int64) { setter((v as Int64).getOrThrow()) } else if (v is Float64) { setter(Int64((v as Float64).getOrThrow())) }
     }
 }
 
@@ -769,9 +784,8 @@ internal func _setFromJsonInt(json: HashMap<String, Any>, key: String, setter: (
  * setter Setter callback
  */
 internal func _setFromJsonBool(json: HashMap<String, Any>, key: String, setter: (Bool) -> Unit): Unit {
-    match (json.get(key)) {
-        case Some(v) => match (v) { case b: Bool => setter(b); case _ => () }
-        case None => ()
+    if (let Some(v) <- json.get(key)) {
+        if (v is Bool) { setter((v as Bool).getOrThrow()) }
     }
 }
 
@@ -787,9 +801,8 @@ internal func _setFromJsonBool(json: HashMap<String, Any>, key: String, setter: 
  * color Target color object
  */
 internal func _setFromJsonColor(json: HashMap<String, Any>, key: String, color: Color): Unit {
-    match (json.get(key)) {
-        case Some(v) => match (v) { case i: Int64 => color.setHex(UInt32(i)); case _ => () }
-        case None => ()
+    if (let Some(v) <- json.get(key)) {
+        if (v is Int64) { color.setHex(UInt32((v as Int64).getOrThrow())) }
     }
 }
 
@@ -807,15 +820,16 @@ internal func _setFromJsonColor(json: HashMap<String, Any>, key: String, color: 
  * setter Setter callback
  */
 internal func _setFromJsonTexture(json: HashMap<String, Any>, key: String, textures: HashMap<String, Texture>, setter: (Option<Texture>) -> Unit): Unit {
-    match (json.get(key)) {
-        case Some(v) => match (v) {
-            case uuid: String =>
-                match (textures.get(uuid)) {
-                    case Some(tex) => setter(Some(tex))
-                    case None => setter(None)
-                }
-            case _ => setter(None)
+    if (let Some(v) <- json.get(key)) {
+        if (v is String) {
+            let uuid = (v as String).getOrThrow()
+            if (let Some(tex) <- textures.get(uuid)) {
+                setter(Some(tex))
+            } else {
+                setter(None)
+            }
+        } else {
+            setter(None)
         }
-        case None => ()
     }
 }

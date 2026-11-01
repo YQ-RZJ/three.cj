@@ -323,9 +323,8 @@ public class AnimatorController {
      * @brief[en] Sets a bool parameter
      */
     public func setBool(name: String, value: Bool): Unit {
-        match (this.params.get(name)) {
-            case Some(p) => p.boolValue = value
-            case None => ()
+        if (let Some(p) <- this.params.get(name)) {
+            p.boolValue = value
         }
     }
 
@@ -335,9 +334,8 @@ public class AnimatorController {
      * @brief[en] Sets a float parameter
      */
     public func setFloat(name: String, value: Float32): Unit {
-        match (this.params.get(name)) {
-            case Some(p) => p.floatValue = value
-            case None => ()
+        if (let Some(p) <- this.params.get(name)) {
+            p.floatValue = value
         }
     }
 
@@ -347,9 +345,8 @@ public class AnimatorController {
      * @brief[en] Sets an int parameter
      */
     public func setInt(name: String, value: Int): Unit {
-        match (this.params.get(name)) {
-            case Some(p) => p.intValue = value
-            case None => ()
+        if (let Some(p) <- this.params.get(name)) {
+            p.intValue = value
         }
     }
 
@@ -359,9 +356,8 @@ public class AnimatorController {
      * @brief[en] Triggers a trigger parameter (consumed and auto-reset on the next frame)
      */
     public func setTrigger(name: String): Unit {
-        match (this.params.get(name)) {
-            case Some(p) => p.boolValue = true
-            case None => ()
+        if (let Some(p) <- this.params.get(name)) {
+            p.boolValue = true
         }
     }
 
@@ -435,19 +431,17 @@ public class AnimatorController {
      */
     public func update(deltaTime: Float32): Unit {
         // 推进当前状态
-        match (this.states.get(this._currentState)) {
-            case Some(state) =>
-                state.ratio += deltaTime * state.speed
-                if (state.looping) {
-                    // 循环：取模
-                    while (state.ratio >= 1.0f32) {
-                        state.ratio -= 1.0f32
-                    }
-                } else {
-                    // 钳制
-                    state.ratio = min(state.ratio, 1.0f32)
+        if (let Some(state) <- this.states.get(this._currentState)) {
+            state.ratio += deltaTime * state.speed
+            if (state.looping) {
+                // 循环：取模
+                while (state.ratio >= 1.0f32) {
+                    state.ratio -= 1.0f32
                 }
-            case None => ()
+            } else {
+                // 钳制
+                state.ratio = min(state.ratio, 1.0f32)
+            }
         }
 
         // 处理过渡中的状态
@@ -459,9 +453,8 @@ public class AnimatorController {
                 this._isTransitioning = false
                 this._transitionProgress = 0.0f32
                 // 重置目标状态的时间比
-                match (this.states.get(this._currentState)) {
-                    case Some(state) => state.ratio = 0.0f32
-                    case None => ()
+                if (let Some(state) <- this.states.get(this._currentState)) {
+                    state.ratio = 0.0f32
                 }
             }
             return  // 过渡中不检查新过渡
@@ -472,28 +465,28 @@ public class AnimatorController {
             if (transition.fromState != this._currentState) { continue }
 
             // 检查 exitTime
-            match (this.states.get(this._currentState)) {
-                case Some(state) =>
-                    if (state.ratio < transition.exitTime) { continue }
-                case None => continue
+            if (let Some(state) <- this.states.get(this._currentState)) {
+                if (state.ratio < transition.exitTime) { continue }
+            } else {
+                continue
             }
 
             // 检查所有条件
             var allConditionsMet = true
             for (condition in transition.conditions) {
-                match (this.params.get(condition.paramName)) {
-                    case Some(param) =>
-                        var met = false
-                        match (condition.mode) {
-                            case ConditionMode.If => met = param.boolValue
-                            case ConditionMode.IfNot => met = !param.boolValue
-                            case ConditionMode.Greater => met = param.floatValue > condition.threshold
-                            case ConditionMode.Less => met = param.floatValue < condition.threshold
-                            case ConditionMode.Equals => met = Float32(param.intValue) == condition.threshold
-                            case ConditionMode.NotEquals => met = Float32(param.intValue) != condition.threshold
-                        }
-                        if (!met) { allConditionsMet = false }
-                    case None => allConditionsMet = false
+                if (let Some(param) <- this.params.get(condition.paramName)) {
+                    var met = false
+                    match (condition.mode) {
+                        case ConditionMode.If => met = param.boolValue
+                        case ConditionMode.IfNot => met = !param.boolValue
+                        case ConditionMode.Greater => met = param.floatValue > condition.threshold
+                        case ConditionMode.Less => met = param.floatValue < condition.threshold
+                        case ConditionMode.Equals => met = Float32(param.intValue) == condition.threshold
+                        case ConditionMode.NotEquals => met = Float32(param.intValue) != condition.threshold
+                    }
+                    if (!met) { allConditionsMet = false }
+                } else {
+                    allConditionsMet = false
                 }
                 if (!allConditionsMet) { break }
             }
@@ -507,13 +500,11 @@ public class AnimatorController {
 
                 // 消费 trigger 参数
                 for (condition in transition.conditions) {
-                    match (this.params.get(condition.paramName)) {
-                        case Some(param) =>
-                            match (param.paramType) {
-                                case AnimatorParamType.Trigger => param.boolValue = false
-                                case _ => ()
-                            }
-                        case None => ()
+                    if (let Some(param) <- this.params.get(condition.paramName)) {
+                        match (param.paramType) {
+                            case AnimatorParamType.Trigger => param.boolValue = false
+                            case _ => ()
+                        }
                     }
                 }
                 break

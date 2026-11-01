@@ -24,14 +24,14 @@
  * @file[zh-cn] 物理材质
  * @brief[zh-cn] 物理材质，在Standard材质基础上增加清漆、透射等高级PBR属性
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshPhysicalMaterial.js。在 MeshStandardMaterial 基础上增加了 clearcoat、
+ * 在 MeshStandardMaterial 基础上增加了 clearcoat、
  * clearcoatRoughness、sheen、transmission、ior、thickness 等物理属性，
  * 用于更精确地模拟真实世界材质（如玻璃、车漆、布料等）。
  *
  * @file[en] Mesh Physical Material
  * @brief[en] Physical material, extending Standard material with advanced PBR properties like clearcoat and transmission
  * @explain[en] 
- * Corresponds to Three.js materials/MeshPhysicalMaterial.js. Extends MeshStandardMaterial with clearcoat,
+ * Extends MeshStandardMaterial with clearcoat,
  * clearcoatRoughness, sheen, transmission, ior, thickness and other physical properties,
  * for more accurate simulation of real-world materials (e.g., glass, car paint, fabric).
  */
@@ -47,12 +47,12 @@ import std.collection.*
 /**
  * @brief[zh-cn] 物理材质，在Standard材质基础上增加清漆、透射等高级PBR属性
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshPhysicalMaterial.js。增加 clearcoat、clearcoatRoughness、sheen、
+ * 增加 clearcoat、clearcoatRoughness、sheen、
  * transmission、ior、thickness 等物理属性，用于模拟真实世界材质。
  *
  * @brief[en] Physical material, extending Standard material with advanced PBR properties like clearcoat and transmission
  * @explain[en] 
- * Corresponds to Three.js materials/MeshPhysicalMaterial.js. Adds clearcoat, clearcoatRoughness, sheen,
+ * Adds clearcoat, clearcoatRoughness, sheen,
  * transmission, ior, thickness and other physical properties for real-world material simulation.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]

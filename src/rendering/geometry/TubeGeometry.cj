@@ -25,13 +25,11 @@
  * @brief[zh-cn] 沿 3D 曲线挤出的管道几何体
  * @explain[zh-cn] 
  * TubeGeometry 继承自 BufferGeometry，沿 3D 曲线挤出管道。
- * 对应 Three.js geometries/TubeGeometry.js。
  *
  * @file[en] Tube Geometry
  * @brief[en] Tube geometry extruded along a 3D curve
  * @explain[en] 
  * TubeGeometry extends BufferGeometry, extruding a tube along a 3D curve.
- * Corresponds to Three.js geometries/TubeGeometry.js.
  */
 package three.rendering.geometry
 

@@ -5,7 +5,7 @@ package toon_pipeline
  *
  * 设计目标：完整实现自定义卡通渲染管线，不复用引擎内置 ShaderLib 的 meshtoon。
  *
- * 渲染管线流程（对照 three.js 官方 toon 案例 webgl_materials_toon.html）：
+ * 渲染管线流程（对照官方 toon 案例 webgl_materials_toon.html）：
  *   1. 主场景 pass：ToonShader（量化光照 + gradientMap 控制明暗分界）
  *   2. 描边 pass：ToonOutlineShader（基于法线/深度的边缘检测描边）
  *
@@ -17,7 +17,7 @@ package toon_pipeline
  *   - 纹理采样：SAMPLER2D(name, stage) + texture2D(name, uv)
  *   - 矩阵乘法：mul(mat, vec)（非 GLSL 的 mat*vec）
  *
- * 卡通着色算法（对照 three.js MeshToonMaterial + getGradientIrradiance）：
+ * 卡通着色算法（参照 MeshToonMaterial + getGradientIrradiance 的通用做法）：
  *   - 计算 N·L（法线与光照方向点积），映射到 [0,1]
  *   - 用 gradientMap（1D 量化梯度贴图）采样得到量化光照强度
  *   - 若无 gradientMap，用硬编码 3 级量化（亮/中/暗）
@@ -91,7 +91,7 @@ void main()
  *   - t_gradientMap: stage 0，1D 量化梯度贴图（控制明暗分界）
  *   - t_diffuseMap: stage 1，漫反射纹理（可选）
  *
- * 卡通量化算法（对照 three.js gradientmap_pars_fragment.glsl.js: getGradientIrradiance）：
+ * 卡通量化算法（参照 gradientmap_pars_fragment.glsl.js 的 getGradientIrradiance）：
  *   dotNL = dot(normal, lightDirection)  // [-1, 1]
  *   coord = dotNL * 0.5 + 0.5            // 映射到 [0, 1]
  *   irradiance = texture(gradientMap, coord).r  // 量化采样
@@ -148,7 +148,7 @@ void main()
         vec3 L = normalize(u_lightDir[i].xyz);
         vec3 lightColor = u_lightColor[i].xyz * u_lightColor[i].w;
 
-        // 卡通量化辐照度（对照 three.js getGradientIrradiance）
+        // 卡通量化辐照度（参照 getGradientIrradiance 通用做法）
         float dotNL = dot(N, L);
         float coord = dotNL * 0.5 + 0.5;
 
@@ -158,7 +158,7 @@ void main()
         float gradR = texture2D(t_gradientMap, vec2(coord, 0.5)).r;
         irradiance = gradR;
 #else
-        // 硬编码 3 级量化（对照 three.js 默认 MeshToonMaterial 无 gradientMap 时的离散光照）
+        // 硬编码 3 级量化（对照默认 MeshToonMaterial 无 gradientMap 时的离散光照）
         if (dotNL < 0.3) {
             irradiance = 0.4;  // 暗部
         } else if (dotNL < 0.7) {

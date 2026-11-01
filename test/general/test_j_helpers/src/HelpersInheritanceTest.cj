@@ -1,6 +1,6 @@
 /**
  * @file HelpersInheritanceTest
- * @brief 迁移 three.js test/unit/src/helpers 目录 tests.js 的 Extending 断言
+ * @brief 迁移上游 JS 库 test/unit/src/helpers 目录 tests.js 的 Extending 断言
  *
  * 对照 JS:
  *   new ArrowHelper() instanceof Object3D → true

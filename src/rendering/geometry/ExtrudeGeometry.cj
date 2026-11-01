@@ -27,7 +27,6 @@
  * 完整实现：Shape 二维轮廓沿深度方向（z 轴）挤出。
  * 参考 JS 思路：前盖（z=0）/ 后盖（z=depth）/ 侧面（轮廓每段沿深度方向）。
  * 简化：无 bevel、无 extrudePath（直线深度挤出）。
- * 对应 Three.js geometries/ExtrudeGeometry.js。
  *
  * @file[en] Extrude Geometry
  * @brief[en] Geometry extruded from a 2D Shape contour along the depth direction
@@ -35,7 +34,6 @@
  * Full implementation: 2D Shape contour extruded along the depth direction (z-axis).
  * Reference JS approach: front cap (z=0) / back cap (z=depth) / side walls (each contour segment along depth).
  * Simplified: no bevel, no extrudePath (straight depth extrusion).
- * Corresponds to Three.js geometries/ExtrudeGeometry.js.
  */
 package three.rendering.geometry
 
@@ -84,7 +82,7 @@ func _buildExtrude(g: ExtrudeGeometry, shape: Shape, options: HashMap<String, An
     let n = contour.size
     // 深度（options 或默认 1）
     var depth: Float64 = 1.0
-    match (options.get("depth")) { case Some(d: Float64) => depth = d; case _ => () }
+    if (let Some(v) <- options.get("depth")) { if (v is Float64) { depth = (v as Float64).getOrThrow() } }
 
     if (n < 3) { return }  // 轮廓不足 3 点——空几何体
 
@@ -94,7 +92,7 @@ func _buildExtrude(g: ExtrudeGeometry, shape: Shape, options: HashMap<String, An
     let holes = ArrayList<ArrayList<Vector2>>()
     let tris = ShapeUtils.triangulateShape(contour2, holes)
 
-    // 顶点：连续排列（对照 Three.js：先全部 z=0、再全部 z=depth）
+    // 顶点：连续排列（通行做法：先全部 z=0、再全部 z=depth）
     // 注意：此前交错排列（front0,back0,front1,back1...）与索引假设
     // （0..n-1 前盖 / n..2n-1 后盖）完全错位 → 网格扭曲。
     let positions = ArrayList<Float64>()
@@ -110,19 +108,19 @@ func _buildExtrude(g: ExtrudeGeometry, shape: Shape, options: HashMap<String, An
     for (p in contour) { uvs.add(p.x * 0.5 + 0.5); uvs.add(p.y * 0.5 + 0.5) }
 
     let indices = ArrayList<Int64>()
-    // z=0 层盖面（后盖，法线 -Z）：反向序（对照 Three.js buildLidFaces bottom: f3(face[2], face[1], face[0])）
+    // z=0 层盖面（后盖，法线 -Z）：反向序（对照 buildLidFaces 的 bottom: f3(face[2], face[1], face[0])）
     for (tri in tris) {
         if (tri.size == 3) {
             indices.add(Int64(tri[2])); indices.add(Int64(tri[1])); indices.add(Int64(tri[0]))
         }
     }
-    // z=depth 层盖面（前盖，法线 +Z）：正向序（对照 Three.js top: f3(face[0], face[1], face[2])）
+    // z=depth 层盖面（前盖，法线 +Z）：正向序（对照 buildLidFaces 的 top: f3(face[0], face[1], face[2])）
     for (tri in tris) {
         if (tri.size == 3) {
             indices.add(Int64(tri[0]) + n); indices.add(Int64(tri[1]) + n); indices.add(Int64(tri[2]) + n)
         }
     }
-    // 侧面（对照 Three.js sidewalls + f4：a=下层j, b=下层k, c=上层k, d=上层j）
+    // 侧面（对照 sidewalls + f4 的通行做法：a=下层j, b=下层k, c=上层k, d=上层j）
     // 四边形 (a,b,c,d) 剖分为 (a,b,d) + (b,c,d)
     for (i in 0..n) {
         let j = i
@@ -139,7 +137,7 @@ func _buildExtrude(g: ExtrudeGeometry, shape: Shape, options: HashMap<String, An
     g.setIndex(BufferAttribute(idxArr, 1))
     g.setAttribute("position", BufferAttribute(posArr, 3))
     g.setAttribute("uv", BufferAttribute(uvArr, 2))
-    // 法线：与 Three.js 原版一致，由 computeVertexNormals 按面 winding 自动计算
+    // 法线：与原版实现一致，由 computeVertexNormals 按面 winding 自动计算
     // （前盖 +Z / 后盖 -Z / 侧壁水平向外），不再手动写死。
     g.computeVertexNormals()
 }

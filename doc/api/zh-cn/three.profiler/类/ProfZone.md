@@ -71,6 +71,39 @@ public init(name: String, color: UInt32, file: String, line: UInt32)
 |file|String||
 |line|UInt32||
 
+### func init\(Int64,String,UInt32,String,UInt32,String\)
+```cj
+public init(key: Int64, name: String, color: UInt32, file: String, line: UInt32, function: String)
+```
+开始一个命名 zone（按键缓存源位置，宏路径使用）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|key|Int64|编译期常量源位置键|
+|name|String|zone 显示名|
+|color|UInt32|Tracy 颜色（0 = 默认）|
+|file|String|文件标识|
+|line|UInt32|行号|
+|function|String|函数名|
+
+### func init\(Int64,String,UInt32,String,UInt32\)
+```cj
+public init(key: Int64, name: String, color: UInt32, file: String, line: UInt32)
+```
+开始一个命名 zone（按键缓存源位置，无函数名版本）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|key|Int64||
+|name|String||
+|color|UInt32||
+|file|String||
+|line|UInt32||
+
 ### func isClosed\(\)
 ```cj
 public func isClosed(): Bool

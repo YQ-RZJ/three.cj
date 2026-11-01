@@ -22,14 +22,12 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] XRManager XR 管理器
- * @brief[zh-cn] 基于 OpenXR 的 XR 管理器，替代 Three.js 的 WebXRManager
+ * @brief[zh-cn] 基于 OpenXR 的 XR 管理器，替代浏览器内建的 WebXR 管理模块
  * @explain[zh-cn] 管理 XR 会话、视图矩阵、控制器跟踪。
- * 对照源码: three.js/src/renderers/webxr/WebXRManager.js
  *
  * @file[en] XRManager XR manager
- * @brief[en] OpenXR-based XR manager, replacing Three.js WebXRManager
+ * @brief[en] OpenXR-based XR manager, replacing the browser-native WebXR manager
  * @explain[en] Manages XR sessions, view matrices, and controller tracking.
- * Reference source: three.js/src/renderers/webxr/WebXRManager.js
  *
  * @package three.rendering.xr
  */
@@ -424,13 +422,12 @@ public class XRManager <: EventDispatcher {
      * @brief[en] Applies the XR camera world matrix to the user camera
      */
     private func updateUserCamera(camera: PerspectiveCamera, cameraXR: Camera, parent: Option<Object3D>): Unit {
-        match (parent) {
-            case None =>
-                camera.matrix.copy(cameraXR.matrixWorld)
-            case Some(p) =>
-                camera.matrix.copy(p.matrixWorld)
-                camera.matrix.invert()
-                camera.matrix.multiply(cameraXR.matrixWorld)
+        if (let Some(p) <- parent) {
+            camera.matrix.copy(p.matrixWorld)
+            camera.matrix.invert()
+            camera.matrix.multiply(cameraXR.matrixWorld)
+        } else {
+            camera.matrix.copy(cameraXR.matrixWorld)
         }
         camera.matrix.decompose(camera.position, camera.quaternion, camera.scale)
         camera.updateMatrixWorld(true)

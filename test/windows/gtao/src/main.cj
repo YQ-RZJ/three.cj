@@ -88,7 +88,7 @@ public class TestWindow <: WindowEngine {
         println("[4/5] 进入渲染循环（相机公转）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
 
-        // 对齐 Three.js EffectComposer 用法（对照官方 webgl_postprocessing_gtao.html）：
+        // 按后处理链的标准用法组织（对照官方 webgl_postprocessing_gtao.html）：
         //   const composer = new EffectComposer(renderer)
         //   composer.addPass(new RenderPass(scene, camera))
         //   const gtaoPass = new GTAOPass(scene, camera, width, height)

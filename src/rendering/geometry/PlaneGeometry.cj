@@ -25,13 +25,11 @@
  * @brief[zh-cn] 在 XY 平面上生成的矩形平面几何体
  * @explain[zh-cn] 
  * PlaneGeometry 继承自 BufferGeometry，在 XY 平面上生成矩形平面。
- * 对应 Three.js geometries/PlaneGeometry.js。
  *
  * @file[en] Plane Geometry
  * @brief[en] Rectangular plane geometry generated on the XY plane
  * @explain[en] 
  * PlaneGeometry extends BufferGeometry, generating a rectangular plane on the XY plane.
- * Corresponds to Three.js geometries/PlaneGeometry.js.
  */
 package three.rendering.geometry
 

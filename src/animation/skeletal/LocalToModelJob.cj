@@ -37,6 +37,8 @@ package three.animation.skeletal
 
 import three.core.math.soa.*
 import three.core.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 局部→模型空间转换 Job
@@ -115,10 +117,7 @@ public class LocalToModelJob {
      * @brief[en] Validates the inputs
      */
     public func validate(): Bool {
-        let s = match (this.skeleton) {
-            case Some(s) => s
-            case None => return false
-        }
+        let s = if (let Some(s) <- this.skeleton) { s } else { return false }
 
         let endJoint = if (this.to <= 0) { s.numJoints() } else { this.to }
         if (this.from < 0 || this.from >= s.numJoints()) { return false }
@@ -148,16 +147,16 @@ public class LocalToModelJob {
      *                  3. Multiplies by the parent joint's model-space matrix
      *                  4. Stores the result in the output array
      */
+    @Zone[three.animation.skeletal.LocalToModelJob.run, name=LocalToModelJob.run]
     public func run(): Bool {
-        let s = match (this.skeleton) {
-            case Some(s) => s
-            case None => return false
-        }
+        let s = if (let Some(s) <- this.skeleton) { s } else { return false }
 
         let numJoints = s.numJoints()
         let endJoint = if (this.to <= 0) { numJoints } else { this.to }
         let startJoint = if (this.fromExcluded) { this.from + 1 } else { this.from }
 
+        // 局部矩阵暂存：提到循环外复用（逐关节分配 Matrix4F 纯属浪费）
+        let localMatrix = Matrix4F()
         for (joint in startJoint..endJoint) {
             let soaIdx = joint / 4
             let slot = joint % 4
@@ -168,7 +167,6 @@ public class LocalToModelJob {
             let ls = this.input[soaIdx].getScale(slot)
 
             // 构建局部 4x4 矩阵（T * R * S）
-            let localMatrix = Matrix4F()
             localMatrix.compose(
                 lt.x, lt.y, lt.z,
                 lr.x, lr.y, lr.z, lr.w,
@@ -182,11 +180,10 @@ public class LocalToModelJob {
                 this.output[joint].multiplyMatrices(this.output[parentIdx], localMatrix)
             } else {
                 // 根关节：应用可选根矩阵
-                match (this.rootMatrix) {
-                    case Some(root) =>
-                        this.output[joint].multiplyMatrices(root, localMatrix)
-                    case None =>
-                        this.output[joint].copy(localMatrix)
+                if (let Some(root) <- this.rootMatrix) {
+                    this.output[joint].multiplyMatrices(root, localMatrix)
+                } else {
+                    this.output[joint].copy(localMatrix)
                 }
             }
         }

@@ -25,13 +25,11 @@
  * @brief[zh-cn] 圆环体（甜甜圈形）几何体
  * @explain[zh-cn] 
  * TorusGeometry 继承自 BufferGeometry，生成圆环体的顶点、法线、UV 和索引数据。
- * 对应 Three.js geometries/TorusGeometry.js。
  *
  * @file[en] Torus Geometry
  * @brief[en] Torus (donut-shaped) geometry
  * @explain[en] 
  * TorusGeometry extends BufferGeometry, generating vertex, normal, UV and index data for a torus.
- * Corresponds to Three.js geometries/TorusGeometry.js.
  */
 package three.rendering.geometry
 

@@ -128,7 +128,9 @@ public class UiText <: UiWidget {
      */
     public override func draw(): Bool {
         ensureCurrentContext()
-        ImGui_Text_cj(this._text)
+        let cs = unsafe { LibC.mallocCString(this._text) }
+        ImGui_Text_cj(cs)
+        unsafe { LibC.free(cs) }
         return false
     }
 
@@ -198,11 +200,12 @@ public class UiButton <: UiWidget {
      */
     public override func draw(): Bool {
         ensureCurrentContext()
-        let clicked = ImGui_Button_cj(this._label, Float32(this._size.x), Float32(this._size.y))
+        let csLabel = unsafe { LibC.mallocCString(this._label) }
+        let clicked = ImGui_Button_cj(csLabel, Float32(this._size.x), Float32(this._size.y))
+        unsafe { LibC.free(csLabel) }
         if (clicked) {
-            match (this._onClick) {
-                case Some(f) => f()
-                case None => ()
+            if (let Some(f) <- this._onClick) {
+                f()
             }
         }
         return clicked
@@ -254,11 +257,12 @@ public class UiSmallButton <: UiWidget {
      */
     public override func draw(): Bool {
         ensureCurrentContext()
-        let clicked = ImGui_SmallButton_cj(this._label)
+        let csLabel = unsafe { LibC.mallocCString(this._label) }
+        let clicked = ImGui_SmallButton_cj(csLabel)
+        unsafe { LibC.free(csLabel) }
         if (clicked) {
-            match (this._onClick) {
-                case Some(f) => f()
-                case None => ()
+            if (let Some(f) <- this._onClick) {
+                f()
             }
         }
         return clicked
@@ -304,7 +308,10 @@ public class UiCheckbox <: UiWidget {
      */
     public override func draw(): Bool {
         ensureCurrentContext()
-        return ImGui_Checkbox_cj(this._label, this._value.data())
+        let csLabel = unsafe { LibC.mallocCString(this._label) }
+        let r = ImGui_Checkbox_cj(csLabel, this._value.data())
+        unsafe { LibC.free(csLabel) }
+        return r
     }
 
     /**
@@ -937,9 +944,8 @@ public class UiTreeNode <: UiWidget {
         ensureCurrentContext()
         let opened = ImGui_TreeNode_Str_cj(this._label) != 0
         if (opened) {
-            match (this._content) {
-                case Some(f) => f()
-                case None => ()
+            if (let Some(f) <- this._content) {
+                f()
             }
             ImGui_TreePop_cj()
         }
@@ -997,9 +1003,8 @@ public class UiTreeNodeEx <: UiWidget {
         ensureCurrentContext()
         let opened = ImGui_TreeNodeEx_Str_cj(this._label, this._flags) != 0
         if (opened) {
-            match (this._content) {
-                case Some(f) => f()
-                case None => ()
+            if (let Some(f) <- this._content) {
+                f()
             }
             ImGui_TreePop_cj()
         }
@@ -1057,9 +1062,8 @@ public class UiCollapsingHeader <: UiWidget {
         ensureCurrentContext()
         let opened = ImGui_CollapsingHeader_TreeNodeFlags_cj(this._label, this._flags) != 0
         if (opened) {
-            match (this._content) {
-                case Some(f) => f()
-                case None => ()
+            if (let Some(f) <- this._content) {
+                f()
             }
         }
         return opened

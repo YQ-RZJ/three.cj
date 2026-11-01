@@ -134,17 +134,16 @@ public class SocketServer {
      * @return[en] Returns a wrapped SocketClient, or None when not bound or on error
      */
     public func accept(): Option<SocketClient> {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    let tcp = s.accept()
-                    // 由底层套接字包装客户端
-                    return Some(SocketClient._fromAccepted(tcp))
-                } catch (e: Exception) {
-                    return None
-                }
-            case None =>
+        if (let Some(s) <- this._socket) {
+            try {
+                let tcp = s.accept()
+                // 由底层套接字包装客户端
+                return Some(SocketClient._fromAccepted(tcp))
+            } catch (e: Exception) {
                 return None
+            }
+        } else {
+            return None
         }
     }
 
@@ -154,16 +153,14 @@ public class SocketServer {
      * @brief[en] Closes the server
      */
     public func close(): Unit {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    s.close()
-                } catch (_) {
-                    // 忽略关闭异常
-                }
-                this._socket = None
-                this._bound = false
-            case None => ()
+        if (let Some(s) <- this._socket) {
+            try {
+                s.close()
+            } catch (_) {
+                // 忽略关闭异常
+            }
+            this._socket = None
+            this._bound = false
         }
     }
 }

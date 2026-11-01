@@ -24,13 +24,13 @@
  * @file[zh-cn] 网格辅助对象
  * @brief[zh-cn] 网格辅助对象，用于在场景中显示二维网格线
  * @explain[zh-cn] 
- * 对应 Three.js helpers/GridHelper.js。网格线位于 XZ 平面，可设置尺寸和分割数。
+ * 网格线位于 XZ 平面，可设置尺寸和分割数。
  * 中心线使用 color1，其他线使用 color2。
  *
  * @file[en] Grid Helper
  * @brief[en] Grid helper for displaying a 2D grid in the scene
  * @explain[en] 
- * Corresponds to Three.js helpers/GridHelper.js. Grid lines are on the XZ plane,
+ * Grid lines are on the XZ plane,
  * with configurable size and divisions. Center lines use color1, other lines use color2.
  */
 package three.rendering.helpers

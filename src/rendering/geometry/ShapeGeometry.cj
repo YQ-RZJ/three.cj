@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * ShapeGeometry 继承自 BufferGeometry，取 shape 外形点 + holes，
  * 用 ShapeUtils.triangulateShape 三角化，顶点 z=0、法线 +Z。
- * 对应 Three.js geometries/ShapeGeometry.js。
  *
  * @file[en] Shape Geometry
  * @brief[en] Generates a plane mesh from a Shape (2D contour) via triangulation
  * @explain[en] 
  * ShapeGeometry extends BufferGeometry, taking shape outer contour points + holes,
  * triangulated using ShapeUtils.triangulateShape, with vertex z=0 and normal +Z.
- * Corresponds to Three.js geometries/ShapeGeometry.js.
  */
 package three.rendering.geometry
 
@@ -92,7 +90,7 @@ public class ShapeGeometry <: BufferGeometry {
             shapeHolesArr.add(hole2)
         }
 
-        // 统一缠绕方向：外形 CCW、洞 CW（与 Three.js 一致）
+        // 统一缠绕方向：外形 CCW、洞 CW（通用惯例）
         if (!ShapeUtils.isClockWise(sv)) { sv.reverse() }
         for (i in 0..shapeHolesArr.size) {
             let holeArr = shapeHolesArr[i].toArray()

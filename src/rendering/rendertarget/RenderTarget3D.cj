@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 3D 渲染目标
  * @brief[zh-cn] 继承 RenderTarget，用于 3D 纹理渲染目标
- * @explain[zh-cn] RenderTarget3D 是 RenderTarget 的 3D 版本，用于 3D 纹理的离屏渲染。在 bgfx 渲染后端中，3D 渲染目标对应 bgfx 的 3D texture handle。对照源码: Three.js RenderTarget3D.js
+ * @explain[zh-cn] RenderTarget3D 是 RenderTarget 的 3D 版本，用于 3D 纹理的离屏渲染。在 bgfx 渲染后端中，3D 渲染目标对应 bgfx 的 3D texture handle。
  *
  * @file[en] Render Target 3D
  * @brief[en] Extends RenderTarget, used for 3D texture render targets
- * @explain[en] RenderTarget3D is the 3D version of RenderTarget, used for off-screen rendering of 3D textures. In the bgfx rendering backend, 3D render targets correspond to bgfx's 3D texture handle. Reference: Three.js RenderTarget3D.js
+ * @explain[en] RenderTarget3D is the 3D version of RenderTarget, used for off-screen rendering of 3D textures. In the bgfx rendering backend, 3D render targets correspond to bgfx's 3D texture handle.
  */
 package three.rendering.rendertarget
 

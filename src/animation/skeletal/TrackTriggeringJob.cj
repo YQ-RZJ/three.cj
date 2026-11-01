@@ -151,10 +151,7 @@ public class TrackTriggeringJob {
      * @brief[en] Validates the inputs
      */
     public func validate(): Bool {
-        match (this.track) {
-            case Some(_) => true
-            case None => false
-        }
+        if (let Some(_) <- this.track) { true } else { false }
     }
 
     /**
@@ -175,10 +172,7 @@ public class TrackTriggeringJob {
      *                  4. Filters by risingOnly/fallingOnly
      */
     public func run(): Bool {
-        let track = match (this.track) {
-            case Some(t) => t
-            case None => return false
-        }
+        let track = if (let Some(t) <- this.track) { t } else { return false }
 
         this.events.clear()
 

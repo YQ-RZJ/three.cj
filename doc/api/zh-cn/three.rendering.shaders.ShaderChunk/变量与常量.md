@@ -335,7 +335,7 @@ vec3 BRDF_Lambert(vec3 diffuseColor)
     return diffuseColor * (1.0 / 3.14159);
 }
 
-// 环境 BRDF（对照 Three.js EnvironmentBRDF + DFGLUT）
+// 环境 BRDF 预积分（EnvironmentBRDF + DFGLUT）
 vec3 EnvironmentBRDF(vec3 specularColor, float roughness, float dotNV)
 {
     vec2 uv = vec2(roughness, dotNV);
@@ -343,7 +343,7 @@ vec3 EnvironmentBRDF(vec3 specularColor, float roughness, float dotNV)
     return specularColor * fab.x + vec3_splat(1.0) * fab.y;
 }
 
-// SH3 球谐辐照度（对照 Three.js getShIrradianceAt）
+// 球谐辐照度求值 getShIrradianceAt
 vec3 getShIrradianceAt(vec3 normal)
 {
     float x = normal.x, y = normal.y, z = normal.z;
@@ -366,23 +366,40 @@ vec3 getShIrradianceAt(vec3 normal)
     return result;
 }
 
-// 多散射补偿（参照 Three.js computeMultiscattering）
-void computeMultiscattering(vec3 normal, vec3 viewDir, vec3 specularColor, float specularF90, float roughness, inout vec3 singleScatter, inout vec3 multiScatter)
+// DFG 预积分近似（Karis/Unreal 移动端拟合，无需查表）
+vec2 DFGApprox(vec3 normal, vec3 viewDir, float roughness)
 {
     float dotNV = saturate(dot(normal, viewDir));
-    float x = 1.0 - dotNV;
-    float x5 = x * x * x * x * x;
+    vec4 c0 = vec4(-1.0, -0.0275, -0.572, 0.022);
+    vec4 c1 = vec4(1.0, 0.0425, 1.04, -0.04);
+    vec4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * dotNV)) * r.x + r.y;
+    vec2 fab = vec2(-1.04, 1.04) * a004 + r.zw;
+    return fab;
+}
+
+// 多散射能量补偿 computeMultiscattering
+//   由 DFG 预积分给出单散射能量 Ess 与多散射能量 Ems，粗糙度→0 时 fab→(1,0)（Ems→0，
+//   镜面无多散射补偿），粗糙度→1 时 Ems 显著（能量补偿生效）。
+//   此前实现忽略 roughness（Ess 恒为 0.6~1.0 区间的经验值），使光滑金属也叠加了一份
+//   "模糊环境辐照度 × multiScatter"，把清晰的镜面反射淹没 → 反射颜色/形状失真。
+void computeMultiscattering(vec3 normal, vec3 viewDir, vec3 specularColor, float specularF90, float roughness, inout vec3 singleScatter, inout vec3 multiScatter)
+{
+    vec2 fab = DFGApprox(normal, viewDir, roughness);
+
     vec3 Fr = specularColor;
-    vec3 FssEss = Fr * (1.0 - x5) + vec3_splat(specularF90) * x5;
-    float Ess = (1.0 - x5) * 0.6 + x5 * 0.4;
+    vec3 FssEss = Fr * fab.x + vec3_splat(specularF90) * fab.y;
+
+    float Ess = fab.x + fab.y;
     float Ems = 1.0 - Ess;
+
     vec3 Favg = Fr + (vec3_splat(1.0) - Fr) * 0.047619;
     vec3 Fms = FssEss * Favg / max(vec3_splat(1.0) - Ems * Favg, vec3_splat(0.001));
     singleScatter += FssEss;
     multiScatter += Fms * Ems;
 }
 
-// 法线贴图切线空间构建（参照 Three.js getTangentFrame）
+// 切线空间基构建 getTangentFrame
 mat3 getTangentFrame(vec3 viewDir, vec3 surfNorm, vec2 uv)
 {
     vec3 q0 = dFdx(viewDir);
@@ -782,23 +799,23 @@ public const common: String = #"
 #endif
 #define whiteComplement( a ) ( 1.0 - saturate( a ) )
 
-// three.js chunk 用 normal/position/uv 等属性名，但 bgfx $input 用 a_normal/a_position/a_texcoord0
+// 通用 chunk 用 normal/position/uv 等属性名，但 bgfx $input 用 a_normal/a_position/a_texcoord0
 #define normal a_normal
 #define position a_position
 #define uv a_texcoord0
 #define normalMatrix u_normalMatrix
 
-// three.js chunk 引用 modelViewMatrix/projectionMatrix/viewMatrix/modelMatrix 等标准 uniform 变量名
+// 通用 chunk 引用 modelViewMatrix/projectionMatrix/viewMatrix/modelMatrix 等标准 uniform 变量名
 // 映射到 bgfx scene 标准 uniform（由 ThreeRenderer 绑定到 u_view/u_proj/u_model[0] 等）
 // 注意：modelViewMatrix = viewMatrix * modelMatrix，无对应 bgfx 单独 uniform，用 u_viewProj 近似
 #define viewMatrix u_view
 #define projectionMatrix u_proj
 #define modelMatrix u_model[0]
-// three.js chunk body 用 camelCase vNormal/vTangent/vBitangent，但 $output 声明用 snake_case v_normal
+// 通用 chunk body 用 camelCase vNormal/vTangent/vBitangent，但 $output 声明用 snake_case v_normal
 #define vNormal v_normal
 #define vTangent v_tangent
 #define vBitangent v_bitangent
-// three.js chunk body 用 camelCase vUv/vMapUv/vMetalnessMapUv 等，但 $output 声明用 snake_case v_uv/v_mapUv/...
+// 通用 chunk body 用 camelCase vUv/vMapUv/vMetalnessMapUv 等，但 $output 声明用 snake_case v_uv/v_mapUv/...
 #define vUv v_uv
 #define vMapUv v_mapUv
 #define vAlphaMapUv v_alphaMapUv
@@ -823,7 +840,7 @@ public const common: String = #"
 #define vSpecularIntensityMapUv v_specularIntensityMapUv
 #define vTransmissionMapUv v_transmissionMapUv
 #define vThicknessMapUv v_thicknessMapUv
-// three.js uv_vertex 用 MAP_UV/METALNESSMAP_UV 等宏取基 UV；Three.js 由 WebGLProgram
+// uv_vertex 用 MAP_UV/METALNESSMAP_UV 等宏取基 UV；由 WebGLProgram
 // 按参数注入 #define MAP_UV vUv，此处统一映射到 vUv（vUv 已映射到 v_uv）
 #define MAP_UV vUv
 #define ALPHAMAP_UV vUv
@@ -854,7 +871,7 @@ public const common: String = #"
 #define vViewPosition v_viewPos
 #define isOrthographic false
 
-// three.js envmap_fragment/light 等 chunk 引用 cameraPosition，shell 对应 u_cameraPos
+// envmap_fragment/light 等 chunk 引用 cameraPosition，shell 对应 u_cameraPos
 #define cameraPosition u_cameraPos
 
 float pow2( const in float x ) { return x*x; }
@@ -976,12 +993,7 @@ common GLSL 片段字符串
 public const cube_uv_reflection_fragment: String = #"
 #ifdef ENVMAP_TYPE_CUBE_UV
 
-	#define cubeUV_minMipLevel 4.0
-	#define cubeUV_minTileSize 16.0
-
-	// These shader functions convert between the UV coordinates of a single face of
-	// a cubemap, the 0-5 integer index of a cube face, and the direction vector for
-	// sampling a textureCube (not generally normalized ).
+	// 这些函数在"立方体单面 UV 坐标 / 0-5 面索引 / 方向向量"之间转换。
 
 	float getFace( vec3 direction ) {
 
@@ -1015,7 +1027,7 @@ public const cube_uv_reflection_fragment: String = #"
 
 	}
 
-	// RH coordinate system; PMREM face-indexing convention
+	// 面内 UV（0-1 范围）
 	vec2 getUV( vec3 direction, float face ) {
 
 		vec2 uv;
@@ -1050,110 +1062,64 @@ public const cube_uv_reflection_fragment: String = #"
 
 	}
 
-	vec3 bilinearCubeUV( sampler2D envMap, vec3 direction, float mipInt ) {
+	// 采样某一 mip 层级（level：0=256px 面，1=128，2=64，3=32，4=16）
+	// 直接引用全局 u_envMap（envmap_common_pars_fragment 声明），避免把 sampler 作为函数参数
+	// 传递（HLSL 下 sampler 参数经 glslang 翻译易出错）。
+	vec3 sampleCubeUVLevel( vec3 direction, float level ) {
 
 		float face = getFace( direction );
 
-		float filterInt = max( cubeUV_minMipLevel - mipInt, 0.0 );
+		// faceSize = 256 / 2^level
+		float faceSize = 256.0 / exp2( level );
 
-		mipInt = max( mipInt, cubeUV_minMipLevel );
+		// 面内像素坐标（中心对齐）
+		vec2 uv = getUV( direction, face ) * ( faceSize - 1.0 ) + 0.5;
 
-		float faceSize = exp2( mipInt );
+		float row = face >= 3.0 ? 1.0 : 0.0;
+		float col = face - row * 3.0;
 
-		highp vec2 uv = getUV( direction, face ) * ( faceSize - 2.0 ) + 1.0; // #25071
+		// 各层 y 偏移（与生成器一致）
+		float yOffset = 0.0;
+		if ( level > 3.5 ) {
 
-		if ( face > 2.0 ) {
+			yOffset = 960.0;
 
-			uv.y += faceSize;
+		} else if ( level > 2.5 ) {
 
-			face -= 3.0;
+			yOffset = 896.0;
+
+		} else if ( level > 1.5 ) {
+
+			yOffset = 768.0;
+
+		} else if ( level > 0.5 ) {
+
+			yOffset = 512.0;
 
 		}
 
-		uv.x += face * faceSize;
+		uv.x += col * faceSize;
+		uv.y += row * faceSize + yOffset;
 
-		uv.x += filterInt * 3.0 * cubeUV_minTileSize;
+		uv /= vec2( 768.0, 992.0 );
 
-		uv.y += 4.0 * ( exp2( CUBEUV_MAX_MIP ) - faceSize );
-
-		uv.x *= CUBEUV_TEXEL_WIDTH;
-		uv.y *= CUBEUV_TEXEL_HEIGHT;
-
-		#ifdef texture2DGradEXT
-
-			return texture2DGradEXT( envMap, uv, vec2( 0.0 ), vec2( 0.0 ) ).rgb; // disable anisotropic filtering
-
-		#else
-
-			return texture2D( envMap, uv ).rgb;
-
-		#endif
+		return texture2D( u_envMap, uv ).rgb;
 
 	}
 
-	// These defines must match with PMREMGenerator
+	// roughness(0-1) → CubeUV 层级（0=最清晰，4=最模糊），并在相邻层级间线性插值
+	vec3 textureCubeUV( vec3 direction, float roughness ) {
 
-	#define cubeUV_r0 1.0
-	#define cubeUV_m0 - 2.0
-	#define cubeUV_r1 0.8
-	#define cubeUV_m1 - 1.0
-	#define cubeUV_r4 0.4
-	#define cubeUV_m4 2.0
-	#define cubeUV_r5 0.305
-	#define cubeUV_m5 3.0
-	#define cubeUV_r6 0.21
-	#define cubeUV_m6 4.0
+		float m = clamp( roughness, 0.0, 1.0 ) * 4.0;
 
-	float roughnessToMip( float roughness ) {
+		float l0 = floor( m );
+		float l1 = min( l0 + 1.0, 4.0 );
+		float f = m - l0;
 
-		float mip = 0.0;
+		vec3 color0 = sampleCubeUVLevel( direction, l0 );
+		vec3 color1 = sampleCubeUVLevel( direction, l1 );
 
-		if ( roughness >= cubeUV_r1 ) {
-
-			mip = ( cubeUV_r0 - roughness ) * ( cubeUV_m1 - cubeUV_m0 ) / ( cubeUV_r0 - cubeUV_r1 ) + cubeUV_m0;
-
-		} else if ( roughness >= cubeUV_r4 ) {
-
-			mip = ( cubeUV_r1 - roughness ) * ( cubeUV_m4 - cubeUV_m1 ) / ( cubeUV_r1 - cubeUV_r4 ) + cubeUV_m1;
-
-		} else if ( roughness >= cubeUV_r5 ) {
-
-			mip = ( cubeUV_r4 - roughness ) * ( cubeUV_m5 - cubeUV_m4 ) / ( cubeUV_r4 - cubeUV_r5 ) + cubeUV_m4;
-
-		} else if ( roughness >= cubeUV_r6 ) {
-
-			mip = ( cubeUV_r5 - roughness ) * ( cubeUV_m6 - cubeUV_m5 ) / ( cubeUV_r5 - cubeUV_r6 ) + cubeUV_m5;
-
-		} else {
-
-			mip = - 2.0 * log2( 1.16 * roughness ); // 1.16 = 1.79^0.25
-		}
-
-		return mip;
-
-	}
-
-	vec4 textureCubeUV( sampler2D envMap, vec3 sampleDir, float roughness ) {
-
-		float mip = clamp( roughnessToMip( roughness ), cubeUV_m0, CUBEUV_MAX_MIP );
-
-		float mipF = fract( mip );
-
-		float mipInt = floor( mip );
-
-		vec3 color0 = bilinearCubeUV( envMap, sampleDir, mipInt );
-
-		if ( mipF == 0.0 ) {
-
-			return vec4( color0, 1.0 );
-
-		} else {
-
-			vec3 color1 = bilinearCubeUV( envMap, sampleDir, mipInt + 1.0 );
-
-			return vec4( mix( color0, color1, mipF ), 1.0 );
-
-		}
+		return mix( color0, color1, f );
 
 	}
 
@@ -1162,6 +1128,12 @@ public const cube_uv_reflection_fragment: String = #"
 ```
 cube_uv_reflection_fragment GLSL 片段字符串
 
+★CubeUV 图集布局（与 PMREMGenerator 的常量一一对应，改动必须两边同步）：
+- 共 5 个 mip 层级，面尺寸 faceSize = 256 / 128 / 64 / 32 / 16（level 0 最清晰）；
+- 每层平面为 3 列 × 2 行 的 faceSize 方块（face 0,1,2 → 第 0 行；face 3,4,5 → 第 1 行）；
+- 各层自上而下堆叠，y 偏移依次为 0 / 512 / 768 / 896 / 960；
+- 图集总尺寸 768 × 992；
+- 单像素采样点为 texel 中心（uv * (faceSize - 1) + 0.5），配合 ClampToEdge + LinearFilter。
 使用仓颉三引号多行字符串语法 `"""..."""`。
 
 ## const default\_fragment
@@ -1223,13 +1195,13 @@ vec3 transformedNormal = objectNormal;
 	// non-uniform scaling in the instance matrix is supported
 	// shear transforms are not supported
 
-	mat3 im = mat3( instanceMatrix );
-	transformedNormal /= vec3( dot( im[ 0 ], im[ 0 ] ), dot( im[ 1 ], im[ 1 ] ), dot( im[ 2 ], im[ 2 ] ) );
-	transformedNormal = im * transformedNormal;
+	// i_data0..2 即实例矩阵的上 3x3 三列（原 im[0..2]），逐列长度平方做非均匀缩放补偿
+	transformedNormal /= vec3( dot( i_data0.xyz, i_data0.xyz ), dot( i_data1.xyz, i_data1.xyz ), dot( i_data2.xyz, i_data2.xyz ) );
+	transformedNormal = bgfxApplyInstanceMatrix( vec4( transformedNormal, 0.0 ) ).xyz;
 
 	#ifdef USE_TANGENT
 
-		transformedTangent = im * transformedTangent;
+		transformedTangent = bgfxApplyInstanceMatrix( vec4( transformedTangent, 0.0 ) ).xyz;
 
 	#endif
 
@@ -1376,14 +1348,12 @@ encodings_pars_fragment GLSL 片段字符串
 public const envmap_common_pars_fragment: String = #"
 #ifdef USE_ENVMAP
 
-	uniform float envMapIntensity;
-	uniform mat3 envMapRotation;
+	// 环境贴图强度（bgfx vec4 uniform，取 .x；= Material.envMapIntensity × Scene.environmentIntensity）
+	uniform vec4 u_envMapIntensity;
 
-	#ifdef ENVMAP_TYPE_CUBE
-		uniform samplerCube envMap;
-	#else
-		uniform sampler2D envMap;
-	#endif
+	// PMREM CubeUV 环境贴图（sampler2D，ENVMAP_TYPE_CUBE_UV 路径）
+	// 必须用 bgfx 的 SAMPLER2D 宏声明，stage 由 __STAGE_ENV_MAP__ 占位符注入。
+	SAMPLER2D( u_envMap, __STAGE_ENV_MAP__ );
 
 #endif
 "#
@@ -1518,15 +1488,16 @@ public const envmap_physical_pars_fragment: String = #"
 
 		#ifdef ENVMAP_TYPE_CUBE_UV
 
-			vec3 worldNormal = transformNormalByInverseViewMatrix( normal, viewMatrix );
+			// ★本引擎约定：vNormal 已是世界空间（u_normalMatrix = 物体世界矩阵 3x3，
+			// 光源 uniform 也是世界空间），故直接用世界法线采样环境贴图，不可再做
+			// 逆视图变换（否则会随相机旋转而错位，反射与天空盒对不上）。
+			vec3 envMapColor = textureCubeUV( normal, 1.0 );
 
-			vec4 envMapColor = textureCubeUV( envMap, envMapRotation * worldNormal, 1.0 );
-
-			return PI * envMapColor.rgb * envMapIntensity;
+			return PI * envMapColor * u_envMapIntensity.x;
 
 		#else
 
-			return vec3(0.0, 0.0, 0.0);
+			return vec3( 0.0, 0.0, 0.0 );
 
 		#endif
 
@@ -1536,20 +1507,22 @@ public const envmap_physical_pars_fragment: String = #"
 
 		#ifdef ENVMAP_TYPE_CUBE_UV
 
+			// ★本引擎约定：geometryNormal 与 geometryViewDir 均为世界空间
+			// （见 lights_fragment_begin：geometryViewDir = normalize(u_cameraPos - v_worldPos)，
+			//   法线由 u_normalMatrix（世界模型矩阵）变换得到），环境贴图也在世界空间，
+			//   故直接求反射方向，绝不可再做视图空间↔世界空间变换。
 			vec3 reflectVec = reflect( - viewDir, normal );
 
 			// Mixing the reflection with the normal is more accurate and keeps rough objects from gathering light from behind their tangent plane.
 			reflectVec = normalize( mix( reflectVec, normal, pow4( roughness ) ) );
 
-			reflectVec = transformDirectionByInverseViewMatrix( reflectVec, viewMatrix );
+			vec3 envMapColor = textureCubeUV( reflectVec, roughness );
 
-			vec4 envMapColor = textureCubeUV( envMap, envMapRotation * reflectVec, roughness );
-
-			return envMapColor.rgb * envMapIntensity;
+			return envMapColor * u_envMapIntensity.x;
 
 		#else
 
-			return vec3(0.0, 0.0, 0.0);
+			return vec3( 0.0, 0.0, 0.0 );
 
 		#endif
 
@@ -1561,7 +1534,7 @@ public const envmap_physical_pars_fragment: String = #"
 
 			#ifdef ENVMAP_TYPE_CUBE_UV
 
-			  // https://google.github.io/filament/Filament.md.html#lighting/imagebasedlights/anisotropy
+				// https://google.github.io/filament/Filament.md.html#lighting/imagebasedlights/anisotropy
 				vec3 bentNormal = cross( bitangent, viewDir );
 				bentNormal = normalize( cross( bentNormal, bitangent ) );
 				bentNormal = normalize( mix( bentNormal, normal, pow2( pow2( 1.0 - anisotropy * ( 1.0 - roughness ) ) ) ) );
@@ -1570,7 +1543,7 @@ public const envmap_physical_pars_fragment: String = #"
 
 			#else
 
-				return vec3(0.0, 0.0, 0.0);
+				return vec3( 0.0, 0.0, 0.0 );
 
 			#endif
 
@@ -2003,13 +1976,13 @@ public const lights_fragment_begin: String = #"
  * - Create a material parameter that is to be passed as the third parameter to your lighting functions.
  *
  * TODO:
- * Ignore: JS 原文 TODO（area light / sphere light / diffuse light probe 支持），属 three.js 上游未实现项。
+ * Ignore: JS 原文 TODO（area light / sphere light / diffuse light probe 支持），属上游未实现项。
  * - Add area light support.
  * - Add sphere light support.
  * - Add diffuse light probe (irradiance cubemap) support.
  */
 
-// bgfx4cj: 使用世界空间坐标（v_worldPos）替代 Three.js 的视图空间（-vViewPosition）
+// bgfx4cj: 使用世界空间坐标（v_worldPos）替代上游实现的视图空间（-vViewPosition）
 // 因为渲染器传递的光源数据是世界空间坐标，而非视图空间
 vec3 geometryPosition = v_worldPos;
 vec3 geometryNormal = v_normal;
@@ -2856,7 +2829,7 @@ lights_physical_fragment GLSL 片段字符串
 ```cj
 public const lights_physical_pars_fragment: String = #"
 
-// 环境 BRDF LUT（对照 three.js lights_physical_pars_fragment 的 dfgLUT；
+// 环境 BRDF LUT（对照参考实现 lights_physical_pars_fragment 的 dfgLUT；
 // 用 bgfx SAMPLER 宏声明：GLSL 分支展开为 uniform sampler2D，
 // HLSL 分支展开为 SamplerState+Texture2D+static BgfxSampler2D，避免裸 sampler2D 在 HLSL 下 type mismatch）
 SAMPLER2D(dfgLUT, __STAGE_DFGLUT__);
@@ -4258,7 +4231,7 @@ vec4 mvPosition = vec4( transformed, 1.0 );
 
 #ifdef USE_INSTANCING
 
-	mvPosition = instanceMatrix * mvPosition;
+	mvPosition = bgfxApplyInstanceMatrix( mvPosition );
 
 #endif
 
@@ -5029,7 +5002,7 @@ public const shadowmap_pars_fragment: String = #"
 
 	#if NUM_DIR_LIGHT_SHADOWS > 0
 
-		// bgfx4cj: 数组化方向光阴影 sampler（对齐 Three.js directionalShadowMap[NUM_DIR_LIGHT_SHADOWS]）
+		// bgfx4cj: 数组化方向光阴影 sampler（对齐参考实现 directionalShadowMap[NUM_DIR_LIGHT_SHADOWS]）
 		// bgfx 数组 sampler 通过 setTexture(stage+i, uniform, tex) 逐个绑定连续寄存器
 		// ★类型按 SHADOWMAP_TYPE 区分（对照参考版 SAMPLER2DSHADOW/SAMPLER2D 分支）：
 		//   - PCF：sampler2DShadow（shadow2D 硬件比较采样）
@@ -5047,7 +5020,7 @@ public const shadowmap_pars_fragment: String = #"
  // 声明在所有 #if NUM_XXX_LIGHT_SHADOWS 之外，确保任何类型启用阴影时均可访问。
  uniform vec4 shadowParams;   // x=intensity, y=bias(保留备用), z=normalBias(保留备用), w=radius
  uniform vec4 shadowMapSize;  // x=width, y=height
- // per-light 独立 bias/normalBias（对齐 three.js：每个 light.shadow.bias/normalBias 独立）：
+ // per-light 独立 bias/normalBias（对齐参考实现：每个 light.shadow.bias/normalBias 独立）：
  // 方向光/聚光阴影沿投影深度方向偏移，过大 bias 导致盒子内壁棱线处阴影错位（接缝缝隙），
  // 抗 acne 主要靠 normalBias（沿世界法线偏移 shadowWorldPosition，棱线处连续，不产生接缝）；
  // 点光源自阴影（acne）在 fragment 端 dp += bias，需要更大负 bias。
@@ -5064,7 +5037,7 @@ public const shadowmap_pars_fragment: String = #"
 
 	#if NUM_SPOT_LIGHT_SHADOWS > 0
 
-		// bgfx4cj: 数组化聚光灯阴影 sampler（对齐 Three.js spotShadowMap[NUM_SPOT_LIGHT_SHADOWS]）
+		// bgfx4cj: 数组化聚光灯阴影 sampler（对齐参考实现 spotShadowMap[NUM_SPOT_LIGHT_SHADOWS]）
 		uniform sampler2DShadow spotShadowMap[ NUM_SPOT_LIGHT_SHADOWS ];
 
 		// bgfx4cj: spot 阴影暂用 shadowParams/shadowMapSize 全局参数
@@ -5073,7 +5046,7 @@ public const shadowmap_pars_fragment: String = #"
 
 	#if NUM_POINT_LIGHT_SHADOWS > 0
 
-	 // bgfx4cj: 数组化点光源阴影 cube sampler（对齐 Three.js pointShadowMap[NUM_POINT_LIGHT_SHADOWS]）
+	 // bgfx4cj: 数组化点光源阴影 cube sampler（对齐参考实现 pointShadowMap[NUM_POINT_LIGHT_SHADOWS]）
 	 uniform samplerCubeShadow pointShadowMap[ NUM_POINT_LIGHT_SHADOWS ];
 
 		// bgfx4cj: point 阴影采样的光源世界坐标数组（fragment 端算 worldPos - lightPos[i] 用）
@@ -5337,7 +5310,7 @@ public const shadowmap_pars_vertex: String = #"
 
 #if NUM_SPOT_LIGHT_COORDS > 0
 
-	// bgfx4cj: spot 阴影矩阵数组化（对齐 Three.js mat4 spotLightMatrix[NUM_SPOT_LIGHT_COORDS]），
+	// bgfx4cj: spot 阴影矩阵数组化（对齐参考实现 mat4 spotLightMatrix[NUM_SPOT_LIGHT_COORDS]），
 	// 每个带阴影的 spot 光源一份 bias × lightViewProj。
 	// varying vSpotLightCoord[] 由 ShaderLibs.cj 头部 $output/$input 声明（bgfx 不支持 chunk 内 varying 关键字）
 	uniform mat4 spotLightMatrix[ NUM_SPOT_LIGHT_COORDS ];
@@ -5373,7 +5346,7 @@ public const shadowmap_pars_vertex: String = #"
 
 	#if NUM_SPOT_LIGHT_SHADOWS > 0
 
-		// bgfx4cj: spot 阴影矩阵声明在 NUM_SPOT_LIGHT_COORDS > 0 域（见上方），此处保留占位以对齐 three.js 原结构
+		// bgfx4cj: spot 阴影矩阵声明在 NUM_SPOT_LIGHT_COORDS > 0 域（见上方），此处保留占位以对齐原结构
 
 	#endif
 
@@ -5383,7 +5356,7 @@ public const shadowmap_pars_vertex: String = #"
 	#if NUM_RECT_AREA_LIGHTS > 0
 
 		// TODO (abelnation): uniforms for area light shadows
-		// Ignore: JS 原文 TODO（area light shadows），属 three.js 上游未实现项。
+		// Ignore: JS 原文 TODO（area light shadows），属上游未实现项。
 
 	#endif
 	*/
@@ -5422,7 +5395,7 @@ public const shadowmap_vertex: String = #"
   #if NUM_DIR_LIGHT_SHADOWS > 0
 
    // bgfx4cj: 方向光阴影坐标（varying 单实例，用 directionalShadowMatrix 数组的第 0 个矩阵）。
-   // normalBias 用 per-light 数组 u_dirShadowParams[0].y（对齐 three.js：每光源独立 shadowNormalBias）。
+   // normalBias 用 per-light 数组 u_dirShadowParams[0].y（对齐参考实现：每光源独立 shadowNormalBias）。
    // 法线偏移沿世界法线方向，棱线处相邻面自然连续，不产生接缝缝隙（depth bias 才造成接缝）。
    shadowWorldPosition = worldPosition + vec4( shadowWorldNormal * u_dirShadowParams[0].y, 0 );
    vDirectionalShadowCoord = mul(directionalShadowMatrix[0], shadowWorldPosition);
@@ -5433,7 +5406,7 @@ public const shadowmap_vertex: String = #"
 	#if NUM_RECT_AREA_LIGHTS > 0
 
 		// TODO (abelnation): update vAreaShadowCoord with area light info
-		// Ignore: JS 原文 TODO（area light shadow coord），属 three.js 上游未实现项。
+		// Ignore: JS 原文 TODO（area light shadow coord），属上游未实现项。
 
 	#endif
 	*/
@@ -5522,7 +5495,7 @@ float getShadowMask() {
 	#if NUM_RECT_AREA_LIGHTS > 0
 
 		// TODO (abelnation): update shadow for Area light
-		// Ignore: JS 原文 TODO（area light shadow），属 three.js 上游未实现项。
+		// Ignore: JS 原文 TODO（area light shadow），属上游未实现项。
 
 	#endif
 	*/
@@ -6329,7 +6302,7 @@ public const uv_vertex: String = #"
 #endif
 #ifdef USE_MAP
 
-	// 对照 three.js uv_vertex：vMapUv = (mapTransform * vec3(uv,1)).xy。
+	// 对照参考实现 uv_vertex：vMapUv = (mapTransform * vec3(uv,1)).xy。
 	// bgfx4cj 修复：默认 mapTransform 为单位矩阵（无 offset/repeat/rotation 时），
 	// 直接 vMapUv = MAP_UV 等价且规避 Mat3 uniform 在 HLSL 转译下可能未生效
 	// （0 矩阵 → v_mapUv 恒 0 → 采样 (0,0) → 纹理显示为左上角单像素颜色）。
@@ -6467,7 +6440,7 @@ public const worldpos_vertex: String = #"
 
 	#ifdef USE_INSTANCING
 
-		worldPosition = instanceMatrix * worldPosition;
+		worldPosition = bgfxApplyInstanceMatrix( worldPosition );
 
 	#endif
 

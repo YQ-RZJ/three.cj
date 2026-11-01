@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 存储纹理
  * @brief[zh-cn] 存储纹理类，用于 GPU 计算/存储的纹理资源
- * @explain[zh-cn] StorageTexture 继承自 DataMap，表示可在计算着色器中读写的纹理存储资源。对照源码: three.js/src/renderers/common/StorageTexture.js
+ * @explain[zh-cn] StorageTexture 继承自 DataMap，表示可在计算着色器中读写的纹理存储资源。
  *
  * @file[en] Storage Texture
  * @brief[en] Storage texture class, used for GPU compute/storage texture resources
- * @explain[en] StorageTexture extends DataMap, representing a texture storage resource that can be read and written in compute shaders. Reference: three.js/src/renderers/common/StorageTexture.js
+ * @explain[en] StorageTexture extends DataMap, representing a texture storage resource that can be read and written in compute shaders.
  */
 package three.rendering.common
 

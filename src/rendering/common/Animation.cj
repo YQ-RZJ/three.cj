@@ -24,13 +24,13 @@
  * @file[zh-cn] 动画
  * @brief[zh-cn] 渲染通用动画类，管理动画回调与帧更新
  * @explain[zh-cn] 
- * Animation 封装了动画循环的回调机制，对应 Three.js 渲染器中的 Animation 调度模块。
+ * Animation 封装了动画循环的回调机制，对应渲染引擎中的 Animation 调度模块。
  * 通过 setAnimationLoop 注册回调函数，由渲染器每帧调用 update 驱动动画。
  *
  * @file[en] Animation
  * @brief[en] Rendering common animation class, managing animation callbacks and frame updates
  * @explain[en] 
- * Animation encapsulates the callback mechanism for animation loops, corresponding to the Animation scheduling module in the Three.js renderer.
+ * Animation encapsulates the callback mechanism for animation loops, corresponding to the Animation scheduling module in the renderer.
  * Register a callback via setAnimationLoop, and the renderer calls update each frame to drive the animation.
  */
 package three.rendering.common

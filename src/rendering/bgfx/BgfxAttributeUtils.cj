@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 顶点属性工具
  * @brief[zh-cn] 对照 WebGLAttributeUtils.js，使用 VertexLayout API 配置顶点属性
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLAttributeUtils.js。提供顶点布局创建、步长计算、属性解码/编码/焊接/拓扑转换等 CPU 侧工具函数。
+ * @explain[zh-cn] 提供顶点布局创建、步长计算、属性解码/编码/焊接/拓扑转换等 CPU 侧工具函数。
  *
  * @file[en] bgfx Vertex Attribute Utilities
  * @brief[en] Configure vertex attributes using VertexLayout API, mirroring WebGLAttributeUtils.js
- * @explain[en] Mirrors three.js/src/renderers/webgl/WebGLAttributeUtils.js. Provides vertex layout creation, stride computation, attribute decode/encode/weld/topology conversion and other CPU-side utility functions.
+ * @explain[en] Provides vertex layout creation, stride computation, attribute decode/encode/weld/topology conversion and other CPU-side utility functions.
  */
 package three.rendering.bgfx
 

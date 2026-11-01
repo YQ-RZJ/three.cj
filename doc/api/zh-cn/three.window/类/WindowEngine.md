@@ -871,6 +871,18 @@ public prop closeRequested: Bool
 ```
 用户是否请求关闭窗口（读快照——固定）
 
+### prop elapsedTime: Float64
+```cj
+public prop elapsedTime: Float64
+```
+累计运行秒数（自窗口泵循环开始，逐帧 += frameDeltaTime）
+
+### prop frameDeltaTime: Float64
+```cj
+public prop frameDeltaTime: Float64
+```
+距上一循环的秒数（本帧真实帧间隔 dt）
+
 ### prop gui: Option < UiContext >
 ```cj
 public prop gui: Option < UiContext >
@@ -882,4 +894,10 @@ public prop gui: Option < UiContext >
 public prop initialized: Bool
 ```
 窗口是否已初始化
+
+### prop targetFrameRate: Float64
+```cj
+public mut prop targetFrameRate: Float64
+```
+目标帧率上限（帧/秒；0 = 不限速）
 

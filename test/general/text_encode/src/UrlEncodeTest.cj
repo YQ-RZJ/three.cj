@@ -2,7 +2,7 @@
  * @file UrlEncodeTest
  * @brief URL 查询串/百分号编码正确性测试（stdx Form 驱动版）
  *
- * 对照: three.js URLSearchParams / Node.js querystring 语义
+ * 对照: URLSearchParams / Node.js querystring 语义
  * 覆盖：
  * - encodeQuery：空格→'+'、未保留字符不编码、多键值对
  * - decodeQuery：'&'/'=' 拆分、'+'→空格、%XX 解码、前导 '?' 容忍

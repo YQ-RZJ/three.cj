@@ -81,6 +81,12 @@ Parameter:
 |index|Int64||
 |influences|Array<Float64>||
 
+### func getWorldBoundingSphere\(\)
+```cj
+public override func getWorldBoundingSphere(): Option < Array < Float64 >>
+```
+World bounding sphere for frustum culling (overrides base implementation)
+
 ### func init\(BufferGeometry,Material,Int64\)
 ```cj
 public init(geometry!: BufferGeometry = BufferGeometry(), material!: Material = Material(), count!: Int64 = 0)

@@ -2,7 +2,7 @@
  * @file ParticleBehaviorTest
  * @brief 粒子对象（Points/Sprite）行为单元测试
  *
- * 对照 JS: three.js test/unit/src/objects/Points.tests.js、Sprite.tests.js
+ * 对照 JS: 上游库 test/unit/src/objects/Points.tests.js、Sprite.tests.js
  * 覆盖：
  * - Points: kind/geometry/material 默认值、copy/clone（几何与材质独立克隆）、
  *   updateMorphTargets（morphTargetDictionary/influences 填充）、

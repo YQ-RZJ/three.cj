@@ -22,12 +22,12 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] bgfx 工具函数
- * @brief[zh-cn] 替代 WebGLUtils，提供 three.js 常量到 bgfx 格式的转换
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLUtils.js。在 WebGL 中需要将 three.js 的像素格式/类型转换为 WebGL 常量，在 bgfx 中使用 TextureFormat 枚举替代。
+ * @brief[zh-cn] 替代 WebGLUtils，提供引擎渲染常量到 bgfx 格式的转换
+ * @explain[zh-cn] 在 WebGL 中需要将引擎的像素格式/类型转换为 WebGL 常量，在 bgfx 中使用 TextureFormat 枚举替代。
  *
  * @file[en] bgfx Utility Functions
- * @brief[en] Replaces WebGLUtils, provides three.js constant to bgfx format conversion
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLUtils.js. In WebGL, three.js pixel formats/types need conversion to WebGL constants; in bgfx, TextureFormat enum is used instead.
+ * @brief[en] Replaces WebGLUtils, provides engine constant to bgfx format conversion
+ * @explain[en] In WebGL, engine pixel formats/types need conversion to WebGL constants; in bgfx, TextureFormat enum is used instead.
  */
 package three.rendering.bgfx
 
@@ -36,23 +36,23 @@ import bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 工具类，提供格式转换和能力查询
- * @explain[zh-cn] 对照 WebGLUtils，将 three.js 的像素格式和类型转换为 bgfx 的 TextureFormat。bgfx 内部处理跨平台差异，不需要像 WebGL 那样查询扩展
+ * @explain[zh-cn] 对照 WebGLUtils，将引擎的像素格式和类型转换为 bgfx 的 TextureFormat。bgfx 内部处理跨平台差异，不需要像 WebGL 那样查询扩展
  *
  * @brief[en] bgfx utility class providing format conversion and capability queries
- * @explain[en] Corresponds to WebGLUtils, converts three.js pixel formats and types to bgfx TextureFormat. bgfx handles cross-platform differences internally, no need to query extensions like WebGL
+ * @explain[en] Corresponds to WebGLUtils, converts engine pixel formats and types to bgfx TextureFormat. bgfx handles cross-platform differences internally, no need to query extensions like WebGL
  */
 public class BgfxUtils {
 
     /**
-     * @brief[zh-cn] 将 three.js 像素格式转换为 bgfx TextureFormat
+     * @brief[zh-cn] 将引擎像素格式转换为 bgfx TextureFormat
      * @explain[zh-cn] 对照 WebGLUtils.convert()，bgfx 使用统一的纹理格式枚举，不需要像 WebGL 那样查询扩展支持
-     * @param[zh-cn] format three.js 像素格式常量
+     * @param[zh-cn] format 引擎像素格式常量
      * colorSpace 颜色空间（用于确定 sRGB 变体）
      * @return[zh-cn] bgfx TextureFormat 值，不支持时返回 None
      *
-     * @brief[en] Convert three.js pixel format to bgfx TextureFormat
+     * @brief[en] Convert engine pixel format to bgfx TextureFormat
      * @explain[en] Corresponds to WebGLUtils.convert(). bgfx uses unified texture format enum, no need to query extension support like WebGL
-     * @param[en] format three.js pixel format constant
+     * @param[en] format engine pixel format constant
      * colorSpace Color space (used to determine sRGB variant)
      * @return[en] bgfx TextureFormat value, returns None when unsupported
      */
@@ -132,11 +132,11 @@ public class BgfxUtils {
     }
 
     /**
-     * @brief[zh-cn] 将 three.js 绘制模式转换为 bgfx 图元类型
+     * @brief[zh-cn] 将引擎绘制模式转换为 bgfx 图元类型
      * @param[zh-cn] mode 绘制模式常量
      * @return[zh-cn] bgfx 图元类型标志位
      *
-     * @brief[en] Convert three.js draw mode to bgfx primitive type
+     * @brief[en] Convert engine draw mode to bgfx primitive type
      * @param[en] mode Draw mode constant
      * @return[en] bgfx primitive type flag
      */

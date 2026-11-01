@@ -125,7 +125,7 @@ public enum LogLevel {
     }
 }
 
-// Three.js 风格日志前缀
+// 引擎风格日志前缀
 private let LOG_PREFIX: String = "THREE."
 
 // 全局日志等级（默认 Trace）
@@ -212,9 +212,10 @@ public class Logger {
     public static func trace(params: Array<String>): Unit {
         if (_logLevel.value() > LogLevel.Trace.value()) { return }
         var msg = buildMsg(params)
-        match (_consoleFn) {
-            case Some(fn) => fn("trace", msg)
-            case None => println(msg)
+        if (let Some(fn) <- _consoleFn) {
+            fn("trace", msg)
+        } else {
+            println(msg)
         }
     }
 
@@ -228,9 +229,10 @@ public class Logger {
     public static func debug(params: Array<String>): Unit {
         if (_logLevel.value() > LogLevel.Debug.value()) { return }
         var msg = buildMsg(params)
-        match (_consoleFn) {
-            case Some(fn) => fn("debug", msg)
-            case None => println(msg)
+        if (let Some(fn) <- _consoleFn) {
+            fn("debug", msg)
+        } else {
+            println(msg)
         }
     }
 
@@ -244,9 +246,10 @@ public class Logger {
     public static func info(params: Array<String>): Unit {
         if (_logLevel.value() > LogLevel.Info.value()) { return }
         var msg = buildMsg(params)
-        match (_consoleFn) {
-            case Some(fn) => fn("info", msg)
-            case None => println(msg)
+        if (let Some(fn) <- _consoleFn) {
+            fn("info", msg)
+        } else {
+            println(msg)
         }
     }
 
@@ -260,9 +263,10 @@ public class Logger {
     public static func warn(params: Array<String>): Unit {
         if (_logLevel.value() > LogLevel.Warn.value()) { return }
         var msg = buildMsg(params)
-        match (_consoleFn) {
-            case Some(fn) => fn("warn", msg)
-            case None => println(msg)
+        if (let Some(fn) <- _consoleFn) {
+            fn("warn", msg)
+        } else {
+            println(msg)
         }
     }
 
@@ -276,9 +280,10 @@ public class Logger {
     public static func error(params: Array<String>): Unit {
         if (_logLevel.value() > LogLevel.Error.value()) { return }
         var msg = buildMsg(params)
-        match (_consoleFn) {
-            case Some(fn) => fn("error", msg)
-            case None => println(msg)
+        if (let Some(fn) <- _consoleFn) {
+            fn("error", msg)
+        } else {
+            println(msg)
         }
     }
 

@@ -24,13 +24,13 @@
  * @file[zh-cn] 数据工具函数
  * @brief[zh-cn] 提供半精度浮点数转换功能
  * @explain[zh-cn] 
- * 对应 Three.js DataUtils.js。参考：Fast Half Float Conversions
+ * 参考：Fast Half Float Conversions
  * http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf
  *
  * @file[en] Data Utility Functions
  * @brief[en] Provides half-precision float conversion functions
  * @explain[en] 
- * Corresponds to Three.js DataUtils.js. Reference: Fast Half Float Conversions
+ * Reference: Fast Half Float Conversions
  * http://www.fox-toolkit.org/ftp/fasthalffloatconversion.pdf
  */
 package three.rendering.geometry
@@ -131,7 +131,7 @@ public func fromHalfFloat(`val`: UInt16): Float64 {
  * 数据工具类，提供半精度浮点数转换的静态方法
  *
  * 此类是 toHalfFloat 和 fromHalfFloat 函数的面向对象封装，
- * 与 Three.js 的 DataUtils 类接口保持一致。
+ * 与主流 Web 引擎的 DataUtils 类接口保持一致。
  */
 public class DataUtils {
     /**

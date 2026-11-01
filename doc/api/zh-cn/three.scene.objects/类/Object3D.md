@@ -272,6 +272,12 @@ public init()
 ```
 
 
+### func invalidateWorldBounds\(\)
+```cj
+public func invalidateWorldBounds(): Unit
+```
+手动失效世界包围球缓存
+
 ### func localToWorld\(Vector3\)
 ```cj
 public func localToWorld(vector: Vector3): Vector3
@@ -615,6 +621,12 @@ public open mut prop userDataJson: String
 ```
 
 
+### prop worldBoundingSphereDirty: Bool
+```cj
+public prop worldBoundingSphereDirty: Bool
+```
+世界包围球缓存是否已失效
+
 ### var animations
 ```cj
 public var animations: ArrayList < IAnimationClip >
@@ -632,6 +644,12 @@ public var castShadow: Bool
 public var children: ArrayList < Object3D >
 ```
 
+
+### var cullVisible
+```cj
+public var cullVisible: Bool = true
+```
+本帧空间剔除结果（由渲染器的空间索引写入）
 
 ### var customDepthMaterial
 ```cj
@@ -721,7 +739,7 @@ public var normalMatrix: Matrix3
 ```cj
 public var parent: Option < Object3D >
 ```
-parent：与 children 构成循环引用，序列化忽略（与 three.js 一致，由 add/remove 维护）
+parent：与 children 构成循环引用，序列化忽略（与主流引擎惯例一致，由 add/remove 维护）
 
 ### var pivot
 ```cj
@@ -764,6 +782,12 @@ public var rotation: Euler
 public var scale: Vector3
 ```
 
+
+### var structureVersion
+```cj
+public static var structureVersion: Int64 = 0
+```
+场景结构版本号（全局）
 
 ### var up
 ```cj

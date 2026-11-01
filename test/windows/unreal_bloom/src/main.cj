@@ -88,7 +88,7 @@ public class TestWindow <: WindowEngine {
         // ---- 步骤 4: 进入渲染循环（RenderPass + UnrealBloomPass via EffectComposer） ----
         println("[4/5] 进入渲染循环（启用 Bloom via EffectComposer）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   const composer = new EffectComposer(renderer)
         //   composer.addPass(new RenderPass(scene, camera))
         //   composer.addPass(new BloomPass(strength, kernelSize, sigma))
@@ -106,7 +106,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 更新球体位置（来回移动） ----
         for (sphere in this.spheres) {

@@ -181,15 +181,13 @@ public class Box3 {
                 this.expandByPoint(Vector3(p[0], p[1], p[2]))
             }
         } else {
-            match (object.getWorldBoundingBox()) {
-                case Some(bb) =>
-                    let minV = bb[0]; let maxV = bb[1]
-                    let worldBox = Box3(
-                        Vector3(minV[0], minV[1], minV[2]),
-                        Vector3(maxV[0], maxV[1], maxV[2])
-                    )
-                    this.union(worldBox)
-                case None => ()
+            if (let Some(bb) <- object.getWorldBoundingBox()) {
+                let minV = bb[0]; let maxV = bb[1]
+                let worldBox = Box3(
+                    Vector3(minV[0], minV[1], minV[2]),
+                    Vector3(maxV[0], maxV[1], maxV[2])
+                )
+                this.union(worldBox)
             }
         }
 
@@ -733,41 +731,37 @@ public class Box3 {
      * @return[en] This instance
      */
     public func fromJSON(json: HashMap<String, Any>): Box3 {
-        match (json.get("min")) {
-            case Some(m) =>
-                match (m) {
-                    case arr: Array<Float64> => this.min.fromArray(arr)
-                    case list: ArrayList<Any> =>
-                        let a = Array<Float64>(list.size, { _ => 0.0 })
-                        for (i in 0..list.size) {
-                            match (list[i]) {
-                                case v: Float64 => a[i] = v
-                                case n: Int64 => a[i] = Float64(n)
-                                case _ => ()
-                            }
+        if (let Some(m) <- json.get("min")) {
+            match (m) {
+                case arr: Array<Float64> => this.min.fromArray(arr)
+                case list: ArrayList<Any> =>
+                    let a = Array<Float64>(list.size, { _ => 0.0 })
+                    for (i in 0..list.size) {
+                        match (list[i]) {
+                            case v: Float64 => a[i] = v
+                            case n: Int64 => a[i] = Float64(n)
+                            case _ => ()
                         }
-                        this.min.fromArray(a)
-                    case _ => ()
-                }
-            case None => ()
+                    }
+                    this.min.fromArray(a)
+                case _ => ()
+            }
         }
-        match (json.get("max")) {
-            case Some(m) =>
-                match (m) {
-                    case arr: Array<Float64> => this.max.fromArray(arr)
-                    case list: ArrayList<Any> =>
-                        let a = Array<Float64>(list.size, { _ => 0.0 })
-                        for (i in 0..list.size) {
-                            match (list[i]) {
-                                case v: Float64 => a[i] = v
-                                case n: Int64 => a[i] = Float64(n)
-                                case _ => ()
-                            }
+        if (let Some(m) <- json.get("max")) {
+            match (m) {
+                case arr: Array<Float64> => this.max.fromArray(arr)
+                case list: ArrayList<Any> =>
+                    let a = Array<Float64>(list.size, { _ => 0.0 })
+                    for (i in 0..list.size) {
+                        match (list[i]) {
+                            case v: Float64 => a[i] = v
+                            case n: Int64 => a[i] = Float64(n)
+                            case _ => ()
                         }
-                        this.max.fromArray(a)
-                    case _ => ()
-                }
-            case None => ()
+                    }
+                    this.max.fromArray(a)
+                case _ => ()
+            }
         }
         return this
     }

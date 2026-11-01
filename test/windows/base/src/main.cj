@@ -1,10 +1,10 @@
 package threeTest
 
 /**
- * 测试入口：Three.js + bgfx 着色器材质测试（v2 生命周期模式）
+ * 测试入口：引擎 + bgfx 着色器材质测试（v2 生命周期模式）
  *
  * 模块说明：
- * - renderer.cj:  Three.js 场景设置、渲染循环（onFrame 由窗口泵线程驱动）
+ * - renderer.cj:  引擎场景设置、渲染循环（onFrame 由窗口泵线程驱动）
  * - resources.cj: 自定义着色器源码与几何体辅助函数
  * 窗口通过 three 引擎自带的 src/window 子包（WindowEngine v2，SDL3 跨平台实现）创建，
  * 不再依赖 Win32 FFI。
@@ -70,7 +70,7 @@ public class TestWindow <: WindowEngine {
         this.frame++
 
         // 更新旋转
-        let angle = Float64(this.frame) * 0.02
+        let angle = this.elapsedTime * 0.02
         this.mesh.rotation.x = angle * 0.5
         this.mesh.rotation.y = angle * 0.7
 

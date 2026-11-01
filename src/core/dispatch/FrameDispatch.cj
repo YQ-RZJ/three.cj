@@ -217,17 +217,17 @@ public class FrameDispatch {
      * @param[en] id Task ID
      */
     public func unregister(id: Int64): Unit {
-        match (_idToTask.get(id)) {
-            case None => return
-            case Some(task) =>
-                _idToTask.remove(id)
-                _pausedIds.remove(id)
-                if (task.priority <= 0) {
-                    _removeFromForceList(id)
-                } else {
-                    // task 若在堆中则移除；不在堆中（已 pop）则无需操作
-                    _heap.remove(task)
-                }
+        if (let Some(task) <- _idToTask.get(id)) {
+            _idToTask.remove(id)
+            _pausedIds.remove(id)
+            if (task.priority <= 0) {
+                _removeFromForceList(id)
+            } else {
+                // task 若在堆中则移除；不在堆中（已 pop）则无需操作
+                _heap.remove(task)
+            }
+        } else {
+            return
         }
     }
 
@@ -239,19 +239,19 @@ public class FrameDispatch {
      * @param[en] id Task ID
      */
     public func pause(id: Int64): Unit {
-        match (_idToTask.get(id)) {
-            case None => return
-            case Some(task) =>
-                if (task.paused) {
-                    return
-                }
-                task.paused = true
-                _pausedIds.add(id)
-                if (task.priority <= 0) {
-                    _removeFromForceList(id)
-                } else {
-                    _heap.remove(task)
-                }
+        if (let Some(task) <- _idToTask.get(id)) {
+            if (task.paused) {
+                return
+            }
+            task.paused = true
+            _pausedIds.add(id)
+            if (task.priority <= 0) {
+                _removeFromForceList(id)
+            } else {
+                _heap.remove(task)
+            }
+        } else {
+            return
         }
     }
 
@@ -263,21 +263,21 @@ public class FrameDispatch {
      * @param[en] id Task ID
      */
     public func resume(id: Int64): Unit {
-        match (_idToTask.get(id)) {
-            case None => return
-            case Some(task) =>
-                if (!task.paused) {
-                    return
-                }
-                task.paused = false
-                _pausedIds.remove(id)
-                if (task.priority <= 0) {
-                    _forceList.add(task)
-                } else {
-                    // 任务重新入堆，重置 index
-                    task.index = -1
-                    _heap.push(task)
-                }
+        if (let Some(task) <- _idToTask.get(id)) {
+            if (!task.paused) {
+                return
+            }
+            task.paused = false
+            _pausedIds.remove(id)
+            if (task.priority <= 0) {
+                _forceList.add(task)
+            } else {
+                // 任务重新入堆，重置 index
+                task.index = -1
+                _heap.push(task)
+            }
+        } else {
+            return
         }
     }
 
@@ -328,9 +328,10 @@ public class FrameDispatch {
             // 弹出所有任务到临时列表（按优先级排序，priority 小的先出）
             let pending = ArrayList<FrameTask>()
             while (!_heap.isEmpty()) {
-                match (_heap.pop()) {
-                    case None => break
-                    case Some(task) => pending.add(task)
+                if (let Some(task) <- _heap.pop()) {
+                    pending.add(task)
+                } else {
+                    break
                 }
             }
 

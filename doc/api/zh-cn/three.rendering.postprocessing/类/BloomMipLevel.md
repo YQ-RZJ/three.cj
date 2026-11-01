@@ -11,6 +11,14 @@ public init()
 ```
 
 
+### var gaussCoefs
+```cj
+public var gaussCoefs: Array < Float64 >= Array < Float64 >(0, { _ =>
+    0.0
+})
+```
+预计算的高斯系数（vec4 数组：x=系数，yzw=padding）
+
 ### var height
 ```cj
 public var height: Int64 = 0

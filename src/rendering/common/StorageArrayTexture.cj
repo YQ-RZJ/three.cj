@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 存储数组纹理
  * @brief[zh-cn] 存储数组纹理类，用于 GPU 计算的纹理数组存储资源
- * @explain[zh-cn] StorageArrayTexture 继承自 DataMap，表示可在计算着色器中读写的纹理数组存储资源。对照源码: three.js/src/renderers/common/StorageArrayTexture.js
+ * @explain[zh-cn] StorageArrayTexture 继承自 DataMap，表示可在计算着色器中读写的纹理数组存储资源。
  *
  * @file[en] Storage Array Texture
  * @brief[en] Storage array texture class, used for GPU compute texture array storage resources
- * @explain[en] StorageArrayTexture extends DataMap, representing a texture array storage resource that can be read and written in compute shaders. Reference: three.js/src/renderers/common/StorageArrayTexture.js
+ * @explain[en] StorageArrayTexture extends DataMap, representing a texture array storage resource that can be read and written in compute shaders.
  */
 package three.rendering.common
 

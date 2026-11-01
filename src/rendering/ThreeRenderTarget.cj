@@ -22,13 +22,13 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] ThreeRenderTarget 基于 bgfx 帧缓冲的渲染目标定义
- * @brief[zh-cn] 基于 bgfx 帧缓冲的渲染目标类，对应 Three.js WebGLRenderTarget
+ * @brief[zh-cn] 基于 bgfx 帧缓冲的渲染目标类
  * @explain[zh-cn] 提供标准 2D、3D、数组和立方体渲染目标实现，内部使用 bgfx 帧缓冲句柄。
  * ThreeRenderTarget 实现 IRenderTarget 接口，供 cameras/CubeCamera 以接口持有，避免循环依赖。
  * FrameBufferHandle 等句柄别名在 ThreeRenderer.cj（同 package）定义，此处直接使用。
  *
  * @file[en] ThreeRenderTarget bgfx framebuffer-based render target definitions
- * @brief[en] bgfx framebuffer-based render target classes, corresponding to Three.js WebGLRenderTarget
+ * @brief[en] bgfx framebuffer-based render target classes
  * @explain[en] Provides standard 2D, 3D, array, and cube render target implementations using bgfx framebuffer handles.
  * ThreeRenderTarget implements IRenderTarget interface, used by cameras/CubeCamera to avoid circular dependency.
  * FrameBufferHandle aliases are defined in ThreeRenderer.cj (same package) and used here directly.

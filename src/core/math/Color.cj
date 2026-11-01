@@ -88,7 +88,7 @@ public class Color <: IBackground {
     public init(r: Float64, g: Float64, b: Float64) { this.r = r; this.g = g; this.b = b }
     // 4 参数构造（r, g, b, a）：a（alpha）为便利占位——Color 本身无 alpha 字段，
     // 供 ShaderMaterial 自定义 uniform 传 vec4 数据（如 u_steps.x 档数）或
-    // 与 three.js 惯例对齐的 RGBA 写法使用；alpha 分量被忽略。
+    // 与主流引擎惯例对齐的 RGBA 写法使用；alpha 分量被忽略。
     public init(r: Float64, g: Float64, b: Float64, a: Float64) { this.r = r; this.g = g; this.b = b }
     public init(r: Int64, g: Int64, b: Int64) {
         // 整数字节值（0-255）→ Float64（0.0-1.0），供 Color(0x30, 0x30, 0x60) 形式使用
@@ -267,9 +267,8 @@ public class Color <: IBackground {
     public func setColorName(style: String, colorSpace!: String = SRGBColorSpace): Color {
         let lowerStyle = style.toAsciiLower()
         let hex = Color.NAMES.get(lowerStyle)
-        match (hex) {
-            case Some(h) => this.setHex(h, colorSpace: colorSpace)
-            case None => ()
+        if (let Some(h) <- hex) {
+            this.setHex(h, colorSpace: colorSpace)
         }
         return this
     }

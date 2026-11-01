@@ -77,10 +77,10 @@ public class TestWindow <: WindowEngine {
         this.objs = createScene(w, h)
 
         // ---- 步骤 3.5: 启用 debug mode 2（法线可视化） ----
-        // 新架构对齐 Three.js：renderer.setDebugMode 已移除。
-        // Debug 可视化用 Three.js 标准 scene.overrideMaterial：
+        // 新架构不再提供 renderer.setDebugMode。
+        // Debug 可视化用标准 scene.overrideMaterial：
         //   scene.overrideMaterial = Some(MeshNormalMaterial())
-        // MeshNormalMaterial 是 Three.js 预置材质，kind 映射到 ShaderLibs 已注册的
+        // MeshNormalMaterial 是引擎预置材质，kind 映射到 ShaderLibs 已注册的
         // "normal" 程序，把 normalize(v_normal) * 0.5 + 0.5 写 rgb（朝向不同面显示不同颜色）。
         println("  设置 Debug overrideMaterial: MeshNormalMaterial (法线可视化)")
         let normalMat = MeshNormalMaterial()
@@ -98,7 +98,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

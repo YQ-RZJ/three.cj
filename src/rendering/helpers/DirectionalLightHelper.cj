@@ -24,13 +24,13 @@
  * @file[zh-cn] 方向光辅助对象
  * @brief[zh-cn] 方向光辅助对象，用于可视化方向光的位置和方向
  * @explain[zh-cn] 
- * 对应 Three.js helpers/DirectionalLightHelper.js。由一个平面（表示光源位置）和一条线
+ * 由一个平面（表示光源位置）和一条线
  * （表示光照方向）组成。当光源或其目标变换时，需要调用 update() 方法更新。
  *
  * @file[en] Directional Light Helper
  * @brief[en] Directional light helper for visualizing position and direction
  * @explain[en] 
- * Corresponds to Three.js helpers/DirectionalLightHelper.js. Composed of a plane (light position)
+ * Composed of a plane (light position)
  * and a line (light direction). Call update() when the light or its target changes.
  */
 package three.rendering.helpers
@@ -172,13 +172,12 @@ public class DirectionalLightHelper <: Object3D {
         let v3 = Vector3().subVectors(v2, v1)
         
         this.lightPlane.lookAt(v2)
-        match (this.color) {
-            case Some(c) =>
-                this.lightPlane.material.color.copy(c)
-                this.targetLine.material.color.copy(c)
-            case None =>
-                this.lightPlane.material.color.copy(this.light.color)
-                this.targetLine.material.color.copy(this.light.color)
+        if (let Some(c) <- this.color) {
+            this.lightPlane.material.color.copy(c)
+            this.targetLine.material.color.copy(c)
+        } else {
+            this.lightPlane.material.color.copy(this.light.color)
+            this.targetLine.material.color.copy(this.light.color)
         }
         
         this.targetLine.lookAt(v2)

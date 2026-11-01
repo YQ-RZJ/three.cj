@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * RenderLists 管理多个 RenderList 实例，按 (scene, camera) 组合键缓存，
  * 避免每帧重复创建 RenderList。内部 HashMap 使用 scene.id * 100000 + camera.id 作为组合键。
- * 对照源码: three.js/src/renderers/common/RenderLists.js (131 行)
  *
  * @file[en] RenderLists
  * @brief[en] Render list cache manager, caching RenderList by (scene, camera) composite key
  * @explain[en] 
  * RenderLists manages multiple RenderList instances, caching them by (scene, camera) composite key,
  * avoiding repeated creation of RenderList each frame. Internally uses scene.id * 100000 + camera.id as the composite key.
- * Corresponding source: three.js/src/renderers/common/RenderLists.js (131 lines)
  */
 package three.rendering.common
 
@@ -90,12 +88,12 @@ public open class RenderLists {
      */
     public func get(scene: Scene, camera: Camera): RenderList {
         let key = scene.id * 100000 + camera.id
-        match (this.lists.get(key)) {
-            case Some(list) => return list
-            case None =>
-                let list = RenderList()
-                this.lists.add(key, list)
-                return list
+        if (let Some(list) <- this.lists.get(key)) {
+            return list
+        } else {
+            let list = RenderList()
+            this.lists.add(key, list)
+            return list
         }
     }
 

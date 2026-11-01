@@ -213,15 +213,13 @@ public class GroundReflector <: Mesh {
         // 材质参数同步（对照 JS: 构造里给 material.uniforms 赋值 color/maxDistance/opacity 默认值）
         let mat = this.material
         if (mat is ReflectorMaterial) {
-            match (mat as ReflectorMaterial) {
-                case Some(rm) =>
-                    rm.reflectorColor.copy(color)
-                    rm.maxDistance = 180.0
-                    rm.opacity = 0.5
-                    rm.useDepthTexture = useDepthTexture
-                    rm.distanceAttenuation = true
-                    rm.fresnel = true
-                case None => ()
+            if (let Some(rm) <- (mat as ReflectorMaterial)) {
+                rm.reflectorColor.copy(color)
+                rm.maxDistance = 180.0
+                rm.opacity = 0.5
+                rm.useDepthTexture = useDepthTexture
+                rm.distanceAttenuation = true
+                rm.fresnel = true
             }
         }
         @LogDebug(["reflector", "GroundReflector constructed: tex=${textureWidth}x${textureHeight}" +
@@ -273,13 +271,11 @@ public class GroundReflector <: Mesh {
         // 同步材质纹理句柄（对照 JS: material.uniforms.tDiffuse.value = renderTarget.texture）
         let mat = this.material
         if (mat is ReflectorMaterial) {
-            match (mat as ReflectorMaterial) {
-                case Some(rm) =>
-                    rm.tDiffuse = this._reflectTex
-                    if (this.useDepthTexture) {
-                        rm.tDepth = this._reflectDepthRT
-                    }
-                case None => ()
+            if (let Some(rm) <- (mat as ReflectorMaterial)) {
+                rm.tDiffuse = this._reflectTex
+                if (this.useDepthTexture) {
+                    rm.tDepth = this._reflectDepthRT
+                }
             }
         }
         this._rtCreated = true
@@ -340,7 +336,7 @@ public class GroundReflector <: Mesh {
 
         rotationMatrix.extractRotation(camera.matrixWorld)
         // ★关键修复（lookAtPosition 前向方向，bgfx 左手系 vs JS 右手系）：
-        //   JS/three.js 相机看向 -Z，`lookAtPosition = (0,0,-1)` 是相机前方 1 单位点；
+        //   JS 生态相机看向 -Z，`lookAtPosition = (0,0,-1)` 是相机前方 1 单位点；
         //   bgfx4cj 的 Matrix4.lookAt 约定相机看向 +Z（左手系，Z = target - eye），
         //   故 (0,0,-1) 在 bgfx4cj 中指向相机**后方** → lookAtPosition 落在相机后方 →
         //   target 计算错误（target 几乎与 virtualCamera.position 重合，cap11 实证：
@@ -404,18 +400,16 @@ public class GroundReflector <: Mesh {
         // 同步材质 uniforms（对照 JS doRender 内 material.uniforms 赋值）
         let mat = this.material
         if (mat is ReflectorMaterial) {
-            match (mat as ReflectorMaterial) {
-                case Some(rm) =>
-                    rm.textureMatrix.copy(this.textureMatrix)
-                    rm.fresnelCoe = this.fresnelCoe
-                    rm.virtualCameraNear = camera.near
-                    rm.virtualCameraFar = camera.far
-                    rm.virtualCameraMatrixWorld.copy(this.virtualCamera.matrixWorld)
-                    rm.virtualCameraProjectionMatrix.copy(camera.projectionMatrix)
-                    rm.virtualCameraProjectionMatrixInverse.copy(camera.projectionMatrixInverse)
-                    rm.resolutionX = Float64(this._textureWidth)
-                    rm.resolutionY = Float64(this._textureHeight)
-                case None => ()
+            if (let Some(rm) <- (mat as ReflectorMaterial)) {
+                rm.textureMatrix.copy(this.textureMatrix)
+                rm.fresnelCoe = this.fresnelCoe
+                rm.virtualCameraNear = camera.near
+                rm.virtualCameraFar = camera.far
+                rm.virtualCameraMatrixWorld.copy(this.virtualCamera.matrixWorld)
+                rm.virtualCameraProjectionMatrix.copy(camera.projectionMatrix)
+                rm.virtualCameraProjectionMatrixInverse.copy(camera.projectionMatrixInverse)
+                rm.resolutionX = Float64(this._textureWidth)
+                rm.resolutionY = Float64(this._textureHeight)
             }
         }
 

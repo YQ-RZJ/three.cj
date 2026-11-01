@@ -95,7 +95,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 材质球缓慢自转（便于观察表面属性） ----
         for (i in 0..this.objs.spheres.size) {

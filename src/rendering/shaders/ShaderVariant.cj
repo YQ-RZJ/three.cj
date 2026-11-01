@@ -114,15 +114,15 @@ public class ShaderVariant {
         let flags = ArrayList<String>()
         match (mat) {
             case sm: MeshStandardMaterial =>
-                match (sm.map) { case Some(_) => flags.add("MAP"); case None => () }
-                match (sm.roughnessMap) { case Some(_) => flags.add("ROUGHNESSMAP"); case None => () }
-                match (sm.metalnessMap) { case Some(_) => flags.add("METALNESSMAP"); case None => () }
-                match (sm.normalMap) { case Some(_) => flags.add("NORMALMAP"); case None => () }
-                match (sm.emissiveMap) { case Some(_) => flags.add("EMISSIVEMAP"); case None => () }
-                match (sm.aoMap) { case Some(_) => flags.add("AOMAP"); case None => () }
-                match (sm.lightMap) { case Some(_) => flags.add("LIGHTMAP"); case None => () }
+                if (let Some(_) <- sm.map) { flags.add("MAP") }
+                if (let Some(_) <- sm.roughnessMap) { flags.add("ROUGHNESSMAP") }
+                if (let Some(_) <- sm.metalnessMap) { flags.add("METALNESSMAP") }
+                if (let Some(_) <- sm.normalMap) { flags.add("NORMALMAP") }
+                if (let Some(_) <- sm.emissiveMap) { flags.add("EMISSIVEMAP") }
+                if (let Some(_) <- sm.aoMap) { flags.add("AOMAP") }
+                if (let Some(_) <- sm.lightMap) { flags.add("LIGHTMAP") }
             case bm: MeshBasicMaterial =>
-                match (bm.map) { case Some(_) => flags.add("MAP"); case None => () }
+                if (let Some(_) <- bm.map) { flags.add("MAP") }
             case _ => ()
         }
         return flags.toArray()

@@ -74,6 +74,8 @@ import three.utils.memory.AutoFreePtr
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 残影后处理 pass
@@ -203,26 +205,24 @@ public class AfterimagePass <: Pass {
         @LogTrace(["afterimage", "createRTs: " + w.toString() + "x" + h.toString()])
 
         // comp RT
-        match (this._renderer) {
-            case Some(renderer) =>
-                this._compTex = renderer.createTexture2D(
-                    w, h, false, 1u16,
-                    TextureFormat.RGBA16F.value(),
-                    colorFlags,
-                    None)
-                this._compFB = this._createFB(renderer, this._compTex)
+        if (let Some(renderer) <- this._renderer) {
+            this._compTex = renderer.createTexture2D(
+                w, h, false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                colorFlags,
+                None)
+            this._compFB = this._createFB(renderer, this._compTex)
 
-                // old RT
-                this._oldTex = renderer.createTexture2D(
-                    w, h, false, 1u16,
-                    TextureFormat.RGBA16F.value(),
-                    colorFlags,
-                    None)
-                this._oldFB = this._createFB(renderer, this._oldTex)
+            // old RT
+            this._oldTex = renderer.createTexture2D(
+                w, h, false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                colorFlags,
+                None)
+            this._oldFB = this._createFB(renderer, this._oldTex)
 
-                this._rtsCreated = true
-                this._oldCleared = false
-            case None => ()
+            this._rtsCreated = true
+            this._oldCleared = false
         }
         @LogTrace(["afterimage", "RTs created: compFB.idx=" + Handle.idx(this._compFB).toString() +
                       " oldFB.idx=" + Handle.idx(this._oldFB).toString()])
@@ -241,25 +241,23 @@ public class AfterimagePass <: Pass {
      * 销毁内部双 RT。
      */
     private func _destroyRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                if (Handle.isValid(this._compFB)) {
-                    renderer.destroyFrameBuffer(this._compFB)
-                    this._compFB = INVALID_FRAME_BUFFER_HANDLE
-                }
-                if (Handle.isValid(this._compTex)) {
-                    renderer.destroyTexture(this._compTex)
-                    this._compTex = INVALID_TEXTURE_HANDLE
-                }
-                if (Handle.isValid(this._oldFB)) {
-                    renderer.destroyFrameBuffer(this._oldFB)
-                    this._oldFB = INVALID_FRAME_BUFFER_HANDLE
-                }
-                if (Handle.isValid(this._oldTex)) {
-                    renderer.destroyTexture(this._oldTex)
-                    this._oldTex = INVALID_TEXTURE_HANDLE
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            if (Handle.isValid(this._compFB)) {
+                renderer.destroyFrameBuffer(this._compFB)
+                this._compFB = INVALID_FRAME_BUFFER_HANDLE
+            }
+            if (Handle.isValid(this._compTex)) {
+                renderer.destroyTexture(this._compTex)
+                this._compTex = INVALID_TEXTURE_HANDLE
+            }
+            if (Handle.isValid(this._oldFB)) {
+                renderer.destroyFrameBuffer(this._oldFB)
+                this._oldFB = INVALID_FRAME_BUFFER_HANDLE
+            }
+            if (Handle.isValid(this._oldTex)) {
+                renderer.destroyTexture(this._oldTex)
+                this._oldTex = INVALID_TEXTURE_HANDLE
+            }
         }
         this._rtsCreated = false
     }
@@ -285,19 +283,18 @@ public class AfterimagePass <: Pass {
      * 编译 afterimage shader。
      */
     private func _compileAfterimage(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("afterimage")) {
-            case Some(sp) =>
-                if (!this._afterimageCompiled) {
-                    sp.compileBgfx()
-                    this._afterimageProg = Some(Box(sp.programHandle))
-                    this._afterimageCompiled = true
-                    @LogTrace(["afterimage", "afterimage shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._afterimageProg
-            case None =>
-                @LogTrace(["afterimage", "afterimage shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("afterimage")) {
+            if (!this._afterimageCompiled) {
+                sp.compileBgfx()
+                this._afterimageProg = Some(Box(sp.programHandle))
+                this._afterimageCompiled = true
+                @LogTrace(["afterimage", "afterimage shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._afterimageProg
+        } else {
+            @LogTrace(["afterimage", "afterimage shader not registered"])
+            return None
         }
     }
 
@@ -305,19 +302,18 @@ public class AfterimagePass <: Pass {
      * 编译 copy shader。
      */
     private func _compileCopy(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("copy")) {
-            case Some(sp) =>
-                if (!this._copyCompiled) {
-                    sp.compileBgfx()
-                    this._copyProg = Some(Box(sp.programHandle))
-                    this._copyCompiled = true
-                    @LogTrace(["afterimage", "copy shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._copyProg
-            case None =>
-                @LogTrace(["afterimage", "copy shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("copy")) {
+            if (!this._copyCompiled) {
+                sp.compileBgfx()
+                this._copyProg = Some(Box(sp.programHandle))
+                this._copyCompiled = true
+                @LogTrace(["afterimage", "copy shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._copyProg
+        } else {
+            @LogTrace(["afterimage", "copy shader not registered"])
+            return None
         }
     }
 
@@ -338,32 +334,28 @@ public class AfterimagePass <: Pass {
         this.setRenderTarget(renderer, viewId, this._compFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileAfterimage()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(prog) <- this._compileAfterimage()) {
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
+            let uniforms = this._passUniforms()
 
-                // stage 0 = tOld（上一帧残影）
-                let uOld = uniforms.createUniform("tOld", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uOld, this._oldTex, 0u32)
+            // stage 0 = tOld（上一帧残影）
+            let uOld = this._cachedUniform("tOld", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uOld, this._oldTex, 0u32)
 
-                // stage 1 = tNew（当前帧输入 = readBuffer color 0）
-                let uNew = uniforms.createUniform("tNew", UniformType.Sampler.value())
-                let newTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 1u8, uNew, newTex, 0u32)
+            // stage 1 = tNew（当前帧输入 = readBuffer color 0）
+            let uNew = this._cachedUniform("tNew", UniformType.Sampler.value())
+            let newTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 1u8, uNew, newTex, 0u32)
 
-                // u_damp（vec4: x=damp）
-                let uDamp = uniforms.createUniform("u_damp", UniformType.Vec4.value())
-                let dampMem = BgfxMemory(16u32)
-                dampMem.writeFloats([this.damp, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uDamp, dampMem, num: 1u16)
+            // u_damp（vec4: x=damp）
+            let uDamp = this._cachedUniform("u_damp", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uDamp, 0, this.damp)
 
-                this.submitQuad(viewId, prog)
+            this.submitQuad(viewId, prog)
 
-                @LogTrace(["afterimage", "comp pass: view=" + viewId.toString() +
-                              " damp=" + this.damp.toString()])
-            case None => ()
+            @LogTrace(["afterimage", "comp pass: view=" + viewId.toString() +
+                          " damp=" + this.damp.toString()])
         }
     }
 
@@ -389,27 +381,23 @@ public class AfterimagePass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileCopy()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) { return }
+        if (let Some(prog) <- this._compileCopy()) {
+            if (!Handle.isValid(prog)) { return }
 
-                let uniforms = BgfxUniforms()
+            let uniforms = this._passUniforms()
 
-                // stage 0 = tDiffuse（comp RT 的纹理）
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiffuse, this._compTex, 0u32)
+            // stage 0 = tDiffuse（comp RT 的纹理）
+            let uDiffuse = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiffuse, this._compTex, 0u32)
 
-                // u_opacity（vec4: x=opacity=1.0，完全透传）
-                let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                let opMem = BgfxMemory(16u32)
-                opMem.writeFloats([1.0, 1.0, 1.0, 1.0], 4)
-                this.setUniform(renderer, uOpacity, opMem, num: 1u16)
+            // u_opacity（vec4: x=opacity=1.0，完全透传）
+            let uOpacity = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uOpacity, 1, 1.0)
 
-                this.submitQuad(viewId, prog)
+            this.submitQuad(viewId, prog)
 
-                @LogTrace(["afterimage", "copy pass: view=" + viewId.toString() +
-                              " renderToScreen=" + this.renderToScreen.toString()])
-            case None => ()
+            @LogTrace(["afterimage", "copy pass: view=" + viewId.toString() +
+                          " renderToScreen=" + this.renderToScreen.toString()])
         }
     }
 
@@ -431,6 +419,7 @@ public class AfterimagePass <: Pass {
      *         2. copy pass: copies _compFB to writeBuffer (or screen);
      *         3. swap: _oldFB ↔ _compFB, _oldTex ↔ _compTex (the new afterimage is used next frame).
      */
+    @Zone[three.rendering.postprocessing.AfterimagePass.render, name=afterimagePass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,

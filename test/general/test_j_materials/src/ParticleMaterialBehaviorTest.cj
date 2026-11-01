@@ -2,7 +2,7 @@
  * @file ParticleMaterialBehaviorTest
  * @brief 粒子材质（PointsMaterial/SpriteMaterial）行为单元测试
  *
- * 对照 JS: three.js test/unit/src/materials/PointsMaterial.tests.js、SpriteMaterial.tests.js
+ * 对照 JS: 上游库 test/unit/src/materials/PointsMaterial.tests.js、SpriteMaterial.tests.js
  * 覆盖：
  * - PointsMaterial: kind 默认值、size/sizeAttenuation 默认值、copy 语义（size/sizeAttenuation/color/map）
  * - SpriteMaterial: kind 默认值、sizeAttenuation/rotation/transparent/fog 默认值、copy 语义

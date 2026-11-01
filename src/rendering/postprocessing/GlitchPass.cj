@@ -116,6 +116,8 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
 import std.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 数字故障后处理 pass
@@ -239,19 +241,18 @@ public class GlitchPass <: Pass {
      * 编译 glitch shader。
      */
     private func _compileGlitch(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("glitch")) {
-            case Some(sp) =>
-                if (!this._glitchCompiled) {
-                    sp.compileBgfx()
-                    this._glitchProg = Some(Box(sp.programHandle))
-                    this._glitchCompiled = true
-                    @LogTrace(["glitch", "glitch shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._glitchProg
-            case None =>
-                @LogTrace(["glitch", "glitch shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("glitch")) {
+            if (!this._glitchCompiled) {
+                sp.compileBgfx()
+                this._glitchProg = Some(Box(sp.programHandle))
+                this._glitchCompiled = true
+                @LogTrace(["glitch", "glitch shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._glitchProg
+        } else {
+            @LogTrace(["glitch", "glitch shader not registered"])
+            return None
         }
     }
 
@@ -337,6 +338,7 @@ public class GlitchPass <: Pass {
      * @param readBuffer 读 buffer（上一 pass 结果，绑到 tDiffuse）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.GlitchPass.render, name=glitchPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -359,121 +361,126 @@ public class GlitchPass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileGlitch()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["glitch", "glitch prog invalid, skip"])
-                    return
-                }
+        if (let Some(prog) <- this._compileGlitch()) {
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["glitch", "glitch prog invalid, skip"])
+                return
+            }
 
-                // ========================================
-                // 触发器机制
-                // ========================================
-                let seed: Float64 = this._rand()  // 每帧新种子
-                var byp: Float64 = 0.0             // 默认应用 glitch
-                // glitch 参数（本帧用）
-                var amount: Float64 = 0.08
-                var angle: Float64 = 0.02
-                var seedX: Float64 = 0.02
-                var seedY: Float64 = 0.02
-                var distortionX: Float64 = 0.5
-                var distortionY: Float64 = 0.6
-                let colS: Float64 = 0.05           // 块宽阈值（DigitalGlitch 默认 0.05）
+            // ========================================
+            // 触发器机制
+            // ========================================
+            let seed: Float64 = this._rand()  // 每帧新种子
+            var byp: Float64 = 0.0             // 默认应用 glitch
+            // glitch 参数（本帧用）
+            var amount: Float64 = 0.08
+            var angle: Float64 = 0.02
+            var seedX: Float64 = 0.02
+            var seedY: Float64 = 0.02
+            var distortionX: Float64 = 0.5
+            var distortionY: Float64 = 0.6
+            let colS: Float64 = 0.05           // 块宽阈值（DigitalGlitch 默认 0.05）
 
-                // 触发帧：_curF % _randX == 0 或 goWild=true
-                if (this._randX > 0 && this._curF % this._randX == 0 || this.goWild) {
-                    amount = this._rand() / 30.0
-                    angle = randFloat(-3.141592653589793, 3.141592653589793)
-                    seedX = randFloat(-1.0, 1.0)
-                    seedY = randFloat(-1.0, 1.0)
-                    distortionX = randFloat(0.0, 1.0)
-                    distortionY = randFloat(0.0, 1.0)
-                    this._curF = 0
-                    this._generateTrigger()
-                    @LogTrace(["glitch", "TRIGGER frame: amount=" + amount.toString() +
-                                  " angle=" + angle.toString() +
-                                  " seedX=" + seedX.toString() +
-                                  " seedY=" + seedY.toString() +
-                                  " distX=" + distortionX.toString() +
-                                  " distY=" + distortionY.toString()])
-                } else if (this._randX > 0 && this._curF % this._randX < this._randX / 5) {
-                    // 触发后 1/5 周期：弱 glitch
-                    amount = this._rand() / 90.0
-                    angle = randFloat(-3.141592653589793, 3.141592653589793)
-                    distortionX = randFloat(0.0, 1.0)
-                    distortionY = randFloat(0.0, 1.0)
-                    seedX = randFloat(-0.3, 0.3)
-                    seedY = randFloat(-0.3, 0.3)
-                    @LogTrace(["glitch", "weak glitch: amount=" + amount.toString() +
-                                  " curF=" + this._curF.toString() +
-                                  " randX=" + this._randX.toString()])
-                } else if (!this.goWild) {
-                    // 其余帧 + goWild=false：透传
-                    byp = 1.0
-                    @LogTrace(["glitch", "bypass frame: curF=" + this._curF.toString() +
-                                  " randX=" + this._randX.toString()])
-                }
+            // 触发帧：_curF % _randX == 0 或 goWild=true
+            if (this._randX > 0 && this._curF % this._randX == 0 || this.goWild) {
+                amount = this._rand() / 30.0
+                angle = randFloat(-3.141592653589793, 3.141592653589793)
+                seedX = randFloat(-1.0, 1.0)
+                seedY = randFloat(-1.0, 1.0)
+                distortionX = randFloat(0.0, 1.0)
+                distortionY = randFloat(0.0, 1.0)
+                this._curF = 0
+                this._generateTrigger()
+                @LogTrace(["glitch", "TRIGGER frame: amount=" + amount.toString() +
+                              " angle=" + angle.toString() +
+                              " seedX=" + seedX.toString() +
+                              " seedY=" + seedY.toString() +
+                              " distX=" + distortionX.toString() +
+                              " distY=" + distortionY.toString()])
+            } else if (this._randX > 0 && this._curF % this._randX < this._randX / 5) {
+                // 触发后 1/5 周期：弱 glitch
+                amount = this._rand() / 90.0
+                angle = randFloat(-3.141592653589793, 3.141592653589793)
+                distortionX = randFloat(0.0, 1.0)
+                distortionY = randFloat(0.0, 1.0)
+                seedX = randFloat(-0.3, 0.3)
+                seedY = randFloat(-0.3, 0.3)
+                @LogTrace(["glitch", "weak glitch: amount=" + amount.toString() +
+                              " curF=" + this._curF.toString() +
+                              " randX=" + this._randX.toString()])
+            } else if (!this.goWild) {
+                // 其余帧 + goWild=false：透传
+                byp = 1.0
+                @LogTrace(["glitch", "bypass frame: curF=" + this._curF.toString() +
+                              " randX=" + this._randX.toString()])
+            }
 
-                this._curF++
+            this._curF++
 
-                // ========================================
-                // 绑定纹理 + 设置 uniforms
-                // ========================================
-                let uniforms = BgfxUniforms()
+            // ========================================
+            // 绑定纹理 + 设置 uniforms
+            // ========================================
+            let uniforms = this._passUniforms()
 
-                // stage 0 = tDiffuse（readBuffer 的 color 0）
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
+            // stage 0 = tDiffuse（readBuffer 的 color 0）
+            let uDiffuse = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
 
-                // stage 1 = tDisp（位移贴图 _heightMap）
-                let uDisp = uniforms.createUniform("tDisp", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uDisp, this._heightMap, 0u32)
+            // stage 1 = tDisp（位移贴图 _heightMap）
+            let uDisp = this._cachedUniform("tDisp", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uDisp, this._heightMap, 0u32)
 
-                // 设置 9 个 uniforms（bgfx 最小单位 vec4，x=value）
-                this.setUniformVec4(renderer, uniforms, "u_byp", byp)
-                this.setUniformVec4(renderer, uniforms, "u_amount", amount)
-                this.setUniformVec4(renderer, uniforms, "u_angle", angle)
-                this.setUniformVec4(renderer, uniforms, "u_seed", seed)
-                this.setUniformVec4(renderer, uniforms, "u_seed_x", seedX)
-                this.setUniformVec4(renderer, uniforms, "u_seed_y", seedY)
-                this.setUniformVec4(renderer, uniforms, "u_distortion_x", distortionX)
-                this.setUniformVec4(renderer, uniforms, "u_distortion_y", distortionY)
-                this.setUniformVec4(renderer, uniforms, "u_col_s", colS)
+            // 设置 9 个 uniforms（bgfx 最小单位 vec4，x=value）
+            this.setUniformVec4(renderer, "u_byp", 0, byp)
+            this.setUniformVec4(renderer, "u_amount", 1, amount)
+            this.setUniformVec4(renderer, "u_angle", 2, angle)
+            this.setUniformVec4(renderer, "u_seed", 3, seed)
+            this.setUniformVec4(renderer, "u_seed_x", 4, seedX)
+            this.setUniformVec4(renderer, "u_seed_y", 5, seedY)
+            this.setUniformVec4(renderer, "u_distortion_x", 6, distortionX)
+            this.setUniformVec4(renderer, "u_distortion_y", 7, distortionY)
+            this.setUniformVec4(renderer, "u_col_s", 8, colS)
 
-                // 全屏 quad submit（覆盖写 state）
-                this.submitQuad(viewId, prog)
+            // 全屏 quad submit（覆盖写 state）
+            this.submitQuad(viewId, prog)
 
-                @LogTrace(["glitch", "pass: view=" + viewId.toString() +
-                              " byp=" + byp.toString() +
-                              " amount=" + amount.toString() +
-                              " seed=" + seed.toString() +
-                              " goWild=" + this.goWild.toString() +
-                              " curF=" + this._curF.toString()])
-            case None =>
-                @LogTrace(["glitch", "glitch shader compile failed, skip pass"])
+            @LogTrace(["glitch", "pass: view=" + viewId.toString() +
+                          " byp=" + byp.toString() +
+                          " amount=" + amount.toString() +
+                          " seed=" + seed.toString() +
+                          " goWild=" + this.goWild.toString() +
+                          " curF=" + this._curF.toString()])
+        } else {
+            @LogTrace(["glitch", "glitch shader compile failed, skip pass"])
         }
     }
 
     /**
-     * 设置单个 vec4 uniform（x=value, y/z/w=0）。
-     * 辅助方法，简化 9 个 uniforms 的设置代码。
+     * @brief[zh-cn] 设置单个 vec4 uniform（x=value, y/z/w=0）
+     * @explain[zh-cn] 辅助方法，简化 9 个 uniforms 的设置代码。
+     * @param[zh-cn] renderer 渲染器
+     * @param[zh-cn] name uniform 名称
+     * @param[zh-cn] slot 复用上传缓冲槽位（每个 uniform 一个固定槽位）
+     * @param[zh-cn] value uniform 值（写入 vec4.x）
      *
-     * @param renderer 渲染器
-     * @param uniforms uniform 管理器
-     * @param name uniform 名称
-     * @param value uniform 值（写入 vec4.x）
+     * @brief[en] Sets a single vec4 uniform (x=value, y/z/w=0)
+     * @explain[en] Helper method to simplify the setup of the 9 uniforms.
+     * @param[en] renderer Renderer
+     * @param[en] name Uniform name
+     * @param[en] slot Reused upload buffer slot (one fixed slot per uniform)
+     * @param[en] value Uniform value (written to vec4.x)
      */
     private func setUniformVec4(
         renderer: ThreeRenderer,
-        uniforms: BgfxUniforms,
         name: String,
+        slot: Int64,
         value: Float64
     ): Unit {
-        let handle = uniforms.createUniform(name, UniformType.Vec4.value())
-        let mem = BgfxMemory(16u32)
-        mem.writeFloats([value, 0.0, 0.0, 0.0], 4)
-        this.setUniform(renderer, handle, mem, num: 1u16)
+        // 句柄按名缓存 + 复用槽位上传缓冲
+        // （原实现每帧新建 BgfxMemory，走 bgfx_alloc 且不归还 → 逐帧泄漏）
+        let handle = this._cachedUniform(name, UniformType.Vec4.value())
+        this._setScalarUniform(renderer, handle, slot, value)
     }
 
     /**
@@ -504,10 +511,7 @@ public class GlitchPass <: Pass {
      */
     public override func dispose(): Unit {
         if (this._heightMapCreated) {
-            match (this._renderer) {
-                case Some(renderer) => renderer.destroyTexture(this._heightMap)
-                case None => ()
-            }
+            if (let Some(renderer) <- this._renderer) { renderer.destroyTexture(this._heightMap) }
             this._heightMapCreated = false
             @LogTrace(["glitch", "heightMap texture destroyed"])
         }

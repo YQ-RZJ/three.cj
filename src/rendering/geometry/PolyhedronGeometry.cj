@@ -244,10 +244,10 @@ public open class PolyhedronGeometry <: BufferGeometry {
         var idxs: Array<Int64> = Array<Int64>()
         var r: Float64 = 1.0
         var d: Int64 = 0
-        match (data.get("vertices")) { case Some(v: Array<Float64>) => verts = v; case _ => () }
-        match (data.get("indices")) { case Some(v: Array<Int64>) => idxs = v; case _ => () }
-        match (data.get("radius")) { case Some(v: Float64) => r = v; case _ => () }
-        match (data.get("detail")) { case Some(v: Int64) => d = v; case _ => () }
+        if (let Some(v) <- data.get("vertices")) { if (v is Array<Float64>) { verts = (v as Array<Float64>).getOrThrow() } }
+        if (let Some(v) <- data.get("indices")) { if (v is Array<Int64>) { idxs = (v as Array<Int64>).getOrThrow() } }
+        if (let Some(v) <- data.get("radius")) { if (v is Float64) { r = (v as Float64).getOrThrow() } }
+        if (let Some(v) <- data.get("detail")) { if (v is Int64) { d = (v as Int64).getOrThrow() } }
         return PolyhedronGeometry(vertices: verts, indices: idxs, radius: r, detail: d)
     }
 

@@ -1,6 +1,6 @@
 /**
  * @file ObjectsInstancingTest
- * @brief 迁移 three.js test/unit/src/objects 目录 tests.js 的 Instancing / isXxx 断言
+ * @brief 迁移上游 JS 库 test/unit/src/objects 目录 tests.js 的 Instancing / isXxx 断言
  *
  * 对照 JS:
  *   new Mesh() → object.isMesh === true

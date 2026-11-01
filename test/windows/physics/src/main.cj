@@ -38,6 +38,8 @@ import three.physics.constraint.*
 import std.collection.*
 import std.math.*
 import std.time.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /// 格式化浮点数为 3 位小数（日志可读性；截断不四舍五入）
 func _fmt3(n: Float64): String {
@@ -194,7 +196,13 @@ public class TestWindow <: WindowEngine {
 
     var startTime: MonoTime = MonoTime.now()
     var frame: Int64 = 0
+
+    // 物理固定步长（秒）：每步模拟时间恒定，保证确定性（42 项验证依赖）
     let dt: Float32 = 1.0f32 / 60.0f32
+    // 步长累加器：把真实帧间隔 dt 累加，按固定步长分批步进——模拟速度 = 真实时间，
+    // 与帧率无关（剖析发现：无上限时泵循环可跑 200-700fps，固定每帧 1 步会让物理
+    // 以数倍真实时间运行，物体"忽快忽停"）。
+    var accDt: Float64 = 0.0
 
     // 力演示目标：圆柱体（每 60 帧施加一次侧向冲量，让其持续滚动）
     var forceTarget: Option<RigidBody> = None
@@ -207,6 +215,9 @@ public class TestWindow <: WindowEngine {
 
     // ===== 生命周期：窗口创建后（初始化渲染器 + 物理世界 + 场景） =====
     public override func onInit(): Unit {
+        // 帧率上限 60fps：与固定物理步长(1/60s)对齐，让模拟以真实时间前进、
+        // 帧间隔稳定（消除无上限时数百 fps 下物理"数倍加速 + 周期性卡顿"））
+        this.targetFrameRate = 60.0
         let hwnd = this.getNativeWindowHandle()
         let w = this.getWidth()
         let h = this.getHeight()
@@ -261,7 +272,29 @@ public class TestWindow <: WindowEngine {
         println("  按窗口关闭按钮退出\n")
     }
 
-    // ===== 生命周期：每循环（读固定快照——物理步进 + 渲染） =====
+    // ===== 生命周期：帧循环 =====
+    /**
+     * @brief[zh-cn] 步进物理世界（固定步长累加器版，帧率无关）
+     * @explain[zh-cn] 把真实帧间隔 dt 累加进 accDt，每满一个固定步长(1/60s)步进世界一次。
+     * 帧率受限 60fps 时每帧恰 1 步（与历史行为一致）；高刷屏/掉帧时按真实时间补步/跳步，
+     * 模拟速度始终 = 真实时间。guard 上限防止长时间停顿后单帧追赶过多步。
+     *
+     * @brief[en] Steps the physics world (fixed-step accumulator, frame-rate independent)
+     * @explain[en] Accumulates the real frame delta into accDt and steps the world once
+     * per full 1/60s budget. At a 60fps cap this is exactly 1 step per frame (same behavior
+     * as before); at high refresh or after a stall it catches up in real time. The guard
+     * caps substeps per frame to avoid a death spiral after long stalls.
+     */
+    private func _stepPhysics(dt: Float64): Unit {
+        this.accDt += dt
+        var guard = 0
+        while (this.accDt >= Float64(this.dt) && guard < 4) {
+            this.physicsWorld.update(this.dt, collisionSteps: 1)
+            this.accDt -= Float64(this.dt)
+            guard += 1
+        }
+    }
+
     public override func onFrame(dt: Float64): Unit {
         // [DBG] 自动退出：1200 帧（≈20s）后自动关闭，便于无人值守验证
         // （高级验证阶段 0-11：电机/软体/载具/高度场/调试渲染/滑块/约束动物园/布娃娃/角色）
@@ -293,7 +326,9 @@ public class TestWindow <: WindowEngine {
         }
 
         // 步进物理世界（独立物理线程执行，主线程等待完成）
-        this.physicsWorld.update(this.dt, collisionSteps: 1)
+        // 帧标记（剖析用）：以"每帧物理步进起点"为主帧边界，
+        // 帧间隔 = 完整一帧（物理等待 + 快照回读 + 渲染往返），用于观测物理/渲染协作节奏
+        @FrameMark[three.physics.test]( this._stepPhysics(dt) )
 
         // 高级验证状态机推进（物理步进之后，读到的 transform 是最新值）
         this.advDriver.tick(this.physicsWorld)
@@ -308,8 +343,8 @@ public class TestWindow <: WindowEngine {
         this.renderer.render(this.scene, this.camera)
 
         this.frame++
-        // 每 120 帧打印一次日志（stdout 可能被缓冲，同时落盘到文件便于验证）
-        if (this.frame % 15 == 1) {
+        // 每 60 帧打印一次日志（stdout 可能被缓冲，同时落盘到文件便于验证）
+        if (this.frame % 60 == 1) {
             let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
             let fps = Float64(this.frame) / elapsed
             // 打印第一个立方体的状态 + 约束状态

@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 输出处理
  * @brief[zh-cn] 替代 WebGLOutput，处理输出色调映射和颜色空间转换
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLOutput.js。WebGLOutput 负责色调映射和颜色空间转换。bgfx 通过着色器实现色调映射，此处提供配置接口。
+ * @explain[zh-cn] WebGLOutput 负责色调映射和颜色空间转换。bgfx 通过着色器实现色调映射，此处提供配置接口。
  *
  * @file[en] bgfx Output Processing
  * @brief[en] Replaces WebGLOutput, handles output tone mapping and color space conversion
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLOutput.js. WebGLOutput handles tone mapping and color space conversion. bgfx implements tone mapping through shaders; this class provides configuration interfaces.
+ * @explain[en] WebGLOutput handles tone mapping and color space conversion. bgfx implements tone mapping through shaders; this class provides configuration interfaces.
  */
 package three.rendering.bgfx
 

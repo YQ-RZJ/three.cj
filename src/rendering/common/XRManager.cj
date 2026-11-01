@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] XR 管理器
  * @brief[zh-cn] XR 管理器类，管理 WebXR 会话状态
- * @explain[zh-cn] XRManager 管理 XR（扩展现实）会话的启用状态、会话设置与查询，提供基本的 XR 呈现检测功能。对照源码: three.js/src/renderers/common/XRManager.js
+ * @explain[zh-cn] XRManager 管理 XR（扩展现实）会话的启用状态、会话设置与查询，提供基本的 XR 呈现检测功能。
  *
  * @file[en] XR Manager
  * @brief[en] XR Manager class, managing WebXR session state
- * @explain[en] XRManager manages the enabled state, session setting and querying for XR (Extended Reality) sessions, providing basic XR presentation detection. Reference: three.js/src/renderers/common/XRManager.js
+ * @explain[en] XRManager manages the enabled state, session setting and querying for XR (Extended Reality) sessions, providing basic XR presentation detection.
  */
 package three.rendering.common
 

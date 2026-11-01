@@ -702,12 +702,10 @@ public class JoltBackend <: IPhysicsBackend {
         // 清理碰撞子组映射
         this._bodySubGroup.remove(handle.bodyID)
         // 销毁形状句柄
-        match (this._shapes.get(handle.bodyID)) {
-            case Some(sh) =>
+        if (let Some(sh) <- this._shapes.get(handle.bodyID)) {
                 JPH_Shape_Destroy_cj(sh)
                 this._shapes.remove(handle.bodyID)
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2034,12 +2032,8 @@ public class JoltBackend <: IPhysicsBackend {
         if (!this._groupFilter.isNull()) {
             let subA = this._bodySubGroup.get(bodyA.bodyID)
             let subB = this._bodySubGroup.get(bodyB.bodyID)
-            match (subA) {
-                case Some(sa) => match (subB) {
-                    case Some(sb) => JPH_GroupFilterTable_DisableCollision_cj(this._groupFilter, sa, sb)
-                    case None => ()
-                }
-                case None => ()
+            if (let Some(sa) <- subA && let Some(sb) <- subB) {
+                JPH_GroupFilterTable_DisableCollision_cj(this._groupFilter, sa, sb)
             }
         }
         let c = this._createJoltConstraint(desc, bodyA, bodyB)
@@ -2071,12 +2065,10 @@ public class JoltBackend <: IPhysicsBackend {
      * @param[en] constraintID Constraint ID
      */
     private func _wakeConstraintBodies(constraintID: UInt32): Unit {
-        match (this._constraintBodies.get(constraintID)) {
-            case Some(pair) =>
+        if (let Some(pair) <- this._constraintBodies.get(constraintID)) {
                 this._activateIfDynamic(pair[0])
                 this._activateIfDynamic(pair[1])
-            case None => ()
-        }
+            }
     }
 
     /// 唤醒单个刚体（仅动态/运动学；静态体无 MotionProperties，不可激活）
@@ -2102,15 +2094,13 @@ public class JoltBackend <: IPhysicsBackend {
         if (!this._inited || this._system.isNull() || !handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
                 JPH_PhysicsSystem_RemoveConstraint_cj(this._system, c)
                 JPH_Constraint_Destroy_cj(c)
                 this._constraints.remove(handle.constraintID)
                 this._constraintTypes.remove(handle.constraintID)
                 this._constraintBodies.remove(handle.constraintID)
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2126,9 +2116,10 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return false
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) => JPH_Constraint_GetEnabled_cj(c) != 0
-            case None => false
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+            JPH_Constraint_GetEnabled_cj(c) != 0
+        } else {
+            false
         }
     }
 
@@ -2145,13 +2136,12 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) => JPH_Constraint_SetEnabled_cj(c, if (enabled) {
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+            JPH_Constraint_SetEnabled_cj(c, if (enabled) {
                 1u8
             } else {
                 0u8
             })
-            case None => ()
         }
     }
 
@@ -2170,23 +2160,23 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
                 // 必须按约束实际类型分发：joltc setter 内部直接
                 // reinterpret_cast<Hinge/SliderConstraint>，跨类型调用会破坏内存
-                match (this._constraintTypes.get(handle.constraintID)) {
-                    case Some(PhysicsConstraintType.Hinge) =>
-                        JPH_HingeConstraint_SetMotorState_cj(c, state.value())
-                        // 切电机模式时刚体可能已休眠（如位置模式稳定后），
-                        // 不唤醒则速度电机完全不产生力矩
-                        this._wakeConstraintBodies(handle.constraintID)
-                    case Some(PhysicsConstraintType.Slider) =>
-                        JPH_SliderConstraint_SetMotorState_cj(c, state.value())
-                        this._wakeConstraintBodies(handle.constraintID)
-                    case _ => ()
+                if (let Some(t) <- this._constraintTypes.get(handle.constraintID)) {
+                    match (t) {
+                        case PhysicsConstraintType.Hinge =>
+                            JPH_HingeConstraint_SetMotorState_cj(c, state.value())
+                            // 切电机模式时刚体可能已休眠（如位置模式稳定后），
+                            // 不唤醒则速度电机完全不产生力矩
+                            this._wakeConstraintBodies(handle.constraintID)
+                        case PhysicsConstraintType.Slider =>
+                            JPH_SliderConstraint_SetMotorState_cj(c, state.value())
+                            this._wakeConstraintBodies(handle.constraintID)
+                        case _ => ()
+                    }
                 }
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2202,12 +2192,10 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
                 JPH_HingeConstraint_SetTargetAngularVelocity_cj(c, Float32(angularVelocity))
                 this._wakeConstraintBodies(handle.constraintID)
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2223,12 +2211,10 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
                 JPH_HingeConstraint_SetTargetAngle_cj(c, Float32(angle))
                 this._wakeConstraintBodies(handle.constraintID)
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2244,9 +2230,10 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return 0.0
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) => Float64(JPH_HingeConstraint_GetCurrentAngle_cj(c))
-            case None => 0.0
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+            Float64(JPH_HingeConstraint_GetCurrentAngle_cj(c))
+        } else {
+            0.0
         }
     }
 
@@ -2263,16 +2250,16 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
-                match (this._constraintTypes.get(handle.constraintID)) {
-                    case Some(PhysicsConstraintType.Slider) =>
-                        JPH_SliderConstraint_SetTargetVelocity_cj(c, Float32(velocity))
-                        this._wakeConstraintBodies(handle.constraintID)
-                    case _ => ()
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+                if (let Some(t) <- this._constraintTypes.get(handle.constraintID)) {
+                    match (t) {
+                        case PhysicsConstraintType.Slider =>
+                            JPH_SliderConstraint_SetTargetVelocity_cj(c, Float32(velocity))
+                            this._wakeConstraintBodies(handle.constraintID)
+                        case _ => ()
+                    }
                 }
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2288,16 +2275,16 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
-                match (this._constraintTypes.get(handle.constraintID)) {
-                    case Some(PhysicsConstraintType.Slider) =>
-                        JPH_SliderConstraint_SetTargetPosition_cj(c, Float32(position))
-                        this._wakeConstraintBodies(handle.constraintID)
-                    case _ => ()
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+                if (let Some(t) <- this._constraintTypes.get(handle.constraintID)) {
+                    match (t) {
+                        case PhysicsConstraintType.Slider =>
+                            JPH_SliderConstraint_SetTargetPosition_cj(c, Float32(position))
+                            this._wakeConstraintBodies(handle.constraintID)
+                        case _ => ()
+                    }
                 }
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2313,14 +2300,17 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return 0.0
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
-                match (this._constraintTypes.get(handle.constraintID)) {
-                    case Some(PhysicsConstraintType.Slider) =>
-                        Float64(JPH_SliderConstraint_GetCurrentPosition_cj(c))
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+            if (let Some(t) <- this._constraintTypes.get(handle.constraintID)) {
+                match (t) {
+                    case PhysicsConstraintType.Slider => Float64(JPH_SliderConstraint_GetCurrentPosition_cj(c))
                     case _ => 0.0
                 }
-            case None => 0.0
+            } else {
+                0.0
+            }
+        } else {
+            0.0
         }
     }
 
@@ -2341,12 +2331,10 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
                 JPH_HingeConstraint_SetLimits_cj(c, Float32(limitMin), Float32(limitMax))
                 JPH_SliderConstraint_SetLimits_cj(c, Float32(limitMin), Float32(limitMax))
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2362,12 +2350,10 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid()) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) =>
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
                 JPH_HingeConstraint_SetMaxFrictionTorque_cj(c, Float32(friction))
                 JPH_SliderConstraint_SetMaxFrictionForce_cj(c, Float32(friction))
-            case None => ()
-        }
+            }
     }
 
     /**
@@ -2385,9 +2371,8 @@ public class JoltBackend <: IPhysicsBackend {
         if (!handle.isValid() || axis < 0 || axis > 5) {
             return
         }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) => JPH_SixDOFConstraint_SetMotorState_cj(c, UInt32(axis), state.value())
-            case None => ()
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+            JPH_SixDOFConstraint_SetMotorState_cj(c, UInt32(axis), state.value())
         }
     }
 
@@ -2407,9 +2392,8 @@ public class JoltBackend <: IPhysicsBackend {
         let jt = JoltBackend._lhToRh(target)
         let v = unsafe { LibC.malloc<JPHVec3>() }
         unsafe { v.write(JPHVec3(x: Float32(jt.x), y: Float32(jt.y), z: Float32(jt.z))) }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) => JPH_SixDOFConstraint_SetTargetPositionCS_cj(c, v)
-            case None => ()
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+            JPH_SixDOFConstraint_SetTargetPositionCS_cj(c, v)
         }
         unsafe { LibC.free(v) }
     }
@@ -2430,9 +2414,8 @@ public class JoltBackend <: IPhysicsBackend {
         let jt = JoltBackend._lhToRh(target)
         let v = unsafe { LibC.malloc<JPHVec3>() }
         unsafe { v.write(JPHVec3(x: Float32(jt.x), y: Float32(jt.y), z: Float32(jt.z))) }
-        match (this._constraints.get(handle.constraintID)) {
-            case Some(c) => JPH_SixDOFConstraint_SetTargetVelocityCS_cj(c, v)
-            case None => ()
+        if (let Some(c) <- this._constraints.get(handle.constraintID)) {
+            JPH_SixDOFConstraint_SetTargetVelocityCS_cj(c, v)
         }
         unsafe { LibC.free(v) }
     }
@@ -2477,9 +2460,8 @@ public class JoltBackend <: IPhysicsBackend {
         }
         let id1 = JPH_Body_GetID_cj(body1)
         let id2 = JPH_Body_GetID_cj(body2)
-        match (JoltBackend._contactListener) {
-            case Some(l) => l.onContact(id1, id2, event)
-            case None => ()
+        if (let Some(l) <- JoltBackend._contactListener) {
+            l.onContact(id1, id2, event)
         }
     }
 
@@ -2489,48 +2471,40 @@ public class JoltBackend <: IPhysicsBackend {
             return
         }
         let p = unsafe { pair.read() }
-        match (JoltBackend._contactListener) {
-            case Some(l) => l.onContact(p.body1ID, p.body2ID, PhysicsContactEvent.Removed)
-            case None => ()
+        if (let Some(l) <- JoltBackend._contactListener) {
+            l.onContact(p.body1ID, p.body2ID, PhysicsContactEvent.Removed)
         }
     }
 
     /// 刚体激活回调 → IPhysicsSensorListener.onBodyActivated
     private static func _onBodyActivated(bodyID: UInt32): Unit {
-        match (JoltBackend._contactListener) {
-            case Some(l) => l.onBodyActivated(bodyID)
-            case None => ()
+        if (let Some(l) <- JoltBackend._contactListener) {
+            l.onBodyActivated(bodyID)
         }
     }
 
     /// 刚体休眠回调 → IPhysicsSensorListener.onBodyDeactivated
     private static func _onBodyDeactivated(bodyID: UInt32): Unit {
-        match (JoltBackend._contactListener) {
-            case Some(l) => l.onBodyDeactivated(bodyID)
-            case None => ()
+        if (let Some(l) <- JoltBackend._contactListener) {
+            l.onBodyDeactivated(bodyID)
         }
     }
 
     /// 射线批量命中回调（JPH_CastRayResultCallback）
     private static func _onRayResult(ctx: CPointer<Unit>, result: CPointer<JPHRayCastResult>): Unit {
-        match (JoltBackend._activeSink) {
-            case Some(sink) => match (sink.rayHits) {
-                case Some(hits) =>
-                    let r = unsafe { result.read() }
-                    let hit = PhysicsRayHit()
-                    hit.bodyID = r.bodyID
-                    hit.fraction = r.fraction
-                    // 命中点 = origin + direction * fraction（右手系算后转左手系）
-                    let f = Float64(r.fraction)
-                    let pj = Vector3(sink.rayOrigin.x + sink.rayDirection.x * f,
-                        sink.rayOrigin.y + sink.rayDirection.y * f, sink.rayOrigin.z + sink.rayDirection.z * f)
-                    hit.point = JoltBackend._rhToLh(pj)
-                    // 命中法线：GetBodyPtr → GetWorldSpaceSurfaceNormal（右手系 → 左手系）
-                    hit.normal = JoltBackend._querySurfaceNormal(sink.system, r.bodyID, r.subShapeID2, pj)
-                    hits.add(hit)
-                case None => ()
-            }
-            case None => ()
+        if (let Some(sink) <- JoltBackend._activeSink && let Some(hits) <- sink.rayHits) {
+            let r = unsafe { result.read() }
+            let hit = PhysicsRayHit()
+            hit.bodyID = r.bodyID
+            hit.fraction = r.fraction
+            // 命中点 = origin + direction * fraction（右手系算后转左手系）
+            let f = Float64(r.fraction)
+            let pj = Vector3(sink.rayOrigin.x + sink.rayDirection.x * f,
+                sink.rayOrigin.y + sink.rayDirection.y * f, sink.rayOrigin.z + sink.rayDirection.z * f)
+            hit.point = JoltBackend._rhToLh(pj)
+            // 命中法线：GetBodyPtr → GetWorldSpaceSurfaceNormal（右手系 → 左手系）
+            hit.normal = JoltBackend._querySurfaceNormal(sink.system, r.bodyID, r.subShapeID2, pj)
+            hits.add(hit)
         }
     }
 
@@ -2561,64 +2535,49 @@ public class JoltBackend <: IPhysicsBackend {
 
     /// 点碰撞命中回调（JPH_CollidePointResultCallback）
     private static func _onCollidePointResult(ctx: CPointer<Unit>, result: CPointer<JPHCollidePointResult>): Unit {
-        match (JoltBackend._activeSink) {
-            case Some(sink) => match (sink.pointHits) {
-                case Some(hits) =>
-                    let r = unsafe { result.read() }
-                    let hit = PhysicsPointHit()
-                    hit.bodyID = r.bodyID
-                    hit.subShapeID = r.subShapeID2
-                    hits.add(hit)
-                case None => ()
-            }
-            case None => ()
+        if (let Some(sink) <- JoltBackend._activeSink && let Some(hits) <- sink.pointHits) {
+            let r = unsafe { result.read() }
+            let hit = PhysicsPointHit()
+            hit.bodyID = r.bodyID
+            hit.subShapeID = r.subShapeID2
+            hits.add(hit)
         }
     }
 
     /// 形状碰撞命中回调（JPH_CollideShapeResultCallback）
     private static func _onCollideShapeResult(ctx: CPointer<Unit>, result: CPointer<JPHCollideShapeResult>): Unit {
-        match (JoltBackend._activeSink) {
-            case Some(sink) => match (sink.shapeHits) {
-                case Some(hits) =>
-                    let r = unsafe { result.read() }
-                    let hit = PhysicsShapeHit()
-                    hit.bodyID = r.bodyID2
-                    hit.penetrationDepth = r.penetrationDepth
-                    hit.subShapeID1 = r.subShapeID1
-                    hit.subShapeID2 = r.subShapeID2
-                    // 接触点/穿透轴（右手系 → 左手系）
-                    hit.point = JoltBackend._rhToLh(
-                        Vector3(Float64(r.contactPointOn1.x), Float64(r.contactPointOn1.y), Float64(r.contactPointOn1.z)))
-                    hit.normal = JoltBackend._rhToLh(
-                        Vector3(Float64(r.penetrationAxis.x), Float64(r.penetrationAxis.y), Float64(r.penetrationAxis.z)))
-                    hits.add(hit)
-                case None => ()
-            }
-            case None => ()
+        if (let Some(sink) <- JoltBackend._activeSink && let Some(hits) <- sink.shapeHits) {
+            let r = unsafe { result.read() }
+            let hit = PhysicsShapeHit()
+            hit.bodyID = r.bodyID2
+            hit.penetrationDepth = r.penetrationDepth
+            hit.subShapeID1 = r.subShapeID1
+            hit.subShapeID2 = r.subShapeID2
+            // 接触点/穿透轴（右手系 → 左手系）
+            hit.point = JoltBackend._rhToLh(
+                Vector3(Float64(r.contactPointOn1.x), Float64(r.contactPointOn1.y), Float64(r.contactPointOn1.z)))
+            hit.normal = JoltBackend._rhToLh(
+                Vector3(Float64(r.penetrationAxis.x), Float64(r.penetrationAxis.y), Float64(r.penetrationAxis.z)))
+            hits.add(hit)
         }
     }
 
     /// 形状投射命中回调（JPH_CastShapeResultCallback）
     private static func _onCastShapeResult(ctx: CPointer<Unit>, result: CPointer<JPHShapeCastResult>): Unit {
-        match (JoltBackend._activeSink) {
-            case Some(sink) => match (sink.shapeHits) {
-                case Some(hits) =>
-                    let r = unsafe { result.read() }
-                    let hit = PhysicsShapeHit()
-                    hit.bodyID = r.bodyID2
-                    hit.fraction = r.fraction
-                    hit.penetrationDepth = r.penetrationDepth
-                    hit.subShapeID1 = r.subShapeID1
-                    hit.subShapeID2 = r.subShapeID2
-                    hit.isBackFaceHit = r.isBackFaceHit
-                    hit.point = JoltBackend._rhToLh(
-                        Vector3(Float64(r.contactPointOn1.x), Float64(r.contactPointOn1.y), Float64(r.contactPointOn1.z)))
-                    hit.normal = JoltBackend._rhToLh(
-                        Vector3(Float64(r.penetrationAxis.x), Float64(r.penetrationAxis.y), Float64(r.penetrationAxis.z)))
-                    hits.add(hit)
-                case None => ()
-            }
-            case None => ()
+        if (let Some(sink) <- JoltBackend._activeSink && let Some(hits) <- sink.shapeHits) {
+            let r = unsafe { result.read() }
+            let hit = PhysicsShapeHit()
+            hit.bodyID = r.bodyID2
+            hit.fraction = r.fraction
+            hit.penetrationDepth = r.penetrationDepth
+            hit.subShapeID1 = r.subShapeID1
+            hit.subShapeID2 = r.subShapeID2
+            hit.isBackFaceHit = r.isBackFaceHit
+            hit.point = JoltBackend._rhToLh(
+                Vector3(Float64(r.contactPointOn1.x), Float64(r.contactPointOn1.y), Float64(r.contactPointOn1.z)))
+            hit.normal = JoltBackend._rhToLh(
+                Vector3(Float64(r.penetrationAxis.x), Float64(r.penetrationAxis.y), Float64(r.penetrationAxis.z)))
+            hits.add(hit)
         }
     }
 }

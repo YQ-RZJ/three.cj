@@ -72,10 +72,11 @@ import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.core.math.Vector2
-import three.utils.memory.BgfxMemory
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 点阵屏后处理 pass
@@ -122,6 +123,11 @@ public class DotScreenPass <: Pass {
     private var _dotScreenProg: Option<ProgramHandle> = None
 
     /**
+     * uniform 注册表缓存（避免每帧创建新 BgfxUniforms 泄漏 bgfx handle）。
+     */
+    private var _uniforms: Option<BgfxUniforms> = None
+
+    /**
      * @brief[zh-cn] 构造 DotScreenPass
      * @brief[en] Constructs DotScreenPass
      * @param[zh-cn] center 点阵中心（默认 (0.5, 0.5)）
@@ -162,19 +168,18 @@ public class DotScreenPass <: Pass {
      * 编译 dot_screen shader。
      */
     private func _compileDotScreen(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("dot_screen")) {
-            case Some(sp) =>
-                if (!this._dotScreenCompiled) {
-                    sp.compileBgfx()
-                    this._dotScreenProg = Some(Box(sp.programHandle))
-                    this._dotScreenCompiled = true
-                    @LogTrace(["dotscreen", "dot_screen shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._dotScreenProg
-            case None =>
-                @LogTrace(["dotscreen", "dot_screen shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("dot_screen")) {
+            if (!this._dotScreenCompiled) {
+                sp.compileBgfx()
+                this._dotScreenProg = Some(Box(sp.programHandle))
+                this._dotScreenCompiled = true
+                @LogTrace(["dotscreen", "dot_screen shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._dotScreenProg
+        } else {
+            @LogTrace(["dotscreen", "dot_screen shader not registered"])
+            return None
         }
     }
 
@@ -198,6 +203,7 @@ public class DotScreenPass <: Pass {
      *            (u_tSize = readBuffer.width, readBuffer.height);
      *         3. submits the full-screen quad (overwrite state).
      */
+    @Zone[three.rendering.postprocessing.DotScreenPass.render, name=dotScreenPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -219,56 +225,49 @@ public class DotScreenPass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileDotScreen()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["dotscreen", "dot_screen prog invalid, skip"])
-                    return
-                }
+        if (let Some(prog) <- this._compileDotScreen()) {
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["dotscreen", "dot_screen prog invalid, skip"])
+                return
+            }
 
-                let uniforms = BgfxUniforms()
+            // 缓存的 uniform 注册表（避免每帧创建新 BgfxUniforms 泄漏 bgfx handle）
+            let uniforms = if (let Some(u) <- this._uniforms) {
+                u
+            } else {
+                let u = this._passUniforms()
+                this._uniforms = Some(u)
+                u
+            }
 
-                // stage 0 = tDiffuse（readBuffer 的 color 0）
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
+            // stage 0 = tDiffuse（readBuffer 的 color 0）
+            let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
+            let diffuseTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 0u8, uDiffuse, diffuseTex, 0u32)
 
-                // u_center（vec4: xy=center）
-                let uCenter = uniforms.createUniform("u_center", UniformType.Vec4.value())
-                let centerMem = BgfxMemory(16u32)
-                centerMem.writeFloats([this.center.x, this.center.y, 0.0, 0.0], 4)
-                this.setUniform(renderer, uCenter, centerMem, num: 1u16)
+            // 复用上传缓冲（原实现每帧新建 4 个 BgfxMemory + 4 个数组字面量），
+            // 每个 uniform 独占一个槽位，避免同一帧内后写覆盖先写而尚未提交的数据。
+            let uCenter = uniforms.createUniform("u_center", UniformType.Vec4.value())
+            this._setVec2Uniform(renderer, uCenter, 0, this.center.x, this.center.y)
+            let uAngle = uniforms.createUniform("u_angle", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uAngle, 1, this.angle)
+            let uScale = uniforms.createUniform("u_scale", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uScale, 2, this.scale)
+            let uTSize = uniforms.createUniform("u_tSize", UniformType.Vec4.value())
+            this._setVec2Uniform(renderer, uTSize, 3, Float64(renderer.width), Float64(renderer.height))
 
-                // u_angle（vec4: x=angle）
-                let uAngle = uniforms.createUniform("u_angle", UniformType.Vec4.value())
-                let angleMem = BgfxMemory(16u32)
-                angleMem.writeFloats([this.angle, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uAngle, angleMem, num: 1u16)
+            // 全屏 quad submit（覆盖写 state）
+            this.submitQuad(viewId, prog)
 
-                // u_scale（vec4: x=scale）
-                let uScale = uniforms.createUniform("u_scale", UniformType.Vec4.value())
-                let scaleMem = BgfxMemory(16u32)
-                scaleMem.writeFloats([this.scale, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uScale, scaleMem, num: 1u16)
-
-                // u_tSize（vec4: xy=readBuffer 尺寸）
-                let uTSize = uniforms.createUniform("u_tSize", UniformType.Vec4.value())
-                let tSizeMem = BgfxMemory(16u32)
-                tSizeMem.writeFloats([Float64(renderer.width), Float64(renderer.height), 0.0, 0.0], 4)
-                this.setUniform(renderer, uTSize, tSizeMem, num: 1u16)
-
-                // 全屏 quad submit（覆盖写 state）
-                this.submitQuad(viewId, prog)
-
-                @LogTrace(["dotscreen", "pass: view=" + viewId.toString() +
-                              " center=(" + this.center.x.toString() + "," +
-                              this.center.y.toString() + ")" +
-                              " angle=" + this.angle.toString() +
-                              " scale=" + this.scale.toString() +
-                              " tSize=" + renderer.width.toString() + "x" +
-                              renderer.height.toString()])
-            case None =>
-                @LogTrace(["dotscreen", "dot_screen shader compile failed, skip pass"])
+            @LogTrace(["dotscreen", "pass: view=" + viewId.toString() +
+                          " center=(" + this.center.x.toString() + "," +
+                          this.center.y.toString() + ")" +
+                          " angle=" + this.angle.toString() +
+                          " scale=" + this.scale.toString() +
+                          " tSize=" + renderer.width.toString() + "x" +
+                          renderer.height.toString()])
+        } else {
+            @LogTrace(["dotscreen", "dot_screen shader compile failed, skip pass"])
         }
     }
 
@@ -281,6 +280,11 @@ public class DotScreenPass <: Pass {
      *         here; the full-screen quad is managed as a singleton by EffectComposer.
      */
     public override func dispose(): Unit {
+        this._dotScreenProg = None
+        if (let Some(u) <- this._uniforms) {
+            u.dispose()
+        }
+        this._uniforms = None
         @LogTrace(["dotscreen", "disposed"])
     }
 }

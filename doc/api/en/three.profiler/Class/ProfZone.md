@@ -72,6 +72,39 @@ Parameter:
 |file|String||
 |line|UInt32||
 
+### func init\(Int64,String,UInt32,String,UInt32,String\)
+```cj
+public init(key: Int64, name: String, color: UInt32, file: String, line: UInt32, function: String)
+```
+Begin a named zone (source location cached by key; used by the macro path)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|key|Int64||
+|name|String||
+|color|UInt32||
+|file|String||
+|line|UInt32||
+|function|String||
+
+### func init\(Int64,String,UInt32,String,UInt32\)
+```cj
+public init(key: Int64, name: String, color: UInt32, file: String, line: UInt32)
+```
+Begin a named zone (source location cached by key, without a function name)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|key|Int64||
+|name|String||
+|color|UInt32||
+|file|String||
+|line|UInt32||
+
 ### func isClosed\(\)
 ```cj
 public func isClosed(): Bool

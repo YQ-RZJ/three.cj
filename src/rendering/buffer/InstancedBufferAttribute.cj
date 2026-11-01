@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] 实例化缓冲属性
- * @brief[zh-cn] 继承 BufferAttribute，支持实例化渲染（meshPerAttribute），对应 Three.js InstancedBufferAttribute.js
+ * @brief[zh-cn] 继承 BufferAttribute，支持实例化渲染（meshPerAttribute）
  * @explain[zh-cn] 在 bgfx 渲染后端中，实例化缓冲对应 bgfx 的实例化顶点缓冲区。
  *
  * @file[en] Instanced Buffer Attribute
- * @brief[en] Extends BufferAttribute, supports instanced rendering (meshPerAttribute), corresponding to Three.js InstancedBufferAttribute.js
+ * @brief[en] Extends BufferAttribute, supports instanced rendering (meshPerAttribute)
  * @explain[en] In the bgfx rendering backend, instanced buffer corresponds to bgfx instanced vertex buffer.
  *
  * @package three.rendering.buffer

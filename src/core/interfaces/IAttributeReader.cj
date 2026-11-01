@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] IAttributeReader
  * @brief[zh-cn] 顶点属性只读接口
- * @explain[zh-cn] 本包只存放接口声明，不依赖 three 内任何其他包；其他包（math/core 等）单向依赖本包，从而避免包间循环依赖。three.js 中 Vector/Color/Box3 的 fromBufferAttribute 直接接收 BufferAttribute（core 包）。cj 侧若让 math 依赖 core 会形成循环（core 依赖 math），因此将只读访问契约提取为本接口，由 core 的 BufferAttribute 实现。
+ * @explain[zh-cn] 本包只存放接口声明，不依赖 three 内任何其他包；其他包（math/core 等）单向依赖本包，从而避免包间循环依赖。主流引擎中 Vector/Color/Box3 的 fromBufferAttribute 直接接收 BufferAttribute（core 包）。cj 侧若让 math 依赖 core 会形成循环（core 依赖 math），因此将只读访问契约提取为本接口，由 core 的 BufferAttribute 实现。
  *
  * @file[en] IAttributeReader
  * @brief[en] Read-only interface for vertex attributes
- * @explain[en] This package only contains interface declarations with no dependency on any other three packages; other packages (math/core etc.) depend on this package unidirectionally, avoiding circular dependencies. In three.js, Vector/Color/Box3's fromBufferAttribute directly receives BufferAttribute (core package). In Cangjie, if math depends on core it would form a cycle (core depends on math), so the read-only access contract is extracted into this interface, implemented by core's BufferAttribute. JS reference: BufferAttribute#getX/getY/getZ/getW + count.
+ * @explain[en] This package only contains interface declarations with no dependency on any other three packages; other packages (math/core etc.) depend on this package unidirectionally, avoiding circular dependencies. In mainstream engines, Vector/Color/Box3's fromBufferAttribute directly receives BufferAttribute (core package). In Cangjie, if math depends on core it would form a cycle (core depends on math), so the read-only access contract is extracted into this interface, implemented by core's BufferAttribute. JS reference: BufferAttribute#getX/getY/getZ/getW + count.
  */
 package three.core.interfaces
 

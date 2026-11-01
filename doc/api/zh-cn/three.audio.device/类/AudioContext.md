@@ -11,9 +11,10 @@ public func execAudio(cmd:() -> Unit): Unit
 ```
 公开线程序列化入口，将 OpenAL API 调用提交到音频线程同步执行
 
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>外部模块（如 AudioLoader/StreamingAudio/EffectComposer）的 OpenAL 调用必须经
-此方法排队到音频线程，避免数据竞争；闭包按提交顺序在音频线程执行，
-内部若再调用其它走 _execAudio 的方法（如 initialize）会自我等待死锁。</p>
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>外部模块（如 AudioLoader/StreamingAudio/AudioRecorder）的 OpenAL 调用必须经
+此方法排队到音频线程，避免数据竞争；闭包按提交顺序在音频线程执行。
+需要读取执行结果（如 alGenBuffers 回填句柄）时必须用本方法；
+纯写入且不关心何时生效的调用可用 postAudio（不阻塞调用方）。</p>
 
 参数: 
 
@@ -90,6 +91,52 @@ public func initialize(): Bool
 
 - 是否初始化成功
 
+### func postAudio\(\(\)\->Unit\)
+```cj
+public func postAudio(cmd:() -> Unit): Unit
+```
+公开投递入口：把 OpenAL 调用排到音频线程执行但**不等待
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|cmd|()->Unit|待执行的闭包（仅包含原始 OpenAL 调用，且不读取任何回填结果）|
+
+### func postTransform\(AudioTransformSlot,Float32,Float32,Float32,Float32,Float32,Float32,Float32,Float32,Float32,Float32\)
+```cj
+public func postTransform(slot: AudioTransformSlot, px: Float32, py: Float32, pz: Float32, ox: Float32, oy: Float32, oz: Float32, ux: Float32, uy: Float32, uz: Float32, gain: Float32): Unit
+```
+异步提交一个音频对象的变换参数（渲染线程调用，不阻塞）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|slot|AudioTransformSlot|变换槽|
+|px|Float32|位置 X|
+|py|Float32|位置 Y|
+|pz|Float32|位置 Z|
+|ox|Float32|朝向/方向 X|
+|oy|Float32|朝向/方向 Y|
+|oz|Float32|朝向/方向 Z|
+|ux|Float32|上方向/速度 X|
+|uy|Float32|上方向/速度 Y|
+|uz|Float32|上方向/速度 Z|
+|gain|Float32|主音量（仅监听器槽生效）|
+
+### func registerTransformSlot\(AudioTransformSlot\)
+```cj
+public func registerTransformSlot(slot: AudioTransformSlot): Unit
+```
+注册一个音频变换槽
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|slot|AudioTransformSlot|变换槽（调用方持有，生命周期内不得释放）|
+
 ### func selectHrtf\(Int32\)
 ```cj
 public func selectHrtf(id: Int32): Unit
@@ -165,6 +212,18 @@ public func shutdown(): Unit
 关闭音频上下文并释放资源
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>清理在音频线程执行，确保 OpenAL 调用在 context 所属线程上发出。</p>
+
+### func unregisterTransformSlot\(AudioTransformSlot\)
+```cj
+public func unregisterTransformSlot(slot: AudioTransformSlot): Unit
+```
+注销一个音频变换槽
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|slot|AudioTransformSlot|变换槽|
 
 ### prop alcContext: CPointer < Unit >
 ```cj

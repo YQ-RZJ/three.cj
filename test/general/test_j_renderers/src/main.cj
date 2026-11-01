@@ -1,6 +1,6 @@
 /**
  * @file main
- * @brief test_j_renderers 独立测试项目入口（迁移自 three.js test/unit/src/renderers）
+ * @brief test_j_renderers 独立测试项目入口（迁移自上游 JS 库 test/unit/src/renderers）
  *
  * ThreeRenderTarget 需 bgfx 渲染环境（帧缓冲创建依赖已初始化的 renderer），
  * 故先创建 Win32 窗口 + 初始化 BgfxRenderer，再验证 ThreeRenderTarget 创建/尺寸，

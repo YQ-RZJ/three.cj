@@ -82,7 +82,7 @@ public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera,
 }
 
 /// 程序生成 256x256 彩条纹理（8 条水平彩条：红/绿/蓝/黄/青/紫/白/黑），返回 bgfx TextureHandle。
-/// 对照 three.js TexturePass 用 TextureLoader.load 加载图片；本测试用程序生成避免文件依赖。
+/// 标准 TexturePass 用 TextureLoader.load 加载图片；本测试用程序生成避免文件依赖。
 /// 用 renderer.createTexture2D 高阶 API（mem 用 BgfxMemory 包装）上传，不直接触 bgfx4cj。
 public func createStripeTexture(renderer: ThreeRenderer): TextureHandle {
     let w: UInt16 = 256u16

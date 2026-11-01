@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] PLYLoader Stanford PLY 格式加载器
- * @brief[zh-cn] 对应 Three.js examples/jsm/loaders/PLYLoader.js 的仓颉侧实现
+ * @brief[zh-cn] PLY 模型的仓颉侧实现
  * @explain[zh-cn] Stanford PLY 格式加载器：支持 ASCII / binary_little_endian / binary_big_endian，解析 vertex/face 元素，输出 BufferGeometry（position/normal/uv/color + index）。仓颉侧使用 std 字节/文本解析，无浏览器依赖。
  *
  * @file[en] PLYLoader  Stanford PLY format loader
- * @brief[en] Cangjie implementation corresponding to Three.js examples/jsm/loaders/PLYLoader.js
+ * @brief[en] Cangjie implementation of the PLY model loader
  * @explain[en] Stanford PLY format loader: supports ASCII / binary_little_endian / binary_big_endian, parses vertex/face elements, outputs BufferGeometry (position/normal/uv/color + index). Cangjie side uses std byte/text parsing with no browser dependency.
  */
 package three.resource.loader
@@ -114,13 +114,13 @@ public class PLYLoader <: Loader {
         let headerText = header.rawHeader
         let endIdx = headerText.indexOf("end_header")
         var bodyStart = 0
-        match (endIdx) {
-            case Some(idx) =>
-                // end_header 行结束（\n 之后）
-                var p = idx + 10
-                while (p < headerText.size && headerText[p] != 10u8) { p += 1 }
-                bodyStart = p + 1
-            case None => bodyStart = 0
+        if (let Some(idx) <- endIdx) {
+            // end_header 行结束（\n 之后）
+            var p = idx + 10
+            while (p < headerText.size && headerText[p] != 10u8) { p += 1 }
+            bodyStart = p + 1
+        } else {
+            bodyStart = 0
         }
         // 注意：headerText 是从原始字节解码的，但二进制 body 必须按原始字节偏移读取。
         // 改用扫描原始字节找 end_header 行尾。
@@ -411,17 +411,17 @@ internal class _PlyElementData {
     }
 
     public func getScalar(name: String): Float64 {
-        match (this.scalarValues.get(name)) {
-            case Some(v) => return v
-            case None => return 0.0
+        if (let Some(v) <- this.scalarValues.get(name)) {
+            return v
         }
+        return 0.0
     }
 
     public func getList(name: String): ArrayList<Float64> {
-        match (this.listValues.get(name)) {
-            case Some(v) => return v
-            case None => return ArrayList<Float64>()
+        if (let Some(v) <- this.listValues.get(name)) {
+            return v
         }
+        return ArrayList<Float64>()
     }
 }
 

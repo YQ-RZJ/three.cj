@@ -25,13 +25,11 @@
  * @brief[zh-cn] 3 个控制点定义的 2D 二次贝塞尔曲线
  * @explain[zh-cn] 
  * QuadraticBezierCurve 继承 Curve，由 v0（起始点）、v1（控制点）、v2（终止点）定义。
- * 对应 Three.js extras/curves/QuadraticBezierCurve.js。
  *
  * @file[en] 2D Quadratic Bezier Curve
  * @brief[en] 2D quadratic Bezier curve defined by 3 control points
  * @explain[en] 
  * QuadraticBezierCurve extends Curve, defined by v0 (start point), v1 (control point), v2 (end point).
- * Corresponds to Three.js extras/curves/QuadraticBezierCurve.js.
  */
 package three.rendering.geometry
 

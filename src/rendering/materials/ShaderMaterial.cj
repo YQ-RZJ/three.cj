@@ -24,7 +24,6 @@
  * @file[zh-cn] 自定义着色器材质
  * @brief[zh-cn] 自定义着色器材质，允许传入自定义vertex/fragment shader源码
  * @explain[zh-cn] 
- * 对应 Three.js src/renderers/shaders/ShaderMaterial.js。
  * 允许用户传入自定义的 bgfx .sc 格式 vertex/fragment shader 源码以及 uniforms 对象。
  * 渲染器在首次渲染时编译 shader 并创建 program。
  * 注意：shader 源码需使用 bgfx 的 $input/$output 语法，
@@ -33,7 +32,6 @@
  * @file[en] Shader Material
  * @brief[en] Custom shader material, allowing custom vertex/fragment shader source code
  * @explain[en] 
- * Corresponds to Three.js src/renderers/shaders/ShaderMaterial.js.
  * Allows users to provide custom bgfx .sc format vertex/fragment shader source code and uniforms.
  * The renderer compiles the shader and creates the program on first render.
  * Note: shader source code must use bgfx $input/$output syntax,
@@ -49,13 +47,11 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 自定义着色器材质，允许传入自定义vertex/fragment shader源码
  * @explain[zh-cn] 
- * 对应 Three.js src/renderers/shaders/ShaderMaterial.js。
  * 允许用户传入自定义的 bgfx .sc 格式 vertex/fragment shader 源码以及 uniforms 对象。
  * shader 源码需使用 bgfx 的 $input/$output 语法。
  *
  * @brief[en] Custom shader material, allowing custom vertex/fragment shader source code
  * @explain[en] 
- * Corresponds to Three.js src/renderers/shaders/ShaderMaterial.js.
  * Allows custom bgfx .sc format vertex/fragment shader source code and uniforms.
  * Shader source code must use bgfx $input/$output syntax.
  */

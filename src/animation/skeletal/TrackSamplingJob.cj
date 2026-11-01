@@ -116,10 +116,7 @@ public class TrackSamplingJob {
      * @brief[en] Validates the inputs
      */
     public func validate(): Bool {
-        match (this.track) {
-            case Some(_) => true
-            case None => false
-        }
+        if (let Some(_) <- this.track) { true } else { false }
     }
 
     /**
@@ -130,10 +127,7 @@ public class TrackSamplingJob {
      * @return[en] true on success
      */
     public func run(): Bool {
-        let track = match (this.track) {
-            case Some(t) => t
-            case None => return false
-        }
+        let track = if (let Some(t) <- this.track) { t } else { return false }
         let ratio = this.ratio
 
         match (track.trackType) {

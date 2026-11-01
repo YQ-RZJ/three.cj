@@ -93,9 +93,10 @@ public open class Interpolant {
     public init(parameterPositions: Array<Float64>, sampleValues: Array<Float64>, sampleSize: Int64, resultBuffer: Option<Array<Float64>>) {
         this.parameterPositions = parameterPositions
         this._cachedIndex = 0
-        this.resultBuffer = match (resultBuffer) {
-            case Some(buf) => buf
-            case None => Array<Float64>(sampleSize, { _ => 0.0 })
+        this.resultBuffer = if (let Some(buf) <- resultBuffer) {
+            buf
+        } else {
+            Array<Float64>(sampleSize, { _ => 0.0 })
         }
         this.sampleValues = sampleValues
         this.valueSize = sampleSize

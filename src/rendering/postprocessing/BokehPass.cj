@@ -113,6 +113,8 @@ import three.core.math.Matrix4
 import three.rendering.types.*
 import three.rendering.bgfx.BgfxAttributeDesc
 import std.collection.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 景深（DOF）后处理 pass
@@ -208,6 +210,81 @@ public class BokehPass <: Pass {
     /** 渲染器引用（render() 时缓存，setSize/dispose 销毁 GPU 资源时经其高阶 API 序列化） */
     private var _renderer: Option<ThreeRenderer> = None
 
+    // ===== 逐帧复用的上传缓冲 =====
+    // 背景：原实现每帧新建 BgfxMemory（内部走 bgfx_alloc）与 Array：
+    //   深度 pass 1 块矩阵缓冲 + 1 个 16 元素矩阵数组；
+    //   view/proj 变换 2 块矩阵缓冲 + 2 个 16 元素矩阵数组；
+    //   7 个标量 uniform 各 1 块 16 字节缓冲 + 1 个 4 元素数组字面量。
+    // 即每帧约 10 次 bgfx 内存分配 + 10 次托管堆分配，是 bokehPass 自耗时
+    // （实测约 207µs/帧）的主要来源。改为惰性创建一次并长期复用。
+    //
+    // 复用安全性：bgfx 的 set_transform / set_view_transform / set_uniform 在
+    // 调用时即把数据拷贝进引擎内部缓冲（memCopy），而 ThreeRenderer.setXxx
+    // 经 _execBgfx 排队路径时会等待渲染线程执行完毕才返回，
+    // 因此同一块缓冲在两次写入之间必然已被消费。
+    /** 深度 pass 的模型矩阵上传缓冲（64 字节）。 */
+    private var _mtxMemStore: Option<BgfxMemory> = None
+    /** view 矩阵上传缓冲（64 字节）。 */
+    private var _viewMemStore: Option<BgfxMemory> = None
+    /** proj 矩阵上传缓冲（64 字节）。 */
+    private var _projMemStore: Option<BgfxMemory> = None
+    /** 标量 vec4 uniform 上传缓冲（16 字节）。 */
+    private var _uniformMemStore: Option<BgfxMemory> = None
+    /** 标量 vec4 暂存（4 元素）。 */
+    private var _uniformScratch: Array<Float64> = Array<Float64>(4, { _ => 0.0 })
+
+    /** 深度 pass 的模型矩阵上传缓冲（惰性分配：bgfx 初始化后才可分配）。 */
+    private prop _mtxMem: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._mtxMemStore) {
+                m
+            } else {
+                let m = BgfxMemory(64u32)
+                this._mtxMemStore = Some(m)
+                m
+            }
+        }
+    }
+
+    /** view 矩阵上传缓冲（惰性分配）。 */
+    private prop _viewMem: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._viewMemStore) {
+                m
+            } else {
+                let m = BgfxMemory(64u32)
+                this._viewMemStore = Some(m)
+                m
+            }
+        }
+    }
+
+    /** proj 矩阵上传缓冲（惰性分配）。 */
+    private prop _projMem: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._projMemStore) {
+                m
+            } else {
+                let m = BgfxMemory(64u32)
+                this._projMemStore = Some(m)
+                m
+            }
+        }
+    }
+
+    /** 标量 vec4 uniform 上传缓冲（惰性分配）。 */
+    private prop _uniformMem: BgfxMemory {
+        get() {
+            if (let Some(m) <- this._uniformMemStore) {
+                m
+            } else {
+                let m = BgfxMemory(16u32)
+                this._uniformMemStore = Some(m)
+                m
+            }
+        }
+    }
+
     /**
      * 构造 BokehPass。
      *
@@ -298,12 +375,10 @@ public class BokehPass <: Pass {
         let depthFB = this._depthFB
         let depthTex = this._depthTex
         let depthDepthTex = this._depthDepthTex
-        match (this._renderer) {
-            case Some(renderer) =>
-                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+            if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+            if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
         }
         this._depthFB = INVALID_FRAME_BUFFER_HANDLE
         this._depthTex = INVALID_TEXTURE_HANDLE
@@ -313,9 +388,8 @@ public class BokehPass <: Pass {
     // ===== 场景几何体缓存（对齐 SSRPass/_renderDepth 范式） =====
 
     private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
-        match (this._layoutHandleCache) {
-            case Some(lh) => return lh
-            case None => ()
+        if (let Some(lh) <- this._layoutHandleCache) {
+            return lh
         }
         // 经 renderer.createVertexLayout(attrs) 高阶 API 创建布局句柄（封装 begin/add/end/create 序列）。
         // _createVB 经 renderer.createVertexBufferFromLayout(handle) 创建顶点缓冲
@@ -360,106 +434,84 @@ public class BokehPass <: Pass {
     }
 
     private func _createVB(renderer: ThreeRenderer, geom: BufferGeometry): VertexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._vbCache.get(geomId)) {
-            case Some(vb) => return vb
-            case None => ()
+        let geomId = geom.id
+        if (let Some(vb) <- this._vbCache.get(geomId)) {
+            return vb
         }
         let posAttrOpt = geom.getAttribute("position")
-        match (posAttrOpt) {
-            case Some(pos) =>
-                let vc = pos.count
-                if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
-                // position(3) + normal(3) + color(4) + uv(2) = 12 floats
-                let vertStride: Int64 = 12
-                let totalFloats = vc * vertStride
-                let data = Array<Float64>(totalFloats, { i => 0.0 })
-                let normAttrOpt = geom.getAttribute("normal")
-                let colAttrOpt = geom.getAttribute("color")
-                let uvAttrOpt = geom.getAttribute("uv")
-                for (vi in 0..vc) {
-                    let base = vi * vertStride
-                    data[base] = pos.getX(vi)
-                    data[base + 1] = pos.getY(vi)
-                    data[base + 2] = pos.getZ(vi)
-                    match (normAttrOpt) {
-                        case Some(na) =>
-                            data[base + 3] = na.getX(vi)
-                            data[base + 4] = na.getY(vi)
-                            data[base + 5] = na.getZ(vi)
-                        case None => data[base + 5] = 1.0
-                    }
-                    match (colAttrOpt) {
-                        case Some(ca) =>
-                            data[base + 6] = ca.getX(vi)
-                            data[base + 7] = ca.getY(vi)
-                            data[base + 8] = ca.getZ(vi)
-                            data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
-                        case None =>
-                            for (j in 0..4) { data[base + 6 + j] = 1.0 }
-                    }
-                    match (uvAttrOpt) {
-                        case Some(ua) =>
-                            data[base + 10] = ua.getX(vi)
-                            data[base + 11] = ua.getY(vi)
-                        case None => ()
-                    }
+        if (let Some(pos) <- posAttrOpt) {
+            let vc = pos.count
+            if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
+            // position(3) + normal(3) + color(4) + uv(2) = 12 floats
+            let vertStride: Int64 = 12
+            let totalFloats = vc * vertStride
+            let data = Array<Float64>(totalFloats, { i => 0.0 })
+            let normAttrOpt = geom.getAttribute("normal")
+            let colAttrOpt = geom.getAttribute("color")
+            let uvAttrOpt = geom.getAttribute("uv")
+            for (vi in 0..vc) {
+                let base = vi * vertStride
+                data[base] = pos.getX(vi)
+                data[base + 1] = pos.getY(vi)
+                data[base + 2] = pos.getZ(vi)
+                if (let Some(na) <- normAttrOpt) {
+                    data[base + 3] = na.getX(vi)
+                    data[base + 4] = na.getY(vi)
+                    data[base + 5] = na.getZ(vi)
+                } else {
+                    data[base + 5] = 1.0
                 }
-                let mem = BgfxMemory(UInt32(totalFloats * 4))
-                mem.writeFloats(data, totalFloats)
-                let layout = this._getOrCreateLayout(renderer)
-                let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
-                this._vbCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_VERTEX_BUFFER_HANDLE
+                if (let Some(ca) <- colAttrOpt) {
+                    data[base + 6] = ca.getX(vi)
+                    data[base + 7] = ca.getY(vi)
+                    data[base + 8] = ca.getZ(vi)
+                    data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
+                } else {
+                    for (j in 0..4) { data[base + 6 + j] = 1.0 }
+                }
+                if (let Some(ua) <- uvAttrOpt) {
+                    data[base + 10] = ua.getX(vi)
+                    data[base + 11] = ua.getY(vi)
+                }
+            }
+            let mem = BgfxMemory(UInt32(totalFloats * 4))
+            mem.writeFloats(data, totalFloats)
+            let layout = this._getOrCreateLayout(renderer)
+            let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
+            this._vbCache.add(geomId, handle)
+            return handle
+        } else {
+            return INVALID_VERTEX_BUFFER_HANDLE
         }
     }
 
     private func _createIB(renderer: ThreeRenderer, geom: BufferGeometry): IndexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._ibCache.get(geomId)) {
-            case Some(ib) => return ib
-            case None => ()
+        let geomId = geom.id
+        if (let Some(ib) <- this._ibCache.get(geomId)) {
+            return ib
         }
-        match (geom.index) {
-            case Some(idxAttr) =>
-                let count = idxAttr.count
-                if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
-                let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
-                let mem = BgfxMemory(UInt32(count * 2))
-                mem.writeUInt16(idxData, count)
-                let handle = renderer.createIndexBuffer(mem, flags: 0u16)
-                this._ibCache.add(geomId, handle)
-                return handle
-            case None => return INVALID_INDEX_BUFFER_HANDLE
-        }
-    }
-
-    /** 收集场景中所有 Mesh（递归遍历 children，对齐 SSRPass._collectMeshes） */
-    private func _collectMeshes(obj: Object3D, renderObjects: ArrayList<RenderObject>): Unit {
-        for (child in obj.children) {
-            if (child.children.size > 0) {
-                this._collectMeshes(child, renderObjects)
-            }
-            if (child.kind == "Mesh") {
-                match (child as Mesh) {
-                    case Some(mesh) =>
-                        let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
-                        renderObjects.add(ro)
-                    case None => ()
-                }
-            }
+        if (let Some(idxAttr) <- geom.index) {
+            let count = idxAttr.count
+            if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
+            let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
+            let mem = BgfxMemory(UInt32(count * 2))
+            mem.writeUInt16(idxData, count)
+            let handle = renderer.createIndexBuffer(mem, flags: 0u16)
+            this._ibCache.add(geomId, handle)
+            return handle
+        } else {
+            return INVALID_INDEX_BUFFER_HANDLE
         }
     }
 
     /** 设置 view transform（view=matrixWorldInverse, proj=projectionMatrix，对齐 SSRPass） */
     private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
-        let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let viewMem = BgfxMemory(64u32)
-        let projMem = BgfxMemory(64u32)
-        viewMem.writeFloats(viewArr, 16)
-        projMem.writeFloats(projArr, 16)
+        // 复用上传缓冲，且直接取 Matrix4.elements（与 toArray 的结果逐元素一致，
+        // 但省去每帧两个 16 元素数组的分配与拷贝）。
+        let viewMem = this._viewMem
+        let projMem = this._projMem
+        viewMem.writeFloats(camera.matrixWorldInverse.elements, 16)
+        projMem.writeFloats(camera.projectionMatrix.elements, 16)
         renderer.setViewTransform(viewId, viewMem, projMem)
     }
 
@@ -470,19 +522,18 @@ public class BokehPass <: Pass {
      * 功能等价 MeshDepthMaterial（RGBADepthPacking + NoBlending）。
      */
     private func _compileDepth(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("bokeh_depth")) {
-            case Some(sp) =>
-                if (!this._depthCompiled) {
-                    sp.compileBgfx()
-                    this._depthProg = Some(Box(sp.programHandle))
-                    this._depthCompiled = true
-                    @LogTrace(["bokeh", "bokeh_depth shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._depthProg
-            case None =>
-                @LogTrace(["bokeh", "bokeh_depth shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("bokeh_depth")) {
+            if (!this._depthCompiled) {
+                sp.compileBgfx()
+                this._depthProg = Some(Box(sp.programHandle))
+                this._depthCompiled = true
+                @LogTrace(["bokeh", "bokeh_depth shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._depthProg
+        } else {
+            @LogTrace(["bokeh", "bokeh_depth shader not registered"])
+            return None
         }
     }
 
@@ -491,24 +542,24 @@ public class BokehPass <: Pass {
      * 功能等价 ShaderMaterial（BokehShader）。
      */
     private func _compileBokeh(): Option<ProgramHandle> {
-        match (PostProcessingShaders.get("bokeh")) {
-            case Some(sp) =>
-                if (!this._bokehCompiled) {
-                    sp.compileBgfx()
-                    this._bokehProg = Some(Box(sp.programHandle))
-                    this._bokehCompiled = true
-                    @LogTrace(["bokeh", "bokeh shader compiled: prog.idx=" +
-                                  Handle.idx(Box(sp.programHandle)).toString()])
-                }
-                return this._bokehProg
-            case None =>
-                @LogTrace(["bokeh", "bokeh shader not registered"])
-                return None
+        if (let Some(sp) <- PostProcessingShaders.get("bokeh")) {
+            if (!this._bokehCompiled) {
+                sp.compileBgfx()
+                this._bokehProg = Some(Box(sp.programHandle))
+                this._bokehCompiled = true
+                @LogTrace(["bokeh", "bokeh shader compiled: prog.idx=" +
+                              Handle.idx(Box(sp.programHandle)).toString()])
+            }
+            return this._bokehProg
+        } else {
+            @LogTrace(["bokeh", "bokeh shader not registered"])
+            return None
         }
     }
 
     /**
      * 设置单个 vec4 uniform（x=value, y/z/w=0）。辅助方法，简化 6 个 uniforms 的设置。
+     * 复用上传缓冲与暂存数组，避免每帧 7 次 BgfxMemory + 数组字面量分配。
      */
     private func setUniformVec4(
         renderer: ThreeRenderer,
@@ -517,8 +568,13 @@ public class BokehPass <: Pass {
         value: Float64
     ): Unit {
         let handle = uniforms.createUniform(name, UniformType.Vec4.value())
-        let mem = BgfxMemory(16u32)
-        mem.writeFloats([value, 0.0, 0.0, 0.0], 4)
+        let scratch = this._uniformScratch
+        scratch[0] = value
+        scratch[1] = 0.0
+        scratch[2] = 0.0
+        scratch[3] = 0.0
+        let mem = this._uniformMem
+        mem.writeFloats(scratch, 4)
         this.setUniform(renderer, handle, mem, num: 1u16)
     }
 
@@ -537,6 +593,7 @@ public class BokehPass <: Pass {
      * @param readBuffer 读 buffer（上一 pass 结果，绑到 tColor）
      * @param deltaTime 帧间隔（秒）
      */
+    @Zone[three.rendering.postprocessing.BokehPass.render, name=bokehPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -553,32 +610,27 @@ public class BokehPass <: Pass {
 
         let sceneOpt = this._scene
         let camOpt = this._camera
-        match (sceneOpt) {
-            case Some(scene) => match (camOpt) {
-                case Some(camera) =>
-                    this._ensureRTs(renderer)
-                    if (!Handle.isValid(this._depthFB)) {
-                        @LogTrace(["bokeh", "render: _ensureRTs failed, depthFB invalid"])
-                        return
-                    }
-
-                    let baseView = BokehPass.BOKEH_VIEW_ID_BASE
-
-                    // ===== 1. 深度 pass（view+0）=====
-                    // overrideMaterial=深度材质，clear(白=far)，再渲场景
-                    this._renderDepth(renderer, scene, camera, baseView)
-
-                    // ===== 2. bokeh 合成 pass（view+1）=====
-                    this._renderBokeh(renderer, camera, readBuffer, writeBuffer,
-                                      UInt16(UInt16(baseView) + 1u16))
-
-                    @LogTrace(["bokeh", "render done: focus=" + this.focus.toString() +
-                                  " aperture=" + this.aperture.toString() +
-                                  " maxblur=" + this.maxblur.toString() +
-                                  " depthFB=${Handle.idx(this._depthFB)} readBuffer=${Handle.idx(readBuffer)}"])
-                case None => ()
+        if (let Some(scene) <- sceneOpt && let Some(camera) <- camOpt) {
+            this._ensureRTs(renderer)
+            if (!Handle.isValid(this._depthFB)) {
+                @LogTrace(["bokeh", "render: _ensureRTs failed, depthFB invalid"])
+                return
             }
-            case None => ()
+
+            let baseView = BokehPass.BOKEH_VIEW_ID_BASE
+
+            // ===== 1. 深度 pass（view+0）=====
+            // overrideMaterial=深度材质，clear(白=far)，再渲场景
+            this._renderDepth(renderer, scene, camera, baseView)
+
+            // ===== 2. bokeh 合成 pass（view+1）=====
+            this._renderBokeh(renderer, camera, readBuffer, writeBuffer,
+                              UInt16(UInt16(baseView) + 1u16))
+
+            @LogTrace(["bokeh", "render done: focus=" + this.focus.toString() +
+                          " aperture=" + this.aperture.toString() +
+                          " maxblur=" + this.maxblur.toString() +
+                          " depthFB=${Handle.idx(this._depthFB)} readBuffer=${Handle.idx(readBuffer)}"])
         }
     }
 
@@ -593,38 +645,39 @@ public class BokehPass <: Pass {
         this._setViewTransformFor(renderer, viewId, camera)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileDepth()) {
-            case Some(depthProg) =>
-                if (!Handle.isValid(depthProg)) {
-                    @LogTrace(["bokeh", "depth pass: bokeh_depth program compile FAILED"])
-                    return
-                }
+        if (let Some(depthProg) <- this._compileDepth()) {
+            if (!Handle.isValid(depthProg)) {
+                @LogTrace(["bokeh", "depth pass: bokeh_depth program compile FAILED"])
+                return
+            }
 
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(renderer, ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(renderer, ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                           BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                           BgfxConstants.FRONT_CCW
-                    renderer.setState(depthRenderState, rgba: 0x00000000u32)
-                    renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
+            let layout = this._getOrCreateLayout(renderer)
+            let renderObjects = renderer.getSceneMeshes(scene)
+            // 复用的 bgfx 变换内存（惰性创建，逐帧复用）：
+            // set_transform 在调用时即把矩阵拷进引擎内部矩阵缓存，
+            // 因此同一块缓冲在两次写入之间必然已被消费。
+            let mtxMem = this._mtxMem
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(renderer, ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                mtxMem.writeFloats(ro.worldMatrix.elements, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(renderer, ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
-                @LogTrace(["bokeh", "depth pass done: prog=${Handle.idx(depthProg)} submitCnt=${submitCnt}"])
-            case None => @LogTrace(["bokeh", "depth pass: bokeh_depth shader NOT registered"])
+                let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                       BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                       BgfxConstants.FRONT_CCW
+                renderer.setState(depthRenderState, rgba: 0x00000000u32)
+                renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
+                submitCnt += 1
+            }
+            @LogTrace(["bokeh", "depth pass done: prog=${Handle.idx(depthProg)} submitCnt=${submitCnt}"])
+        } else {
+            @LogTrace(["bokeh", "depth pass: bokeh_depth shader NOT registered"])
         }
     }
 
@@ -652,49 +705,48 @@ public class BokehPass <: Pass {
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-        match (this._compileBokeh()) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["bokeh", "bokeh pass: bokeh program compile FAILED"])
-                    return
-                }
+        if (let Some(prog) <- this._compileBokeh()) {
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["bokeh", "bokeh pass: bokeh program compile FAILED"])
+                return
+            }
 
-                let uniforms = BgfxUniforms()
+            let uniforms = this._passUniforms()
 
-                // stage 0 = tColor（readBuffer 的 color 0）
-                let uColor = uniforms.createUniform("tColor", UniformType.Sampler.value())
-                let colorTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 0u8, uColor, colorTex, 0u32)
+            // stage 0 = tColor（readBuffer 的 color 0）
+            let uColor = uniforms.createUniform("tColor", UniformType.Sampler.value())
+            let colorTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 0u8, uColor, colorTex, 0u32)
 
-                // stage 1 = tDepth（深度 RT 的 color 0）
-                let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                let depthTex = this.getTexture(renderer, this._depthFB, 0u8)
-                this.bindTexture(renderer, 1u8, uDepth, depthTex, 0u32)
+            // stage 1 = tDepth（深度 RT 的 color 0）
+            let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
+            let depthTex = this.getTexture(renderer, this._depthFB, 0u8)
+            this.bindTexture(renderer, 1u8, uDepth, depthTex, 0u32)
 
-                // 6 个 uniforms（bgfx 最小单位 vec4，x=value）
-                this.setUniformVec4(renderer, uniforms, "u_focus",    this.focus)
-                // aspect = width/height（setSize 时随尺寸更新）
-                let aspect = Float64(this._width) / Float64(if (this._height > 0) { this._height } else { 1 })
-                this.setUniformVec4(renderer, uniforms, "u_aspect",   aspect)
-                this.setUniformVec4(renderer, uniforms, "u_aperture", this.aperture)
-                this.setUniformVec4(renderer, uniforms, "u_maxblur",  this.maxblur)
-                this.setUniformVec4(renderer, uniforms, "u_nearClip", camera.near)
-                this.setUniformVec4(renderer, uniforms, "u_farClip",  camera.far)
-                this.setUniformVec4(renderer, uniforms, "u_debugMode", Float64(this.debugMode))
+            // 6 个 uniforms（bgfx 最小单位 vec4，x=value）
+            this.setUniformVec4(renderer, uniforms, "u_focus",    this.focus)
+            // aspect = width/height（setSize 时随尺寸更新）
+            let aspect = Float64(this._width) / Float64(if (this._height > 0) { this._height } else { 1 })
+            this.setUniformVec4(renderer, uniforms, "u_aspect",   aspect)
+            this.setUniformVec4(renderer, uniforms, "u_aperture", this.aperture)
+            this.setUniformVec4(renderer, uniforms, "u_maxblur",  this.maxblur)
+            this.setUniformVec4(renderer, uniforms, "u_nearClip", camera.near)
+            this.setUniformVec4(renderer, uniforms, "u_farClip",  camera.far)
+            this.setUniformVec4(renderer, uniforms, "u_debugMode", Float64(this.debugMode))
 
-                // 全屏 quad submit（覆盖写 state）
-                this.submitQuad(viewId, prog)
+            // 全屏 quad submit（覆盖写 state）
+            this.submitQuad(viewId, prog)
 
-                @LogTrace(["bokeh", "bokeh pass: view=" + viewId.toString() +
-                              " focus=" + this.focus.toString() +
-                              " aspect=" + aspect.toString() +
-                              " aperture=" + this.aperture.toString() +
-                              " maxblur=" + this.maxblur.toString() +
-                              " nearClip=" + camera.near.toString() +
-                              " farClip=" + camera.far.toString() +
-                              " tSize=" + this._width.toString() + "x" + this._height.toString()])
-            case None =>
-                @LogTrace(["bokeh", "bokeh pass: bokeh shader compile failed, skip pass"])
+            @LogTrace(["bokeh", "bokeh pass: view=" + viewId.toString() +
+                          " focus=" + this.focus.toString() +
+                          " aspect=" + aspect.toString() +
+                          " aperture=" + this.aperture.toString() +
+                          " maxblur=" + this.maxblur.toString() +
+                          " nearClip=" + camera.near.toString() +
+                          " farClip=" + camera.far.toString() +
+                          " tSize=" + this._width.toString() + "x" + this._height.toString()])
+        } else {
+            @LogTrace(["bokeh", "bokeh pass: bokeh shader compile failed, skip pass"])
         }
     }
 
@@ -706,15 +758,9 @@ public class BokehPass <: Pass {
     public override func dispose(): Unit {
         this._destroyRTs()
         // 释放场景几何体共享 layout handle
-        match (this._renderer) {
-            case Some(renderer) =>
-                match (this._layoutHandleCache) {
-                    case Some(lh) =>
-                        renderer.destroyVertexLayout(lh)
-                        this._layoutHandleCache = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer && let Some(lh) <- this._layoutHandleCache) {
+            renderer.destroyVertexLayout(lh)
+            this._layoutHandleCache = None
         }
         @LogTrace(["bokeh", "disposed"])
     }

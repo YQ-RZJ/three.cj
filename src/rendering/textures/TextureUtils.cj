@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] 纹理工具函数
- * @brief[zh-cn] 对应 Three.js extras/TextureUtils.js，提供纹理裁剪适配与字节长度估算
+ * @brief[zh-cn] 提供纹理裁剪适配与字节长度估算
  * @explain[zh-cn] 提供 CSS object-fit 风格的纹理变换（contain/cover/fill）以及给定尺寸、格式、类型下的纹理字节数估算方法。
 
  * @file[en] Texture Utilities
- * @brief[en] Corresponding to Three.js extras/TextureUtils.js, provides texture fit/sizing and byte length estimation
+ * @brief[en] Provides texture fit/sizing and byte length estimation
  * @explain[en] Provides CSS object-fit style texture transforms (contain/cover/fill) and texture byte length estimation methods for given dimensions, format, and type. 
  */
 package three.rendering.textures

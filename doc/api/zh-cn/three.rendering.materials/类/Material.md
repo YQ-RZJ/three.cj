@@ -217,6 +217,12 @@ public var forceSinglePass: Bool
 ```
 是否强制单pass渲染，默认false
 
+### let id
+```cj
+public let id: Int64
+```
+进程内唯一整数标识（构造时分配，自增）
+
 ### var name
 ```cj
 public var name: String

@@ -26,14 +26,14 @@
  * @explain[zh-cn] 
  * DataMap 是渲染系统中多个组件的公共基类，使用 HashMap<Int64, HashMap<String, Any>>
  * 按递增 ID 存储元数据。子类包括 Attributes、Geometries、Textures 等。
- * 对应 Three.js 中的 DataMap 弱引用映射模式，仓颉侧用 ID 映射替代。
+ * 采用通用的弱引用映射模式，仓颉侧用 ID 映射替代。
  *
  * @file[en] DataMap
  * @brief[en] Generic key-value data mapping base class, providing ID-based metadata storage and lookup
  * @explain[en] 
  * DataMap is the common base class for multiple components in the rendering system, using HashMap<Int64, HashMap<String, Any>>
  * to store metadata by incrementing ID. Subclasses include Attributes, Geometries, Textures, etc.
- * Corresponds to the DataMap weak-reference mapping pattern in Three.js; the Cangjie side uses ID mapping as a replacement.
+ * Follows the common weak-reference mapping pattern; the Cangjie side uses ID mapping as a replacement.
  */
 package three.rendering.common
 
@@ -84,9 +84,10 @@ public open class DataMap {
     public func get(key: String): HashMap<String, Any> {
         let id = this.nextId; this.nextId += 1
         let existing = this.data.get(id)
-        match (existing) {
-            case Some(map) => return map
-            case None => let map = HashMap<String, Any>(); this.data.add(id, map); return map
+        if (let Some(map) <- existing) {
+            return map
+        } else {
+            let map = HashMap<String, Any>(); this.data.add(id, map); return map
         }
     }
 

@@ -79,7 +79,7 @@ public class TestWindow <: WindowEngine {
         this.objs = createScene(w, h)
 
         // ---- 启用 debug mode 6（阴影贴图 blit 到屏幕） ----
-        // 新架构对齐 Three.js：renderer.setDebugMode 已移除。
+        // 新架构不再提供 renderer.setDebugMode。
         // Debug 可视化用 scene.userData 标志位触发 Renderer._render 末尾的 blitShadowMap 钩子：
         //   scene.userData["shadowBlit"] = "true"
         // Renderer._render 在主 pass 后调 backend.blitShadowMap(0)，用全屏四边形 + shadowblit shader
@@ -96,7 +96,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

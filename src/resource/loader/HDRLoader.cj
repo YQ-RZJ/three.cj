@@ -95,16 +95,15 @@ public open class HDRLoader <: DataTextureLoader {
 
         
         let firstLine = _readLine(buffer, pos)
-        match (firstLine) {
-            case Some((line, nextPos)) =>
-                pos = nextPos
-                if (!line.startsWith("#?")) {
-                    LoggerWarn("THREE.HDRLoader: bad initial token")
-                    return texData
-                }
-            case None =>
-                LoggerWarn("THREE.HDRLoader: no header found")
+        if (let Some((line, nextPos)) <- firstLine) {
+            pos = nextPos
+            if (!line.startsWith("#?")) {
+                LoggerWarn("THREE.HDRLoader: bad initial token")
                 return texData
+            }
+        } else {
+            LoggerWarn("THREE.HDRLoader: no header found")
+            return texData
         }
 
         
@@ -116,32 +115,30 @@ public open class HDRLoader <: DataTextureLoader {
         var height = 0
         while (pos < buffer.size) {
             let lineRes = _readLine(buffer, pos)
-            match (lineRes) {
-                case Some((line, nextPos)) =>
-                    pos = nextPos
-                    // 注释行：跳过
-                    if (line.startsWith("#")) {
-                        ()
-                    } else if (line.startsWith("GAMMA=")) {
-                        
-                        gamma = _parseFloatOpt(line[6..].trimAscii())
-                    } else if (line.startsWith("EXPOSURE=")) {
-                        
-                        exposure = _parseFloatOpt(line[9..].trimAscii())
-                    } else if (line.startsWith("FORMAT=")) {
-                        
-                        formatOk = true
-                    } else if (line.startsWith("-Y")) {
-                        
-                        let parts = _splitWhitespaceHDR(line)
-                        if (parts.size >= 4) {
-                            height = _parseIntOpt(parts[1])
-                            width = _parseIntOpt(parts[3])
-                            dimOk = true
-                        }
+            if (let Some((line, nextPos)) <- lineRes) {
+                pos = nextPos
+                // 注释行：跳过
+                if (line.startsWith("#")) {
+                    ()
+                } else if (line.startsWith("GAMMA=")) {
+                    
+                    gamma = _parseFloatOpt(line[6..].trimAscii())
+                } else if (line.startsWith("EXPOSURE=")) {
+                    
+                    exposure = _parseFloatOpt(line[9..].trimAscii())
+                } else if (line.startsWith("FORMAT=")) {
+                    
+                    formatOk = true
+                } else if (line.startsWith("-Y")) {
+                    
+                    let parts = _splitWhitespaceHDR(line)
+                    if (parts.size >= 4) {
+                        height = _parseIntOpt(parts[1])
+                        width = _parseIntOpt(parts[3])
+                        dimOk = true
                     }
-                case None => break
-            }
+                }
+            } else { break }
             
             if (formatOk && dimOk) { break }
         }

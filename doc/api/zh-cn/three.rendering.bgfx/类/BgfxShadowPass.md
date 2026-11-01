@@ -46,6 +46,22 @@ public func _destroySlot(slot: ShadowSlot): Unit
 |---|---|---|
 |slot|ShadowSlot|阴影槽|
 
+### func \_getShadowCasters\(Scene\)
+```cj
+public func _getShadowCasters(scene: Scene): ArrayList < RenderObject >
+```
+获取本帧的阴影 caster 列表（帧内首次调用时收集，后续光源复用）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|scene|Scene|场景|
+
+返回: 
+
+- 本帧阴影 caster 列表
+
 ### func beginFrame\(\)
 ```cj
 public func beginFrame(): Unit
@@ -63,6 +79,12 @@ public func bindShadowUniforms(): Unit
 public func dispose(): Unit
 ```
 销毁所有持久阴影资源（_shadowResources），供 BgfxBackend.dispose 调用
+
+### func hasShadowSlots\(\)
+```cj
+public func hasShadowSlots(): Bool
+```
+当前帧是否存在需要绑定的阴影槽（无阴影光源时为 false）
 
 ### func init\(\)
 ```cj

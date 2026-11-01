@@ -6,7 +6,7 @@ public class DataUtils
 数据工具类，提供半精度浮点数转换的静态方法
 
 此类是 toHalfFloat 和 fromHalfFloat 函数的面向对象封装，
-与 Three.js 的 DataUtils 类接口保持一致。
+与主流 Web 引擎的 DataUtils 类接口保持一致。
 
 ### func fromHalfFloat\(UInt16\)
 ```cj

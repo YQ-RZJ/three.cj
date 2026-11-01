@@ -74,7 +74,7 @@ public class TestWindow <: WindowEngine {
     // ===== 生命周期：每循环（读固定快照——逻辑+渲染） =====
     public override func onFrame(dt: Float64): Unit {
         this.frame++
-        let t = Float64(this.frame) * 0.02
+        let t = this.elapsedTime
 
         // 整体缓慢旋转展示
         this.camera.position.set(14.0 * sin(t * 0.2), 4.0, 14.0 * cos(t * 0.2))

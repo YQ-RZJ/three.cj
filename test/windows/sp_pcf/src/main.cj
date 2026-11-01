@@ -77,8 +77,8 @@ public class TestWindow <: WindowEngine {
         this.objs = createScene(w, h)
 
         // ---- 步骤 3.5: 启用 debug mode 8（PCF 阴影采样结果可视化） ----
-        // 新架构对齐 Three.js：renderer.setDebugMode 已移除。
-        // Debug 可视化用 Three.js 标准 scene.overrideMaterial：
+        // 新架构不再提供 renderer.setDebugMode。
+        // Debug 可视化用标准 scene.overrideMaterial：
         //   scene.overrideMaterial = Some(PcfVizMaterial())
         // PcfVizMaterial 是 bgfx4cj 扩展内置材质，kind 映射到 ShaderLibs 已注册的
         // "pcf" 程序，绑定 directionalShadowMap + directionalShadowMatrix，
@@ -101,7 +101,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

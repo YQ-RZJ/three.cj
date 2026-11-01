@@ -111,16 +111,16 @@ public class SocketUdp {
      * @return[en] Returns true on success, false on failure
      */
     public func bind(port: UInt16): Bool {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    s.bind()
-                    this._bound = true
-                    return true
-                } catch (e: Exception) {
-                    return false
-                }
-            case None => return false
+        if (let Some(s) <- this._socket) {
+            try {
+                s.bind()
+                this._bound = true
+                return true
+            } catch (e: Exception) {
+                return false
+            }
+        } else {
+            return false
         }
     }
 
@@ -132,16 +132,16 @@ public class SocketUdp {
      * @return[en] Returns true on success, false on failure
      */
     public func bind(): Bool {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    s.bind()
-                    this._bound = true
-                    return true
-                } catch (e: Exception) {
-                    return false
-                }
-            case None => return false
+        if (let Some(s) <- this._socket) {
+            try {
+                s.bind()
+                this._bound = true
+                return true
+            } catch (e: Exception) {
+                return false
+            }
+        } else {
+            return false
         }
     }
 
@@ -159,16 +159,16 @@ public class SocketUdp {
      * @return[en] Returns true on success, false on failure
      */
     public func sendTo(host: String, port: UInt16, data: Array<UInt8>): Bool {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    let addr = IPSocketAddress(host, port)
-                    s.sendTo(addr, data)
-                    return true
-                } catch (e: Exception) {
-                    return false
-                }
-            case None => return false
+        if (let Some(s) <- this._socket) {
+            try {
+                let addr = IPSocketAddress(host, port)
+                s.sendTo(addr, data)
+                return true
+            } catch (e: Exception) {
+                return false
+            }
+        } else {
+            return false
         }
     }
 
@@ -201,25 +201,22 @@ public class SocketUdp {
      */
     public func receive(): (String, Array<UInt8>) {
         let buf = Array<UInt8>(65536, { _ => 0u8 })
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    let (from, n) = s.receiveFrom(buf)
-                    let data = Array<UInt8>(n, { _ => 0u8 })
-                    for (i in 0..n) {
-                        data[Int64(i)] = buf[Int64(i)]
-                    }
-                    // from 是 SocketAddress（抽象），转 IPSocketAddress 取 host/port
-                    // （ip.address 类型不统一，统一用 toString() 表达 "host:port"）
-                    let host = match (from as IPSocketAddress) {
-                        case Some(ip) => ip.toString()
-                        case None => from.toString()
-                    }
-                    return (host, data)
-                } catch (e: Exception) {
-                    return ("", [])
+        if (let Some(s) <- this._socket) {
+            try {
+                let (from, n) = s.receiveFrom(buf)
+                let data = Array<UInt8>(n, { _ => 0u8 })
+                for (i in 0..n) {
+                    data[Int64(i)] = buf[Int64(i)]
                 }
-            case None => return ("", [])
+                // from 是 SocketAddress（抽象），转 IPSocketAddress 取 host/port
+                // （ip.address 类型不统一，统一用 toString() 表达 "host:port"）
+                let host = if (let Some(ip) <- (from as IPSocketAddress)) { ip.toString() } else { from.toString() }
+                return (host, data)
+            } catch (e: Exception) {
+                return ("", [])
+            }
+        } else {
+            return ("", [])
         }
     }
 
@@ -229,16 +226,14 @@ public class SocketUdp {
      * @brief[en] Closes the socket
      */
     public func close(): Unit {
-        match (this._socket) {
-            case Some(s) =>
-                try {
-                    s.close()
-                } catch (_) {
-                    // 忽略关闭异常
-                }
-                this._socket = None
-                this._bound = false
-            case None => ()
+        if (let Some(s) <- this._socket) {
+            try {
+                s.close()
+            } catch (_) {
+                // 忽略关闭异常
+            }
+            this._socket = None
+            this._bound = false
         }
     }
 }

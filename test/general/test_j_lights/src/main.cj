@@ -1,6 +1,6 @@
 /**
  * @file main
- * @brief test_j_lights 独立测试项目入口（迁移自 three.js test/unit/src/lights）
+ * @brief test_j_lights 独立测试项目入口（迁移自上游 JS 库 test/unit/src/lights）
  */
 package test_j_lights
 

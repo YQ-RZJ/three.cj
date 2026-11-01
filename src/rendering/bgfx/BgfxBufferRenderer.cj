@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 非索引缓冲绘制
  * @brief[zh-cn] 替代 WebGLBufferRenderer，封装 bgfx_submit_cj 非索引绘制调用
- * @explain[zh-cn] 对照源码: three.js/src/renderers/webgl/WebGLBufferRenderer.js。在 WebGL 中通过 gl.drawArrays/gl.drawArraysInstanced 绘制，在 bgfx 中通过 bgfx_submit_cj 提交绘制命令。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.drawArrays/gl.drawArraysInstanced 绘制，在 bgfx 中通过 bgfx_submit_cj 提交绘制命令。
  *
  * @file[en] bgfx Non-Indexed Buffer Renderer
  * @brief[en] Replace WebGLBufferRenderer, wrap bgfx_submit_cj non-indexed draw calls
- * @explain[en] Mirrors three.js/src/renderers/webgl/WebGLBufferRenderer.js. In WebGL, draws via gl.drawArrays/gl.drawArraysInstanced; in bgfx, submits draw commands via bgfx_submit_cj.
+ * @explain[en] In WebGL, draws via gl.drawArrays/gl.drawArraysInstanced; in bgfx, submits draw commands via bgfx_submit_cj.
  */
 package three.rendering.bgfx
 

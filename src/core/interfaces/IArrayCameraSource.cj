@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] IArrayCameraSource
  * @brief[zh-cn] 数组相机只读接口
- * @explain[zh-cn] three.js 的 FrustumArray.setFromArrayCamera 直接接收 ArrayCamera（cameras 包），遍历其子相机并用 projectionMatrix × matrixWorldInverse 逐个构造 Frustum。cj 侧若让 math 依赖 cameras 会形成循环（cameras 依赖 core，core 依赖 math），因此将子相机矩阵数据访问契约提取为本接口。实现方（ArrayCamera）负责暴露子相机数量与矩阵元素；使用方（FrustumArray，math 包）仅读取数据并自行组装 Matrix4。
+ * @explain[zh-cn] 主流引擎的 FrustumArray.setFromArrayCamera 直接接收 ArrayCamera（cameras 包），遍历其子相机并用 projectionMatrix × matrixWorldInverse 逐个构造 Frustum。cj 侧若让 math 依赖 cameras 会形成循环（cameras 依赖 core，core 依赖 math），因此将子相机矩阵数据访问契约提取为本接口。实现方（ArrayCamera）负责暴露子相机数量与矩阵元素；使用方（FrustumArray，math 包）仅读取数据并自行组装 Matrix4。
  *
  * @file[en] IArrayCameraSource
  * @brief[en] Read-only interface for array camera
- * @explain[en] In three.js, FrustumArray.setFromArrayCamera directly receives ArrayCamera (cameras package) and iterates its sub-cameras to construct Frustums using projectionMatrix × matrixWorldInverse. In Cangjie, if math depends on cameras, it would form a cycle (cameras depends on core, core depends on math), so the sub-camera matrix data access contract is extracted into this interface. The implementer (ArrayCamera) exposes sub-camera count and matrix elements; the consumer (FrustumArray, math package) only reads data and assembles Matrix4. JS reference: FrustumArray.setFromArrayCamera cameras iteration.
+ * @explain[en] In mainstream engines, FrustumArray.setFromArrayCamera directly receives ArrayCamera (cameras package) and iterates its sub-cameras to construct Frustums using projectionMatrix × matrixWorldInverse. In Cangjie, if math depends on cameras, it would form a cycle (cameras depends on core, core depends on math), so the sub-camera matrix data access contract is extracted into this interface. The implementer (ArrayCamera) exposes sub-camera count and matrix elements; the consumer (FrustumArray, math package) only reads data and assembles Matrix4. JS reference: FrustumArray.setFromArrayCamera cameras iteration.
  */
 package three.core.interfaces
 

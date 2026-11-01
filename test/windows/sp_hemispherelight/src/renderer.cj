@@ -59,7 +59,7 @@ public func createScene(width: Int32, height: Int32): SceneObjects {
     println("  相机创建成功: ${camera.name}")
 
     // ---- 半球光（被测光源：天顶暖色 / 地底冷色渐变）----
-    // 对照 three.js webgl_lights_hemisphere 示例：
+    // 参照 webgl_lights_hemisphere 官方示例：
     // skyColor=暖橙 顶部，groundColor=蓝紫 底部，法线朝上取 skyColor、朝下取 groundColor。
     let hemiLight = HemisphereLight(skyColor: Color(0xffbb88), groundColor: Color(0x8844ff), intensity: 0.8)
     hemiLight.position.set(0.0, 5.0, 0.0)   // 方向 = 光源位置归一化（朝 +Y）

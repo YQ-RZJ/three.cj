@@ -80,8 +80,8 @@ public class TestWindow <: WindowEngine {
         this.spheres = spheres
         this.pointLights = pointLights
 
-        // ---- 使用 Three.js 标准 overrideMaterial 实现深度可视化 ----
-        // 对照 three.js: scene.overrideMaterial = depthVizMaterial
+        // ---- 使用标准 overrideMaterial 实现深度可视化 ----
+        // scene.overrideMaterial = depthVizMaterial
         // 用 ShaderMaterial 加载深度图可视化着色器，替换场景中所有物体的材质
         println("  创建深度可视化 overrideMaterial...")
         let depthVizMat = ShaderMaterial(DEPTHVIZ_VS, DEPTHVIZ_FS)
@@ -100,7 +100,7 @@ public class TestWindow <: WindowEngine {
         this.frame++
         this.totalFrames++
 
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 更新球体位置（来回移动） ----
         for (sphere in this.spheres) {

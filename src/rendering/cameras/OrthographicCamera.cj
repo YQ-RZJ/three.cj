@@ -156,10 +156,7 @@ public open class OrthographicCamera <: Camera {
                 this.near = s.near
                 this.far = s.far
                 this.zoom = s.zoom
-                this.view = match (s.view) {
-                    case Some(v) => Some(v.clone())
-                    case None => None
-                }
+                this.view = if (let Some(v) <- s.view) { Some(v.clone()) } else { None }
             case _ => ()
         }
         return this
@@ -183,10 +180,7 @@ public open class OrthographicCamera <: Camera {
      * height Viewport height
      */
     public func setViewOffset(fullWidth: Float64, fullHeight: Float64, x: Float64, y: Float64, width: Float64, height: Float64): Unit {
-        let v = match (this.view) {
-            case Some(v) => v
-            case None => CameraView()
-        }
+        let v = if (let Some(v) <- this.view) { v } else { CameraView() }
         v.enabled = true
         v.fullWidth = fullWidth
         v.fullHeight = fullHeight
@@ -204,10 +198,7 @@ public open class OrthographicCamera <: Camera {
      * @brief[en] Clear viewport offset
      */
     public func clearViewOffset(): Unit {
-        match (this.view) {
-            case Some(v) => v.enabled = false
-            case None => ()
-        }
+        if (let Some(v) <- this.view) { v.enabled = false }
         this.updateProjectionMatrix()
     }
 
@@ -226,8 +217,7 @@ public open class OrthographicCamera <: Camera {
         var top = cy + dy
         var bottom = cy - dy
 
-        match (this.view) {
-            case Some(view) =>
+        if (let Some(view) <- this.view) {
                 if (view.enabled) {
                     let fullWidth = view.fullWidth
                     let fullHeight = view.fullHeight
@@ -242,8 +232,7 @@ public open class OrthographicCamera <: Camera {
                     top -= scaleH * offsetY
                     bottom = top - scaleH * vh
                 }
-            case None => ()
-        }
+            }
 
         this.projectionMatrix.makeOrthographic(left, right, top, bottom, this.near, this.far)
         this.projectionMatrixInverse.copy(this.projectionMatrix).invert()

@@ -314,6 +314,12 @@ public override func setViewport(x: Int32, y: Int32, w: Int32, h: Int32): Unit
 |w|Int32||
 |h|Int32||
 
+### var info
+```cj
+public var info: BgfxInfo
+```
+渲染统计
+
 ### var maxDirLights
 ```cj
 public var maxDirLights: Int64 = 4

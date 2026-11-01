@@ -93,6 +93,8 @@ import std.collection.*
 import std.math.*
 import std.fs.*
 import std.env.*
+import three.profiler.*
+import three.profiler.macros.*
 
 public class SSRPass <: Pass {
     /**
@@ -223,8 +225,12 @@ public class SSRPass <: Pass {
 
     private var _renderer: Option<ThreeRenderer> = None
 
-    /** 本 pass 自有的 uniform 注册表（对齐 GTAOPass/SSAOPass 自包含模式） */
-    private var _uniforms: BgfxUniforms = BgfxUniforms()
+    // ===== 复用暂存（逐帧避免新建原生内存/堆数组） =====
+    /** view 空间 3x3 法线矩阵暂存（normal pass 逐对象写入，写入后立即消费） */
+    private let _nmScratch: Array<Float64> = Array<Float64>(12, { _ => 0.0 })
+    /** view/proj 矩阵暂存（_setViewTransformFor 用，写入后立即消费） */
+    private let _viewScratch: Array<Float64> = Array<Float64>(16, { _ => 0.0 })
+    private let _projScratch: Array<Float64> = Array<Float64>(16, { _ => 0.0 })
 
     // ===== 场景几何体缓存（对齐 BgfxBackend._createVB/_createIB 模式） =====
     private var _vbCache: HashMap<Int64, VertexBufferHandle> = HashMap<Int64, VertexBufferHandle>()
@@ -267,87 +273,85 @@ public class SSRPass <: Pass {
     private func _ensureRTs(): Unit {
         if (this._width <= 0 || this._height <= 0) { return }
         if (Handle.isValid(this._normalTex)) { return }
-        match (this._renderer) {
-            case Some(renderer) =>
-                @LogTrace(["ssr", "_ensureRTs: creating RTs ${this._width}x${this._height}"])
+        if (let Some(renderer) <- this._renderer) {
+            @LogTrace(["ssr", "_ensureRTs: creating RTs ${this._width}x${this._height}"])
 
-                // 法线 RT：RGBA16F + D24 depth attachment
-                let normalTex = renderer.createTexture2D(
+            // 法线 RT：RGBA16F + D24 depth attachment
+            let normalTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
+                None)
+            this._normalTex = normalTex
+            let normalDepthTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.D24S8.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
+                None)
+            this._normalDepthTex = normalDepthTex
+            this._normalFB = this._createFBWithDepth(renderer, normalTex, normalDepthTex)
+            @LogTrace(["ssr", "  normalFB created: normalTex=${Handle.idx(normalTex)} normalDepthTex=${Handle.idx(normalDepthTex)}"])
+
+            // 深度 RT：RGBA32F（存 NDC 深度 gl_FragCoord.z）+ D24 depth attachment
+            let depthTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.RGBA32F.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
+                None)
+            this._depthTex = depthTex
+            let depthDepthTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.D24S8.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
+                None)
+            this._depthDepthTex = depthDepthTex
+            this._depthFB = this._createFBWithDepth(renderer, depthTex, depthDepthTex)
+            @LogTrace(["ssr", "  depthFB created: depthTex=${Handle.idx(depthTex)} depthDepthTex=${Handle.idx(depthDepthTex)}"])
+
+            // SSR 反射结果 RT：RGBA16F
+            let ssrTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
+                None)
+            this._ssrTex = ssrTex
+            this._ssrFB = this._createFB(renderer, ssrTex)
+            @LogTrace(["ssr", "  ssrFB created: ssrTex=${Handle.idx(ssrTex)}"])
+
+            // 模糊 RT 1：RGBA16F
+            let blurTex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
+                None)
+            this._blurTex = blurTex
+            this._blurFB = this._createFB(renderer, blurTex)
+            @LogTrace(["ssr", "  blurFB created: blurTex=${Handle.idx(blurTex)}"])
+
+            // 模糊 RT 2：RGBA16F
+            let blur2Tex = renderer.createTexture2D(
+                UInt16(this._width), UInt16(this._height), false, 1u16,
+                TextureFormat.RGBA16F.value(),
+                BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
+                None)
+            this._blur2Tex = blur2Tex
+            this._blur2FB = this._createFB(renderer, blur2Tex)
+            @LogTrace(["ssr", "  blur2FB created: blur2Tex=${Handle.idx(blur2Tex)}"])
+
+            // 金属度 RT：RGBA16F（r=metalness），仅 selective 模式下创建参与渲染链
+            // 对应 metalnessRenderTarget（NearestFilter + HalfFloatType）
+            if (this.selective) {
+                let metalnessTex = renderer.createTexture2D(
                     UInt16(this._width), UInt16(this._height), false, 1u16,
                     TextureFormat.RGBA16F.value(),
                     BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
                     None)
-                this._normalTex = normalTex
-                let normalDepthTex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.D24S8.value(),
-                    BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
-                    None)
-                this._normalDepthTex = normalDepthTex
-                this._normalFB = this._createFBWithDepth(renderer, normalTex, normalDepthTex)
-                @LogTrace(["ssr", "  normalFB created: normalTex=${Handle.idx(normalTex)} normalDepthTex=${Handle.idx(normalDepthTex)}"])
+                this._metalnessTex = metalnessTex
+                this._metalnessFB = this._createFB(renderer, metalnessTex)
+                @LogTrace(["ssr", "  metalnessFB created (selective): metalnessTex=${Handle.idx(metalnessTex)}"])
+            }
 
-                // 深度 RT：RGBA32F（存 NDC 深度 gl_FragCoord.z）+ D24 depth attachment
-                let depthTex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.RGBA32F.value(),
-                    BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
-                    None)
-                this._depthTex = depthTex
-                let depthDepthTex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.D24S8.value(),
-                    BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
-                    None)
-                this._depthDepthTex = depthDepthTex
-                this._depthFB = this._createFBWithDepth(renderer, depthTex, depthDepthTex)
-                @LogTrace(["ssr", "  depthFB created: depthTex=${Handle.idx(depthTex)} depthDepthTex=${Handle.idx(depthDepthTex)}"])
-
-                // SSR 反射结果 RT：RGBA16F
-                let ssrTex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.RGBA16F.value(),
-                    BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
-                    None)
-                this._ssrTex = ssrTex
-                this._ssrFB = this._createFB(renderer, ssrTex)
-                @LogTrace(["ssr", "  ssrFB created: ssrTex=${Handle.idx(ssrTex)}"])
-
-                // 模糊 RT 1：RGBA16F
-                let blurTex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.RGBA16F.value(),
-                    BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
-                    None)
-                this._blurTex = blurTex
-                this._blurFB = this._createFB(renderer, blurTex)
-                @LogTrace(["ssr", "  blurFB created: blurTex=${Handle.idx(blurTex)}"])
-
-                // 模糊 RT 2：RGBA16F
-                let blur2Tex = renderer.createTexture2D(
-                    UInt16(this._width), UInt16(this._height), false, 1u16,
-                    TextureFormat.RGBA16F.value(),
-                    BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
-                    None)
-                this._blur2Tex = blur2Tex
-                this._blur2FB = this._createFB(renderer, blur2Tex)
-                @LogTrace(["ssr", "  blur2FB created: blur2Tex=${Handle.idx(blur2Tex)}"])
-
-                // 金属度 RT：RGBA16F（r=metalness），仅 selective 模式下创建参与渲染链
-                // 对应 metalnessRenderTarget（NearestFilter + HalfFloatType）
-                if (this.selective) {
-                    let metalnessTex = renderer.createTexture2D(
-                        UInt16(this._width), UInt16(this._height), false, 1u16,
-                        TextureFormat.RGBA16F.value(),
-                        BgfxConstants.TEXTURE_RT | UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT),
-                        None)
-                    this._metalnessTex = metalnessTex
-                    this._metalnessFB = this._createFB(renderer, metalnessTex)
-                    @LogTrace(["ssr", "  metalnessFB created (selective): metalnessTex=${Handle.idx(metalnessTex)}"])
-                }
-
-                @LogTrace(["ssr", "_ensureRTs done"])
-            case None => ()
+            @LogTrace(["ssr", "_ensureRTs done"])
         }
     }
 
@@ -365,51 +369,48 @@ public class SSRPass <: Pass {
     }
 
     private func _destroyRTs(): Unit {
-        match (this._renderer) {
-            case Some(renderer) =>
-                let normalFB = this._normalFB; let depthFB = this._depthFB
-                let ssrFB = this._ssrFB; let blurFB = this._blurFB; let blur2FB = this._blur2FB
-                let metalnessFB = this._metalnessFB
-                let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
-                let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
-                let ssrTex = this._ssrTex; let blurTex = this._blurTex; let blur2Tex = this._blur2Tex
-                let metalnessTex = this._metalnessTex
-                if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
-                if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
-                if (Handle.isValid(ssrFB)) { renderer.destroyFrameBuffer(ssrFB) }
-                if (Handle.isValid(blurFB)) { renderer.destroyFrameBuffer(blurFB) }
-                if (Handle.isValid(blur2FB)) { renderer.destroyFrameBuffer(blur2FB) }
-                if (Handle.isValid(metalnessFB)) { renderer.destroyFrameBuffer(metalnessFB) }
-                if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
-                if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
-                if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
-                if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
-                if (Handle.isValid(ssrTex)) { renderer.destroyTexture(ssrTex) }
-                if (Handle.isValid(blurTex)) { renderer.destroyTexture(blurTex) }
-                if (Handle.isValid(blur2Tex)) { renderer.destroyTexture(blur2Tex) }
-                if (Handle.isValid(metalnessTex)) { renderer.destroyTexture(metalnessTex) }
-                this._normalFB = INVALID_FRAME_BUFFER_HANDLE
-                this._normalTex = INVALID_TEXTURE_HANDLE
-                this._normalDepthTex = INVALID_TEXTURE_HANDLE
-                this._depthFB = INVALID_FRAME_BUFFER_HANDLE
-                this._depthTex = INVALID_TEXTURE_HANDLE
-                this._depthDepthTex = INVALID_TEXTURE_HANDLE
-                this._ssrFB = INVALID_FRAME_BUFFER_HANDLE
-                this._ssrTex = INVALID_TEXTURE_HANDLE
-                this._blurFB = INVALID_FRAME_BUFFER_HANDLE
-                this._blurTex = INVALID_TEXTURE_HANDLE
-                this._blur2FB = INVALID_FRAME_BUFFER_HANDLE
-                this._blur2Tex = INVALID_TEXTURE_HANDLE
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            let normalFB = this._normalFB; let depthFB = this._depthFB
+            let ssrFB = this._ssrFB; let blurFB = this._blurFB; let blur2FB = this._blur2FB
+            let metalnessFB = this._metalnessFB
+            let normalTex = this._normalTex; let normalDepthTex = this._normalDepthTex
+            let depthTex = this._depthTex; let depthDepthTex = this._depthDepthTex
+            let ssrTex = this._ssrTex; let blurTex = this._blurTex; let blur2Tex = this._blur2Tex
+            let metalnessTex = this._metalnessTex
+            if (Handle.isValid(normalFB)) { renderer.destroyFrameBuffer(normalFB) }
+            if (Handle.isValid(depthFB)) { renderer.destroyFrameBuffer(depthFB) }
+            if (Handle.isValid(ssrFB)) { renderer.destroyFrameBuffer(ssrFB) }
+            if (Handle.isValid(blurFB)) { renderer.destroyFrameBuffer(blurFB) }
+            if (Handle.isValid(blur2FB)) { renderer.destroyFrameBuffer(blur2FB) }
+            if (Handle.isValid(metalnessFB)) { renderer.destroyFrameBuffer(metalnessFB) }
+            if (Handle.isValid(normalTex)) { renderer.destroyTexture(normalTex) }
+            if (Handle.isValid(normalDepthTex)) { renderer.destroyTexture(normalDepthTex) }
+            if (Handle.isValid(depthTex)) { renderer.destroyTexture(depthTex) }
+            if (Handle.isValid(depthDepthTex)) { renderer.destroyTexture(depthDepthTex) }
+            if (Handle.isValid(ssrTex)) { renderer.destroyTexture(ssrTex) }
+            if (Handle.isValid(blurTex)) { renderer.destroyTexture(blurTex) }
+            if (Handle.isValid(blur2Tex)) { renderer.destroyTexture(blur2Tex) }
+            if (Handle.isValid(metalnessTex)) { renderer.destroyTexture(metalnessTex) }
+            this._normalFB = INVALID_FRAME_BUFFER_HANDLE
+            this._normalTex = INVALID_TEXTURE_HANDLE
+            this._normalDepthTex = INVALID_TEXTURE_HANDLE
+            this._depthFB = INVALID_FRAME_BUFFER_HANDLE
+            this._depthTex = INVALID_TEXTURE_HANDLE
+            this._depthDepthTex = INVALID_TEXTURE_HANDLE
+            this._ssrFB = INVALID_FRAME_BUFFER_HANDLE
+            this._ssrTex = INVALID_TEXTURE_HANDLE
+            this._blurFB = INVALID_FRAME_BUFFER_HANDLE
+            this._blurTex = INVALID_TEXTURE_HANDLE
+            this._blur2FB = INVALID_FRAME_BUFFER_HANDLE
+            this._blur2Tex = INVALID_TEXTURE_HANDLE
         }
     }
 
     // ===== 自建场景几何体 VB/IB/layout（对齐 GTAOPass 模式） =====
 
     private func _getOrCreateLayout(renderer: ThreeRenderer): VertexLayoutHandle {
-        match (this._layoutHandleCache) {
-            case Some(lh) => return lh
-            case None => ()
+        if (let Some(lh) <- this._layoutHandleCache) {
+            return lh
         }
         // 经 renderer.createVertexLayout(attrs) 高阶 API 创建布局句柄（封装 begin/add/end/create 序列）。
         // _createVB 经 renderer.createVertexBufferFromLayout(handle) 创建顶点缓冲
@@ -454,88 +455,83 @@ public class SSRPass <: Pass {
     }
 
     private func _createVB(geom: BufferGeometry): VertexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._vbCache.get(geomId)) {
-            case Some(vb) => return vb
-            case None => ()
+        let geomId = geom.id
+        if (let Some(vb) <- this._vbCache.get(geomId)) {
+            return vb
         }
         let posAttrOpt = geom.getAttribute("position")
-        match (posAttrOpt) {
-            case Some(pos) =>
-                let vc = pos.count
-                if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
-                // position(3) + normal(3) + color(4) + uv(2) = 12 floats
-                let vertStride: Int64 = 12
-                let totalFloats = vc * vertStride
-                let data = Array<Float64>(totalFloats, { i => 0.0 })
-                let normAttrOpt = geom.getAttribute("normal")
-                let colAttrOpt = geom.getAttribute("color")
-                let uvAttrOpt = geom.getAttribute("uv")
-                for (vi in 0..vc) {
-                    let base = vi * vertStride
-                    data[base] = pos.getX(vi)
-                    data[base + 1] = pos.getY(vi)
-                    data[base + 2] = pos.getZ(vi)
-                    match (normAttrOpt) {
-                        case Some(na) =>
-                            data[base + 3] = na.getX(vi)
-                            data[base + 4] = na.getY(vi)
-                            data[base + 5] = na.getZ(vi)
-                        case None => data[base + 5] = 1.0
-                    }
-                    match (colAttrOpt) {
-                        case Some(ca) =>
-                            data[base + 6] = ca.getX(vi)
-                            data[base + 7] = ca.getY(vi)
-                            data[base + 8] = ca.getZ(vi)
-                            data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
-                        case None =>
-                            for (j in 0..4) { data[base + 6 + j] = 1.0 }
-                    }
-                    match (uvAttrOpt) {
-                        case Some(ua) =>
-                            data[base + 10] = ua.getX(vi)
-                            data[base + 11] = ua.getY(vi)
-                        case None => ()
-                    }
+        if (let Some(pos) <- posAttrOpt) {
+            let vc = pos.count
+            if (vc == 0) { return INVALID_VERTEX_BUFFER_HANDLE }
+            // position(3) + normal(3) + color(4) + uv(2) = 12 floats
+            let vertStride: Int64 = 12
+            let totalFloats = vc * vertStride
+            let data = Array<Float64>(totalFloats, { i => 0.0 })
+            let normAttrOpt = geom.getAttribute("normal")
+            let colAttrOpt = geom.getAttribute("color")
+            let uvAttrOpt = geom.getAttribute("uv")
+            for (vi in 0..vc) {
+                let base = vi * vertStride
+                data[base] = pos.getX(vi)
+                data[base + 1] = pos.getY(vi)
+                data[base + 2] = pos.getZ(vi)
+                if (let Some(na) <- normAttrOpt) {
+                    data[base + 3] = na.getX(vi)
+                    data[base + 4] = na.getY(vi)
+                    data[base + 5] = na.getZ(vi)
+                } else {
+                    data[base + 5] = 1.0
                 }
-                let mem = BgfxMemory(UInt32(totalFloats * 4))
-                mem.writeFloats(data, totalFloats)
-                match (this._renderer) {
-                    case Some(renderer) =>
-                        // 经 renderer 高阶 API 创建顶点缓冲：createVertexLayout(attrs) 建布局句柄，
-                        // createVertexBufferFromLayout 内部从 handle 查回 layout 内存指针创建 VB。
-                        let layout = this._getOrCreateLayout(renderer)
-                        let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
-                        this._vbCache.add(geomId, handle)
-                        return handle
-                    case None => return INVALID_VERTEX_BUFFER_HANDLE
+                if (let Some(ca) <- colAttrOpt) {
+                    data[base + 6] = ca.getX(vi)
+                    data[base + 7] = ca.getY(vi)
+                    data[base + 8] = ca.getZ(vi)
+                    data[base + 9] = if (ca.itemSize > 3) { ca.getW(vi) } else { 1.0 }
+                } else {
+                    for (j in 0..4) { data[base + 6 + j] = 1.0 }
                 }
-            case None => return INVALID_VERTEX_BUFFER_HANDLE
+                if (let Some(ua) <- uvAttrOpt) {
+                    data[base + 10] = ua.getX(vi)
+                    data[base + 11] = ua.getY(vi)
+                }
+            }
+            let mem = BgfxMemory(UInt32(totalFloats * 4))
+            mem.writeFloats(data, totalFloats)
+            if (let Some(renderer) <- this._renderer) {
+                // 经 renderer 高阶 API 创建顶点缓冲：createVertexLayout(attrs) 建布局句柄，
+                // createVertexBufferFromLayout 内部从 handle 查回 layout 内存指针创建 VB。
+                let layout = this._getOrCreateLayout(renderer)
+                let handle = renderer.createVertexBufferFromLayout(mem, layout, flags: 0u16)
+                this._vbCache.add(geomId, handle)
+                return handle
+            } else {
+                return INVALID_VERTEX_BUFFER_HANDLE
+            }
+        } else {
+            return INVALID_VERTEX_BUFFER_HANDLE
         }
     }
 
     private func _createIB(geom: BufferGeometry): IndexBufferHandle {
-        let geomId = geom.uuid.hashCode()
-        match (this._ibCache.get(geomId)) {
-            case Some(ib) => return ib
-            case None => ()
+        let geomId = geom.id
+        if (let Some(ib) <- this._ibCache.get(geomId)) {
+            return ib
         }
-        match (geom.index) {
-            case Some(idxAttr) =>
-                let count = idxAttr.count
-                if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
-                let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
-                let mem = BgfxMemory(UInt32(count * 2))
-                mem.writeUInt16(idxData, count)
-                match (this._renderer) {
-                    case Some(renderer) =>
-                        let handle = renderer.createIndexBuffer(mem, flags: 0u16)
-                        this._ibCache.add(geomId, handle)
-                        return handle
-                    case None => return INVALID_INDEX_BUFFER_HANDLE
-                }
-            case None => return INVALID_INDEX_BUFFER_HANDLE
+        if (let Some(idxAttr) <- geom.index) {
+            let count = idxAttr.count
+            if (count == 0) { return INVALID_INDEX_BUFFER_HANDLE }
+            let idxData = Array<UInt16>(count, { i => UInt16(idxAttr.getX(i)) })
+            let mem = BgfxMemory(UInt32(count * 2))
+            mem.writeUInt16(idxData, count)
+            if (let Some(renderer) <- this._renderer) {
+                let handle = renderer.createIndexBuffer(mem, flags: 0u16)
+                this._ibCache.add(geomId, handle)
+                return handle
+            } else {
+                return INVALID_INDEX_BUFFER_HANDLE
+            }
+        } else {
+            return INVALID_INDEX_BUFFER_HANDLE
         }
     }
 
@@ -553,6 +549,7 @@ public class SSRPass <: Pass {
      * 调用 bgfx，这些高阶 API 自身走 renderer.execBgfx 序列化到渲染线程，
      * 故不再外层包裹 renderer.execBgfx（避免嵌套死锁）。
      */
+    @Zone[three.rendering.postprocessing.SSRPass.render, name=sSRPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -571,78 +568,69 @@ public class SSRPass <: Pass {
 
         let sceneOpt = this._scene
         let camOpt = this._camera
-        match (sceneOpt) {
-            case Some(scene) => match (camOpt) {
-                case Some(camera) =>
-                    this._ensureRTs()
-                    if (!Handle.isValid(this._normalFB)) {
-                        @LogTrace(["ssr", "render: _ensureRTs failed, normalFB invalid"])
-                        return
-                    }
-
-                    let baseView = SSRPass.SSR_VIEW_ID_BASE
-                    let uniforms = this._uniforms
-
-                    // ===== 注意：不再在渲染开始前"预编译所有 shader" =====
-                    //   各 _renderXXX 子方法内部已自带懒编译（!Handle.isValid(programHandle) 时才编译）。
-                    //   预编译会导致第一帧同时分配 5 个 shader 的 String→Array<UInt8> 临时内存
-                    //   （+ @LogDebug 字符串拼接），瞬间 GC 压力过大触发仓颉 STW GC；
-                    //   主线程此时在 wndProc / DispatchMessageW 与渲染循环之间切换，
-                    //   GC 的 TransitionAllMutatorsToGCPhase 可能因主线程卡在 FFI/C 栈帧
-                    //   或 IME 内部消息上无法进入 safe-point → 崩溃（CJ_MRT_FlushGCInfo）。
-                    //   改为懒编译：每个 shader 在首次真正需要时才编译，分散 GC 压力。
-
-                    @LogTrace(["ssr", "render: starting 6-pass chain, output=${this.output}"])
-
-                    // ===== 0. 地面反射器协作（可选，render 开头 doRender）=====
-                    //   渲反射贴图：computeVirtualCamera（镜像数学）→ 渲场景到反射 RT（view 0 语义
-                    //   + renderer.render，参照 RenderPass 范式）→ useDepthTexture 时渲深度 RT。
-                    //   防自反射 + SSR 各 pass 不含地面：渲反射期间及 SSR 各 pass 期间反射面
-                    //   visible=false（beauty 渲完 groundReflector.visible=false），
-                    //   链末恢复 visible=true（下一帧 RenderPass 渲 readBuffer 时地面可见，
-                    //   反射贴图滞后一帧可接受——同帧语义是 SSRPass 自己渲 beauty 才有的）。
-                    match (this.groundReflector) {
-                        case Some(reflector) =>
-                            reflector.visible = false
-                            this._renderGroundReflector(renderer, scene, camera, reflector)
-                        case None => ()
-                    }
-
-                    // ===== view ID 分配（关键：bgfx 按 view ID 升序执行 GPU draw，不按提交顺序）=====
-                    //   数据依赖：normal/depth/metalness 必须在 ssrCalc 之前完成（SSR 采样这三张 RT），
-                    //   ssrCalc 必须在 blur 之前，blur 在 output 之前。
-                    //   故 ID 必须严格按依赖递增：normal(+0) < depth(+1) < metalness(+2) <
-                    //   ssrCalc(+3) < blur1(+4) < blur2(+5) < output(+6)。
-                    //   此前 metalness 用 +6、ssrCalc 用 +2，导致 ssrCalc 先于 metalness 执行，
-                    //   SSR_FS 采样到上一帧（首帧为清屏黑=metalness 0）的 metalness RT，
-                    //   与按 render() 调用顺序同步执行的语义不符。
-                    // ===== 1. 法线 pass（view+0）=====
-                    this._renderNormals(renderer, scene, camera, baseView)
-                    // ===== 2. 深度 pass（view+1）=====
-                    this._renderDepth(renderer, scene, camera, UInt16(UInt16(baseView) + 1u16))
-                    // ===== 3. 金属度 pass（view+2，仅 selective 时）=====
-                    if (this.selective) {
-                        this._renderMetalness(renderer, scene, camera, UInt16(UInt16(baseView) + 2u16))
-                    }
-                    // ===== 4. SSR 计算 pass（view+3）=====
-                    this._renderSSRCalc(renderer, camera, readBuffer, UInt16(UInt16(baseView) + 3u16), uniforms)
-                    // ===== 5. 模糊 pass 1（view+4）=====
-                    if (this.blur) {
-                        this._renderBlur(renderer, UInt16(UInt16(baseView) + 4u16), this._ssrTex, this._blurFB, uniforms)
-                        // ===== 6. 模糊 pass 2（view+5） =====
-                        this._renderBlur(renderer, UInt16(UInt16(baseView) + 5u16), this._blurTex, this._blur2FB, uniforms)
-                    }
-                    // ===== 7. 输出 pass（view+6）=====
-                    this._renderOutput(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 6u16), uniforms)
-                    @LogTrace(["ssr", "render: 6-pass chain done"])
-                    // 链末恢复反射面可见（下一帧 RenderPass 渲 readBuffer 时地面显示反射贴图）
-                    match (this.groundReflector) {
-                        case Some(reflector) => reflector.visible = true
-                        case None => ()
-                    }
-                case None => ()
+        if (let Some(scene) <- sceneOpt && let Some(camera) <- camOpt) {
+            this._ensureRTs()
+            if (!Handle.isValid(this._normalFB)) {
+                @LogTrace(["ssr", "render: _ensureRTs failed, normalFB invalid"])
+                return
             }
-            case None => ()
+
+            let baseView = SSRPass.SSR_VIEW_ID_BASE
+
+            // ===== 注意：不再在渲染开始前"预编译所有 shader" =====
+            //   各 _renderXXX 子方法内部已自带懒编译（!Handle.isValid(programHandle) 时才编译）。
+            //   预编译会导致第一帧同时分配 5 个 shader 的 String→Array<UInt8> 临时内存
+            //   （+ @LogDebug 字符串拼接），瞬间 GC 压力过大触发仓颉 STW GC；
+            //   主线程此时在 wndProc / DispatchMessageW 与渲染循环之间切换，
+            //   GC 的 TransitionAllMutatorsToGCPhase 可能因主线程卡在 FFI/C 栈帧
+            //   或 IME 内部消息上无法进入 safe-point → 崩溃（CJ_MRT_FlushGCInfo）。
+            //   改为懒编译：每个 shader 在首次真正需要时才编译，分散 GC 压力。
+
+            @LogTrace(["ssr", "render: starting 6-pass chain, output=${this.output}"])
+
+            // ===== 0. 地面反射器协作（可选，render 开头 doRender）=====
+            //   渲反射贴图：computeVirtualCamera（镜像数学）→ 渲场景到反射 RT（view 0 语义
+            //   + renderer.render，参照 RenderPass 范式）→ useDepthTexture 时渲深度 RT。
+            //   防自反射 + SSR 各 pass 不含地面：渲反射期间及 SSR 各 pass 期间反射面
+            //   visible=false（beauty 渲完 groundReflector.visible=false），
+            //   链末恢复 visible=true（下一帧 RenderPass 渲 readBuffer 时地面可见，
+            //   反射贴图滞后一帧可接受——同帧语义是 SSRPass 自己渲 beauty 才有的）。
+            if (let Some(reflector) <- this.groundReflector) {
+                reflector.visible = false
+                this._renderGroundReflector(renderer, scene, camera, reflector)
+            }
+
+            // ===== view ID 分配（关键：bgfx 按 view ID 升序执行 GPU draw，不按提交顺序）=====
+            //   数据依赖：normal/depth/metalness 必须在 ssrCalc 之前完成（SSR 采样这三张 RT），
+            //   ssrCalc 必须在 blur 之前，blur 在 output 之前。
+            //   故 ID 必须严格按依赖递增：normal(+0) < depth(+1) < metalness(+2) <
+            //   ssrCalc(+3) < blur1(+4) < blur2(+5) < output(+6)。
+            //   此前 metalness 用 +6、ssrCalc 用 +2，导致 ssrCalc 先于 metalness 执行，
+            //   SSR_FS 采样到上一帧（首帧为清屏黑=metalness 0）的 metalness RT，
+            //   与按 render() 调用顺序同步执行的语义不符。
+            // ===== 1. 法线 pass（view+0）=====
+            this._renderNormals(renderer, scene, camera, baseView)
+            // ===== 2. 深度 pass（view+1）=====
+            this._renderDepth(renderer, scene, camera, UInt16(UInt16(baseView) + 1u16))
+            // ===== 3. 金属度 pass（view+2，仅 selective 时）=====
+            if (this.selective) {
+                this._renderMetalness(renderer, scene, camera, UInt16(UInt16(baseView) + 2u16))
+            }
+            // ===== 4. SSR 计算 pass（view+3）=====
+            this._renderSSRCalc(renderer, camera, readBuffer, UInt16(UInt16(baseView) + 3u16))
+            // ===== 5. 模糊 pass 1（view+4）=====
+            if (this.blur) {
+                this._renderBlur(renderer, UInt16(UInt16(baseView) + 4u16), this._ssrTex, this._blurFB)
+                // ===== 6. 模糊 pass 2（view+5） =====
+                this._renderBlur(renderer, UInt16(UInt16(baseView) + 5u16), this._blurTex, this._blur2FB)
+            }
+            // ===== 7. 输出 pass（view+6）=====
+            this._renderOutput(renderer, readBuffer, writeBuffer, UInt16(UInt16(baseView) + 6u16))
+            @LogTrace(["ssr", "render: 6-pass chain done"])
+            // 链末恢复反射面可见（下一帧 RenderPass 渲 readBuffer 时地面显示反射贴图）
+            if (let Some(reflector) <- this.groundReflector) {
+                reflector.visible = true
+            }
         }
     }
 
@@ -664,87 +652,81 @@ public class SSRPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00FF8080u32, depth: 1.0f32, stencil: 0u8)
 
         let normalProgOpt = ShaderLibs.get("normal")
-        match (normalProgOpt) {
-            case Some(normalSp) =>
-                if (!Handle.isValid(Box(normalSp.programHandle))) {
-                    normalSp.compileBgfx()
-                }
-                let normalProg = Box(normalSp.programHandle)
-                if (!Handle.isValid(normalProg)) {
-                    @LogTrace(["ssr", "normal pass: prog compile FAILED"])
-                    return
-                }
+        if (let Some(normalSp) <- normalProgOpt) {
+            if (!Handle.isValid(Box(normalSp.programHandle))) {
+                normalSp.compileBgfx()
+            }
+            let normalProg = Box(normalSp.programHandle)
+            if (!Handle.isValid(normalProg)) {
+                @LogTrace(["ssr", "normal pass: prog compile FAILED"])
+                return
+            }
 
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                // view 矩阵 3x3（法线 RT 需要 view space 法线，u_normalMatrix = mat3(view) × mat3(model)）
-                let viewMtx = camera.matrixWorldInverse.elements
-                let uniforms = this._uniforms
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let posAttrOpt = ro.geometry.getAttribute("position")
-                    match (posAttrOpt) {
-                        case Some(_) =>
-                            let mtxArr = ro.worldMatrix.elements
-                            let mtxMem = BgfxMemory(64u32)
-                            mtxMem.writeFloats(mtxArr, 16)
-                            renderer.setTransform(mtxMem, num: 1u16)
+            let layout = this._getOrCreateLayout(renderer)
+            // 仅可见对象（SSR 历史行为：跳过不可见的反射面本身，防自反射）
+            let renderObjects = renderer.getSceneMeshes(scene, visibleOnly: true)
+            // view 矩阵 3x3（法线 RT 需要 view space 法线，u_normalMatrix = mat3(view) × mat3(model)）
+            let viewMtx = camera.matrixWorldInverse.elements
+            // 复用的 bgfx 变换内存（setTransform 经 execBgfx 同步消费，可安全复用）
+            let mtxMem = this._uploadMem(0, 64u32)
+            let nmMem = this._uploadMem(1, 48u32)
+            let nmScratch = this._nmScratch
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                let posAttrOpt = ro.geometry.getAttribute("position")
+                if (let Some(_) <- posAttrOpt) {
+                    let mtxArr = ro.worldMatrix.elements
+                    mtxMem.writeFloats(mtxArr, 16)
+                    renderer.setTransform(mtxMem, num: 1u16)
 
-                            // u_normalMatrix = mat3(view) × mat3(model)（3x3 列主序 → 紧凑 9 floats bgfx UniformType.Mat3）
-                            // 用户实验 + 仓颉 range 语法确认（0..3 = 不含 3 的 0/1/2 三值）：
-                            //   - PostProcessingShaders 自定义 shader 中，bgfx mat3 uniform 实际按
-                            //     紧凑 9 floats 读取（3 列×3 rows 连续，每列不 pad 到 vec4）
-                            //   - 如果写入 c*4+r（主渲染器的 vec4 padding 格式），紧凑读取时
-                            //     Float32[3]=0 会被当成 col1 row0、Float32[6]=[c1r2] 错位，
-                            //     Y 方向列（地板/天花板法线）的分量完全错乱 → 倒影消失；
-                            //     水平侧墙 col0 (X) 的 3 个元素位置恰好正确 → 只剩一点水平反射。
-                            //   - c*3+r（紧凑 9 floats）：写入布局匹配 shader 读取方式，
-                            //     所有方向的法线（含地板/天花板的 Y 分量）都正确 → 倒影完整。
-                            // 注：仓颉 for (c/r/k in 0..3) 中 = 0/1/2（不包含 3），不会迭代第 4 列/行，
-                            //   因此不会越界写 Array。BgfxMemory(48u32) = 48 bytes > 9 Float32 = 36 bytes，
-                            //   writeFloats(nmData, 12) 多写的 3 zeros 是安全富余（bgfx 不读超过 9 的部分），
-                            //   不会导致崩溃。之前的"一帧崩"是 GC/驱动/shader编译叠加的其他问题，
-                            //   已由 precompileShaders + MAX_STEP 编译期 define 方案解决。
-                            let nmData = Array<Float64>(12, { i => 0.0 })
-                            for (c in 0..3) {   // 仓颉 0..3 = 3 列（0,1,2），不包含 3
-                                for (r in 0..3) { // 仓颉 0..3 = 3 行（0,1,2），不包含 3
-                                    var acc = 0.0
-                                    for (k in 0..3) { // 仓颉 0..3 = 3 内积项（0,1,2）
-                                        acc += viewMtx[k * 4 + r] * mtxArr[c * 4 + k]
-                                    }
-                                    nmData[c * 3 + r] = acc
-                                }
+                    // u_normalMatrix = mat3(view) × mat3(model)（3x3 列主序 → 紧凑 9 floats bgfx UniformType.Mat3）
+                    // 用户实验 + 仓颉 range 语法确认（0..3 = 不含 3 的 0/1/2 三值）：
+                    //   - PostProcessingShaders 自定义 shader 中，bgfx mat3 uniform 实际按
+                    //     紧凑 9 floats 读取（3 列×3 rows 连续，每列不 pad 到 vec4）
+                    //   - 如果写入 c*4+r（主渲染器的 vec4 padding 格式），紧凑读取时
+                    //     Float32[3]=0 会被当成 col1 row0、Float32[6]=[c1r2] 错位，
+                    //     Y 方向列（地板/天花板法线）的分量完全错乱 → 倒影消失；
+                    //     水平侧墙 col0 (X) 的 3 个元素位置恰好正确 → 只剩一点水平反射。
+                    //   - c*3+r（紧凑 9 floats）：写入布局匹配 shader 读取方式，
+                    //     所有方向的法线（含地板/天花板的 Y 分量）都正确 → 倒影完整。
+                    // 注：仓颉 for (c/r/k in 0..3) 中 = 0/1/2（不包含 3），不会迭代第 4 列/行，
+                    //   因此不会越界写 Array。48 字节缓冲 ≥ 12 floats 写入，多写的 3 zeros 是安全富余
+                    //   （bgfx 不读超过 9 的部分），不会导致崩溃。
+                    for (c in 0..3) {   // 仓颉 0..3 = 3 列（0,1,2），不包含 3
+                        for (r in 0..3) { // 仓颉 0..3 = 3 行（0,1,2），不包含 3
+                            var acc = 0.0
+                            for (k in 0..3) { // 仓颉 0..3 = 3 内积项（0,1,2）
+                                acc += viewMtx[k * 4 + r] * mtxArr[c * 4 + k]
                             }
-                            let uNormalMat = uniforms.createUniform("u_normalMatrix", UniformType.Mat3.value())
-                            let nmMem = BgfxMemory(48u32)
-                            nmMem.writeFloats(nmData, 12)
-                            this.setUniform(renderer, uNormalMat, nmMem)
-
-                            // u_opacity（normalFS 用 alpha，补齐保持材质语义）
-                            let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                            let oMem = BgfxMemory(16u32)
-                            oMem.writeFloats([1.0, 1.0, 1.0, 1.0], 4)
-                            this.setUniform(renderer, uOpacity, oMem)
-
-                            renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                            let ib = this._createIB(ro.geometry)
-                            if (Handle.isValid(ib)) {
-                                renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                            }
-                            let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                              BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                              BgfxConstants.FRONT_CCW
-                            renderer.setState(normalState, rgba: 0x00000000u32)
-                            renderer.submit(viewId, normalProg, depth: 0u32, blend: 0xFFu8)
-                            submitCnt += 1
-                        case None => ()
+                            nmScratch[c * 3 + r] = acc
+                        }
                     }
+                    let uNormalMat = this._cachedUniform("u_normalMatrix", UniformType.Mat3.value())
+                    nmMem.writeFloats(nmScratch, 12)
+                    this.setUniform(renderer, uNormalMat, nmMem)
+
+                    // u_opacity（normalFS 用 alpha，补齐保持材质语义）
+                    let uOpacity = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+                    this._setScalarUniform(renderer, uOpacity, 3, 1.0)
+
+                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                    let ib = this._createIB(ro.geometry)
+                    if (Handle.isValid(ib)) {
+                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
+                    }
+                    let normalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                      BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                      BgfxConstants.FRONT_CCW
+                    renderer.setState(normalState, rgba: 0x00000000u32)
+                    renderer.submit(viewId, normalProg, depth: 0u32, blend: 0xFFu8)
+                    submitCnt += 1
                 }
-                @LogTrace(["ssr", "normal pass done: prog= submitCnt="])
-            case None => @LogTrace(["ssr", "normal pass: normal shader NOT registered in ShaderLibs"])
+            }
+            @LogTrace(["ssr", "normal pass done: prog= submitCnt="])
+        } else {
+            @LogTrace(["ssr", "normal pass: normal shader NOT registered in ShaderLibs"])
         }
     }
 
@@ -760,42 +742,44 @@ public class SSRPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
 
         let depthProgOpt = PostProcessingShaders.get("aodepth")
-        match (depthProgOpt) {
-            case Some(depthSp) =>
-                if (!Handle.isValid(Box(depthSp.programHandle))) {
-                    depthSp.compileBgfx()
-                }
-                let depthProg = Box(depthSp.programHandle)
-                if (!Handle.isValid(depthProg)) {
-                    @LogTrace(["ssr", "depth pass: aodepth program compile FAILED"])
-                    return
-                }
+        if (let Some(depthSp) <- depthProgOpt) {
+            if (!Handle.isValid(Box(depthSp.programHandle))) {
+                depthSp.compileBgfx()
+            }
+            let depthProg = Box(depthSp.programHandle)
+            if (!Handle.isValid(depthProg)) {
+                @LogTrace(["ssr", "depth pass: aodepth program compile FAILED"])
+                return
+            }
 
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                           BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                           BgfxConstants.FRONT_CCW
-                    renderer.setState(depthRenderState, rgba: 0x00000000u32)
-                    renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
+            let layout = this._getOrCreateLayout(renderer)
+            // 仅可见对象（SSR 历史行为：跳过不可见的反射面本身，防自反射）
+            let renderObjects = renderer.getSceneMeshes(scene, visibleOnly: true)
+            // 复用的矩阵暂存与 bgfx 变换内存（避免每个对象一次分配）
+            let mtxScratch = Array<Float64>(16, { _ => 0.0 })
+            let mtxMem = this._uploadMem(4, 64u32)
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                ro.worldMatrix.toArray(mtxScratch)
+                mtxMem.writeFloats(mtxScratch, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
-                @LogTrace(["ssr", "depth pass done: prog= submitCnt="])
-            case None => @LogTrace(["ssr", "depth pass: aodepth shader NOT registered"])
+                let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                       BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                       BgfxConstants.FRONT_CCW
+                renderer.setState(depthRenderState, rgba: 0x00000000u32)
+                renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
+                submitCnt += 1
+            }
+            @LogTrace(["ssr", "depth pass done: prog= submitCnt="])
+        } else {
+            @LogTrace(["ssr", "depth pass: aodepth shader NOT registered"])
         }
     }
 
@@ -819,69 +803,63 @@ public class SSRPass <: Pass {
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
         let metalProgOpt = PostProcessingShaders.get("ssr_metalness")
-        match (metalProgOpt) {
-            case Some(metalSp) =>
-                if (!Handle.isValid(Box(metalSp.programHandle))) {
-                    metalSp.compileBgfx()
-                }
-                let metalProg = Box(metalSp.programHandle)
-                if (!Handle.isValid(metalProg)) {
-                    @LogTrace(["ssr", "metalness pass: ssr_metalness program compile FAILED"])
-                    return
-                }
+        if (let Some(metalSp) <- metalProgOpt) {
+            if (!Handle.isValid(Box(metalSp.programHandle))) {
+                metalSp.compileBgfx()
+            }
+            let metalProg = Box(metalSp.programHandle)
+            if (!Handle.isValid(metalProg)) {
+                @LogTrace(["ssr", "metalness pass: ssr_metalness program compile FAILED"])
+                return
+            }
 
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                // selects 列表只读引用：每 mesh 比对是否在其中，决定 u_metalness=1.0/0.0
-                // 仓颉 ArrayList<Object3D>.contains 范式：遍历比 refEq（Object3D == 重载亦走 refEq）
-                let selectsListOpt = this.selects
-                var onCnt: Int64 = 0
-                var submitCnt: Int64 = 0
-                let uniforms = this._uniforms
-                let uMetalness = uniforms.createUniform("u_metalness", UniformType.Vec4.value())
-                for (ro in renderObjects) {
-                    let vb = this._createVB(ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let posAttrOpt = ro.geometry.getAttribute("position")
-                    match (posAttrOpt) {
-                        case Some(_) =>
-                            let mtxArr = ro.worldMatrix.elements
-                            let mtxMem = BgfxMemory(64u32)
-                            mtxMem.writeFloats(mtxArr, 16)
-                            renderer.setTransform(mtxMem, num: 1u16)
+            let layout = this._getOrCreateLayout(renderer)
+            // 仅可见对象（SSR 历史行为：跳过不可见的反射面本身，防自反射）
+            let renderObjects = renderer.getSceneMeshes(scene, visibleOnly: true)
+            // selects 列表只读引用：每 mesh 比对是否在其中，决定 u_metalness=1.0/0.0
+            // 仓颉 ArrayList<Object3D>.contains 范式：遍历比 refEq（Object3D == 重载亦走 refEq）
+            let selectsListOpt = this.selects
+            var onCnt: Int64 = 0
+            var submitCnt: Int64 = 0
+            let uMetalness = this._cachedUniform("u_metalness", UniformType.Vec4.value())
+            // 复用的 bgfx 变换内存（setTransform 经 execBgfx 同步消费，可安全复用）
+            let mtxMem = this._uploadMem(5, 64u32)
+            for (ro in renderObjects) {
+                let vb = this._createVB(ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                let posAttrOpt = ro.geometry.getAttribute("position")
+                if (let Some(_) <- posAttrOpt) {
+                    let mtxArr = ro.worldMatrix.elements
+                    mtxMem.writeFloats(mtxArr, 16)
+                    renderer.setTransform(mtxMem, num: 1u16)
 
-                            // 判定本 mesh 是否在 selects 列表内 → u_metalness=1.0 或 0.0
-                            var isOn: Bool = false
-                            match (selectsListOpt) {
-                                case Some(selectsList) =>
-                                    for (sel in selectsList) {
-                                        if (refEq(ro.mesh, sel)) { isOn = true; break }
-                                    }
-                                case None => ()
-                            }
-                            let mVal: Float64 = if (isOn) { 1.0 } else { 0.0 }
-                            if (isOn) { onCnt += 1 }
-                            let mMem = BgfxMemory(16u32)
-                            mMem.writeFloats([mVal, mVal, mVal, 1.0], 4)
-                            this.setUniform(renderer, uMetalness, mMem)
-
-                            renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                            let ib = this._createIB(ro.geometry)
-                            if (Handle.isValid(ib)) {
-                                renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                            }
-                            let metalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                             BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                             BgfxConstants.FRONT_CCW
-                            renderer.setState(metalState, rgba: 0x00000000u32)
-                            renderer.submit(viewId, metalProg, depth: 0u32, blend: 0xFFu8)
-                            submitCnt += 1
-                        case None => ()
+                    // 判定本 mesh 是否在 selects 列表内 → u_metalness=1.0 或 0.0
+                    var isOn: Bool = false
+                    if (let Some(selectsList) <- selectsListOpt) {
+                        for (sel in selectsList) {
+                            if (refEq(ro.mesh, sel)) { isOn = true; break }
+                        }
                     }
+                    let mVal: Float64 = if (isOn) { 1.0 } else { 0.0 }
+                    if (isOn) { onCnt += 1 }
+                    this._setVec4Uniform(renderer, uMetalness, 6, mVal, mVal, mVal, 1.0)
+
+                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                    let ib = this._createIB(ro.geometry)
+                    if (Handle.isValid(ib)) {
+                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
+                    }
+                    let metalState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                     BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                     BgfxConstants.FRONT_CCW
+                    renderer.setState(metalState, rgba: 0x00000000u32)
+                    renderer.submit(viewId, metalProg, depth: 0u32, blend: 0xFFu8)
+                    submitCnt += 1
                 }
-                @LogTrace(["ssr", "metalness pass done: prog= submitCnt= onCnt=${onCnt}"])
-            case None => @LogTrace(["ssr", "metalness pass: ssr_metalness shader NOT registered"])
+            }
+            @LogTrace(["ssr", "metalness pass done: prog= submitCnt= onCnt=${onCnt}"])
+        } else {
+            @LogTrace(["ssr", "metalness pass: ssr_metalness shader NOT registered"])
         }
     }
 
@@ -893,112 +871,111 @@ public class SSRPass <: Pass {
         renderer: ThreeRenderer,
         camera: Camera,
         readBuffer: FrameBufferHandle,
-        viewId: UInt16,
-        uniforms: BgfxUniforms
+        viewId: UInt16
     ): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._ssrFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
         let ssrProgOpt = PostProcessingShaders.get("ssr")
-        match (ssrProgOpt) {
-            case Some(ssrSp) =>
-                // 带 MAX_STEP + DISTANCE_ATTENUATION + FRESNEL defines 编译
-                if (!Handle.isValid(Box(ssrSp.programHandle))) {
-                    this._compileSSRShader(ssrSp)
-                }
-                let ssrProg = Box(ssrSp.programHandle)
-                if (!Handle.isValid(ssrProg)) {
-                    @LogTrace(["ssr", "ssrCalc: prog compile FAILED"])
-                    return
-                }
+        if (let Some(ssrSp) <- ssrProgOpt) {
+            // 带 MAX_STEP + DISTANCE_ATTENUATION + FRESNEL defines 编译
+            if (!Handle.isValid(Box(ssrSp.programHandle))) {
+                this._compileSSRShader(ssrSp)
+            }
+            let ssrProg = Box(ssrSp.programHandle)
+            if (!Handle.isValid(ssrProg)) {
+                @LogTrace(["ssr", "ssrCalc: prog compile FAILED"])
+                return
+            }
 
-                @LogTrace(["ssr", "ssrCalc STEP-1: create samplers (tDiffuse/tNormal/tDepth)"])
-                // 采样器：stage 0=场景色(readBuffer), 1=法线, 2=深度
-                let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
-                let uDiffuse = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiffuse, sceneTex, 0u32)
-                let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uNormal, this._normalTex, 0u32)
-                let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                this.bindTexture(renderer, 2u8, uDepth, this._depthTex, 0u32)
-                // selective 模式：绑 metalness RT 到 stage 3（SSR_FS #ifdef SELECTIVE 采样本 RT 跳过非金属）
-                if (this.selective) {
-                    let uMetalness = uniforms.createUniform("tMetalness", UniformType.Sampler.value())
-                    this.bindTexture(renderer, 3u8, uMetalness, this._metalnessTex, 0u32)
-                }
+            @LogTrace(["ssr", "ssrCalc STEP-1: create samplers (tDiffuse/tNormal/tDepth)"])
+            // 采样器：stage 0=场景色(readBuffer), 1=法线, 2=深度
+            let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
+            let uDiffuse = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiffuse, sceneTex, 0u32)
+            let uNormal = this._cachedUniform("tNormal", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uNormal, this._normalTex, 0u32)
+            let uDepth = this._cachedUniform("tDepth", UniformType.Sampler.value())
+            this.bindTexture(renderer, 2u8, uDepth, this._depthTex, 0u32)
+            // selective 模式：绑 metalness RT 到 stage 3（SSR_FS #ifdef SELECTIVE 采样本 RT 跳过非金属）
+            if (this.selective) {
+                let uMetalness = this._cachedUniform("tMetalness", UniformType.Sampler.value())
+                this.bindTexture(renderer, 3u8, uMetalness, this._metalnessTex, 0u32)
+            }
 
-                @LogTrace(["ssr", "ssrCalc STEP-2: create uniform u_resolution/u_cameraNearFar"])
-                // resolution
-                let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                let resMem = BgfxMemory(16u32)
-                resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
-                this.setUniform(renderer, uRes, resMem)
+            @LogTrace(["ssr", "ssrCalc STEP-2: create uniform u_resolution/u_cameraNearFar"])
+            // resolution
+            let uRes = this._cachedUniform("u_resolution", UniformType.Vec4.value())
+            let resMem = this._uploadMem(7, 16u32)
+            resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
+            this.setUniform(renderer, uRes, resMem)
 
-                // cameraNear/Far
-                let uNearFar = uniforms.createUniform("u_cameraNearFar", UniformType.Vec4.value())
-                let nfMem = BgfxMemory(16u32)
-                nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
-                this.setUniform(renderer, uNearFar, nfMem)
+            // cameraNear/Far
+            let uNearFar = this._cachedUniform("u_cameraNearFar", UniformType.Vec4.value())
+            let nfMem = this._uploadMem(8, 16u32)
+            nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
+            this.setUniform(renderer, uNearFar, nfMem)
 
-                @LogTrace(["ssr", "ssrCalc STEP-3: create uniform u_projMatrix/u_invProjMatrix"])
-                // projection / inverse projection
-                let uProj = uniforms.createUniform("u_projMatrix", UniformType.Mat4.value())
-                let projMem = BgfxMemory(64u32)
-                projMem.writeFloats(camera.projectionMatrix.elements, 16)
-                this.setUniform(renderer, uProj, projMem)
+            @LogTrace(["ssr", "ssrCalc STEP-3: create uniform u_projMatrix/u_invProjMatrix"])
+            // projection / inverse projection
+            let uProj = this._cachedUniform("u_projMatrix", UniformType.Mat4.value())
+            let projMem = this._uploadMem(9, 64u32)
+            projMem.writeFloats(camera.projectionMatrix.elements, 16)
+            this.setUniform(renderer, uProj, projMem)
 
-                let invProj = camera.projectionMatrix.clone().invert()
-                let uInvProj = uniforms.createUniform("u_invProjMatrix", UniformType.Mat4.value())
-                let invMem = BgfxMemory(64u32)
-                invMem.writeFloats(invProj.elements, 16)
-                this.setUniform(renderer, uInvProj, invMem)
+            let invProj = camera.projectionMatrix.clone().invert()
+            let uInvProj = this._cachedUniform("u_invProjMatrix", UniformType.Mat4.value())
+            let invMem = this._uploadMem(10, 64u32)
+            invMem.writeFloats(invProj.elements, 16)
+            this.setUniform(renderer, uInvProj, invMem)
 
-                @LogTrace(["ssr", "ssrCalc STEP-4: create uniform u_ssrParams/u_debug"])
-                // ssrParams: x=opacity, y=maxDistance, z=thickness, w=cameraRange
-                let cameraRange = camera.far - camera.near
-                let uParams = uniforms.createUniform("u_ssrParams", UniformType.Vec4.value())
-                let pMem = BgfxMemory(16u32)
-                pMem.writeFloats([this.opacity, this.maxDistance, this.thickness, cameraRange], 4)
-                this.setUniform(renderer, uParams, pMem)
+            @LogTrace(["ssr", "ssrCalc STEP-4: create uniform u_ssrParams/u_debug"])
+            // ssrParams: x=opacity, y=maxDistance, z=thickness, w=cameraRange
+            let cameraRange = camera.far - camera.near
+            let uParams = this._cachedUniform("u_ssrParams", UniformType.Vec4.value())
+            let pMem = this._uploadMem(11, 16u32)
+            pMem.writeFloats([this.opacity, this.maxDistance, this.thickness, cameraRange], 4)
+            this.setUniform(renderer, uParams, pMem)
 
-                // 诊断可视化开关（u_debug.x>0.5 时按拒绝原因着色，默认 0=正常）
-                let uDebug = uniforms.createUniform("u_debug", UniformType.Vec4.value())
-                let dbgVal: Float64 = if (this.debug) { 1.0 } else { 0.0 }
-                let dbgMem = BgfxMemory(16u32)
-                dbgMem.writeFloats([dbgVal, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uDebug, dbgMem)
+            // 诊断可视化开关（u_debug.x>0.5 时按拒绝原因着色，默认 0=正常）
+            let uDebug = this._cachedUniform("u_debug", UniformType.Vec4.value())
+            let dbgVal: Float64 = if (this.debug) { 1.0 } else { 0.0 }
+            let dbgMem = this._uploadMem(12, 16u32)
+            dbgMem.writeFloats([dbgVal, 0.0, 0.0, 0.0], 4)
+            this.setUniform(renderer, uDebug, dbgMem)
 
-                // ---- 移除 u_ssrStep uniform（完全回到编译期 MAX_STEP define 控制）
-                // 之前的动态 uniform 方案会导致 D3DCompiler 无法静态推断循环上界，
-                // 即便 define 不参与控制也会触发 CFG 分析膨胀/驱动崩溃。
-                // 改为纯编译期方案：_compileSSRShader 将 MAX_STEP=this._maxStep 传入
-                // (= min(sqrt(w²+h²), 1024))，shader 内条件3 `if (i>=MAX_STEP+1) break`
-                // 是静态整型比较，D3DCompiler 能静态识别循环上界，CFG 可控。
+            // ---- 移除 u_ssrStep uniform（完全回到编译期 MAX_STEP define 控制）
+            // 之前的动态 uniform 方案会导致 D3DCompiler 无法静态推断循环上界，
+            // 即便 define 不参与控制也会触发 CFG 分析膨胀/驱动崩溃。
+            // 改为纯编译期方案：_compileSSRShader 将 MAX_STEP=this._maxStep 传入
+            // (= min(sqrt(w²+h²), 1024))，shader 内条件3 `if (i>=MAX_STEP+1) break`
+            // 是静态整型比较，D3DCompiler 能静态识别循环上界，CFG 可控。
 
-                // ===== 详细日志：记录 SSR 计算关键参数（用户要求辅助诊断伪影问题） =====
-                // 涵盖相机、投影、SSR 参数、深度/法线/反射 RT 句柄、shader defines 全量信息，
-                // 便于在出现伪影时回溯排查：左手系矩阵、深度范围、UV 翻转、Fresnel/Break 行为等。
-                let projElems = camera.projectionMatrix.elements
-                let invProjElems = invProj.elements
-                @LogTrace([
-                    "ssr",
-                    "ssrCalc params START --- view=${viewId} rt=${this._width}x${this._height} maxStep(define)=${this._maxStep}",
-                    "  camera: near=${camera.near} far=${camera.far} range=${cameraRange} pos=(${camera.position.x}, ${camera.position.y}, ${camera.position.z})",
-                    "  ssrParams: opacity=${this.opacity} maxDistance=${this.maxDistance} thickness=${this.thickness} fresnel=${this.fresnel} distAtten=${this.distanceAttenuation} infiniteThick=${this.infiniteThick}",
-                    "  projMatrix(row-major-ish, 16 elems): " +
-                    "m[0]=${projElems[0]} m[5]=${projElems[5]} m[10]=${projElems[10]} m[11]=${projElems[11]} m[14]=${projElems[14]} m[15]=${projElems[15]}",
-                    "  invProjMatrix(key elems): " +
-                    "m[0]=${invProjElems[0]} m[5]=${invProjElems[5]} m[10]=${invProjElems[10]} m[11]=${invProjElems[11]} m[14]=${invProjElems[14]} m[15]=${invProjElems[15]}",
-                    "  textures: sceneTex=${Handle.idx(sceneTex)} normalTex=${Handle.idx(this._normalTex)} depthTex=${Handle.idx(this._depthTex)} ssrTex=${Handle.idx(this._ssrTex)}",
-                    "  shaderFix: fresnel-original (dot(incident,reflect)+1)/2; backface/distance check use break (not continue)",
-                    "  texFix: all SSR RT textures use SAMPLER_MIN_POINT|SAMPLER_MAG_POINT (NearestFilter)",
-                    "ssrCalc params END ---"
-                ])
+            // ===== 详细日志：记录 SSR 计算关键参数（用户要求辅助诊断伪影问题） =====
+            // 涵盖相机、投影、SSR 参数、深度/法线/反射 RT 句柄、shader defines 全量信息，
+            // 便于在出现伪影时回溯排查：左手系矩阵、深度范围、UV 翻转、Fresnel/Break 行为等。
+            let projElems = camera.projectionMatrix.elements
+            let invProjElems = invProj.elements
+            @LogTrace([
+                "ssr",
+                "ssrCalc params START --- view=${viewId} rt=${this._width}x${this._height} maxStep(define)=${this._maxStep}",
+                "  camera: near=${camera.near} far=${camera.far} range=${cameraRange} pos=(${camera.position.x}, ${camera.position.y}, ${camera.position.z})",
+                "  ssrParams: opacity=${this.opacity} maxDistance=${this.maxDistance} thickness=${this.thickness} fresnel=${this.fresnel} distAtten=${this.distanceAttenuation} infiniteThick=${this.infiniteThick}",
+                "  projMatrix(row-major-ish, 16 elems): " +
+                "m[0]=${projElems[0]} m[5]=${projElems[5]} m[10]=${projElems[10]} m[11]=${projElems[11]} m[14]=${projElems[14]} m[15]=${projElems[15]}",
+                "  invProjMatrix(key elems): " +
+                "m[0]=${invProjElems[0]} m[5]=${invProjElems[5]} m[10]=${invProjElems[10]} m[11]=${invProjElems[11]} m[14]=${invProjElems[14]} m[15]=${invProjElems[15]}",
+                "  textures: sceneTex=${Handle.idx(sceneTex)} normalTex=${Handle.idx(this._normalTex)} depthTex=${Handle.idx(this._depthTex)} ssrTex=${Handle.idx(this._ssrTex)}",
+                "  shaderFix: fresnel-original (dot(incident,reflect)+1)/2; backface/distance check use break (not continue)",
+                "  texFix: all SSR RT textures use SAMPLER_MIN_POINT|SAMPLER_MAG_POINT (NearestFilter)",
+                "ssrCalc params END ---"
+            ])
 
-                // 全屏四边形 submit
-                this.submitQuad(viewId, ssrProg)
-            case None => @LogTrace(["ssr", "ssrCalc: ssr shader NOT registered"])
+            // 全屏四边形 submit
+            this.submitQuad(viewId, ssrProg)
+        } else {
+            @LogTrace(["ssr", "ssrCalc: ssr shader NOT registered"])
         }
     }
 
@@ -1108,58 +1085,46 @@ public class SSRPass <: Pass {
      */
     private func _preCompileShaders(): Unit {
         // aodepth（GTAO/SAO 共用深度 shader，SSR 深度 pass 借用；零 varying 历史上多次崩溃）
-        match (PostProcessingShaders.get("aodepth")) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    @LogTrace(["ssr", "preCompile: compiling aodepth shader"])
-                    sp.compileBgfx()
-                }
-            case None => ()
+        if (let Some(sp) <- PostProcessingShaders.get("aodepth")) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                @LogTrace(["ssr", "preCompile: compiling aodepth shader"])
+                sp.compileBgfx()
+            }
         }
         // ssr（带 defines）
-        match (PostProcessingShaders.get("ssr")) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    @LogTrace(["ssr", "preCompile: compiling ssr shader"])
-                    this._compileSSRShader(sp)
-                }
-            case None => ()
+        if (let Some(sp) <- PostProcessingShaders.get("ssr")) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                @LogTrace(["ssr", "preCompile: compiling ssr shader"])
+                this._compileSSRShader(sp)
+            }
         }
         // ssrblur（无 defines）
-        match (PostProcessingShaders.get("ssrblur")) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    @LogTrace(["ssr", "preCompile: compiling ssrblur shader"])
-                    sp.compileBgfx()
-                }
-            case None => ()
+        if (let Some(sp) <- PostProcessingShaders.get("ssrblur")) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                @LogTrace(["ssr", "preCompile: compiling ssrblur shader"])
+                sp.compileBgfx()
+            }
         }
         // ssrdepth（无 defines）
-        match (PostProcessingShaders.get("ssrdepth")) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    @LogTrace(["ssr", "preCompile: compiling ssrdepth shader"])
-                    sp.compileBgfx()
-                }
-            case None => ()
+        if (let Some(sp) <- PostProcessingShaders.get("ssrdepth")) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                @LogTrace(["ssr", "preCompile: compiling ssrdepth shader"])
+                sp.compileBgfx()
+            }
         }
         // ssrapply（无 defines）
-        match (PostProcessingShaders.get("ssrapply")) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    @LogTrace(["ssr", "preCompile: compiling ssrapply shader"])
-                    sp.compileBgfx()
-                }
-            case None => ()
+        if (let Some(sp) <- PostProcessingShaders.get("ssrapply")) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                @LogTrace(["ssr", "preCompile: compiling ssrapply shader"])
+                sp.compileBgfx()
+            }
         }
         // normal shader（法线 pass 用，来自 ShaderLibs）
-        match (ShaderLibs.get("normal")) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    @LogTrace(["ssr", "preCompile: compiling normal shader"])
-                    sp.compileBgfx()
-                }
-            case None => ()
+        if (let Some(sp) <- ShaderLibs.get("normal")) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                @LogTrace(["ssr", "preCompile: compiling normal shader"])
+                sp.compileBgfx()
+            }
         }
         @LogTrace(["ssr", "preCompile: all shaders compiled"])
     }
@@ -1171,42 +1136,40 @@ public class SSRPass <: Pass {
      * @param viewId bgfx view id
      * @param inputTex 输入纹理（ssrTex 或 blurTex）
      * @param outputFB 输出 frame buffer
-     * @param uniforms uniform 注册表
      */
     private func _renderBlur(
         renderer: ThreeRenderer,
         viewId: UInt16,
         inputTex: TextureHandle,
-        outputFB: FrameBufferHandle,
-        uniforms: BgfxUniforms
+        outputFB: FrameBufferHandle
     ): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, outputFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
         let blurProgOpt = PostProcessingShaders.get("ssrblur")
-        match (blurProgOpt) {
-            case Some(blurSp) =>
-                if (!Handle.isValid(Box(blurSp.programHandle))) {
-                    blurSp.compileBgfx()
-                }
-                let blurProg = Box(blurSp.programHandle)
-                if (!Handle.isValid(blurProg)) {
-                    @LogTrace(["ssr", "blur: prog compile FAILED"])
-                    return
-                }
+        if (let Some(blurSp) <- blurProgOpt) {
+            if (!Handle.isValid(Box(blurSp.programHandle))) {
+                blurSp.compileBgfx()
+            }
+            let blurProg = Box(blurSp.programHandle)
+            if (!Handle.isValid(blurProg)) {
+                @LogTrace(["ssr", "blur: prog compile FAILED"])
+                return
+            }
 
-                let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiff, inputTex, 0u32)
+            let uDiff = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiff, inputTex, 0u32)
 
-                let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                let resMem = BgfxMemory(16u32)
-                resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
-                this.setUniform(renderer, uRes, resMem)
+            let uRes = this._cachedUniform("u_resolution", UniformType.Vec4.value())
+            let resMem = this._uploadMem(13, 16u32)
+            resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
+            this.setUniform(renderer, uRes, resMem)
 
-                @LogTrace(["ssr", "blur: prog=${Handle.idx(blurProg)} inputTex=${Handle.idx(inputTex)}"])
-                this.submitQuad(viewId, blurProg)
-            case None => @LogTrace(["ssr", "blur: ssrblur shader NOT registered"])
+            @LogTrace(["ssr", "blur: prog=${Handle.idx(blurProg)} inputTex=${Handle.idx(inputTex)}"])
+            this.submitQuad(viewId, blurProg)
+        } else {
+            @LogTrace(["ssr", "blur: ssrblur shader NOT registered"])
         }
     }
 
@@ -1223,8 +1186,7 @@ public class SSRPass <: Pass {
         renderer: ThreeRenderer,
         readBuffer: FrameBufferHandle,
         writeBuffer: FrameBufferHandle,
-        viewId: UInt16,
-        uniforms: BgfxUniforms
+        viewId: UInt16
     ): Unit {
         // 目标：renderToScreen（最后一个 enabled pass）→ swap chain（无效 FB handle）；否则 writeBuffer
         if (this.renderToScreen) {
@@ -1238,29 +1200,27 @@ public class SSRPass <: Pass {
         // Depth 模式：ssrdepth shader（tDepth + cameraNearFar）
         if (this.output == SSRPass.OUTPUT_DEPTH) {
             let depthProgOpt = PostProcessingShaders.get("ssrdepth")
-            match (depthProgOpt) {
-                case Some(depthSp) =>
-                    if (!Handle.isValid(Box(depthSp.programHandle))) {
-                        depthSp.compileBgfx()
-                    }
-                    let depthProg = Box(depthSp.programHandle)
-                    if (!Handle.isValid(depthProg)) {
-                        @LogTrace(["ssr", "output depth: ssrdepth compile FAILED"])
-                        return
-                    }
-                    let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                    this.bindTexture(renderer, 0u8, uDepth, this._depthTex, 0u32)
-                    match (this._camera) {
-                        case Some(camera) =>
-                            let uNearFar = uniforms.createUniform("u_cameraNearFar", UniformType.Vec4.value())
-                            let nfMem = BgfxMemory(16u32)
-                            nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
-                            this.setUniform(renderer, uNearFar, nfMem)
-                        case None => ()
-                    }
-                    @LogTrace(["ssr", "output depth: prog=${Handle.idx(depthProg)}"])
-                    this.submitQuad(viewId, depthProg)
-                case None => @LogTrace(["ssr", "output depth: ssrdepth shader NOT registered"])
+            if (let Some(depthSp) <- depthProgOpt) {
+                if (!Handle.isValid(Box(depthSp.programHandle))) {
+                    depthSp.compileBgfx()
+                }
+                let depthProg = Box(depthSp.programHandle)
+                if (!Handle.isValid(depthProg)) {
+                    @LogTrace(["ssr", "output depth: ssrdepth compile FAILED"])
+                    return
+                }
+                let uDepth = this._cachedUniform("tDepth", UniformType.Sampler.value())
+                this.bindTexture(renderer, 0u8, uDepth, this._depthTex, 0u32)
+                if (let Some(camera) <- this._camera) {
+                    let uNearFar = this._cachedUniform("u_cameraNearFar", UniformType.Vec4.value())
+                    let nfMem = this._uploadMem(14, 16u32)
+                    nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
+                    this.setUniform(renderer, uNearFar, nfMem)
+                }
+                @LogTrace(["ssr", "output depth: prog=${Handle.idx(depthProg)}"])
+                this.submitQuad(viewId, depthProg)
+            } else {
+                @LogTrace(["ssr", "output depth: ssrdepth shader NOT registered"])
             }
             return
         }
@@ -1268,30 +1228,30 @@ public class SSRPass <: Pass {
         // Default 模式：ssrapply（sceneColor × (1-ssrAlpha) + ssrColor × ssrAlpha）
         if (this.output == SSRPass.OUTPUT_DEFAULT) {
             let applyProgOpt = PostProcessingShaders.get("ssrapply")
-            match (applyProgOpt) {
-                case Some(applySp) =>
-                    if (!Handle.isValid(Box(applySp.programHandle))) {
-                        applySp.compileBgfx()
-                    }
-                    let applyProg = Box(applySp.programHandle)
-                    if (!Handle.isValid(applyProg)) {
-                        @LogTrace(["ssr", "output default: ssrapply compile FAILED"])
-                        return
-                    }
-                    // tDiffuse = 场景色（readBuffer）
-                    let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
-                    let uScene = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                    this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
-                    // tSSR = blur2（如果模糊开启）或 ssr 结果
-                    var ssrSrcTex = this._ssrTex
-                    if (this.blur) {
-                        ssrSrcTex = this._blur2Tex
-                    }
-                    let uSSR = uniforms.createUniform("tSSR", UniformType.Sampler.value())
-                    this.bindTexture(renderer, 1u8, uSSR, ssrSrcTex, 0u32)
-                    @LogTrace(["ssr", "output default: sceneTex=${Handle.idx(sceneTex)}ssrSrcTex=${Handle.idx(ssrSrcTex)}}lur=${this.blur}"])
-                    this.submitQuad(viewId, applyProg)
-                case None => @LogTrace(["ssr", "output default: ssrapply shader NOT registered"])
+            if (let Some(applySp) <- applyProgOpt) {
+                if (!Handle.isValid(Box(applySp.programHandle))) {
+                    applySp.compileBgfx()
+                }
+                let applyProg = Box(applySp.programHandle)
+                if (!Handle.isValid(applyProg)) {
+                    @LogTrace(["ssr", "output default: ssrapply compile FAILED"])
+                    return
+                }
+                // tDiffuse = 场景色（readBuffer）
+                let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
+                let uScene = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+                this.bindTexture(renderer, 0u8, uScene, sceneTex, 0u32)
+                // tSSR = blur2（如果模糊开启）或 ssr 结果
+                var ssrSrcTex = this._ssrTex
+                if (this.blur) {
+                    ssrSrcTex = this._blur2Tex
+                }
+                let uSSR = this._cachedUniform("tSSR", UniformType.Sampler.value())
+                this.bindTexture(renderer, 1u8, uSSR, ssrSrcTex, 0u32)
+                @LogTrace(["ssr", "output default: sceneTex=${Handle.idx(sceneTex)}ssrSrcTex=${Handle.idx(ssrSrcTex)}}lur=${this.blur}"])
+                this.submitQuad(viewId, applyProg)
+            } else {
+                @LogTrace(["ssr", "output default: ssrapply shader NOT registered"])
             }
             return
         }
@@ -1302,26 +1262,26 @@ public class SSRPass <: Pass {
             if (this.blur) {
                 srcTex = this._blur2Tex
             }
-            this._renderCopyOutput(renderer, viewId, srcTex, uniforms)
+            this._renderCopyOutput(renderer, viewId, srcTex)
             return
         }
 
         // Beauty 模式：copy shader 透传 readBuffer 场景色
         if (this.output == SSRPass.OUTPUT_BEAUTY) {
             let sceneTex = this.getTexture(renderer, readBuffer, 0u8)
-            this._renderCopyOutput(renderer, viewId, sceneTex, uniforms)
+            this._renderCopyOutput(renderer, viewId, sceneTex)
             return
         }
 
         // Normal 模式：copy shader 透传法线纹理
         if (this.output == SSRPass.OUTPUT_NORMAL) {
-            this._renderCopyOutput(renderer, viewId, this._normalTex, uniforms)
+            this._renderCopyOutput(renderer, viewId, this._normalTex)
             return
         }
 
         // HitNormals 模式（调试用）：显示命中点法线
         if (this.output == SSRPass.OUTPUT_HITNORMALS) {
-            this._renderHitNormals(renderer, viewId, uniforms)
+            this._renderHitNormals(renderer, viewId)
             return
         }
     }
@@ -1331,58 +1291,55 @@ public class SSRPass <: Pass {
      */
     private func _renderHitNormals(
         renderer: ThreeRenderer,
-        viewId: UInt16,
-        uniforms: BgfxUniforms
+        viewId: UInt16
     ): Unit {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(this._width), UInt16(this._height))
         this.setRenderTarget(renderer, viewId, this._ssrFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
         let hitNormalsProgOpt = PostProcessingShaders.get("ssr_hitnormals")
-        match (hitNormalsProgOpt) {
-            case Some(sp) =>
-                if (!Handle.isValid(Box(sp.programHandle))) {
-                    sp.compileBgfx()
-                }
-                let prog = Box(sp.programHandle)
-                if (!Handle.isValid(prog)) {
-                    @LogTrace(["ssr", "hitnormals: prog compile FAILED"])
-                    return
-                }
+        if (let Some(sp) <- hitNormalsProgOpt) {
+            if (!Handle.isValid(Box(sp.programHandle))) {
+                sp.compileBgfx()
+            }
+            let prog = Box(sp.programHandle)
+            if (!Handle.isValid(prog)) {
+                @LogTrace(["ssr", "hitnormals: prog compile FAILED"])
+                return
+            }
 
-                let uNormal = uniforms.createUniform("tNormal", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uNormal, this._normalTex, 0u32)
-                let uDepth = uniforms.createUniform("tDepth", UniformType.Sampler.value())
-                this.bindTexture(renderer, 1u8, uDepth, this._depthTex, 0u32)
+            let uNormal = this._cachedUniform("tNormal", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uNormal, this._normalTex, 0u32)
+            let uDepth = this._cachedUniform("tDepth", UniformType.Sampler.value())
+            this.bindTexture(renderer, 1u8, uDepth, this._depthTex, 0u32)
 
-                let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-                let resMem = BgfxMemory(16u32)
-                resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
-                this.setUniform(renderer, uRes, resMem)
+            let uRes = this._cachedUniform("u_resolution", UniformType.Vec4.value())
+            let resMem = this._uploadMem(15, 16u32)
+            resMem.writeFloats([Float64(this._width), Float64(this._height), 0.0, 0.0], 4)
+            this.setUniform(renderer, uRes, resMem)
 
-                match (this._camera) {
-                    case Some(camera) =>
-                        let uNearFar = uniforms.createUniform("u_cameraNearFar", UniformType.Vec4.value())
-                        let nfMem = BgfxMemory(16u32)
-                        nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
-                        this.setUniform(renderer, uNearFar, nfMem)
+            if (let Some(camera) <- this._camera) {
+                let uNearFar = this._cachedUniform("u_cameraNearFar", UniformType.Vec4.value())
+                let nfMem = this._uploadMem(16, 16u32)
+                nfMem.writeFloats([camera.near, camera.far, 0.0, 0.0], 4)
+                this.setUniform(renderer, uNearFar, nfMem)
 
-                        let uProj = uniforms.createUniform("u_projMatrix", UniformType.Mat4.value())
-                        let projMem = BgfxMemory(64u32)
-                        projMem.writeFloats(camera.projectionMatrix.elements, 16)
-                        this.setUniform(renderer, uProj, projMem)
+                let uProj = this._cachedUniform("u_projMatrix", UniformType.Mat4.value())
+                let projMem = this._uploadMem(17, 64u32)
+                projMem.writeFloats(camera.projectionMatrix.elements, 16)
+                this.setUniform(renderer, uProj, projMem)
 
-                        let invProj = camera.projectionMatrix.clone().invert()
-                        let uInvProj = uniforms.createUniform("u_invProjMatrix", UniformType.Mat4.value())
-                        let invMem = BgfxMemory(64u32)
-                        invMem.writeFloats(invProj.elements, 16)
-                        this.setUniform(renderer, uInvProj, invMem)
-                    case None => ()
-                }
+                let invProj = camera.projectionMatrix.clone().invert()
+                let uInvProj = this._cachedUniform("u_invProjMatrix", UniformType.Mat4.value())
+                let invMem = this._uploadMem(18, 64u32)
+                invMem.writeFloats(invProj.elements, 16)
+                this.setUniform(renderer, uInvProj, invMem)
+            }
 
-                @LogTrace(["ssr", "hitnormals: prog=${Handle.idx(prog)}"])
-                this.submitQuad(viewId, prog)
-            case None => @LogTrace(["ssr", "hitnormals: ssr_hitnormals shader NOT registered"])
+            @LogTrace(["ssr", "hitnormals: prog=${Handle.idx(prog)}"])
+            this.submitQuad(viewId, prog)
+        } else {
+            @LogTrace(["ssr", "hitnormals: ssr_hitnormals shader NOT registered"])
         }
     }
 
@@ -1390,29 +1347,28 @@ public class SSRPass <: Pass {
     private func _renderCopyOutput(
         renderer: ThreeRenderer,
         viewId: UInt16,
-        srcTex: TextureHandle,
-        uniforms: BgfxUniforms
+        srcTex: TextureHandle
     ): Unit {
         let copyProgOpt = PostProcessingShaders.get("copy")
-        match (copyProgOpt) {
-            case Some(copySp) =>
-                if (!Handle.isValid(Box(copySp.programHandle))) {
-                    copySp.compileBgfx()
-                }
-                let copyProg = Box(copySp.programHandle)
-                if (!Handle.isValid(copyProg)) {
-                    @LogTrace(["ssr", "output copy: copy compile FAILED"])
-                    return
-                }
-                let uDiff = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uDiff, srcTex, 0u32)
-                let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                let oMem = BgfxMemory(16u32)
-                oMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uOpacity, oMem)
-                @LogTrace(["ssr", "output copy: srcTex=${Handle.idx(srcTex)}"])
-                this.submitQuad(viewId, copyProg)
-            case None => @LogTrace(["ssr", "output copy: copy shader NOT registered"])
+        if (let Some(copySp) <- copyProgOpt) {
+            if (!Handle.isValid(Box(copySp.programHandle))) {
+                copySp.compileBgfx()
+            }
+            let copyProg = Box(copySp.programHandle)
+            if (!Handle.isValid(copyProg)) {
+                @LogTrace(["ssr", "output copy: copy compile FAILED"])
+                return
+            }
+            let uDiff = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uDiff, srcTex, 0u32)
+            let uOpacity = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+            let oMem = this._uploadMem(19, 16u32)
+            oMem.writeFloats([1.0, 0.0, 0.0, 0.0], 4)
+            this.setUniform(renderer, uOpacity, oMem)
+            @LogTrace(["ssr", "output copy: srcTex=${Handle.idx(srcTex)}"])
+            this.submitQuad(viewId, copyProg)
+        } else {
+            @LogTrace(["ssr", "output copy: copy shader NOT registered"])
         }
     }
 
@@ -1420,32 +1376,17 @@ public class SSRPass <: Pass {
      * 为指定 view 设置相机 view/proj 变换（改用 renderer.setViewTransform 高阶 API）。
      */
     private func _setViewTransformFor(renderer: ThreeRenderer, viewId: UInt16, camera: Camera): Unit {
-        let viewArr = camera.matrixWorldInverse.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let projArr = camera.projectionMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-        let viewMem = BgfxMemory(64u32)
-        let projMem = BgfxMemory(64u32)
-        viewMem.writeFloats(viewArr, 16)
-        projMem.writeFloats(projArr, 16)
+        // 复用暂存与上传缓冲：setViewTransform 两矩阵同时提交且各自独立，需两块缓冲，
+        // 但均为瞬时 memcpy，可跨帧复用（写入下一批数据前已被消费）。
+        let viewMem = this._uploadMem(20, 64u32)
+        let projMem = this._uploadMem(21, 64u32)
+        let viewScratch = this._viewScratch
+        let projScratch = this._projScratch
+        camera.matrixWorldInverse.toArray(viewScratch)
+        camera.projectionMatrix.toArray(projScratch)
+        viewMem.writeFloats(viewScratch, 16)
+        projMem.writeFloats(projScratch, 16)
         renderer.setViewTransform(viewId, viewMem, projMem)
-    }
-
-    private func _collectMeshes(obj: Object3D, renderObjects: ArrayList<RenderObject>): Unit {
-        for (child in obj.children) {
-            if (child.children.size > 0) {
-                this._collectMeshes(child, renderObjects)
-            }
-            // 跳过不可见对象（防自反射：渲反射场景前反射面 visible=false，
-            // 深度/法线/金属度 pass 不收集反射面自身）
-            if (!child.visible) { continue }
-            if (child.kind == "Mesh") {
-                match (child as Mesh) {
-                    case Some(mesh) =>
-                        let ro = RenderObject(mesh.id, mesh, mesh.geometry, mesh.material, mesh.matrixWorld)
-                        renderObjects.add(ro)
-                    case None => ()
-                }
-            }
-        }
     }
 
     /**
@@ -1538,41 +1479,43 @@ public class SSRPass <: Pass {
         // clear 为白色（NDC 深度=1.0=far）
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR | BgfxConstants.CLEAR_DEPTH, 0xFFFFFFFFu32, depth: 1.0f32, stencil: 0u8)
 
-        match (PostProcessingShaders.get("aodepth")) {
-            case Some(depthSp) =>
-                if (!Handle.isValid(Box(depthSp.programHandle))) {
-                    depthSp.compileBgfx()
+        if (let Some(depthSp) <- PostProcessingShaders.get("aodepth")) {
+            if (!Handle.isValid(Box(depthSp.programHandle))) {
+                depthSp.compileBgfx()
+            }
+            let depthProg = Box(depthSp.programHandle)
+            if (!Handle.isValid(depthProg)) {
+                @LogTrace(["ssr", "reflectorDepth: aodepth compile FAILED"])
+                return
+            }
+            let layout = this._getOrCreateLayout(renderer)
+            // 仅可见对象（SSR 历史行为：跳过不可见的反射面本身，防自反射）
+            let renderObjects = renderer.getSceneMeshes(scene, visibleOnly: true)
+            // 复用的矩阵暂存与 bgfx 变换内存（避免每个对象一次分配）
+            let mtxScratch = Array<Float64>(16, { _ => 0.0 })
+            let mtxMem = this._uploadMem(22, 64u32)
+            var submitCnt: Int64 = 0
+            for (ro in renderObjects) {
+                let vb = this._createVB(ro.geometry)
+                if (!Handle.isValid(vb)) { continue }
+                ro.worldMatrix.toArray(mtxScratch)
+                mtxMem.writeFloats(mtxScratch, 16)
+                renderer.setTransform(mtxMem, num: 1u16)
+                renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
+                let ib = this._createIB(ro.geometry)
+                if (Handle.isValid(ib)) {
+                    renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
                 }
-                let depthProg = Box(depthSp.programHandle)
-                if (!Handle.isValid(depthProg)) {
-                    @LogTrace(["ssr", "reflectorDepth: aodepth compile FAILED"])
-                    return
-                }
-                let layout = this._getOrCreateLayout(renderer)
-                let renderObjects = ArrayList<RenderObject>()
-                this._collectMeshes(scene, renderObjects)
-                var submitCnt: Int64 = 0
-                for (ro in renderObjects) {
-                    let vb = this._createVB(ro.geometry)
-                    if (!Handle.isValid(vb)) { continue }
-                    let mtxArr = ro.worldMatrix.toArray(Array<Float64>(16, { _ => 0.0 }))
-                    let mtxMem = BgfxMemory(64u32)
-                    mtxMem.writeFloats(mtxArr, 16)
-                    renderer.setTransform(mtxMem, num: 1u16)
-                    renderer.setVertexBufferWithLayout(0u8, vb, layout, startVertex: 0u32, numVertices: 0xFFFFFFFFu32)
-                    let ib = this._createIB(ro.geometry)
-                    if (Handle.isValid(ib)) {
-                        renderer.setIndexBuffer(ib, firstIndex: 0u32, numIndices: 0xFFFFFFFFu32)
-                    }
-                    let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
-                                           BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
-                                           BgfxConstants.FRONT_CCW
-                    renderer.setState(depthRenderState, rgba: 0x00000000u32)
-                    renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
-                    submitCnt += 1
-                }
-                @LogTrace(["ssr", "reflectorDepth done: prog= submitCnt="])
-            case None => @LogTrace(["ssr", "reflectorDepth: aodepth NOT registered"])
+                let depthRenderState = BgfxConstants.WRITE_RGB | BgfxConstants.WRITE_A |
+                                       BgfxConstants.WRITE_Z | BgfxConstants.DEPTH_TEST_LESS |
+                                       BgfxConstants.FRONT_CCW
+                renderer.setState(depthRenderState, rgba: 0x00000000u32)
+                renderer.submit(viewId, depthProg, depth: 0u32, blend: 0xFFu8)
+                submitCnt += 1
+            }
+            @LogTrace(["ssr", "reflectorDepth done: prog= submitCnt="])
+        } else {
+            @LogTrace(["ssr", "reflectorDepth: aodepth NOT registered"])
         }
     }
 
@@ -1581,23 +1524,19 @@ public class SSRPass <: Pass {
         this._destroyRTs()
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
         // 释放场景几何体缓存
-        match (this._renderer) {
-            case Some(renderer) =>
-                for ((_, vb) in this._vbCache) {
-                    renderer.destroyVertexBuffer(vb)
-                }
-                this._vbCache.clear()
-                for ((_, ib) in this._ibCache) {
-                    renderer.destroyIndexBuffer(ib)
-                }
-                this._ibCache.clear()
-                match (this._layoutHandleCache) {
-                    case Some(lh) =>
-                        renderer.destroyVertexLayout(lh)
-                        this._layoutHandleCache = None
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            for ((_, vb) in this._vbCache) {
+                renderer.destroyVertexBuffer(vb)
+            }
+            this._vbCache.clear()
+            for ((_, ib) in this._ibCache) {
+                renderer.destroyIndexBuffer(ib)
+            }
+            this._ibCache.clear()
+            if (let Some(lh) <- this._layoutHandleCache) {
+                renderer.destroyVertexLayout(lh)
+                this._layoutHandleCache = None
+            }
         }
     }
 }

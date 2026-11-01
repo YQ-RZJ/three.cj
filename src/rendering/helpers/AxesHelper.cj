@@ -24,13 +24,13 @@
  * @file[zh-cn] 坐标轴辅助对象
  * @brief[zh-cn] 坐标轴辅助对象，用于可视化 X/Y/Z 坐标轴
  * @explain[zh-cn] 
- * 对应 Three.js helpers/AxesHelper.js。以红-绿-蓝线段分别表示 X-Y-Z 轴，
+ * 以红-绿-蓝线段分别表示 X-Y-Z 轴，
  * 支持自定义各轴颜色。
  *
  * @file[en] Axes Helper
  * @brief[en] Axes helper for visualizing X/Y/Z axes
  * @explain[en] 
- * Corresponds to Three.js helpers/AxesHelper.js. Displays X-Y-Z axes as red-green-blue
+ * Displays X-Y-Z axes as red-green-blue
  * line segments, supports custom axis colors.
  */
 package three.rendering.helpers
@@ -104,17 +104,15 @@ public class AxesHelper <: LineSegments {
      */
     public func setColors(xAxisColor: Color, yAxisColor: Color, zAxisColor: Color): AxesHelper {
         let array = this.geometry.attributes.get("color")
-        match (array) {
-            case Some(attr) =>
-                xAxisColor.toArray(attr.array, offset: 0)
-                xAxisColor.toArray(attr.array, offset: 3)
-                yAxisColor.toArray(attr.array, offset: 6)
-                yAxisColor.toArray(attr.array, offset: 9)
-                zAxisColor.toArray(attr.array, offset: 12)
-                zAxisColor.toArray(attr.array, offset: 15)
-                
-                attr.version += 1
-            case None => ()
+        if (let Some(attr) <- array) {
+            xAxisColor.toArray(attr.array, offset: 0)
+            xAxisColor.toArray(attr.array, offset: 3)
+            yAxisColor.toArray(attr.array, offset: 6)
+            yAxisColor.toArray(attr.array, offset: 9)
+            zAxisColor.toArray(attr.array, offset: 12)
+            zAxisColor.toArray(attr.array, offset: 15)
+            
+            attr.version += 1
         }
         return this
     }

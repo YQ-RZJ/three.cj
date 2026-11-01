@@ -24,14 +24,14 @@
  * @file[zh-cn] 网格基础材质
  * @brief[zh-cn] 网格基础材质，以简单方式（无光照）渲染几何体
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshBasicMaterial.js。不受光照影响，使用颜色或纹理进行渲染。
+ * 不受光照影响，使用颜色或纹理进行渲染。
  * 支持 map、lightMap、aoMap、specularMap、alphaMap、envMap 等贴图属性，
  * 以及 reflectivity、refractionRatio 等反射/折射参数。
  *
  * @file[en] Mesh Basic Material
  * @brief[en] Mesh basic material, renders geometry in a simple way (no lighting)
  * @explain[en] 
- * Corresponds to Three.js materials/MeshBasicMaterial.js. Not affected by lighting, renders using color or textures.
+ * Not affected by lighting, renders using color or textures.
  * Supports map, lightMap, aoMap, specularMap, alphaMap, envMap and other texture properties,
  * as well as reflectivity, refractionRatio and other reflection/refraction parameters.
  */
@@ -47,12 +47,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 网格基础材质，以简单方式（无光照）渲染几何体
  * @explain[zh-cn] 
- * 对应 Three.js materials/MeshBasicMaterial.js。不受光照影响，使用颜色或纹理进行渲染。
+ * 不受光照影响，使用颜色或纹理进行渲染。
  * 支持 map、lightMap、aoMap、specularMap、alphaMap、envMap 等贴图属性。
  *
  * @brief[en] Mesh basic material, renders geometry in a simple way (no lighting)
  * @explain[en] 
- * Corresponds to Three.js materials/MeshBasicMaterial.js. Not affected by lighting, renders using color or textures.
+ * Not affected by lighting, renders using color or textures.
  * Supports map, lightMap, aoMap, specularMap, alphaMap, envMap and other texture properties.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]

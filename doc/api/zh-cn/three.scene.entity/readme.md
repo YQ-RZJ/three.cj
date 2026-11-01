@@ -18,4 +18,5 @@
 |[Skeleton](./类/Skeleton.md#class-skeleton)|骨骼类，管理一组 Bone 及其逆矩阵|
 |[SkinnedMesh](./类/SkinnedMesh.md#class-skinnedmesh)|蒙皮网格，带骨骼蒙皮变形的 Mesh|
 |[Sprite](./类/Sprite.md#class-sprite)|精灵渲染对象，始终朝向相机的 2D 平面|
+|[StaticBatcher](./类/StaticBatcher.md#class-staticbatcher)|CPU 静态合批工具（纯静态方法集）|
 

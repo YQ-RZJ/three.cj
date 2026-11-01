@@ -2,7 +2,7 @@
  * @file renderer
  * @brief test_helpers 视觉测试（v2 生命周期模式）：将所有 helper 摆进场景渲染，人工确认显示效果
  *
- * 展示的 helpers（对照 three.js 全部 13 个）：
+ * 展示的 helpers（共 13 个）：
  * - AxesHelper（坐标轴）、ArrowHelper（箭头）、Box3Helper、BoxHelper、
  *   CameraHelper、DirectionalLightHelper、GridHelper、HemisphereLightHelper、
  *   PlaneHelper、PointLightHelper、PolarGridHelper、SkeletonHelper、SpotLightHelper

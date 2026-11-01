@@ -1,6 +1,6 @@
 /**
  * @file ConstantsTest
- * @brief 迁移 three.js test/unit/src/constants.tests.js 的 default values 断言
+ * @brief 迁移上游 JS 库 test/unit/src/constants.tests.js 的 default values 断言
  *
  * 对照 JS QUnit:
  *   assert.equal( Constants.CullFaceNone, 0 )

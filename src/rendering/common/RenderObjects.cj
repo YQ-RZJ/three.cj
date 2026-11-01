@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * RenderObjects 管理多个 RenderObject 实例，按 (object, material, camera) 组合键缓存，
  * 避免每帧重复创建 RenderObject。内部 HashMap 使用组合 Int64 键。
- * 对照源码: three.js/src/renderers/common/RenderObjects.js (131 行)
  *
  * @file[en] RenderObjects
  * @brief[en] Render object cache manager, caching RenderObject by (object, material, camera) composite key
  * @explain[en] 
  * RenderObjects manages multiple RenderObject instances, caching them by (object, material, camera) composite key,
  * avoiding repeated creation of RenderObject each frame. Internally uses a composite Int64 key.
- * Corresponding source: three.js/src/renderers/common/RenderObjects.js (131 lines)
  */
 package three.rendering.common
 
@@ -45,6 +43,8 @@ import three.rendering.rendertarget.*
 import three.core.event.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
+import three.profiler.macros.*
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.rendering.cameras.*
@@ -100,30 +100,31 @@ public open class RenderObjects {
      * scene Scene
      * @return[en] RenderObject instance
      */
+    @Zone[three.rendering.common.RenderObjects.get]
     public func get(mesh: Object3D, geometry: BufferGeometry, material: Material,
                     context: RenderContext, camera: Camera, scene: Scene): RenderObject {
         // ★关键修复（bgfx view 语义）：缓存 key 必须含 camera.id！
-        //   对照 three.js WebGLRenderObjects.get：`key = object.id + material.id + camera.id`。
+        //   对照 WebGL 渲染对象缓存的 get：`key = object.id + material.id + camera.id`。
         //   此前 key 只含 mesh.id + material.uuid，导致渲反射场景（virtualCamera 镜像相机）
         //   时缓存命中渲 readBuffer（view 0）时创建的旧 RenderObject —— 其 context.viewId=0，
         //   draw 被提交到 view 0（readBuffer）而非反射 view 237，反射 RT 只有 clear 色、
         //   ReflectorShader 采样到空贴图 → 地面反射完全失效（capture 实证：reflectRT 全像素
         //   = renderer.clearColor 且 min==max、reflectDepthRT 100% far）。
         //   加 camera.id 后，主相机与镜像相机各用独立 RenderObject，viewId 正确。
-        let key = mesh.id * 100000000 + material.uuid.hashCode() + camera.id
+        let key = mesh.id * 100000000 + material.id + camera.id
         @LogTrace(["RenderObjects.get", "mesh.id=${mesh.id} mesh.name=${mesh.name} mat.uuid=${material.uuid} camera.id=${camera.id} key=${key}"])
-        match (this.cache.get(key)) {
-            case Some(ro) =>
+        if (let Some(ro) <- this.cache.get(key)) {
                 @LogTrace(["RenderObjects.get", "CACHE HIT key=${key} cached.mesh.name=${ro.mesh.name}"])
-                ro.updateWorldMatrix()
+                // 渲染循环已在收集前全量 updateMatrixWorld，快路径只拷世界矩阵
+                ro.syncWorldMatrix()
                 return ro
-            case None =>
+            } else {
                 let ro = RenderObject(this.cache.size + 1, mesh, geometry, material,
                                      context, camera, scene)
-                ro.updateWorldMatrix()
+                ro.syncWorldMatrix()
                 this.cache.add(key, ro)
                 return ro
-        }
+            }
     }
 
     /**

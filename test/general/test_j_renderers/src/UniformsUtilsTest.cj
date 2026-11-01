@@ -1,6 +1,6 @@
 /**
  * @file UniformsUtilsTest
- * @brief 迁移 three.js test/unit/src/renderers/shaders/UniformsUtils.tests.js 核心断言
+ * @brief 迁移上游 JS 库 test/unit/src/renderers/shaders/UniformsUtils.tests.js 核心断言
  *
  * 对照 JS: UniformsUtils.merge( base, extra ) 合并 uniform 数组
  * 仓颉侧 UniformsUtils.merge 实现于 ShaderLibs.cj。

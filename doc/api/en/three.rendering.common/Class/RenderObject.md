@@ -43,7 +43,7 @@ Return material ID
 
 Return: 
 
-- Material hash ID
+- Material ID
 
 ### func getMatrix\(\)
 ```cj
@@ -142,6 +142,26 @@ Called when removed from the renderer
 public func onUpdate(): Unit
 ```
 Called when properties are updated
+
+### func resetFor\(Object3D,BufferGeometry,Material\)
+```cj
+public func resetFor(mesh: Object3D, geometry: BufferGeometry, material: Material): Unit
+```
+Reuses this render object: resets it for a new mesh/geometry/material (pooling path)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|mesh|Object3D||
+|geometry|BufferGeometry||
+|material|Material||
+
+### func syncWorldMatrix\(\)
+```cj
+public func syncWorldMatrix(): Unit
+```
+Sync the world matrix (use when the scene graph was already fully updated this frame)
 
 ### func updateWorldMatrix\(\)
 ```cj

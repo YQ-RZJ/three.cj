@@ -45,7 +45,6 @@ import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
-import three.utils.memory.BgfxMemory
 
 /**
  * @brief[zh-cn] FXAA 后处理 pass
@@ -81,9 +80,9 @@ public class FXAAPass <: ShaderPass {
         let rh = renderer.height
         let invW: Float32 = if (rw > 0) { 1.0f32 / Float32(rw) } else { 0.0f32 }
         let invH: Float32 = if (rh > 0) { 1.0f32 / Float32(rh) } else { 0.0f32 }
-        let uRes = uniforms.createUniform("u_resolution", UniformType.Vec4.value())
-        let resMem = BgfxMemory(16u32)
-        resMem.writeFloats([Float64(invW), Float64(invH), 0.0, 0.0], 4)
-        this.setUniform(renderer, uRes, resMem, num: 1u16)
+        // 句柄按名缓存（首次创建后复用，省去每帧 createUniform 的全局锁 + 字符串哈希）
+        let uRes = this._cachedUniform("u_resolution", UniformType.Vec4.value())
+        // 复用基类上传缓冲槽位（原实现每帧新建 BgfxMemory + 数组字面量）
+        this._setVec2Uniform(renderer, uRes, 0, Float64(invW), Float64(invH))
     }
 }

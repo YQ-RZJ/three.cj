@@ -249,26 +249,24 @@ public class LuaVM {
         let L = this._requireState()
         var rc: Int32 = 0
         // 1. 加载（解析 + 编译）
-        match (path) {
-            case Some(p) =>
-                let cs = _toCString(p)
-                rc = luaL_loadfile_cj(L, cs)
+        if (let Some(p) <- path) {
+            let cs = _toCString(p)
+            rc = luaL_loadfile_cj(L, cs)
+            _freeCString(cs)
+        } else {
+            let src = code.getOrThrow()
+            if (let Some(n) <- name) {
+                let cs = _toCString(src)
+                let ns = _toCString(n)
+                // luaL_loadbuffer 需要 UTF-8 字节长度（String.size 是字符数）
+                rc = luaL_loadbuffer_cj(L, cs, UIntNative(src.toArray().size), ns)
                 _freeCString(cs)
-            case None =>
-                let src = code.getOrThrow()
-                match (name) {
-                    case Some(n) =>
-                        let cs = _toCString(src)
-                        let ns = _toCString(n)
-                        // luaL_loadbuffer 需要 UTF-8 字节长度（String.size 是字符数）
-                        rc = luaL_loadbuffer_cj(L, cs, UIntNative(src.toArray().size), ns)
-                        _freeCString(cs)
-                        _freeCString(ns)
-                    case None =>
-                        let cs = _toCString(src)
-                        rc = luaL_loadstring_cj(L, cs)
-                        _freeCString(cs)
-                }
+                _freeCString(ns)
+            } else {
+                let cs = _toCString(src)
+                rc = luaL_loadstring_cj(L, cs)
+                _freeCString(cs)
+            }
         }
         if (rc != LUA_OK) {
             // 编译错误：栈顶是错误消息
@@ -348,16 +346,15 @@ public class LuaVM {
                             path: Option<String>): LuaFunction {
         let L = this._requireState()
         var rc: Int32 = 0
-        match (path) {
-            case Some(p) =>
-                let cs = _toCString(p)
-                rc = luaL_loadfile_cj(L, cs)
-                _freeCString(cs)
-            case None =>
-                let src = code.getOrThrow()
-                let cs = _toCString(src)
-                rc = luaL_loadstring_cj(L, cs)
-                _freeCString(cs)
+        if (let Some(p) <- path) {
+            let cs = _toCString(p)
+            rc = luaL_loadfile_cj(L, cs)
+            _freeCString(cs)
+        } else {
+            let src = code.getOrThrow()
+            let cs = _toCString(src)
+            rc = luaL_loadstring_cj(L, cs)
+            _freeCString(cs)
         }
         if (rc != LUA_OK) {
             let msg = this._popError()

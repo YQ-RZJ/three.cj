@@ -5,7 +5,7 @@
  * 对 three.utils.encode 子包（stdx 驱动改造后）做全量编解码正确性验证：
  *   Base64 / Hex / MD5 / SHA（sha1/224/256/384/512）/ UrlEncode / Hash（fnv1a/murmur）/ UUID
  *
- * 断言方式（对照 three.js test/unit 风格 + std.unittest）：
+ * 断言方式（对照主流引擎单元测试风格 + std.unittest）：
  *   - 已知向量（RFC 1321 MD5、FIPS 180-4 SHA 测试向量）精确比对
  *   - 编码→解码往返一致性
  *   - 边界输入（空串、单字节、折行、非法字符、UTF-8 中文）

@@ -6,7 +6,7 @@
 [package]
   cjc-version = "1.1.0"
   compile-option = "-Woff unused -g -O0"
-  description = "bloom_basic - basic Bloom post-processing (three.js BloomPass migration)"
+  description = "bloom_basic"
   link-option = "-l user32 -l gdi32 -l winmm -l imm32 -l ole32 -l oleaut32 -l version -l uuid -l setupapi -l shell32 -l dinput8 -l hid"
   name = "bloom_basic"
   output-type = "executable"

@@ -24,13 +24,13 @@
  * @file[zh-cn] 平行光阴影配置
  * @brief[zh-cn] 平行光阴影配置，专用于 DirectionalLight
  * @explain[zh-cn] 
- * 对应 Three.js lights/DirectionalLightShadow.js。内部相机为 OrthographicCamera（正交投影），
+ * 内部相机为 OrthographicCamera（正交投影），
  * 默认视锥范围 [-5,5]×[-5,5]×[0.5,500]。支持 CSM（级联阴影贴图）。
  *
  * @file[en] Directional Light Shadow
  * @brief[en] Directional light shadow configuration, specific to DirectionalLight
  * @explain[en] 
- * Corresponds to Three.js lights/DirectionalLightShadow.js. Internal camera is OrthographicCamera,
+ * Internal camera is OrthographicCamera,
  * default frustum range [-5,5]×[-5,5]×[0.5,500]. Supports CSM (Cascaded Shadow Maps).
  */
 package three.rendering.lights

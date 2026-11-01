@@ -13,7 +13,7 @@ public func dispose(): Unit
 
 ### func init\(UInt32\)
 ```cj
-public init(initialValue!: UInt32 = 0)
+public init(initVal!: UInt32 = 0)
 ```
 构造器：创建信号量
 
@@ -21,7 +21,7 @@ public init(initialValue!: UInt32 = 0)
 
 |名称|类型|描述|
 |---|---|---|
-|initialValue|UInt32|初始计数值|
+|initVal|UInt32|初始计数值|
 
 ### func signal\(\)
 ```cj

@@ -1,6 +1,6 @@
 /**
  * @file SceneBehaviorTest
- * @brief 补充迁移 three.js test/unit/src/scenes/Scene.tests.js 的 copy 断言
+ * @brief 补充迁移上游 JS 库 test/unit/src/scenes/Scene.tests.js 的 copy 断言
  *
  * 对照 JS:
  *   const scene = new Scene(); scene.background = new Color();

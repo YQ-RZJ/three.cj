@@ -148,8 +148,7 @@ public open class PerspectiveCamera <: Camera {
         var width = this.aspect * height
         var left = -0.5 * width
 
-        match (this.view) {
-            case Some(view) =>
+        if (let Some(view) <- this.view) {
                 if (view.enabled) {
                     let fullWidth = view.fullWidth
                     let fullHeight = view.fullHeight
@@ -162,8 +161,7 @@ public open class PerspectiveCamera <: Camera {
                     width *= vw / fullWidth
                     height *= vh / fullHeight
                 }
-            case None => ()
-        }
+            }
 
         let skew = this.filmOffset
         if (skew != 0.0) { left += near * skew / this.getFilmWidth() }
@@ -193,10 +191,7 @@ public open class PerspectiveCamera <: Camera {
                 this.far = s.far
                 this.focus = s.focus
                 this.aspect = s.aspect
-                this.view = match (s.view) {
-                    case Some(v) => Some(v.clone())
-                    case None => None
-                }
+                this.view = if (let Some(v) <- s.view) { Some(v.clone()) } else { None }
                 this.filmGauge = s.filmGauge
                 this.filmOffset = s.filmOffset
             case _ => ()
@@ -318,10 +313,7 @@ public open class PerspectiveCamera <: Camera {
      */
     public func setViewOffset(fullWidth: Float64, fullHeight: Float64, x: Float64, y: Float64, width: Float64, height: Float64): Unit {
         this.aspect = fullWidth / fullHeight
-        let v = match (this.view) {
-            case Some(v) => v
-            case None => CameraView()
-        }
+        let v = if (let Some(v) <- this.view) { v } else { CameraView() }
         v.enabled = true
         v.fullWidth = fullWidth
         v.fullHeight = fullHeight
@@ -339,10 +331,7 @@ public open class PerspectiveCamera <: Camera {
      * @brief[en] Clear viewport offset
      */
     public func clearViewOffset(): Unit {
-        match (this.view) {
-            case Some(v) => v.enabled = false
-            case None => ()
-        }
+        if (let Some(v) <- this.view) { v.enabled = false }
         this.updateProjectionMatrix()
     }
 

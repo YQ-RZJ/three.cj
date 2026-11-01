@@ -164,22 +164,23 @@ public class EventManager {
         let callbacks = ArrayList<(Array<Object>) -> Unit>()
         let onceIds = ArrayList<Int64>()
         for (id in ids) {
-            match (_idToEvent.get(id)) {
-                case None => continue
-                case Some(listener) =>
-                    if (listener.recycled) {
-                        continue
+            if (let Some(listener) <- _idToEvent.get(id)) {
+                if (listener.recycled) {
+                    continue
+                }
+                let targetMatch = if (let Some(t) <- target) {
+                    _targetEquals(listener.target, t)
+                } else {
+                    true
+                }
+                if (targetMatch) {
+                    callbacks.add(listener.callback)
+                    if (listener.once) {
+                        onceIds.add(id)
                     }
-                    let targetMatch = match (target) {
-                        case None => true
-                        case Some(t) => _targetEquals(listener.target, t)
-                    }
-                    if (targetMatch) {
-                        callbacks.add(listener.callback)
-                        if (listener.once) {
-                            onceIds.add(id)
-                        }
-                    }
+                }
+            } else {
+                continue
             }
         }
 
@@ -228,12 +229,12 @@ public class EventManager {
         // 快照待移除 ID，避免迭代中修改 ids
         let needRemoveIds = ArrayList<Int64>()
         for (id in ids) {
-            match (_idToEvent.get(id)) {
-                case None => continue
-                case Some(listener) =>
-                    if (_targetEquals(listener.target, target)) {
-                        needRemoveIds.add(id)
-                    }
+            if (let Some(listener) <- _idToEvent.get(id)) {
+                if (_targetEquals(listener.target, target)) {
+                    needRemoveIds.add(id)
+                }
+            } else {
+                continue
             }
         }
         for (id in needRemoveIds) {
@@ -296,10 +297,10 @@ public class EventManager {
      * @return[en] Number of listeners under this name; returns 0 if not found
      */
     public func countByName(name: String): Int64 {
-        match (_nameToIds.get(name)) {
-            case None => return 0
-            case Some(ids) => return ids.size
+        if (let Some(ids) <- _nameToIds.get(name)) {
+            return ids.size
         }
+        return 0
     }
 
     // ===== 内部实现 =====
@@ -335,18 +336,17 @@ public class EventManager {
      */
     private func _remove(id: Int64): Unit {
         let optListener = _idToEvent.get(id)
-        match (optListener) {
-            case None => return
-            case Some(listener) =>
-                let name = listener.name
-                _idToEvent.remove(id)
-                _factory.recycle(listener)
-                // 从 name 索引移除（listener 已 recycle，name 字段已被清空，
-                // 但本地变量 name 仍持有原值，安全使用）
-                match (_nameToIds.get(name)) {
-                    case None => ()
-                    case Some(ids) => ids.remove(id)
-                }
+        if (let Some(listener) <- optListener) {
+            let name = listener.name
+            _idToEvent.remove(id)
+            _factory.recycle(listener)
+            // 从 name 索引移除（listener 已 recycle，name 字段已被清空，
+            // 但本地变量 name 仍持有原值，安全使用）
+            if (let Some(ids) <- _nameToIds.get(name)) {
+                ids.remove(id)
+            }
+        } else {
+            return
         }
     }
 
@@ -364,9 +364,9 @@ public class EventManager {
      * @return[en] Whether a and b are reference-equal; returns false when a is None
      */
     private func _targetEquals(a: ?Object, b: Object): Bool {
-        match (a) {
-            case None => return false
-            case Some(objA) => return refEq(objA, b)
+        if (let Some(objA) <- a) {
+            return refEq(objA, b)
         }
+        return false
     }
 }

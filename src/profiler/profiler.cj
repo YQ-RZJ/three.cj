@@ -41,9 +41,13 @@
  * 可直接用于 try-with-resources（`try (z = Zone(...)) { ... }`）或宏展开的
  * try{}finally{} 骨架，退出时自动 close() 结束区间。
  *
- * Zone 封装要点：tracy4cj 的静态源位置路径要求仓颉侧长期持有 C 字符串内存，
- * 不可靠；因此统一走 allocSrclocName_cj 动态源位置句柄（Tracy 内部按
- * (name,file,line) 永久缓存，同一键只分配一次），仓颉侧零 C 字符串生命周期负担。
+ * Zone 封装要点：源位置采用静态路径，与 Tracy 官方宏（TRACY_ZONE_SCOPED）
+ * 完全一致——每个 (name,file,line) 键一次性分配长生命周期 C 字符串与
+ * TracySourceLocationData 结构体并永久缓存；每次 zone begin 以指针发射
+ * （emit_zone_begin），worker 对静态 srcloc 永不 free，缓存复用安全且无
+ * 每次分配开销。不可用动态 alloc 路径缓存句柄：worker 每消费一条
+ * ZoneBeginAllocSrcLoc 即 tracy_free_fast 该指针（一次性消耗语义），复用
+ * 已释放指针会引发 use-after-free / double-free 并污染线上数据。
  *
  * @file[en] Profiler.cj three.profiler runtime facade (always-on, no env gate)
  * @brief[en] High-level wrappers: Zone/Frame/Plot/Message/Memory/Gpu/Lock/Fiber/
@@ -56,9 +60,11 @@
  * against it with segment-level prefix matching, and return the input tokens
  * untouched (zero intrusion) on miss. Scope classes (Zone/GpuZone/LockZone/
  * FiberScope) implement std.core.Resource for try-with-resources and macro
- * try{}finally{} skeletons; close() ends the span automatically. Zones use
- * dynamic srcloc handles cached permanently inside Tracy, so the Cangjie side
- * holds no C-string memory.
+ * try{}finally{} skeletons; close() ends the span automatically. Zones use static srcloc structs
+ * cached permanently on the Cangjie side (one long-lived allocation per
+ * (name,file,line) key, emitted by pointer like the official Tracy macros),
+ * so repeated zone entry costs no allocation and the worker never frees the
+ * source location memory.
  */
 package three.profiler
 
@@ -72,6 +78,26 @@ import tracy4cj.tracy.*
 // =============================================================================
 
 /**
+ * @brief[zh-cn] 静态源位置条目（按键缓存）：zone 名 + 长生命周期 srcloc 指针
+ * @explain[zh-cn] 键由宏在展开期按 (fileId, line) 计算为编译期常量，运行时无需
+ *               拼接字符串键——省掉每次进入 zone 的一次字符串分配与哈希。
+ *
+ * @brief[en] Static source-location entry (keyed cache): zone name + long-lived srcloc pointer
+ * @explain[en] The key is computed by the macro at expansion time from (fileId, line)
+ *               as a compile-time constant, so no string key is built at runtime —
+ *               saving one string allocation and hash per zone entry.
+ */
+private class SrclocEntry {
+    let name: String
+    let ptr: CPointer<TracySourceLocationData>
+
+    init(name: String, ptr: CPointer<TracySourceLocationData>) {
+        this.name = name
+        this.ptr = ptr
+    }
+}
+
+/**
  * @brief[zh-cn] Zone 区间控制器 — 一次构造/close 对应 Tracy 一个耗时区间
  * @explain[zh-cn] 三种用法：
  *
@@ -82,7 +108,8 @@ import tracy4cj.tracy.*
  * 3. 宏：`@Zone[three.test.aaa.bbb] func f(): Unit {...}` 或
  *    `@Zone[链路]( 代码 )`（推荐，编译期可零侵入裁剪）。
  *
- * 源位置采用动态句柄：Tracy 按 (name,file,line) 永久缓存，重复构造无重复分配。
+ * 源位置采用静态结构体：每个 (name,file,line) 键分配一次长生命周期 C 内存并
+ * 永久缓存（与 Tracy 官方宏等效），重复构造无重复分配。
  *
  * @brief[en] Zone scope controller — one construction/close pair is one Tracy
  * timing zone
@@ -95,18 +122,30 @@ import tracy4cj.tracy.*
  * 3. Macros: `@Zone[link] func f(): Unit {...}` or `@Zone[link]( code )`
  *    (recommended; compile-time prunable).
  *
- * Source locations use dynamic handles cached permanently inside Tracy keyed
- * by (name,file,line), so repeated construction costs no extra allocation.
+ * Source locations use static structs cached permanently keyed by
+ * (name,file,line), so repeated construction costs no extra allocation.
  */
 public class ProfZone <: Resource {
     /**
-     * @brief[zh-cn] 动态源位置缓存：键 "name\x1ffile\x1fline" → srcloc 句柄
-     *               （Tracy 侧永久有效）
+     * @brief[zh-cn] 静态源位置缓存：键 "name\x1ffile\x1fline" → 长生命周期
+     *               TracySourceLocationData 结构体指针（worker 永不 free）
      *
-     * @brief[en] Dynamic srcloc cache: key "name\x1ffile\x1fline" -> srcloc
-     *            handle (valid permanently on the Tracy side)
+     * @brief[en] Static srcloc cache: key "name\x1ffile\x1fline" ->
+     *            long-lived TracySourceLocationData struct pointer (never
+     *            freed by the worker)
      */
-    private static let SRCLOC_CACHE = ConcurrentHashMap<String, UInt64>()
+    private static let SRCLOC_CACHE = ConcurrentHashMap<String, CPointer<TracySourceLocationData>>()
+    /**
+     * @brief[zh-cn] 按编译期常量键缓存的静态源位置（宏路径）
+     * @explain[zh-cn] 键 = fileId * 2^20 + line（宏展开期算好），查表为整型哈希，
+     *               避免每次进入 zone 拼接 "name\x1ffile\x1fline" 字符串。
+     *
+     * @brief[en] Static srcloc cache keyed by a compile-time constant (macro path)
+     * @explain[en] key = fileId * 2^20 + line (computed at macro expansion time);
+     *               the lookup is an integer hash, avoiding the per-entry
+     *               "name\x1ffile\x1fline" string concatenation.
+     */
+    private static let SRCLOC_KEY_CACHE = ConcurrentHashMap<Int64, SrclocEntry>()
 
     /**
      * @brief[zh-cn] zone 上下文（active=0 表示未激活 / 已结束）
@@ -154,39 +193,163 @@ public class ProfZone <: Resource {
     }
 
     /**
-     * @brief[zh-cn] 取/分配动态源位置句柄并发射 zoneBegin
+     * @brief[zh-cn] 开始一个命名 zone（按键缓存源位置，宏路径使用）
+     * @explain[zh-cn] key 由宏在展开期按 (fileId, line) 计算为编译期常量：
+     *               运行时只做一次整型键查表，不再拼接字符串键。
      *
-     * @brief[en] Resolve the dynamic srcloc handle and emit zoneBegin
+     * @brief[en] Begin a named zone (source location cached by key; used by the macro path)
+     * @explain[en] The key is computed by the macro at expansion time from
+     *               (fileId, line) as a compile-time constant: at runtime there is
+     *               only an integer-keyed lookup, with no string key built.
+     *
+     * @param[zh-cn] key 编译期常量源位置键
+     * @param[zh-cn] name zone 显示名
+     * @param[zh-cn] color Tracy 颜色（0 = 默认）
+     * @param[zh-cn] file 文件标识
+     * @param[zh-cn] line 行号
+     * @param[zh-cn] function 函数名
+     */
+    public init(key: Int64, name: String, color: UInt32, file: String, line: UInt32, function: String) {
+        ctx = ProfZone.beginCtxByKey(key, name, file, line, function, color)
+    }
+
+    /**
+     * @brief[zh-cn] 开始一个命名 zone（按键缓存源位置，无函数名版本）
+     *
+     * @brief[en] Begin a named zone (source location cached by key, without a function name)
+     */
+    public init(key: Int64, name: String, color: UInt32, file: String, line: UInt32) {
+        ctx = ProfZone.beginCtxByKey(key, name, file, line, name, color)
+    }
+
+    /**
+     * @brief[zh-cn] 取/分配静态源位置并发射 zoneBegin
+     *
+     * @brief[en] Resolve the static srcloc and emit zoneBegin
      */
     private static func beginCtx(name: String, file: String,
                                  line: UInt32, function: String, color: UInt32): TracyCZoneCtx {
         let srcloc = srclocHandle(name, file, line, function, color)
-        return emitZoneBeginAlloc_cj(srcloc, true)
+        return emitZoneBegin_cj(srcloc, true)
     }
 
     /**
-     * @brief[zh-cn] 取/分配动态源位置句柄（Tracy 内部永久缓存，同一键只分配
-     *               一次；包内可见：GpuZone 等作用域类复用）
+     * @brief[zh-cn] 按编译期常量键取/分配静态源位置并发射 zoneBegin
      *
-     * @brief[en] Resolve/allocate the dynamic srcloc handle (cached permanently
-     *            inside Tracy, one allocation per key; package-visible for
+     * @brief[en] Resolves the static srcloc by compile-time constant key and emits zoneBegin
+     */
+    private static func beginCtxByKey(key: Int64, name: String, file: String,
+                                      line: UInt32, function: String, color: UInt32): TracyCZoneCtx {
+        let srcloc = srclocHandleByKey(key, name, file, line, function, color)
+        return emitZoneBegin_cj(srcloc, true)
+    }
+
+    /**
+     * @brief[zh-cn] 按键取/分配静态源位置（宏路径）
+     * @explain[zh-cn] 键 = fileId * 2^20 + line，同一文件同一行唯一确定一个插桩点；
+     *               同一行出现多个不同 zone 名时顺延到下一个槽位，保证名字不串。
+     *
+     * @brief[en] Resolves/allocates the static srcloc by key (macro path)
+     * @explain[en] The key = fileId * 2^20 + line uniquely identifies an instrumentation
+     *               point within a file; when several differently named zones share one
+     *               line, the next slot is used so that names never mix up.
+     */
+    protected static func srclocHandleByKey(key: Int64, name: String, file: String, line: UInt32,
+                                            function: String, color: UInt32): CPointer<TracySourceLocationData> {
+        var slot = key
+        var attempt: Int64 = 0
+        var result = CPointer<TracySourceLocationData>()
+        var done = false
+        while (!done) {
+            if (let Some(entry) <- SRCLOC_KEY_CACHE.get(slot)) {
+                if (entry.name == name) {
+                    result = entry.ptr
+                    done = true
+                } else {
+                    // 同一行多个不同 zone 名：顺延到下一个槽位，保证名字不串
+                    attempt += 1
+                    slot = key + attempt
+                }
+            } else {
+                result = ProfZone.allocSrcloc(name, file, line, function, color)
+                SRCLOC_KEY_CACHE.add(slot, SrclocEntry(name, result))
+                done = true
+            }
+        }
+        return result
+    }
+
+    /**
+     * @brief[zh-cn] 分配长生命周期的静态源位置结构（一次分配，永不释放）
+     * @explain[zh-cn] 三个 C 字符串用裸字节缓冲承载（LibC.malloc 直接分配，
+     *               不经 CString 托管包装），与 buildSrcloc 同一套做法：
+     *               Tracy 只保存指针不拷贝，缓冲一旦失效 zone 名就会变成乱码地址。
+     *
+     * @brief[en] Allocates a long-lived static source-location struct (allocated once, never freed)
+     * @explain[en] The three C strings live in raw byte buffers (allocated with
+     *               LibC.malloc, no CString wrapper), same approach as buildSrcloc:
+     *               Tracy only keeps the pointers and never copies them, so a buffer
+     *               that dies turns the zone name into a garbage address.
+     */
+    private static func allocSrcloc(name: String, file: String, line: UInt32,
+                                    function: String, color: UInt32): CPointer<TracySourceLocationData> {
+        let pName = ProfZone.allocCBytes(name)
+        let pFunction = ProfZone.allocCBytes(function)
+        let pFile = ProfZone.allocCBytes(file)
+        let sl = unsafe { LibC.malloc<TracySourceLocationData>(count: 1) }
+        if (unsafe { sl.isNull() }) {
+            return CPointer<TracySourceLocationData>()
+        }
+        unsafe { sl.write(TracySourceLocationData(pName, pFunction, pFile, line, color)) }
+        return sl
+    }
+
+    /**
+     * @brief[zh-cn] 分配一段以 \0 结尾的 C 字符串（裸字节，不经 CString 托管包装）
+     * @param[zh-cn] text 文本内容
+     * @return[zh-cn] 指向字符串首字节的指针（调用方决定是否释放）
+     *
+     * @brief[en] Allocates a NUL-terminated C string as raw bytes (no CString wrapper)
+     * @param[en] text The text content
+     * @return[en] A pointer to the first byte (the caller decides whether to free it)
+     */
+    private static func allocCBytes(text: String): CPointer<UInt8> {
+        let bytes = text.toArray()
+        let p = unsafe { LibC.malloc<UInt8>(count: bytes.size + 1) }
+        for (i in 0..bytes.size) {
+            unsafe { (p + i).write(bytes[i]) }
+        }
+        unsafe { (p + bytes.size).write(0) }
+        return p
+    }
+
+    /**
+     * @brief[zh-cn] 取/分配静态源位置（Tracy 官方宏等效：长生命周期结构体 +
+     *               长生命周期 C 字符串，同一键只分配一次，永不释放；包内
+     *               可见：GpuZone 等作用域类复用）
+     *
+     * @brief[en] Resolve/allocate the static srcloc (equivalent to Tracy's
+     *            official macros: long-lived struct + long-lived C strings,
+     *            one allocation per key, never freed; package-visible for
      *            reuse by GpuZone and other scope classes)
      */
     protected static func srclocHandle(name: String, file: String, line: UInt32,
-                             function: String, color: UInt32): UInt64 {
+                             function: String, color: UInt32): CPointer<TracySourceLocationData> {
         let key = "${name}\u{1f}${file}\u{1f}${line}"
         // 快路径：已缓存
         // Fast path: cached
-        match (SRCLOC_CACHE.get(key)) {
-            case Some(v) => return v
-            case None => ()
-        }
-        // 慢路径：分配后回填（allocSrclocName 幂等，重复分配仅浪费一次查询）
-        // Slow path: allocate then backfill (allocSrclocName is idempotent; a
-        // duplicate allocation only wastes one lookup)
-        let h = allocSrclocName_cj(line, file, function, name, color)
-        SRCLOC_CACHE.add(key, h)
-        return h
+        if (let Some(v) <- SRCLOC_CACHE.get(key)) { return v }
+        // 慢路径：一次性分配长生命周期资源（C 字符串 + 静态 srcloc 结构体），
+        // 之后每次 zone begin 直接以指针发射。worker 对静态 srcloc 永不 free，
+        // 因此缓存复用安全且是 Tracy 官方宏的标准做法——与动态 alloc 路径的
+        // "每事件消费并 free 一次"语义完全不同。
+        // Slow path: allocate long-lived resources once (C strings + static
+        // srcloc struct), then emit by pointer on every zone begin. The worker
+        // never frees static srclocs, so cached reuse is safe and is exactly
+        // what the official Tracy macros do (unlike the one-shot dynamic path).
+        let sl = ProfZone.allocSrcloc(name, file, line, function, color)
+        SRCLOC_CACHE.add(key, sl)
+        return sl
     }
 
     /**
@@ -198,7 +361,9 @@ public class ProfZone <: Resource {
         if (ctx.active == 0) {
             return
         }
-        emitZoneText_cj(ctx, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitZoneText_cj(ctx, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -235,7 +400,9 @@ public class ProfZone <: Resource {
         if (ctx.active == 0) {
             return
         }
-        emitZoneName_cj(ctx, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitZoneName_cj(ctx, cs)
+        unsafe { LibC.free(cs) }
     }
 
     // ---- Resource（try-with-resources / close 自动结束 zone）----
@@ -297,7 +464,9 @@ public class ProfFrame {
      *            "Render")
      */
     public static func mark(name: String): Unit {
-        frameMarkNamed_cj(name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        frameMarkNamed_cj(cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -307,7 +476,9 @@ public class ProfFrame {
      *            multiple streams may run in parallel)
      */
     public static func start(name: String): Unit {
-        frameMarkStart_cj(name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        frameMarkStart_cj(cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -316,7 +487,9 @@ public class ProfFrame {
      * @brief[en] Finish a named frame stream
      */
     public static func finish(name: String): Unit {
-        frameMarkEnd_cj(name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        frameMarkEnd_cj(cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -350,7 +523,9 @@ public class ProfPlot {
      */
     public static func config(name: String, format: TracyPlotFormat, step: Bool,
                               fill: Bool, color: UInt32): Unit {
-        plotConfig_cj(name, format, step, fill, color)
+        let cs = unsafe { LibC.mallocCString(name) }
+        plotConfig_cj(cs, format, step, fill, color)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -359,7 +534,9 @@ public class ProfPlot {
      * @brief[en] Emit a Float64 data point
      */
     public static func point(name: String, v: Float64): Unit {
-        plot_cj(name, v)
+        let cs = unsafe { LibC.mallocCString(name) }
+        plot_cj(cs, v)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -368,7 +545,9 @@ public class ProfPlot {
      * @brief[en] Emit a Float32 data point
      */
     public static func pointF32(name: String, v: Float32): Unit {
-        plotFloat_cj(name, v)
+        let cs = unsafe { LibC.mallocCString(name) }
+        plotFloat_cj(cs, v)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -377,7 +556,9 @@ public class ProfPlot {
      * @brief[en] Emit an Int64 data point
      */
     public static func pointI64(name: String, v: Int64): Unit {
-        plotInt_cj(name, v)
+        let cs = unsafe { LibC.mallocCString(name) }
+        plotInt_cj(cs, v)
+        unsafe { LibC.free(cs) }
     }
 }
 
@@ -402,7 +583,9 @@ public class ProfMessage {
      * @brief[en] Send a message (full severity/color form)
      */
     public static func log(txt: String, severity: TracyMessageSeverity): Unit {
-        emitLogStringL_cj(severity, 0, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitLogStringL_cj(severity, 0, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -411,7 +594,9 @@ public class ProfMessage {
      * @brief[en] Send a Trace-level message (@Message macro severity=trace)
      */
     public static func logTrace(txt: String): Unit {
-        emitLogStringL_cj(TracyMessageSeverity.Trace, 0, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitLogStringL_cj(TracyMessageSeverity.Trace, 0, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -420,7 +605,9 @@ public class ProfMessage {
      * @brief[en] Send a Debug-level message (@Message macro severity=debug)
      */
     public static func logDebug(txt: String): Unit {
-        emitLogStringL_cj(TracyMessageSeverity.Debug, 0, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitLogStringL_cj(TracyMessageSeverity.Debug, 0, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -429,7 +616,9 @@ public class ProfMessage {
      * @brief[en] Send an Info-level message (@Message macro default)
      */
     public static func logInfo(txt: String): Unit {
-        emitLogStringL_cj(TracyMessageSeverity.Info, 0, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitLogStringL_cj(TracyMessageSeverity.Info, 0, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -438,7 +627,9 @@ public class ProfMessage {
      * @brief[en] Send a Warning-level message (@Message macro severity=warning)
      */
     public static func logWarning(txt: String): Unit {
-        emitLogStringL_cj(TracyMessageSeverity.Warning, 0, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitLogStringL_cj(TracyMessageSeverity.Warning, 0, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -447,7 +638,9 @@ public class ProfMessage {
      * @brief[en] Send an Error-level message (@Message macro severity=error)
      */
     public static func logError(txt: String): Unit {
-        emitLogStringL_cj(TracyMessageSeverity.Error, 0, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitLogStringL_cj(TracyMessageSeverity.Error, 0, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -456,7 +649,9 @@ public class ProfMessage {
      * @brief[en] Send a Fatal-level message (@Message macro severity=fatal)
      */
     public static func logFatal(txt: String): Unit {
-        emitLogStringL_cj(TracyMessageSeverity.Fatal, 0, txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        emitLogStringL_cj(TracyMessageSeverity.Fatal, 0, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -465,7 +660,9 @@ public class ProfMessage {
      * @brief[en] Application info (shown once next to the profiler window title)
      */
     public static func appInfo(txt: String): Unit {
-        messageAppInfo_cj(txt)
+        let cs = unsafe { LibC.mallocCString(txt) }
+        messageAppInfo_cj(cs)
+        unsafe { LibC.free(cs) }
     }
 }
 
@@ -489,7 +686,9 @@ public class ProfMemory {
      * @brief[en] Report an allocation (expansion target of @MemAlloc)
      */
     public static func alloc(ptr: CPointer<Unit>, size: UIntNative, name: String): Unit {
-        emitMemoryAllocNamed_cj(ptr, size, name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        emitMemoryAllocNamed_cj(ptr, size, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -498,7 +697,9 @@ public class ProfMemory {
      * @brief[en] Report a free (expansion target of @MemFree)
      */
     public static func free(ptr: CPointer<Unit>, name: String): Unit {
-        emitMemoryFreeNamed_cj(ptr, name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        emitMemoryFreeNamed_cj(ptr, cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -507,7 +708,9 @@ public class ProfMemory {
      * @brief[en] Discard a whole named pool (zeroes all bytes booked to name)
      */
     public static func discard(name: String): Unit {
-        emitMemoryDiscard_cj(name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        emitMemoryDiscard_cj(cs)
+        unsafe { LibC.free(cs) }
     }
 }
 
@@ -539,11 +742,16 @@ public class Gpu {
 
     /**
      * @brief[zh-cn] GPU zone 开始（queryId 与 zoneEnd/time 配对）
+     * @param srcloc 静态源位置指针地址（见 ProfZone.srclocHandle；worker 对
+     *               静态 srcloc 永不 free，禁止传入动态 alloc 句柄）
      *
      * @brief[en] Begin a GPU zone (queryId pairs with zoneEnd/time)
+     * @param srcloc Static srcloc pointer address (see ProfZone.srclocHandle;
+     *               the worker never frees static srclocs — do NOT pass a
+     *               one-shot dynamic alloc handle here)
      */
     public static func zoneBegin(srcloc: UInt64, queryId: UInt16, context: UInt8): Unit {
-        emitGpuZoneBeginAlloc_cj(TracyGpuZoneBeginData(srcloc, queryId, context))
+        emitGpuZoneBegin_cj(TracyGpuZoneBeginData(srcloc, queryId, context))
     }
 
     /**
@@ -649,15 +857,14 @@ public class Lock {
      *            as the Tracy lock context and is never freed)
      */
     private static func buildSrcloc(name: String, file: String, line: UInt32,
-                                    function: String): TracySourceLocationData {
+                                    function: String): CPointer<TracySourceLocationData> {
         // 打包 "name\0function\0file\0"，三段指针指向各自段首
         // Pack "name\0function\0file\0"; the three pointers target segment heads
         let packed = "${name}\u{0}${function}\u{0}${file}"
         let bytes = packed.toArray()
         let p = unsafe { LibC.malloc<UInt8>(count: bytes.size + 1) }
         if (unsafe { p.isNull() }) {
-            return TracySourceLocationData(CPointer<UInt8>(), CPointer<UInt8>(),
-                                           CPointer<UInt8>(), line, 0)
+            return CPointer<TracySourceLocationData>()
         }
         for (i in 0..bytes.size) {
             unsafe { (p + i).write(bytes[i]) }
@@ -672,7 +879,14 @@ public class Lock {
                 segs.add(unsafe { p + i + 1 })
             }
         }
-        return TracySourceLocationData(segs[0], segs[1], segs[2], line, 0)
+        // 结构体同样长存（Tracy 仅保存指针，不拷贝）
+        // The struct itself is also long-lived (Tracy keeps only the pointer)
+        let sp = unsafe { LibC.malloc<TracySourceLocationData>(count: 1) }
+        if (unsafe { sp.isNull() }) {
+            return CPointer<TracySourceLocationData>()
+        }
+        unsafe { sp.write(TracySourceLocationData(segs[0], segs[1], segs[2], line, 0)) }
+        return sp
     }
 
     /**
@@ -768,7 +982,9 @@ public class ProfFiber {
      * @brief[en] Enter the fiber
      */
     public static func enter(name: String): Unit {
-        fiberEnter_cj(name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        fiberEnter_cj(cs)
+        unsafe { LibC.free(cs) }
     }
 
     /**
@@ -818,11 +1034,11 @@ public class ProfGpuZone <: Resource {
     private let context: UInt8
 
     /**
-     * @brief[zh-cn] 源位置句柄（Tracy 内部缓存）
+     * @brief[zh-cn] 静态源位置指针（长生命周期缓存）
      *
-     * @brief[en] Source-location handle (cached inside Tracy)
+     * @brief[en] Static srcloc pointer (long-lived cached struct)
      */
-    private let srcloc: UInt64
+    private let srcloc: CPointer<TracySourceLocationData>
 
     /**
      * @brief[zh-cn] 是否已发射 gpuZoneEnd
@@ -841,7 +1057,7 @@ public class ProfGpuZone <: Resource {
         this.queryId = UInt16(NEXT_QUERY.fetchAdd(1) & 0xFFFF)
         this.context = context
         this.srcloc = ProfZone.srclocHandle(name, file, line, name, 0)
-        emitGpuZoneBeginAlloc_cj(TracyGpuZoneBeginData(srcloc, queryId, context))
+        emitGpuZoneBegin_cj(TracyGpuZoneBeginData(UInt64(this.srcloc.toUIntNative()), queryId, context))
         this.ended = false
     }
 
@@ -935,13 +1151,12 @@ public class ProfLockZone <: Resource {
     public init(name: String, file: String, line: UInt32) {
         // 慢路径登记（announce 幂等开销小，快路径查缓存）
         // Slow path announces; fast path reads the cache
-        match (ANNOUNCED.get(name)) {
-            case Some(h) =>
-                this.lockdata = h
-            case None =>
-                let h = Lock.announce(name, file, line, name)
-                ANNOUNCED.add(name, h)
-                this.lockdata = h
+        if (let Some(h) <- ANNOUNCED.get(name)) {
+            this.lockdata = h
+        } else {
+            let fresh = Lock.announce(name, file, line, name)
+            ANNOUNCED.add(name, fresh)
+            this.lockdata = fresh
         }
         this.name = name
         this.done = false
@@ -1081,6 +1296,8 @@ public class ProfilerState {
      * @brief[en] Set the display name of the current thread (Tracy thread panel)
      */
     public static func threadName(name: String): Unit {
-        setThreadName_cj(name)
+        let cs = unsafe { LibC.mallocCString(name) }
+        setThreadName_cj(cs)
+        unsafe { LibC.free(cs) }
     }
 }

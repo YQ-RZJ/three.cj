@@ -17,6 +17,12 @@ public macro LogInfo(inputTokens: Tokens): Tokens
 ```
 Emits an Info-level log message
 
+## macro LogLevelEnabled\(Tokens\)
+```cj
+public macro LogLevelEnabled(levelTokens: Tokens): Tokens
+```
+Compile-time constant macro: whether the given level is enabled
+
 ## macro LogTrace\(Tokens\)
 ```cj
 public macro LogTrace(inputTokens: Tokens): Tokens

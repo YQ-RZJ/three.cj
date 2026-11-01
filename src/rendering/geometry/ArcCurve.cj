@@ -25,13 +25,11 @@
  * @brief[zh-cn] 继承 EllipseCurve 的圆弧曲线，xRadius/yRadius 相同
  * @explain[zh-cn] 
  * ArcCurve 将 EllipseCurve 的 xRadius 与 yRadius 设为相同的 aRadius，得到圆弧。
- * 对应 Three.js extras/curves/ArcCurve.js。
  *
  * @file[en] Arc Curve
  * @brief[en] Arc curve extending EllipseCurve with equal xRadius and yRadius
  * @explain[en] 
  * ArcCurve sets EllipseCurve's xRadius and yRadius to the same aRadius value, producing a circular arc.
- * Corresponds to Three.js extras/curves/ArcCurve.js.
  */
 package three.rendering.geometry
 import std.collection.*

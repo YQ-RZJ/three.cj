@@ -39,7 +39,7 @@ package three.rendering.shaders.ShaderChunk
  */
 public const lights_physical_pars_fragment: String = #"
 
-// 环境 BRDF LUT（对照 three.js lights_physical_pars_fragment 的 dfgLUT；
+// 环境 BRDF LUT（对照参考实现 lights_physical_pars_fragment 的 dfgLUT；
 // 用 bgfx SAMPLER 宏声明：GLSL 分支展开为 uniform sampler2D，
 // HLSL 分支展开为 SamplerState+Texture2D+static BgfxSampler2D，避免裸 sampler2D 在 HLSL 下 type mismatch）
 SAMPLER2D(dfgLUT, __STAGE_DFGLUT__);

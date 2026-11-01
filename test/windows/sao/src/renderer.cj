@@ -1,7 +1,7 @@
 package sp_sao
 
 /**
- * sp_sao 渲染场景（对齐 three.js 官方案例 webgl_postprocessing_sao.html）：
+ * sp_sao 渲染场景（对齐官方案例 webgl_postprocessing_sao.html）：
  * - 场景：120 个随机球体（SphereGeometry(3,48,24)，scale 0.05~0.25，位置 ±2 随机，
  *   随机旋转，颜色 HSL(h,1.0,0.3)），group 缓慢旋转
  * - 相机：PerspectiveCamera(65, aspect, near=3, far=10)，position.z = 7

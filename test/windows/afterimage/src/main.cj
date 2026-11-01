@@ -43,6 +43,7 @@ import three.rendering.postprocessing.OutputPass
 import three.utils.constants.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.profiler.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -236,6 +237,8 @@ public class TestWindow <: WindowEngine {
             case Some(composer) => composer.render()
             case None => ()
         }
+        // 主帧标记：接收端据此统计帧耗时（与 perf_render 同一口径）
+        ProfFrame.mark()
 
         if (this.frame % 60 == 1) {
             let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0

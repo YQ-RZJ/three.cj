@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 渲染能力检测
  * @brief[zh-cn] 替代 WebGLCapabilities，通过 bgfx API 查询渲染能力
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLCapabilities.js。在 WebGL 中通过 gl.getParameter() 查询 GPU 能力，在 bgfx 中通过 bgfx_get_caps_cj() 获取能力信息，此类封装为 three.js 兼容接口。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.getParameter() 查询 GPU 能力，在 bgfx 中通过 bgfx_get_caps_cj() 获取能力信息，此类封装为引擎通用接口。
  *
  * @file[en] bgfx Rendering Capabilities
  * @brief[en] Replaces WebGLCapabilities, queries rendering capabilities via bgfx API
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLCapabilities.js. In WebGL, GPU capabilities are queried via gl.getParameter(); in bgfx, capabilities are obtained via bgfx_get_caps_cj(). This class wraps them into a three.js-compatible interface.
+ * @explain[en] In WebGL, GPU capabilities are queried via gl.getParameter(); in bgfx, capabilities are obtained via bgfx_get_caps_cj(). This class wraps them into a generic engine interface.
  */
 package three.rendering.bgfx
 
@@ -36,10 +36,10 @@ import std.collection.*
 
 /**
  * @brief[zh-cn] bgfx 渲染能力
- * @explain[zh-cn] 对照 WebGLCapabilities，提供 GPU 能力查询。bgfx 通过 Caps 结构体提供能力信息，此类封装为 three.js 兼容接口。
+ * @explain[zh-cn] 对照 WebGLCapabilities，提供 GPU 能力查询。bgfx 通过 Caps 结构体提供能力信息，此类封装为引擎通用接口。
  *
  * @brief[en] bgfx rendering capabilities
- * @explain[en] Corresponds to WebGLCapabilities, provides GPU capability queries. bgfx provides capability info through Caps struct, this class wraps it into a three.js-compatible interface.
+ * @explain[en] Corresponds to WebGLCapabilities, provides GPU capability queries. bgfx provides capability info through Caps struct, this class wraps it into a generic engine interface.
  */
 public class BgfxCapabilities {
     /**

@@ -86,7 +86,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 鼠标拖动 ----
         if (_mouse.getOrThrow().isMouseButtonDown(MouseButton.LEFT)) {

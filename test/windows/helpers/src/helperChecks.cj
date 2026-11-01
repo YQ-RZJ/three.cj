@@ -2,7 +2,7 @@
  * @file helperChecks
  * @brief test_helpers 计算类断言：验证 three.helpers 各辅助对象生成的数据
  *
- * 覆盖（对照 three.js 参考实现）：
+ * 覆盖（对照参考实现）：
  * - AxesHelper: 顶点/颜色数组、vertexColors、setColors
  * - GridHelper: 顶点数、中心线颜色
  * - PolarGridHelper: 顶点数、颜色交替

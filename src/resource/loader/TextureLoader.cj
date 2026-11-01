@@ -22,7 +22,7 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] TextureLoader 纹理加载器
- * @brief[zh-cn] 对应 Three.js loaders/TextureLoader.js，加载图片为纹理
+ * @brief[zh-cn] 加载图片为纹理
  * @explain[zh-cn] JS 内部使用 ImageLoader 加载图片（浏览器解码为 Image）；仓颉侧 ImageLoader 已内置 bimg 解码为 RGBA8 Source，此处消费解码结果（data/width/height）填充 Texture。
  *
  * @file[en] TextureLoader  Texture loader

@@ -30,10 +30,14 @@
  * ├── Protocol/           # 协议层
  * └── Replication/        # 状态同步
  * 仓颉侧拆分为子包：
+ * three.network.protocol   — 游戏协议编解码（PacketWriter/PacketReader 大端字节流）
+ * three.network.transport  — 可靠传输（TCP Connection 组帧/心跳/重连 + UDP ReliableChannel）
+ * three.network.sync       — 同步模型（Lockstep 确定性帧同步 + SnapshotBuffer 快照插值）
  * three.network.http   — HTTP 客户端高级封装（基于 httpclient4cj：GET/POST/头部/超时/回调）
  * three.network.socket — Socket/TCP 客户端高级封装
  * 底层依赖：
  * - httpclient4cj（gitcode.com/raozj/httpclient4cj，OkHttp 风格完整 HTTP 客户端）
+ * - std.net（TCP/UDP 原语）+ std.binary（网络字节序编解码）
  *
  * @file[en] Network  Network module parent package, used only to declare the three.network
  * package so that cjpm can recognize the http/socket sub-packages
@@ -41,11 +45,17 @@
  * @intro[en] three.network provides high-level HTTP and Socket network wrappers built on httpclient4cj
  * @explain[en] Per the Engine/Network directory plan (doc/dir.md), the module is split
  * into sub-packages on the Cangjie side:
- * three.network.http   — high-level HTTP client wrapper (built on httpclient4cj:
+ * three.network.protocol   - game protocol codec (PacketWriter/PacketReader big-endian streams)
+ * three.network.transport  - reliable transport (TCP Connection framing/heartbeat/reconnect
+ * + UDP ReliableChannel)
+ * three.network.sync       - sync models (Lockstep deterministic lockstep + SnapshotBuffer
+ * snapshot interpolation)
+ * three.network.http   - high-level HTTP client wrapper (built on httpclient4cj:
  * GET/POST/headers/timeouts/callbacks)
- * three.network.socket — high-level Socket/TCP client wrapper 
+ * three.network.socket - high-level Socket/TCP client wrapper
  * Underlying dependencies:
  * - httpclient4cj (OkHttp-style full HTTP client)
+ * - std.net (TCP/UDP primitives) + std.binary (network byte order codec)
  *
  */
 package three.network

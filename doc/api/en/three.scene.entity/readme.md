@@ -18,4 +18,5 @@
 |[Skeleton](./Class/Skeleton.md#class-skeleton)|Skeleton class, manages a set of Bones and their inverse matrices|
 |[SkinnedMesh](./Class/SkinnedMesh.md#class-skinnedmesh)|Skinned mesh, a Mesh with bone skinning deformation|
 |[Sprite](./Class/Sprite.md#class-sprite)|Sprite rendering object, a 2D plane always facing the camera|
+|[StaticBatcher](./Class/StaticBatcher.md#class-staticbatcher)|CPU static batching utility (pure static method set)|
 

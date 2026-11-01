@@ -29,7 +29,7 @@
 |[CurvePath](./Class/CurvePath.md#class-curvepath)|Curve path class, a composite path of multiple curves connected in sequence|
 |[Curve](./Class/Curve.md#class-curve)|Abstract base class for curves|
 |[CylinderGeometry](./Class/CylinderGeometry.md#class-cylindergeometry)|Cylinder geometry class|
-|[DataUtils](./Class/DataUtils.md#class-datautils)|数据工具类，提供半精度浮点数转换的静态方法  此类是 toHalfFloat 和 fromHalfFloat 函数的面向对象封装， 与 Three.js 的 DataUtils 类接口保持一致。|
+|[DataUtils](./Class/DataUtils.md#class-datautils)|数据工具类，提供半精度浮点数转换的静态方法  此类是 toHalfFloat 和 fromHalfFloat 函数的面向对象封装， 与主流 Web 引擎的 DataUtils 类接口保持一致。|
 |[DodecahedronGeometry](./Class/DodecahedronGeometry.md#class-dodecahedrongeometry)|Dodecahedron geometry (polyhedron special case)|
 |[Earcut](./Class/Earcut.md#class-earcut)|Earcut 多边形三角剖分工具类  提供 earcut 算法的静态接口，将一个 2D 多边形（可能含孔洞） 剖分为若干三角形，返回三角形顶点索引数组。  注意：本文件同时包含底层算法实现（earcut/deviation）与 Earcut 封装类（Windows 文件系统大小写不敏感，Earcut.cj 与 earcut.cj 实为同一文件，故合并于此）。  参见：https://github.com/mapbox/earcut|
 |[EdgesGeometry](./Class/EdgesGeometry.md#class-edgesgeometry)|Edges geometry class, extracts edges from BufferGeometry|

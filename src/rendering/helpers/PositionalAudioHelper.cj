@@ -166,13 +166,12 @@ public class PositionalAudioHelper <: Object3D {
     public func update(): Unit {
         this.audio.updateWorldMatrix(true, false, false)
 
-        match (this.parent) {
-            case Some(p) =>
-                p.updateWorldMatrix(true, false, false)
-                let inv = Matrix4().copy(p.matrixWorld).invert()
-                this.matrix.copy(inv).multiply(this.audio.matrixWorld)
-            case None =>
-                this.matrix.copy(this.audio.matrixWorld)
+        if (let Some(p) <- this.parent) {
+            p.updateWorldMatrix(true, false, false)
+            let inv = Matrix4().copy(p.matrixWorld).invert()
+            this.matrix.copy(inv).multiply(this.audio.matrixWorld)
+        } else {
+            this.matrix.copy(this.audio.matrixWorld)
         }
         this.matrixWorldNeedsUpdate = true
 

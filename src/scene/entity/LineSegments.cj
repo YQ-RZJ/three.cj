@@ -82,42 +82,38 @@ public open class LineSegments <: Line {
      */
     public override func computeLineDistances(): Line {
         let geometry = this.geometry
-        match (geometry.index) {
-            case None =>
-                match (geometry.getAttribute("position")) {
-                    case Some(positionAttr) =>
-                        let count = positionAttr.count
-                        if (count < 2) {
-                            return this
-                        }
-                        
-                        //          lineDistances[i+1] = lineDistances[i] + _start.distanceTo(_end)
-                        let lineDistances = Array<Float64>(count, { _ => 0.0 })
-                        let start = Vector3()
-                        let end = Vector3()
-                        var i = 0
-                        while (i + 1 < count) {
-                            // _start.fromBufferAttribute(positionAttribute, i) — 仓颉侧用 getX/Y/Z 拼装
-                            start.set(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i))
-                            end.set(positionAttr.getX(i + 1), positionAttr.getY(i + 1), positionAttr.getZ(i + 1))
-                            // 非索引几何：偶下标为段起点（lineDistance=0），奇下标为段终点（段长）
-                            
-                            //          lineDistances[i+1] = lineDistances[i] + start.distanceTo(end)
-                            // 但 JS 原实现针对 step=2 的 i 循环，段内两顶点同段，前顶点继承上一段末值，后顶点为段长
-                            if (i == 0) {
-                                lineDistances[i] = 0.0
-                            } else {
-                                lineDistances[i] = lineDistances[i - 1]
-                            }
-                            lineDistances[i + 1] = lineDistances[i] + start.distanceTo(end)
-                            i += 2
-                        }
-                        geometry.setAttribute("lineDistance", Float32BufferAttribute(lineDistances, 1))
-                    case None => ()
+        if (let Some(_) <- geometry.index) {
+            @LogWarn(["LineSegments.computeLineDistances()", "Computation only possible with non-indexed BufferGeometry."])
+        } else {
+            if (let Some(positionAttr) <- geometry.getAttribute("position")) {
+                let count = positionAttr.count
+                if (count < 2) {
+                    return this
                 }
-            case Some(_) =>
                 
-                @LogWarn(["LineSegments.computeLineDistances()", "Computation only possible with non-indexed BufferGeometry."])
+                //          lineDistances[i+1] = lineDistances[i] + _start.distanceTo(_end)
+                let lineDistances = Array<Float64>(count, { _ => 0.0 })
+                let start = Vector3()
+                let end = Vector3()
+                var i = 0
+                while (i + 1 < count) {
+                    // _start.fromBufferAttribute(positionAttribute, i) — 仓颉侧用 getX/Y/Z 拼装
+                    start.set(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i))
+                    end.set(positionAttr.getX(i + 1), positionAttr.getY(i + 1), positionAttr.getZ(i + 1))
+                    // 非索引几何：偶下标为段起点（lineDistance=0），奇下标为段终点（段长）
+                    
+                    //          lineDistances[i+1] = lineDistances[i] + start.distanceTo(end)
+                    // 但 JS 原实现针对 step=2 的 i 循环，段内两顶点同段，前顶点继承上一段末值，后顶点为段长
+                    if (i == 0) {
+                        lineDistances[i] = 0.0
+                    } else {
+                        lineDistances[i] = lineDistances[i - 1]
+                    }
+                    lineDistances[i + 1] = lineDistances[i] + start.distanceTo(end)
+                    i += 2
+                }
+                geometry.setAttribute("lineDistance", Float32BufferAttribute(lineDistances, 1))
+            }
         }
         return this
     }

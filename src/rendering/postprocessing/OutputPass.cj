@@ -45,12 +45,12 @@ package three.rendering.postprocessing
 
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
-import three.rendering.bgfx.BgfxUniforms
 import three.utils.constants.*
 import three.utils.memory.AutoFreePtr
-import three.utils.memory.BgfxMemory
 import std.collection.*
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 输出 pass
@@ -94,11 +94,6 @@ public class OutputPass <: Pass {
     private var _lastSRGB: Bool = false
 
     /**
-     * uniform 注册表缓存（避免每帧创建新 BgfxUniforms 泄漏 bgfx handle）。
-     */
-    private var _uniforms: Option<BgfxUniforms> = None
-
-    /**
      * @brief[zh-cn] 构造 OutputPass
      * @brief[en] Constructs OutputPass
      * @param[zh-cn] toneMapping 色调映射模式（默认 ACESFilmicToneMapping=4）
@@ -124,38 +119,38 @@ public class OutputPass <: Pass {
      */
     private func _compile(): Option<ProgramHandle> {
         // 后处理 shader 已迁移到 postprocessing 内部注册表 PostProcessingShaders
-        match (PostProcessingShaders.get("output")) {
-            case Some(sp) =>
-                // 选 ToneMapping #define 名（对照 OutputShader 的 #ifdef 链）
-                let toneDefine: String = match (this.toneMapping) {
-                    case LinearToneMapping => "TONE_LINEAR"
-                    case ReinhardToneMapping => "TONE_REINHARD"
-                    case CineonToneMapping => "TONE_CINEON"
-                    case ACESFilmicToneMapping => "TONE_ACES_FILMIC"
-                    case AgXToneMapping => "TONE_AGX"
-                    case NeutralToneMapping => "TONE_NEUTRAL"
-                    case CustomToneMapping => "TONE_CUSTOM"   // OutputShader 未实现 Custom，占位
-                    case NoToneMapping => ""                   // 无色调映射
-                    case _ => ""
-                }
-                // 收集 #define 列表
-                let defineStrs = ArrayList<String>()
-                if (toneDefine.size > 0) {
-                    defineStrs.add(toneDefine)
-                }
-                if (this.sRGB) {
-                    defineStrs.add("SRGB_TRANSFER")
-                }
-                if (defineStrs.size == 0) {
-                    // 无 #define：直接编译（NoToneMapping + 非 sRGB）
-                    sp.compileBgfx()
-                } else {
-                    sp.compileBgfx(extraDefines: defineStrs.toArray())
-                }
-                this._lastToneMapping = this.toneMapping
-                this._lastSRGB = this.sRGB
-                return Some(Box(sp.programHandle))
-            case None => return None
+        if (let Some(sp) <- PostProcessingShaders.get("output")) {
+            // 选 ToneMapping #define 名（对照 OutputShader 的 #ifdef 链）
+            let toneDefine: String = match (this.toneMapping) {
+                case LinearToneMapping => "TONE_LINEAR"
+                case ReinhardToneMapping => "TONE_REINHARD"
+                case CineonToneMapping => "TONE_CINEON"
+                case ACESFilmicToneMapping => "TONE_ACES_FILMIC"
+                case AgXToneMapping => "TONE_AGX"
+                case NeutralToneMapping => "TONE_NEUTRAL"
+                case CustomToneMapping => "TONE_CUSTOM"   // OutputShader 未实现 Custom，占位
+                case NoToneMapping => ""                   // 无色调映射
+                case _ => ""
+            }
+            // 收集 #define 列表
+            let defineStrs = ArrayList<String>()
+            if (toneDefine.size > 0) {
+                defineStrs.add(toneDefine)
+            }
+            if (this.sRGB) {
+                defineStrs.add("SRGB_TRANSFER")
+            }
+            if (defineStrs.size == 0) {
+                // 无 #define：直接编译（NoToneMapping + 非 sRGB）
+                sp.compileBgfx()
+            } else {
+                sp.compileBgfx(extraDefines: defineStrs.toArray())
+            }
+            this._lastToneMapping = this.toneMapping
+            this._lastSRGB = this.sRGB
+            return Some(Box(sp.programHandle))
+        } else {
+            return None
         }
     }
 
@@ -167,6 +162,7 @@ public class OutputPass <: Pass {
      * @param readBuffer 读 buffer（待转换的线性 HDR 颜色）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.OutputPass.render, name=outputPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -177,43 +173,33 @@ public class OutputPass <: Pass {
         if (this._prog.isNone() || this.toneMapping != this._lastToneMapping || this.sRGB != this._lastSRGB) {
             this._prog = this._compile()
         }
-        match (this._prog) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) { return }
-                let viewId = OutputPass._viewId
-                let w = UInt16(renderer.width)
-                let h = UInt16(renderer.height)
-                let rt = this.renderToScreen
-                let exp = this.exposure
-                // 视口
-                this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
-                // renderToScreen=true 时写 swap chain，否则写 writeBuffer
-                let targetFB = if (rt) { INVALID_FRAME_BUFFER_HANDLE } else { writeBuffer }
-                this.setRenderTarget(renderer, viewId, targetFB)
-                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
+        if (let Some(prog) <- this._prog) {
+            if (!Handle.isValid(prog)) { return }
+            let viewId = OutputPass._viewId
+            let w = UInt16(renderer.width)
+            let h = UInt16(renderer.height)
+            let rt = this.renderToScreen
+            let exp = this.exposure
+            // 视口
+            this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
+            // renderToScreen=true 时写 swap chain，否则写 writeBuffer
+            let targetFB = if (rt) { INVALID_FRAME_BUFFER_HANDLE } else { writeBuffer }
+            this.setRenderTarget(renderer, viewId, targetFB)
+            this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-                // 绑 readBuffer color 0 到 tDiffuse sampler（stage 0）
-                // 使用缓存的 uniform 注册表，避免每帧创建新 BgfxUniforms 泄漏 bgfx handle
-                let uniforms = match (this._uniforms) {
-                    case Some(u) => u
-                    case None =>
-                        let u = BgfxUniforms()
-                        this._uniforms = Some(u)
-                        u
-                }
-                let uTex = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                let readTex = this.getTexture(renderer, readBuffer, 0u8)
-                this.bindTexture(renderer, 0u8, uTex, readTex, 0u32)
+            // 绑 readBuffer color 0 到 tDiffuse sampler（stage 0）
+            // 句柄经 _cachedUniform 跨帧复用（避免每帧 createUniform 加锁 + 字符串哈希）
+            let uTex = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            let readTex = this.getTexture(renderer, readBuffer, 0u8)
+            this.bindTexture(renderer, 0u8, uTex, readTex, 0u32)
 
-                // toneMappingExposure uniform
-                let uExp = uniforms.createUniform("u_toneMappingExposure", UniformType.Vec4.value())
-                let expMem = BgfxMemory(16u32)
-                expMem.writeFloats([exp, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uExp, expMem, num: 1u16)
+            // toneMappingExposure uniform
+            // 句柄经 _cachedUniform 跨帧复用，标量走槽位 0 复用上传缓冲
+            let uExp = this._cachedUniform("u_toneMappingExposure", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uExp, 0, exp)
 
-                this.submitQuad(viewId, prog)
-                // 不在此调 present：frame 统一由 EffectComposer.render 末尾触发
-            case None => ()
+            this.submitQuad(viewId, prog)
+            // 不在此调 present：frame 统一由 EffectComposer.render 末尾触发
         }
     }
 
@@ -225,10 +211,6 @@ public class OutputPass <: Pass {
      */
     public override func dispose(): Unit {
         this._prog = None
-        match (this._uniforms) {
-            case Some(u) => u.dispose()
-            case None => ()
-        }
-        this._uniforms = None
+        this._disposePassUniforms()
     }
 }

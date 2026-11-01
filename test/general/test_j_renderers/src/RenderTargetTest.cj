@@ -1,6 +1,6 @@
 /**
  * @file RenderTargetTest
- * @brief 迁移 three.js test/unit/src/renderers/WebGLRenderTarget.tests.js 核心断言
+ * @brief 迁移上游 JS 库 test/unit/src/renderers/WebGLRenderTarget.tests.js 核心断言
  *
  * 对照 JS:
  *   new WebGLRenderTarget() → object instanceof EventDispatcher → true

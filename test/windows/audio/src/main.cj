@@ -11,7 +11,7 @@ package threeAudioTest
  * 模块说明：
  * - main.cj:     TestWindow <: WindowEngine（onInit 创建渲染器/场景/音频 →
  *                onFrame 每帧球体运动 + 渲染 → onClose 清理音频与渲染器）
- * - renderer.cj: Three.js 场景设置、音频初始化
+ * - renderer.cj: 引擎场景设置、音频初始化
  */
 
 import std.io.*
@@ -102,7 +102,7 @@ public class TestWindow <: WindowEngine {
 
         // 更新球体旋转
         this.frame++
-        let angle = Float64(this.frame) * 0.02
+        let angle = this.elapsedTime * 0.02
 
         // 球体围绕相机旋转（以相机位置为圆心做圆周运动）
         let radius = 3.0

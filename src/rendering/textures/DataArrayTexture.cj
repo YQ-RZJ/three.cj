@@ -83,10 +83,7 @@ public open class DataArrayTexture <: Texture {
      */
     public override func copy(source: Texture): Texture {
         super.copy(source)
-        match (source as DataArrayTexture) {
-            case Some(sat) => this.wrapR = sat.wrapR
-            case None => ()
-        }
+        if (let Some(sat) <- (source as DataArrayTexture)) { this.wrapR = sat.wrapR }
         return this
     }
 }

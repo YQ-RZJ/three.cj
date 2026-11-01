@@ -277,9 +277,8 @@ public class FrameTask <: HeapNode {
         // 用 is + as 安全转 type，避免不同类型比较时报错
         if (other is FrameTask) {
             let otherTask = other as FrameTask
-            match (otherTask) {
-                case Some(t) => return this.priority < t.priority
-                case None => return false
+            if (let Some(t) <- otherTask) {
+                return this.priority < t.priority
             }
         }
         return false
@@ -372,26 +371,24 @@ public class FrameTask <: HeapNode {
                     _finished = true
                     return false
                 }
-                match (params.remove()) {
-                    case None =>
-                        _finished = true
-                        return false
-                    case Some(args) =>
-                        let ctx = FrameTaskContext(this, deltaTime, _idx, args)
-                        let result = callback(ctx)
-                        _idx += 1
-                        cont = result && !params.isEmpty()
+                if (let Some(args) <- params.remove()) {
+                    let ctx = FrameTaskContext(this, deltaTime, _idx, args)
+                    let result = callback(ctx)
+                    _idx += 1
+                    cont = result && !params.isEmpty()
+                } else {
+                    _finished = true
+                    return false
                 }
             case LOOP =>
-                match (params.next()) {
-                    case None =>
-                        _finished = true
-                        return false
-                    case Some(args) =>
-                        let ctx = FrameTaskContext(this, deltaTime, _idx, args)
-                        let result = callback(ctx)
-                        _idx += 1
-                        cont = result
+                if (let Some(args) <- params.next()) {
+                    let ctx = FrameTaskContext(this, deltaTime, _idx, args)
+                    let result = callback(ctx)
+                    _idx += 1
+                    cont = result
+                } else {
+                    _finished = true
+                    return false
                 }
         }
 

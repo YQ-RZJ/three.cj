@@ -84,7 +84,7 @@ public class NoImGuiWindow <: WindowEngine {
             println("  [PASS] 无 Gui 窗口：gui accessor 返回 None")
         }
         // 旋转立方体
-        let t = Float64(this.frame) * 0.02
+        let t = this.elapsedTime
         this.mesh.rotation.x = t * 0.5
         this.mesh.rotation.y = t * 0.7
         this.renderer.render(this.scene, this.camera)
@@ -169,7 +169,7 @@ public class ImGuiWindow <: WindowEngine {
         }
 
         // 场景渲染
-        let t = Float64(this.frame) * 0.02
+        let t = this.elapsedTime
         this.camera.position.set(5.0 * sin(t * 0.1), 3.0, 5.0 * cos(t * 0.1))
         this.camera.lookAt(Vector3(0.0, 0.0, 0.0))
         this.renderer.render(this.scene, this.camera)

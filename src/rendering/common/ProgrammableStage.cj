@@ -25,13 +25,13 @@
  * @brief[zh-cn] 着色器可编程阶段描述，封装着色器代码和阶段类型
  * @explain[zh-cn] 
  * ProgrammableStage 封装一个着色器阶段的代码和类型信息（如 vertex/fragment/compute），
- * 对应 Three.js 渲染器中 Program 对象的着色器阶段描述。
+ * 即渲染器中 Program 对象的着色器阶段描述。
  *
  * @file[en] ProgrammableStage
  * @brief[en] Shader programmable stage description, encapsulating shader code and stage type
  * @explain[en] 
  * ProgrammableStage encapsulates the code and type information of a shader stage (e.g., vertex/fragment/compute),
- * corresponding to the shader stage description of the Program object in the Three.js renderer.
+ * i.e. the shader stage description of the Program object in the renderer.
  */
 package three.rendering.common
 

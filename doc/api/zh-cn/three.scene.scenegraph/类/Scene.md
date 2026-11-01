@@ -32,6 +32,16 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 
 - 返回 this
 
+### func getBackground\(\)
+```cj
+public func getBackground(): Option < IBackground >
+```
+获取场景背景（IScene 接口实现）
+
+返回: 
+
+- 背景对象（Color / Texture / CubeTexture）；未设置时为 None
+
 ### func init\(\)
 ```cj
 public init()

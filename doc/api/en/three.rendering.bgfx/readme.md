@@ -63,6 +63,7 @@
 |[MorphTargetInfo](./Class/MorphTargetInfo.md#class-morphtargetinfo)|Morph target info|
 |[RenderItem](./Class/RenderItem.md#class-renderitem)|Render item|
 |[ShaderStage](./Class/ShaderStage.md#class-shaderstage)|Shader stage information|
+|[ShadowBindCache](./Class/ShadowBindCache.md#class-shadowbindcache)|Frame-level shadow binding cache|
 |[ShadowMapInfo](./Class/ShadowMapInfo.md#class-shadowmapinfo)|Shadow map information|
 |[ShadowSlot](./Class/ShadowSlot.md#class-shadowslot)|All GPU resources for a single shadow light (bucketed by light ID)|
 |[StencilBuffer](./Class/StencilBuffer.md#class-stencilbuffer)|Stencil buffer state|

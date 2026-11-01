@@ -231,6 +231,12 @@ public init()
 ```
 构造新的缓冲几何体
 
+### func invalidateBounds\(\)
+```cj
+public func invalidateBounds(): Unit
+```
+失效包围盒/球的跨帧缓存
+
 ### func lookAt\(Vector3\)
 ```cj
 public func lookAt(vector: Vector3): BufferGeometry
@@ -455,6 +461,12 @@ public var drawRange:(Int64, Int64)
 public var groups: ArrayList < BufferGeometryGroup >
 ```
 将几何体分为多个绘制组，每组使用不同材质，通过 addGroup/clearGroups 编辑
+
+### let id
+```cj
+public let id: Int64
+```
+进程内唯一整数标识（构造时分配）
 
 ### var index
 ```cj

@@ -22,7 +22,7 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] GL 缓冲区属性
- * @brief[zh-cn] 提供对 VBO 的更细粒度控制，对应 Three.js GLBufferAttribute.js
+ * @brief[zh-cn] 提供对 VBO 的更细粒度控制
  * @explain[zh-cn] 渲染器不会为此类属性构造 VBO，而是使用构造函数中传入的缓冲区。
  * 此类最常见的用例是 GPGPU 计算干扰或产生 VBO 的情况。
  * 在 bgfx 渲染后端中，buffer 属性对应 bgfx 的顶点缓冲区句柄。
@@ -31,7 +31,7 @@
  * 对外不暴露指针；外部无须管理句柄生命周期，由 renderer 高阶 API 处理。
  *
  * @file[en] GL Buffer Attribute
- * @brief[en] Provides finer-grained control over VBO, corresponding to Three.js GLBufferAttribute.js
+ * @brief[en] Provides finer-grained control over VBO
  * @explain[en] The renderer does not construct VBOs for this attribute type, but uses the buffer
  * passed in the constructor. The most common use case is when GPGPU computation
  * interferes with or produces VBOs. In the bgfx rendering backend, the buffer attribute

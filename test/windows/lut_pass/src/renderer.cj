@@ -89,7 +89,7 @@ var g_lutTextures: ArrayList<TextureHandle> = ArrayList<TextureHandle>()
 /**
  * 生成 LUT 纹理数据并上传为 bgfx 3D 纹理。
  *
- * 对照 three.js LUTPass 用法：`new LUTPass({ lut: texture3D })`，lut 是 Data3DTexture
+ * 标准 LUTPass 用法：`new LUTPass({ lut: texture3D })`，lut 是 Data3DTexture
  * （image.data = RGBA 字节流，尺寸 size×size×size）。
  *
  * 3D 纹理数据布局（与 Data3DTexture 一致，bgfx 同约定）：

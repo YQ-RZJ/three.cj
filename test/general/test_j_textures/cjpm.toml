@@ -6,7 +6,7 @@
 [package]
   cjc-version = "1.1.0"
   compile-option = "-Woff unused -g -O0"
-  description = "test_textures - migrate three.js test/unit/src/textures"
+  description = "test_textures"
   link-option = ""
   name = "test_j_textures"
   output-type = "executable"

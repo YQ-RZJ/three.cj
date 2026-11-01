@@ -24,13 +24,13 @@
  * @file[zh-cn] 极坐标网格辅助对象
  * @brief[zh-cn] 极坐标网格辅助对象，用于在场景中显示极坐标网格
  * @explain[zh-cn] 
- * 对应 Three.js helpers/PolarGridHelper.js。由径向射线和同心圆环组成，
+ * 由径向射线和同心圆环组成，
  * 用于极坐标系统的可视化。网格位于 XZ 平面。
  *
  * @file[en] Polar Grid Helper
  * @brief[en] Polar grid helper for displaying a polar coordinate grid in the scene
  * @explain[en] 
- * Corresponds to Three.js helpers/PolarGridHelper.js. Composed of radial rays and
+ * Composed of radial rays and
  * concentric rings for polar coordinate visualization. Grid is on the XZ plane.
  */
 package three.rendering.helpers

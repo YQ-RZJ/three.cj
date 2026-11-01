@@ -9,7 +9,7 @@ bgfx 纹理管理
 ```cj
 public static func convertTextureFlags(sRGB: Bool, renderTarget: Bool, msaa: Int64): UInt64
 ```
-将 three.js 纹理参数转换为 bgfx 纹理标志
+将引擎纹理参数转换为 bgfx 纹理标志
 
 参数: 
 

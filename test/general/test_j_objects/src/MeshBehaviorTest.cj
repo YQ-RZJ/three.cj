@@ -1,6 +1,6 @@
 /**
  * @file MeshBehaviorTest
- * @brief 补充迁移 three.js test/unit/src/objects/Mesh.tests.js 的 copy/material 断言
+ * @brief 补充迁移上游 JS 库 test/unit/src/objects/Mesh.tests.js 的 copy/material 断言
  *
  * 对照 JS:
  *   const mesh = new Mesh(); mesh.material = new Material();

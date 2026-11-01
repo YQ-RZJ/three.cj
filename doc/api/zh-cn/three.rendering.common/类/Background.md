@@ -15,7 +15,7 @@ public init()
 ```cj
 public func render(scene: Scene): Unit
 ```
-渲染背景，按 three.js 语义决定 view0 的清除色
+渲染背景，按引擎通用语义决定 view0 的清除色
 
 参数: 
 

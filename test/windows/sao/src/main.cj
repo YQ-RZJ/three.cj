@@ -79,7 +79,7 @@ public class TestWindow <: WindowEngine {
         this.camera = camera
         this.group = group
 
-        // 对齐 Three.js EffectComposer 用法（对照官方 webgl_postprocessing_sao.html）：
+        // 按后处理链的标准用法组织（对照官方 webgl_postprocessing_sao.html）：
         //   const composer = new EffectComposer(renderer)
         //   composer.addPass(new RenderPass(scene, camera))
         //   const saoPass = new SAOPass(scene, camera)

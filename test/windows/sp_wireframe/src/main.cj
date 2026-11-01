@@ -78,7 +78,7 @@ public class TestWindow <: WindowEngine {
         this.objs = createScene(w, h)
 
         // ---- 步骤 3.5: 启用 debug mode 3（线框模式） ----
-        // 新架构对齐 Three.js：renderer.setDebugMode 已移除。
+        // 新架构不再提供 renderer.setDebugMode。
         // 线框模式走 bgfx 引擎内置线框能力（bgfx 内部自己处理拆边，质量可靠，
         // 对照 bgfx4cj-last 原始有效实现 setDebugMode(3) 即 bgfx_set_debug_cj(DEBUG_WIREFRAME)）。
         // 这是 bgfx 全局调试标志（切一次持续影响所有 view/submit），契合此 debug 可视化测试诉求。
@@ -94,7 +94,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

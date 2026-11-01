@@ -1,0 +1,43 @@
+# Variables & constants
+## const FRAME\_DATA
+```cj
+public const FRAME_DATA: UInt8 = 0x03u8
+```
+数据帧（载荷上抛 onMessage）
+
+## const FRAME\_PING
+```cj
+public const FRAME_PING: UInt8 = 0x01u8
+```
+心跳帧（保活探测）
+
+## const FRAME\_PONG
+```cj
+public const FRAME_PONG: UInt8 = 0x02u8
+```
+心跳应答帧
+
+## const MAX\_FRAME\_SIZE
+```cj
+public const MAX_FRAME_SIZE: Int64 = 8 * 1024 * 1024
+```
+单帧最大字节数（帧长字段校验上限，防恶意长度声明炸内存；默认 8MB）
+
+## const RELIABLE\_ACK\_SEQ
+```cj
+public const RELIABLE_ACK_SEQ: UInt32 = 0xFFFFFFFFu32
+```
+纯 ack 帧的 seq 标记（不承载载荷，接收端跳过数据派发）
+
+## const RELIABLE\_HEADER\_SIZE
+```cj
+public const RELIABLE_HEADER_SIZE: Int64 = 12
+```
+可靠包头部字节数（seq + ack + ackBits，各 4 字节大端）
+
+## const RELIABLE\_MAX\_PAYLOAD
+```cj
+public const RELIABLE_MAX_PAYLOAD: Int64 = 1200
+```
+单个可靠包载荷上限（保守取以太网友好的 1200 字节，避免 IP 分片；
+

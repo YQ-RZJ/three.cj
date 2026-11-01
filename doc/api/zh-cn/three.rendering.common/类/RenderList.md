@@ -21,6 +21,12 @@ public func finish(): ArrayList < RenderItem >
 
 - 排序后的渲染项列表
 
+### func getOpaqueItems\(\)
+```cj
+public func getOpaqueItems(): ArrayList < RenderItem >
+```
+获取不透明渲染项列表（内部引用，供合批路由就地修改）
+
 ### func init\(\)
 ```cj
 public init()
@@ -44,6 +50,24 @@ public func push(object: Object3D, geometry: BufferGeometry, material: Material,
 |renderOrder|Int64||
 |z|Float64||
 |group|Int64||
+
+### func removeOpaqueItem\(RenderItem\)
+```cj
+public func removeOpaqueItem(item: RenderItem): Unit
+```
+按引用移除一个不透明渲染项
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|item|RenderItem||
+
+### func removeOpaqueMarked\(\)
+```cj
+public func removeOpaqueMarked(): Unit
+```
+批量移除所有带 routeSuppressed 标记的不透明渲染项
 
 ### func sort\(\)
 ```cj

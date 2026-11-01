@@ -20,6 +20,7 @@ This document provides a brief overview of all test projects located under `thre
   - [helpers](#helpers)
   - [scenes](#scenes)
   - [rendercommon](#rendercommon)
+  - [culling](#culling)
 - [II. Scene & Rendering](#ii-scene--rendering)
   - [boxshow](#boxshow)
   - [depthtest](#depthtest)
@@ -32,6 +33,7 @@ This document provides a brief overview of all test projects located under `thre
   - [sp_pointshadow](#sp_pointshadow)
   - [sp_spotshadow](#sp_spotshadow)
   - [sp_vsm](#sp_vsm)
+  - [ibl](#ibl)
 - [IV. Shadow Pipeline Debug](#iv-shadow-pipeline-debug)
   - [sp_depth](#sp_depth)
   - [sp_normal](#sp_normal)
@@ -81,6 +83,7 @@ This document provides a brief overview of all test projects located under `thre
   - [physics](#physics)
   - [gui](#gui)
   - [xrmanager](#xrmanager)
+  - [perf_render](#perf_render)
 
 ---
 
@@ -173,6 +176,16 @@ This document provides a brief overview of all test projects located under `thre
 ![rendercommon](../../asstes/rendercommon.gif)
 
 [Jump to Project Directory](../../../test/windows/rendercommon/)
+
+---
+
+### culling
+
+> Frustum culling and occlusion culling visualization test: 400 randomly and uniformly distributed colored cubes sit on a plane, a frustum camera rotates at constant speed around the plane center, and a CameraHelper orange wireframe shows the frustum in real time. The program cycles through four modes automatically (no-culling baseline / frustum culling / frustum+occlusion culling / engine pipeline culling), showing draw calls and visible object counts in the window title and console in real time — baseline is ~402 draw calls, dropping to ~100 with frustum culling; engine pipeline culling matches the manual culling results, providing an intuitive verification of culling effectiveness.
+
+![culling](../../asstes/culling.gif)
+
+[Jump to Project Directory](../../../test/windows/culling/)
 
 ---
 
@@ -277,6 +290,16 @@ This document provides a brief overview of all test projects located under `thre
 ![sp_vsm](../../asstes/sp_vsm.gif)
 
 [Jump to Project Directory](../../../test/windows/sp_vsm/)
+
+---
+
+### ibl
+
+> IBL / PBR environment-map workflow test: procedurally builds a six-color skybox (with an arrow drawn along each face's diagonal to make reflection orientation easy to verify), generates a pre-filtered CubeUV environment map via `PMREMGenerator.fromScene` and assigns it to `scene.environment`; a row of metal spheres (`metalness=1`, roughness 0.0 → 1.0) reflects that skybox (smoother = sharper reflection, rougher = blurrier), plus a dielectric sphere and a ground plane showing diffuse environment lighting. Mouse drag to orbit, wheel to zoom.
+
+![ibl](../../asstes/ibl.gif)
+
+[Jump to Project Directory](../../../test/windows/ibl/)
 
 ---
 
@@ -388,7 +411,7 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 ### bloom_basic
 
-> Basic Bloom post-processing (migrated from three.js BloomPass).
+> Basic Bloom post-processing effect.
 
 ![bloom_basic](../../asstes/bloom_basic.gif)
 
@@ -722,5 +745,15 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 ![xrmanager](../../asstes/xrmanager.gif)
 
 [Jump to Project Directory](../../../test/windows/xrmanager/)
+
+---
+
+### perf_render
+
+> Real-render-path performance baseline test: fixed camera and deterministic object scale (FEW=25 / MANY=800 cubes), 60 warmup frames + 240 measured frames per stage; stages advance automatically and the program exits automatically when done. The instrumentation points sit on the real `three.rendering.*` hot path, with `ProfFrame.mark()` every frame. Combined with `scripts/tracy_receiver.py` it captures Tracy protocol data and produces a baseline of call counts / durations / P50 / P95 / P99 (runs fine without a GUI). See [profiler usage guide · section VII](./profiler-usage.md#vii-headless-capture-and-performance-baseline).
+
+![perf_render](../../asstes/perf_render.gif)
+
+[Jump to Project Directory](../../../test/windows/perf_render/)
 
 ---

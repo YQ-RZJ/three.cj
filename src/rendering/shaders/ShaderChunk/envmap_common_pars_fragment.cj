@@ -40,14 +40,12 @@ package three.rendering.shaders.ShaderChunk
 public const envmap_common_pars_fragment: String = #"
 #ifdef USE_ENVMAP
 
-	uniform float envMapIntensity;
-	uniform mat3 envMapRotation;
+	// 环境贴图强度（bgfx vec4 uniform，取 .x；= Material.envMapIntensity × Scene.environmentIntensity）
+	uniform vec4 u_envMapIntensity;
 
-	#ifdef ENVMAP_TYPE_CUBE
-		uniform samplerCube envMap;
-	#else
-		uniform sampler2D envMap;
-	#endif
+	// PMREM CubeUV 环境贴图（sampler2D，ENVMAP_TYPE_CUBE_UV 路径）
+	// 必须用 bgfx 的 SAMPLER2D 宏声明，stage 由 __STAGE_ENV_MAP__ 占位符注入。
+	SAMPLER2D( u_envMap, __STAGE_ENV_MAP__ );
 
 #endif
 "#

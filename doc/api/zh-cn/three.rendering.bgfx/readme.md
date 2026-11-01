@@ -63,6 +63,7 @@
 |[MorphTargetInfo](./类/MorphTargetInfo.md#class-morphtargetinfo)|变形目标信息|
 |[RenderItem](./类/RenderItem.md#class-renderitem)|渲染项|
 |[ShaderStage](./类/ShaderStage.md#class-shaderstage)|着色器阶段信息|
+|[ShadowBindCache](./类/ShadowBindCache.md#class-shadowbindcache)|帧级阴影绑定缓存|
 |[ShadowMapInfo](./类/ShadowMapInfo.md#class-shadowmapinfo)|阴影贴图信息|
 |[ShadowSlot](./类/ShadowSlot.md#class-shadowslot)|单个阴影光源的全部 GPU 资源（按光源 ID 分桶）|
 |[StencilBuffer](./类/StencilBuffer.md#class-stencilbuffer)|模板缓冲状态|

@@ -78,9 +78,9 @@ public class TestWindow <: WindowEngine {
         this.objs = createScene(w, h)
 
         // ---- 步骤 3.5: 启用 debug mode 9（基线 full phong） ----
-        // 新架构对齐 Three.js：renderer.setDebugMode 已移除。mode 9 等价 mode 0 = 正常 Phong 渲染，
+        // 新架构不再提供 renderer.setDebugMode。mode 9 等价 mode 0 = 正常 Phong 渲染，
         // 不设 overrideMaterial，走场景默认 MeshPhongMaterial + 已有光源（DirectionalLight + AmbientLight），
-        // 验证 phong shader 基线渲染效果是否正确（对照 Three.js MeshPhongMaterial 标准管线）。
+        // 验证 phong shader 基线渲染效果是否正确（对照 MeshPhongMaterial 标准管线）。
         println("  基线 full phong：不设 overrideMaterial，走默认 MeshPhongMaterial + 已有光源")
 
         // ---- 步骤 4: 进入渲染循环（onFrame 由窗口泵线程驱动） ----
@@ -92,7 +92,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

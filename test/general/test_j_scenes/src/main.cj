@@ -2,7 +2,7 @@
  * @file main
  * @brief test_scenes 独立测试项目入口
  *
- * 迁移自 three.js test/unit/src/scenes 目录的 tests.js 测试：
+ * 迁移自上游 JS 库 test/unit/src/scenes 目录的 tests.js 测试：
  * Scene / Fog / FogExp2
  * 核心断言：继承关系（Extending）、可实例化（Instancing）、isXxx 类型标志。
  */

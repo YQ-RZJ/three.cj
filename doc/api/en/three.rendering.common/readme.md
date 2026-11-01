@@ -53,6 +53,8 @@
 |[Renderer](./Class/Renderer.md#class-renderer)|Abstract base class for the renderer|
 |[SampledTexture](./Class/SampledTexture.md#class-sampledtexture)|Sampled texture class, associating a texture with sampler parameters|
 |[Sampler](./Class/Sampler.md#class-sampler)|Texture sampler class|
+|[SceneCullIndex](./Class/SceneCullIndex.md#class-scenecullindex)|Scene spatial index|
+|[SceneMeshCache](./Class/SceneMeshCache.md#class-scenemeshcache)|Frame-level scene mesh cache|
 |[Storage3DTexture](./Class/Storage3DTexture.md#class-storage3dtexture)|Storage 3D texture class|
 |[StorageArrayTexture](./Class/StorageArrayTexture.md#class-storagearraytexture)|Storage array texture class|
 |[StorageBufferAttribute](./Class/StorageBufferAttribute.md#class-storagebufferattribute)|Storage buffer attribute class|

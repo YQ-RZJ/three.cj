@@ -86,6 +86,8 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] SMAA 后处理 pass
@@ -142,6 +144,20 @@ public class SMAAPass <: Pass {
     private var _weightsProg: Option<ProgramHandle> = None
     private var _blendProg: Option<ProgramHandle> = None
 
+    // ===== uniform 句柄（名称固定，首帧创建后长期复用）=====
+    /**
+     * 原实现每个子 pass 每帧都调 createUniform（内部取全局 bgfxCallMtx + 字符串哈希），
+     * 三个子 pass 合计 5~6 次；而 uniform 句柄只与名称/类型相关，可跨 pass 跨帧复用：
+     * - u_resolution：三个子 pass 共用同一句柄（每次 submit 前重新写入值）
+     * - tDiffuse：edges（读 readBuffer）/weights（读 edgesRT）/blend（读 weightsRT）共用
+     * - tArea / tSearch / tColor：仅 weights/blend 使用
+     */
+    private var _uResolution: UniformHandle = INVALID_UNIFORM_HANDLE
+    private var _uTDiffuse: UniformHandle = INVALID_UNIFORM_HANDLE
+    private var _uTArea: UniformHandle = INVALID_UNIFORM_HANDLE
+    private var _uTSearch: UniformHandle = INVALID_UNIFORM_HANDLE
+    private var _uTColor: UniformHandle = INVALID_UNIFORM_HANDLE
+
     /**
      * 构造 SMAAPass。
      *
@@ -186,36 +202,34 @@ public class SMAAPass <: Pass {
         // LUT 用 POINT 采样（area/search LUT 要求精确查询）
         let lutFlags: UInt64 = UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_MIN_POINT) | UInt64(BgfxConstants.SAMPLER_MAG_POINT)
 
-        match (this._renderer) {
-            case Some(renderer) =>
-                // edges RT：RGBA8，rg = 水平/垂直边缘标志（0 或 1，RGBA8 精度足够）
-                let edgesTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA8.value(), rtFlags, None)
-                this._edgesTex = edgesTex
-                let edgesHandles = Array<TextureHandle>(1, { _ => edgesTex })
-                this._edgesFB = renderer.createFrameBuffer(1u8, edgesHandles, true)
+        if (let Some(renderer) <- this._renderer) {
+            // edges RT：RGBA8，rg = 水平/垂直边缘标志（0 或 1，RGBA8 精度足够）
+            let edgesTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA8.value(), rtFlags, None)
+            this._edgesTex = edgesTex
+            let edgesHandles = Array<TextureHandle>(1, { _ => edgesTex })
+            this._edgesFB = renderer.createFrameBuffer(1u8, edgesHandles, true)
 
-                // weights RT：RGBA8，混合权重（0~1，RGBA8 精度足够）
-                let weightsTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA8.value(), rtFlags, None)
-                this._weightsTex = weightsTex
-                let weightsHandles = Array<TextureHandle>(1, { _ => weightsTex })
-                this._weightsFB = renderer.createFrameBuffer(1u8, weightsHandles, true)
+            // weights RT：RGBA8，混合权重（0~1，RGBA8 精度足够）
+            let weightsTex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA8.value(), rtFlags, None)
+            this._weightsTex = weightsTex
+            let weightsHandles = Array<TextureHandle>(1, { _ => weightsTex })
+            this._weightsFB = renderer.createFrameBuffer(1u8, weightsHandles, true)
 
-                // 创建 SMAA LUT 纹理（仅首次，setSize 可能多次调用）
-                if (!Handle.isValid(this._areaTex)) {
-                    let (areaData, areaW, areaH) = this._buildAreaTexture()
-                    let areaMem = BgfxMemory(UInt32(areaData.size))
-                    areaMem.writeUInt8(areaData, Int64(areaData.size))
-                    this._areaTex = renderer.createTexture2D(UInt16(areaW), UInt16(areaH), false, 1u16, TextureFormat.RGBA8.value(), lutFlags, Some(areaMem))
-                }
-                if (!Handle.isValid(this._searchTex)) {
-                    let (searchData, searchW, searchH) = this._buildSearchTexture()
-                    let searchMem = BgfxMemory(UInt32(searchData.size))
-                    searchMem.writeUInt8(searchData, Int64(searchData.size))
-                    this._searchTex = renderer.createTexture2D(UInt16(searchW), UInt16(searchH), false, 1u16, TextureFormat.R8.value(), lutFlags, Some(searchMem))
-                }
+            // 创建 SMAA LUT 纹理（仅首次，setSize 可能多次调用）
+            if (!Handle.isValid(this._areaTex)) {
+                let (areaData, areaW, areaH) = this._buildAreaTexture()
+                let areaMem = BgfxMemory(UInt32(areaData.size))
+                areaMem.writeUInt8(areaData, Int64(areaData.size))
+                this._areaTex = renderer.createTexture2D(UInt16(areaW), UInt16(areaH), false, 1u16, TextureFormat.RGBA8.value(), lutFlags, Some(areaMem))
+            }
+            if (!Handle.isValid(this._searchTex)) {
+                let (searchData, searchW, searchH) = this._buildSearchTexture()
+                let searchMem = BgfxMemory(UInt32(searchData.size))
+                searchMem.writeUInt8(searchData, Int64(searchData.size))
+                this._searchTex = renderer.createTexture2D(UInt16(searchW), UInt16(searchH), false, 1u16, TextureFormat.R8.value(), lutFlags, Some(searchMem))
+            }
 
-                this._rtsCreated = true
-            case None => ()
+            this._rtsCreated = true
         }
 
         @LogTrace(["SMAAPass", "_createRTs done ${this._width}x${this._height} edgesFB.idx=${Handle.idx(this._edgesFB)} weightsFB.idx=${Handle.idx(this._weightsFB)}"])
@@ -230,21 +244,19 @@ public class SMAAPass <: Pass {
         if (!this._rtsCreated) {
             return
         }
-        match (this._renderer) {
-            case Some(renderer) =>
-                if (Handle.isValid(this._edgesTex)) {
-                    renderer.destroyFrameBuffer(this._edgesFB)
-                    renderer.destroyTexture(this._edgesTex)
-                    this._edgesTex = INVALID_TEXTURE_HANDLE
-                    this._edgesFB = INVALID_FRAME_BUFFER_HANDLE
-                }
-                if (Handle.isValid(this._weightsTex)) {
-                    renderer.destroyFrameBuffer(this._weightsFB)
-                    renderer.destroyTexture(this._weightsTex)
-                    this._weightsTex = INVALID_TEXTURE_HANDLE
-                    this._weightsFB = INVALID_FRAME_BUFFER_HANDLE
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            if (Handle.isValid(this._edgesTex)) {
+                renderer.destroyFrameBuffer(this._edgesFB)
+                renderer.destroyTexture(this._edgesTex)
+                this._edgesTex = INVALID_TEXTURE_HANDLE
+                this._edgesFB = INVALID_FRAME_BUFFER_HANDLE
+            }
+            if (Handle.isValid(this._weightsTex)) {
+                renderer.destroyFrameBuffer(this._weightsFB)
+                renderer.destroyTexture(this._weightsTex)
+                this._weightsTex = INVALID_TEXTURE_HANDLE
+                this._weightsFB = INVALID_FRAME_BUFFER_HANDLE
+            }
         }
         this._rtsCreated = false
     }
@@ -257,6 +269,7 @@ public class SMAAPass <: Pass {
      * @param readBuffer 读 buffer（pass 1/3 输入）
      * @param deltaTime 帧间隔
      */
+    @Zone[three.rendering.postprocessing.SMAAPass.render, name=sMAAPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -276,21 +289,13 @@ public class SMAAPass <: Pass {
         if (this._edgesProg.isNone() || this._weightsProg.isNone() || this._blendProg.isNone()) {
             return
         }
-        match (this._edgesProg) {
-            case Some(edgesProg) =>
-                match (this._weightsProg) {
-                    case Some(weightsProg) =>
-                        match (this._blendProg) {
-                            case Some(blendProg) =>
-                                if (!Handle.isValid(edgesProg) || !Handle.isValid(weightsProg) || !Handle.isValid(blendProg)) {
-                                    return
-                                }
-                                this._renderSMAA(renderer, writeBuffer, readBuffer, edgesProg, weightsProg, blendProg)
-                            case None => ()
-                        }
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(edgesProg) <- this._edgesProg &&
+            let Some(weightsProg) <- this._weightsProg &&
+            let Some(blendProg) <- this._blendProg) {
+            if (!Handle.isValid(edgesProg) || !Handle.isValid(weightsProg) || !Handle.isValid(blendProg)) {
+                return
+            }
+            this._renderSMAA(renderer, writeBuffer, readBuffer, edgesProg, weightsProg, blendProg)
         }
     }
 
@@ -337,14 +342,10 @@ public class SMAAPass <: Pass {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(renderer.width), UInt16(renderer.height))
         this.setRenderTarget(renderer, viewId, this._edgesFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
-        let uniforms1 = BgfxUniforms()
-        let uTex1 = uniforms1.createUniform("tDiffuse", UniformType.Sampler.value())
         let readTex1 = this.getTexture(renderer, readBuffer, 0u8)
-        this.bindTexture(renderer, 0u8, uTex1, readTex1, 0u32)
-        let uRes1 = uniforms1.createUniform("u_resolution", UniformType.Vec4.value())
-        let resMem1 = BgfxMemory(16u32)
-        resMem1.writeFloats([Float64(invW), Float64(invH), 0.0, 0.0], 4)
-        this.setUniform(renderer, uRes1, resMem1, num: 1u16)
+        this.bindTexture(renderer, 0u8, this._uTDiffuse, readTex1, 0u32)
+        // 复用基类上传槽位（原实现每帧新建 BgfxMemory(16) + Array(4)）
+        this._setVec4Uniform(renderer, this._uResolution, 0, Float64(invW), Float64(invH), 0.0, 0.0)
         this.submitQuad(viewId, edgesProg)
     }
 
@@ -361,18 +362,11 @@ public class SMAAPass <: Pass {
         this.setViewport(renderer, viewId, 0u16, 0u16, UInt16(renderer.width), UInt16(renderer.height))
         this.setRenderTarget(renderer, viewId, this._weightsFB)
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
-        let uniforms2 = BgfxUniforms()
-        let uEdges = uniforms2.createUniform("tDiffuse", UniformType.Sampler.value())
         let edgesTex = this.getTexture(renderer, this._edgesFB, 0u8)
-        this.bindTexture(renderer, 0u8, uEdges, edgesTex, 0u32)
-        let uArea = uniforms2.createUniform("tArea", UniformType.Sampler.value())
-        this.bindTexture(renderer, 1u8, uArea, this._areaTex, 0u32)
-        let uSearch = uniforms2.createUniform("tSearch", UniformType.Sampler.value())
-        this.bindTexture(renderer, 2u8, uSearch, this._searchTex, 0u32)
-        let uRes2 = uniforms2.createUniform("u_resolution", UniformType.Vec4.value())
-        let resMem2 = BgfxMemory(16u32)
-        resMem2.writeFloats([Float64(invW), Float64(invH), 0.0, 0.0], 4)
-        this.setUniform(renderer, uRes2, resMem2, num: 1u16)
+        this.bindTexture(renderer, 0u8, this._uTDiffuse, edgesTex, 0u32)
+        this.bindTexture(renderer, 1u8, this._uTArea, this._areaTex, 0u32)
+        this.bindTexture(renderer, 2u8, this._uTSearch, this._searchTex, 0u32)
+        this._setVec4Uniform(renderer, this._uResolution, 0, Float64(invW), Float64(invH), 0.0, 0.0)
         this.submitQuad(viewId, weightsProg)
     }
 
@@ -396,17 +390,11 @@ public class SMAAPass <: Pass {
             this.setRenderTarget(renderer, viewId, writeBuffer)
         }
         this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
-        let uniforms3 = BgfxUniforms()
-        let uColor = uniforms3.createUniform("tColor", UniformType.Sampler.value())
         let readTex3 = this.getTexture(renderer, readBuffer, 0u8)
-        this.bindTexture(renderer, 0u8, uColor, readTex3, 0u32)
-        let uWeights = uniforms3.createUniform("tDiffuse", UniformType.Sampler.value())
+        this.bindTexture(renderer, 0u8, this._uTColor, readTex3, 0u32)
         let weightsTex = this.getTexture(renderer, this._weightsFB, 0u8)
-        this.bindTexture(renderer, 1u8, uWeights, weightsTex, 0u32)
-        let uRes3 = uniforms3.createUniform("u_resolution", UniformType.Vec4.value())
-        let resMem3 = BgfxMemory(16u32)
-        resMem3.writeFloats([Float64(invW), Float64(invH), 0.0, 0.0], 4)
-        this.setUniform(renderer, uRes3, resMem3, num: 1u16)
+        this.bindTexture(renderer, 1u8, this._uTDiffuse, weightsTex, 0u32)
+        this._setVec4Uniform(renderer, this._uResolution, 0, Float64(invW), Float64(invH), 0.0, 0.0)
         this.submitQuad(viewId, blendProg)
     }
 
@@ -416,19 +404,17 @@ public class SMAAPass <: Pass {
     public override func dispose(): Unit {
         this._destroyRTs()
         // 销毁 LUT 纹理
-        match (this._renderer) {
-            case Some(renderer) =>
-                let areaTex = this._areaTex
-                let searchTex = this._searchTex
-                if (Handle.isValid(areaTex)) {
-                    renderer.destroyTexture(areaTex)
-                    this._areaTex = INVALID_TEXTURE_HANDLE
-                }
-                if (Handle.isValid(searchTex)) {
-                    renderer.destroyTexture(searchTex)
-                    this._searchTex = INVALID_TEXTURE_HANDLE
-                }
-            case None => ()
+        if (let Some(renderer) <- this._renderer) {
+            let areaTex = this._areaTex
+            let searchTex = this._searchTex
+            if (Handle.isValid(areaTex)) {
+                renderer.destroyTexture(areaTex)
+                this._areaTex = INVALID_TEXTURE_HANDLE
+            }
+            if (Handle.isValid(searchTex)) {
+                renderer.destroyTexture(searchTex)
+                this._searchTex = INVALID_TEXTURE_HANDLE
+            }
         }
         this._edgesProg = None
         this._weightsProg = None
@@ -442,26 +428,37 @@ public class SMAAPass <: Pass {
      * 后处理 shader 已迁移到 postprocessing 内部注册表 PostProcessingShaders。
      */
     private func _ensureCompiled(): Unit {
-        if (this._edgesProg.isSome() && this._weightsProg.isSome() && this._blendProg.isSome()) {
+        if (this._edgesProg.isSome() && this._weightsProg.isSome() && this._blendProg.isSome() &&
+            Handle.isValid(this._uResolution)) {
             return
         }
-        match (PostProcessingShaders.get("smaaEdges")) {
-            case Some(sp) =>
-                sp.compileBgfx()
-                this._edgesProg = Some(Box(sp.programHandle))
-            case None => @LogWarn(["SMAAPass", "shader smaaEdges not found"])
+        if (let Some(sp) <- PostProcessingShaders.get("smaaEdges")) {
+            sp.compileBgfx()
+            this._edgesProg = Some(Box(sp.programHandle))
+        } else {
+            @LogWarn(["SMAAPass", "shader smaaEdges not found"])
         }
-        match (PostProcessingShaders.get("smaaWeights")) {
-            case Some(sp) =>
-                sp.compileBgfx()
-                this._weightsProg = Some(Box(sp.programHandle))
-            case None => @LogWarn(["SMAAPass", "shader smaaWeights not found"])
+        if (let Some(sp) <- PostProcessingShaders.get("smaaWeights")) {
+            sp.compileBgfx()
+            this._weightsProg = Some(Box(sp.programHandle))
+        } else {
+            @LogWarn(["SMAAPass", "shader smaaWeights not found"])
         }
-        match (PostProcessingShaders.get("smaaBlend")) {
-            case Some(sp) =>
-                sp.compileBgfx()
-                this._blendProg = Some(Box(sp.programHandle))
-            case None => @LogWarn(["SMAAPass", "shader smaaBlend not found"])
+        if (let Some(sp) <- PostProcessingShaders.get("smaaBlend")) {
+            sp.compileBgfx()
+            this._blendProg = Some(Box(sp.programHandle))
+        } else {
+            @LogWarn(["SMAAPass", "shader smaaBlend not found"])
+        }
+        // uniform 句柄只与名称/类型相关：编译完成后创建一次，此后所有帧/子 pass 复用
+        // （createUniform 内部要取全局 bgfxCallMtx 并做字符串哈希，逐帧调用是纯开销）
+        if (!Handle.isValid(this._uResolution)) {
+            let u = this._passUniforms()
+            this._uResolution = u.createUniform("u_resolution", UniformType.Vec4.value())
+            this._uTDiffuse = u.createUniform("tDiffuse", UniformType.Sampler.value())
+            this._uTArea = u.createUniform("tArea", UniformType.Sampler.value())
+            this._uTSearch = u.createUniform("tSearch", UniformType.Sampler.value())
+            this._uTColor = u.createUniform("tColor", UniformType.Sampler.value())
         }
     }
 

@@ -22,12 +22,12 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] bgfx 常量映射
- * @brief[zh-cn] 替代 WebGLConstants + WebGPUConstants，定义 three.js 常量到 bgfx 常量的映射
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLConstants.js 和 WebGPUConstants.js。在 WebGL 中需要将 three.js 常量映射为 WebGL 常量，在 bgfx 中直接使用 bgfx 定义的常量。所有数值一律引用 bgfx4cj 常量，不硬编码。
+ * @brief[zh-cn] 替代 WebGLConstants + WebGPUConstants，定义引擎渲染常量到 bgfx 常量的映射
+ * @explain[zh-cn] 对照 WebGLConstants/WebGPUConstants，在 WebGL 中需要将引擎渲染常量映射为 WebGL 常量，在 bgfx 中直接使用 bgfx 定义的常量。所有数值一律引用 bgfx4cj 常量，不硬编码。
  *
  * @file[en] bgfx Constants Mapping
- * @brief[en] Replaces WebGLConstants + WebGPUConstants, defines mappings from three.js constants to bgfx constants
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLConstants.js and WebGPUConstants.js. In WebGL, three.js constants are mapped to WebGL constants; in bgfx, bgfx-defined constants are used directly. All values reference bgfx4cj constants, no hardcoding.
+ * @brief[en] Replaces WebGLConstants + WebGPUConstants, defines mappings from engine constants to bgfx constants
+ * @explain[en] Corresponds to WebGLConstants/WebGPUConstants. In WebGL, engine constants are mapped to WebGL constants; in bgfx, bgfx-defined constants are used directly. All values reference bgfx4cj constants, no hardcoding.
  */
 package three.rendering.bgfx
 
@@ -36,10 +36,10 @@ import three.utils.constants.*
 
 /**
  * @brief[zh-cn] bgfx 常量映射
- * @explain[zh-cn] 提供 three.js 渲染常量到 bgfx 常量的映射。对照 WebGLConstants，将 GL 常量替换为 bgfx 等效值。
+ * @explain[zh-cn] 提供引擎渲染常量到 bgfx 常量的映射。对照 WebGLConstants，将 GL 常量替换为 bgfx 等效值。
  *
  * @brief[en] bgfx constants mapping
- * @explain[en] Provides mappings from three.js rendering constants to bgfx constants. Corresponds to WebGLConstants, replacing GL constants with bgfx equivalents.
+ * @explain[en] Provides mappings from engine rendering constants to bgfx constants. Corresponds to WebGLConstants, replacing GL constants with bgfx equivalents.
  */
 public class BgfxConstants {
     // ===== 绘制模式 =====
@@ -619,12 +619,12 @@ public class BgfxConstants {
     public static let STENCIL_OP_PASS_Z_REPLACE: UInt32 = bgfx.STENCIL_OP_PASS_Z_REPLACE
 
     /**
-     * @brief[zh-cn] 将 three.js 深度测试模式转换为 bgfx 状态标志
-     * @param[zh-cn] depthFunc three.js 深度测试常量
+     * @brief[zh-cn] 将引擎深度测试模式转换为 bgfx 状态标志
+     * @param[zh-cn] depthFunc 引擎深度测试常量
      * @return[zh-cn] bgfx 深度测试状态标志
      *
-     * @brief[en] Converts three.js depth test mode to bgfx state flag
-     * @param[en] depthFunc Three.js depth test constant
+     * @brief[en] Converts engine depth test mode to bgfx state flag
+     * @param[en] depthFunc Engine depth test constant
      * @return[en] bgfx depth test state flag
      */
     public static func convertDepthFunc(depthFunc: Int64): UInt64 {
@@ -640,14 +640,14 @@ public class BgfxConstants {
     }
 
     /**
-     * @brief[zh-cn] 将 three.js 混合模式转换为 bgfx 混合状态
+     * @brief[zh-cn] 将引擎混合模式转换为 bgfx 混合状态
      * @param[zh-cn] srcFactor 源混合因子
      * dstFactor 目标混合因子
      * srcAlphaFactor 源 alpha 混合因子
      * dstAlphaFactor 目标 alpha 混合因子
      * @return[zh-cn] bgfx 混合状态
      *
-     * @brief[en] Converts three.js blend mode to bgfx blend state
+     * @brief[en] Converts engine blend mode to bgfx blend state
      * @param[en] srcFactor Source blend factor
      * dstFactor Destination blend factor
      * srcAlphaFactor Source alpha blend factor
@@ -667,12 +667,12 @@ public class BgfxConstants {
     }
 
     /**
-     * @brief[zh-cn] 将 three.js 混合因子转换为 bgfx 混合因子
-     * @param[zh-cn] factor three.js 混合因子常量
+     * @brief[zh-cn] 将引擎混合因子转换为 bgfx 混合因子
+     * @param[zh-cn] factor 引擎混合因子常量
      * @return[zh-cn] bgfx 混合因子
      *
-     * @brief[en] Converts three.js blend factor to bgfx blend factor
-     * @param[en] factor Three.js blend factor constant
+     * @brief[en] Converts engine blend factor to bgfx blend factor
+     * @param[en] factor Engine blend factor constant
      * @return[en] bgfx blend factor
      */
     public static func convertBlendFactor(factor: Int64): UInt64 {
@@ -691,14 +691,14 @@ public class BgfxConstants {
     }
 
     /**
-     * @brief[zh-cn] 将 three.js 侧面转换为 bgfx 剔除模式
+     * @brief[zh-cn] 将引擎侧面转换为 bgfx 剔除模式
      * @explain[zh-cn] bgfx 使用 STATE_FRONT_CCW，CCW = front face。FrontSide → CULL_CW（剔除背面），BackSide → CULL_CCW（剔除正面），DoubleSide → 0（不剔除）。
-     * @param[zh-cn] side three.js 侧面常量
+     * @param[zh-cn] side 引擎侧面常量
      * @return[zh-cn] bgfx 剔除模式标志
      *
-     * @brief[en] Converts three.js side to bgfx cull mode
+     * @brief[en] Converts engine side to bgfx cull mode
      * @explain[en] bgfx uses STATE_FRONT_CCW, CCW = front face. FrontSide → CULL_CW (cull back), BackSide → CULL_CCW (cull front), DoubleSide → 0 (no culling).
-     * @param[en] side Three.js side constant
+     * @param[en] side Engine side constant
      * @return[en] bgfx cull mode flag
      */
     public static func convertCullMode(side: Int64): UInt64 {

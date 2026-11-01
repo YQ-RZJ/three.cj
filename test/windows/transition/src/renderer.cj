@@ -83,7 +83,7 @@ public let MIX_TEX_SIZE: Int64 = 256
 
 /**
  * 生成过渡纹理（水平渐变灰度图，r 通道从黑到白）。
- * 对照 three.js RenderTransitionPass 示例用噪声/渐变纹理做 tMixTexture。
+ * 参照 RenderTransitionPass 示例用噪声/渐变纹理做 tMixTexture。
  * 用 renderer.createTexture2D 高阶 API（mem 用 BgfxMemory 包装）上传，不直接触 bgfx4cj。
  *
  * @param renderer 渲染器（经其高阶 API 序列化上传）

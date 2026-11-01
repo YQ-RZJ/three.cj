@@ -1,7 +1,7 @@
 package threeTest
 
 /**
- * Three.js 渲染场景设置与渲染循环
+ * 引擎渲染场景设置与渲染循环
  */
 
 import std.sync.*

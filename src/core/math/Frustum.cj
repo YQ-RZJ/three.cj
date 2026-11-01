@@ -176,6 +176,33 @@ public class Frustum {
     }
 
     /**
+     * @brief[zh-cn] 判断球（[cx,cy,cz,radius] 四元数组）是否与视锥体相交
+     * @explain[zh-cn] 零分配重载：getWorldBoundingSphere 返回的正是这个四元数组，
+     * 逐对象 new Sphere + new Vector3 在 800 对象场景下是每帧 800 次堆分配，纯属浪费。
+     * 数学与 intersectsSphere(Sphere) 完全一致。
+     *
+     * @brief[en] Check if a sphere ([cx,cy,cz,radius]) intersects the frustum, with zero allocation
+     * @explain[en] Zero-allocation overload: getWorldBoundingSphere returns exactly this 4-element array,
+     * so per-object `new Sphere` + `new Vector3` costs 800 heap allocations per frame in an 800-object
+     * scene. Mathematically identical to intersectsSphere(Sphere).
+     * @param[en] sphere Sphere as [centerX, centerY, centerZ, radius]
+     * @return[en] Whether they intersect
+     */
+    public func intersectsSphereArray(sphere: Array<Float64>): Bool {
+        let cx = sphere[0]
+        let cy = sphere[1]
+        let cz = sphere[2]
+        let radius = sphere[3]
+        for (i in 0..6) {
+            let p = this.planes[i]
+            if (p.normal.x * cx + p.normal.y * cy + p.normal.z * cz + p.constant < -radius) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
      * @brief[zh-cn] 判断包围盒是否与视锥体相交
      * @param[zh-cn] box 包围盒
      * @return[zh-cn] 是否相交
@@ -185,15 +212,79 @@ public class Frustum {
      * @return[en] Whether they intersect
      */
     public func intersectsBox(box: Box3): Bool {
-        let _vector = Vector3()
+        return this.intersectsBoxComponents(
+            box.min.x, box.min.y, box.min.z,
+            box.max.x, box.max.y, box.max.z
+        )
+    }
+
+    /**
+     * @brief[zh-cn] 判断包围盒分量是否与视锥体相交（零分配重载）
+     * @explain[zh-cn] 直接以 6 个标量参数做 p-vertex 测试，不构造 Vector3/Box3 实例。
+     *             剔除与 BVH 遍历等高频路径上，每次调用都 new Vector3() 会把纯标量
+     *             运算变成堆分配（10 万对象场景 = 每帧 10 万次分配），此处全部展开为
+     *             局部标量比较。
+     *
+     *             取包围盒在平面法线方向上的"最负点"（p-vertex）：让 n·p 尽可能小。
+     *             法线分量 > 0 时取该轴的最大值，< 0 时取最小值。
+     *             （此前取反了：用 n-vertex 规则会让 n·p 偏大，误判为"在平面外侧"，
+     *               导致位于视锥边缘的包围盒被过度剔除。）
+     *
+     * @param[zh-cn] minX 包围盒最小 X
+     * minY 包围盒最小 Y
+     * minZ 包围盒最小 Z
+     * maxX 包围盒最大 X
+     * maxY 包围盒最大 Y
+     * maxZ 包围盒最大 Z
+     * @return[zh-cn] 是否相交
+     *
+     * @brief[en] Check if bounding-box components intersect the frustum (zero-allocation overload)
+     * @explain[en] Performs the p-vertex test directly on 6 scalar arguments without
+     *             constructing Vector3/Box3 instances. On hot culling and BVH traversal
+     *             paths a per-call `new Vector3()` turns pure scalar math into heap
+     *             allocation (100k objects = 100k allocations per frame); everything is
+     *             expanded into local scalar comparisons here.
+     * @param[en] minX Box min X
+     * minY Box min Y
+     * minZ Box min Z
+     * maxX Box max X
+     * maxY Box max Y
+     * maxZ Box max Z
+     * @return[en] Whether they intersect
+     */
+    public func intersectsBoxComponents(
+        minX: Float64, minY: Float64, minZ: Float64,
+        maxX: Float64, maxY: Float64, maxZ: Float64
+    ): Bool {
         for (i in 0..6) {
             let p = this.planes[i]
-            // 计算包围盒在平面法线方向上的极值点
-            let nx = if (p.normal.x > 0.0) { box.min.x } else { box.max.x }
-            let ny = if (p.normal.y > 0.0) { box.min.y } else { box.max.y }
-            let nz = if (p.normal.z > 0.0) { box.min.z } else { box.max.z }
-            _vector.set(nx, ny, nz)
-            if (p.distanceToPoint(_vector) < 0.0) {
+            let n = p.normal
+            let nx = if (n.x > 0.0) { maxX } else { minX }
+            let ny = if (n.y > 0.0) { maxY } else { minY }
+            let nz = if (n.z > 0.0) { maxZ } else { minZ }
+            if (n.x * nx + n.y * ny + n.z * nz + p.constant < 0.0) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * @brief[zh-cn] 判断球体分量是否与视锥体相交（零分配重载）
+     * @explain[zh-cn] 与 intersectsSphereArray 同义，但直接接收 4 个标量，
+     *             便于在 SoA 布局（Bvh 的 _centerX/_centerY/_centerZ + 半径数组）
+     *             上免去数组下标与临时对象。
+     *
+     * @brief[en] Check if sphere components intersect the frustum (zero-allocation overload)
+     * @explain[en] Equivalent to intersectsSphereArray but takes 4 scalars directly,
+     *             which suits SoA layouts (Bvh's _centerX/_centerY/_centerZ plus radius
+     *             array) without array indexing or temporary objects.
+     */
+    public func intersectsSphereComponents(cx: Float64, cy: Float64, cz: Float64, radius: Float64): Bool {
+        for (i in 0..6) {
+            let p = this.planes[i]
+            let n = p.normal
+            if (n.x * cx + n.y * cy + n.z * cz + p.constant < -radius) {
                 return false
             }
         }
@@ -212,14 +303,13 @@ public class Frustum {
      * @return[en] Whether they intersect
      */
     public func intersectsObject(object: IFrustumCullable): Bool {
-        match (object.getWorldBoundingSphere()) {
-            case Some(ball) =>
-                let sphere = Sphere(Vector3(ball[0], ball[1], ball[2]), ball[3])
-                return this.intersectsSphere(sphere)
-            case None =>
-                // 无几何体无法计算包围球 → 不裁剪
-                return true
+        if (let Some(ball) <- object.getWorldBoundingSphere()) {
+            // 零分配：getWorldBoundingSphere 返回 [cx,cy,cz,radius]，直接做平面距离测试，
+            // 避免逐对象 new Sphere + new Vector3（800 对象场景下每帧 800 次堆分配）。
+            return this.intersectsSphereArray(ball)
         }
+        // 无几何体无法计算包围球 → 不裁剪
+        return true
     }
 
     /**

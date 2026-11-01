@@ -1,7 +1,7 @@
 package threeTest
 
 /**
- * Three.js 渲染场景设置（v2 生命周期模式）。
+ * 引擎渲染场景设置（v2 生命周期模式）。
  * 说明：渲染循环已移入 main.cj 的 TestWindow.onFrame（窗口泵线程驱动）。
  */
 

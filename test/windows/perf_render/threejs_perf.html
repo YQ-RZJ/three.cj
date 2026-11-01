@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>three.js PerfRender (复刻 three.cj perf_render)</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+  canvas { display: block; }
+  /* 模拟 bgfx DEBUG_TEXT 调试文本层（左上角两行） */
+  #hud {
+    position: fixed; left: 8px; top: 6px;
+    font: 13px/1.5 Consolas, Menlo, monospace;
+    color: #fff; white-space: pre; pointer-events: none;
+    text-shadow: 1px 1px 0 #000;
+  }
+  #hud .l1 { color: #ffffff; }
+  #hud .l2 { color: #ffe14d; }
+</style>
+</head>
+<body>
+<div id="hud"></div>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ===== 测试参数（与 main.cj 完全一致） =====
+const FEW_OBJECTS = 25;
+const MANY_OBJECTS = 800;
+const PALETTE_SIZE = 10;
+const SPACING = 1.6;
+
+const PALETTE = [
+  0xd9553f, 0xe8a33d, 0xe5d752, 0x7cb342, 0x2e9e6b,
+  0x2f8fbf, 0x3f51b5, 0x7e57c2, 0xc2185b, 0x90a4ae
+];
+
+const WIDTH = 1280, HEIGHT = 720;
+
+// ===== 渲染器 / 场景 / 相机 =====
+const VSYNC = new URLSearchParams(location.search).has('vsync');
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(WIDTH, HEIGHT);
+renderer.setClearColor(0x1a1a24);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60.0, WIDTH / HEIGHT, 0.1, 200.0);
+camera.position.set(0.0, 3.0, 14.0);
+camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0));
+
+// 共享几何体 + 共享材质调色板
+const boxGeom = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+const mats = PALETTE.map(hex => new THREE.MeshBasicMaterial({ color: hex }));
+
+// ===== 阶段控制 =====
+let frame = 0;
+let phase = 0;            // 0=FEW / 1=MANY
+let phaseFrame = 0;
+let phaseStart = performance.now();   // 当前阶段开始时刻（按 10s 时长推进）
+const startTime = performance.now();
+let emaFrameMs = 0.0;
+let lastT = performance.now();
+let meshes = [];
+
+function logInfo(msg) { console.log('[perf][INFO] ' + msg); }
+
+// ===== 场景构建：确定性网格排布（side x side，取前 count 个） =====
+function buildScene(count) {
+  for (const m of meshes) scene.remove(m);
+  meshes = [];
+
+  const side = Math.ceil(Math.sqrt(count));
+  const half = side * SPACING * 0.5;
+  for (let k = 0; k < count; k++) {
+    const ix = k % side;
+    const iz = Math.floor(k / side);
+    const x = ix * SPACING - half + SPACING * 0.5;
+    const z = iz * SPACING - half + SPACING * 0.5;
+    const scale = 1.0 + 0.5 * ((k % 5) / 4.0);
+    const mesh = new THREE.Mesh(boxGeom, mats[k % PALETTE_SIZE]);
+    mesh.position.set(x, 0.5 * scale, z);
+    mesh.scale.set(scale, scale, scale);
+    mesh.frustumCulled = true;   // three.js 默认即开启，显式写出对应 cj 版
+    scene.add(mesh);
+    meshes.push(mesh);
+  }
+  scene.updateMatrixWorld(true);
+}
+
+// ===== 画面内统计 HUD =====
+const hud = document.getElementById('hud');
+function drawHud(dtMs) {
+  emaFrameMs = emaFrameMs === 0.0 ? dtMs : emaFrameMs * 0.9 + dtMs * 0.1;
+  const fps = emaFrameMs > 0.0 ? 1000.0 / emaFrameMs : 0.0;
+
+  const phaseName = phase === 0 ? 'FEW' : 'MANY';
+  const objCount = phase === 0 ? FEW_OBJECTS : MANY_OBJECTS;
+  const remain = Math.max(0, (PHASE_DURATION_MS - (performance.now() - phaseStart)) / 1000).toFixed(1);
+  const calls = renderer.info.render.calls;
+  const tris = renderer.info.render.triangles;
+
+  hud.innerHTML =
+    `<span class="l1">three.perf phase=${phaseName} objects=${objCount} frames=${phaseFrame} remain=${remain}s vsync=${VSYNC ? 1 : 0}</span>\n` +
+    `<span class="l2">fps=${fps.toFixed(2)} calls=${calls} tris=${tris}</span>`;
+}
+
+const PHASE_DURATION_MS = 10000;   // 每阶段渲染时长：10s
+
+// ===== 主循环 =====
+// vsync=0（默认）：MessageChannel 宏任务自驱循环——渲染一完成立即开始下一帧，
+//   不经过 rAF/vsync，测量的是纯渲染吞吐（帧率上不封顶）。
+//   注意：嵌套 setTimeout(0) 会被浏览器钳制到 ~4ms（≈250fps 上限），故不用它。
+// vsync=1（URL 加 ?vsync=1）：rAF 驱动，与显示器刷新率对齐，用于对照。
+function onFrame() {
+  const now = performance.now();
+  const dtMs = now - lastT;
+  lastT = now;
+  frame++;
+  phaseFrame++;
+
+  // 阶段推进：每阶段满 10s 切换，FEW <-> MANY 永远交替，不停止
+  let phaseElapsed = now - phaseStart;
+  if (phaseElapsed >= PHASE_DURATION_MS) {
+    phase = (phase + 1) % 2;
+    phaseStart = now;
+    phaseFrame = 0;
+    const count = phase === 1 ? MANY_OBJECTS : FEW_OBJECTS;
+    buildScene(count);
+    logInfo(`【phase ${phase}】场景重建：${count} 立方体（时长=${PHASE_DURATION_MS / 1000}s）`);
+  }
+
+  renderer.render(scene, camera);
+  drawHud(dtMs);
+
+  // 周期输出逐帧统计
+  if (frame % 60 === 1) {
+    console.log(`[perf][DEBUG] 【render】frame=${frame} phase=${phase} ` +
+      `drawCalls=${renderer.info.render.calls} tris=${renderer.info.render.triangles}`);
+  }
+}
+
+// 循环驱动：MessageChannel 宏任务（无钳制、无 vsync）或 rAF（vsync 对照）
+const mc = new MessageChannel();
+let mcRunning = false;
+function mcTick() {
+  if (!mcRunning) return;
+  onFrame();
+  mc.port2.postMessage(null);   // 渲染一完成立即排队下一帧
+}
+mc.port1.onmessage = mcTick;
+
+function startLoop() {
+  if (VSYNC) {
+    (function rafTick() {
+      onFrame();
+      requestAnimationFrame(rafTick);
+    })();
+  } else {
+    mcRunning = true;
+    mc.port2.postMessage(null);
+  }
+}
+
+// ===== 启动 =====
+logInfo('=== three.js 真实渲染路径性能测试（复刻 three4cj perf_render） ===');
+logInfo(`【1/4】初始化 WebGLRenderer（${WIDTH}x${HEIGHT}，pixelRatio=${window.devicePixelRatio}）`);
+buildScene(FEW_OBJECTS);
+logInfo(`【2/4】场景构建成功：${FEW_OBJECTS} 立方体（phase 0，确定性网格排布）`);
+logInfo(`【3/4】渲染循环：每阶段 ${PHASE_DURATION_MS / 1000}s，固定相机，永不停止`);
+logInfo('【4/4】开始...');
+startLoop();
+</script>
+</body>
+</html>

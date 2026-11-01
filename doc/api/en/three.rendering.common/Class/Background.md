@@ -15,7 +15,7 @@ Constructs a default background instance
 ```cj
 public func render(scene: Scene): Unit
 ```
-Renders the background, determining view0 clear color by Three.js semantics
+Renders the background, determining view0 clear color by common engine semantics
 
 Parameter: 
 

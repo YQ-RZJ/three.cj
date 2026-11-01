@@ -50,10 +50,8 @@ public class LoaderUtils {
      */
     public static func extractUrlBase(url: String): String {
         let index = url.lastIndexOf("/")
-        match (index) {
-            case Some(idx) => return url[0..(idx + 1)]
-            case None => return "./"
-        }
+        if (let Some(idx) <- index) { return url[0..(idx + 1)] }
+        return "./"
     }
 
     /**
@@ -80,10 +78,7 @@ public class LoaderUtils {
             let schemeLen = if (basePath.startsWith("https://")) { 8 } else { 7 }
             // 找到协议+主机部分（首个 / 在 scheme 之后）
             let hostEnd = basePath.indexOf("/", schemeLen)
-            match (hostEnd) {
-                case Some(h) => if (h != -1) { basePath = basePath[0..h] }
-                case None => ()
-            }
+            if (let Some(h) <- hostEnd) { if (h != -1) { basePath = basePath[0..h] } }
         }
 
         

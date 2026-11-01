@@ -99,37 +99,35 @@ public open class Line <: Object3D {
     public open func computeLineDistances(): Line {
         let geometry = this.geometry
         // 仅在几何有 position 属性时计算
-        match (geometry.getAttribute("position")) {
-            case Some(positionAttr) =>
-                let count = positionAttr.count
-                if (count < 2) {
-                    return this
-                }
-                // 与 JS side 一致：先创建/取 lineDistance 属性，逐顶点累加距离
-                // 通过 setX/setY 逐顶点写入 lineDistance 值
-                let lineDistanceAttr = match (geometry.getAttribute("lineDistance")) {
-                    case Some(attr) => attr
-                    case None =>
-                        let newAttr = Float32BufferAttribute(Array<Float64>(count, { _ => 0.0 }), 1)
-                        geometry.setAttribute("lineDistance", newAttr)
-                        newAttr
-                }
-                lineDistanceAttr.setX(0, 0.0)
-                var totalDistance: Float64 = 0.0
-                for (i in 1..count) {
-                    let x1 = positionAttr.getX(i - 1)
-                    let y1 = positionAttr.getY(i - 1)
-                    let z1 = positionAttr.getZ(i - 1)
-                    let x2 = positionAttr.getX(i)
-                    let y2 = positionAttr.getY(i)
-                    let z2 = positionAttr.getZ(i)
-                    let dx = x2 - x1
-                    let dy = y2 - y1
-                    let dz = z2 - z1
-                    totalDistance += sqrt(dx * dx + dy * dy + dz * dz)
-                    lineDistanceAttr.setX(i, totalDistance)
-                }
-            case None => ()
+        if (let Some(positionAttr) <- geometry.getAttribute("position")) {
+            let count = positionAttr.count
+            if (count < 2) {
+                return this
+            }
+            // 与 JS side 一致：先创建/取 lineDistance 属性，逐顶点累加距离
+            // 通过 setX/setY 逐顶点写入 lineDistance 值
+            let lineDistanceAttr = if (let Some(attr) <- geometry.getAttribute("lineDistance")) {
+                attr
+            } else {
+                let newAttr = Float32BufferAttribute(Array<Float64>(count, { _ => 0.0 }), 1)
+                geometry.setAttribute("lineDistance", newAttr)
+                newAttr
+            }
+            lineDistanceAttr.setX(0, 0.0)
+            var totalDistance: Float64 = 0.0
+            for (i in 1..count) {
+                let x1 = positionAttr.getX(i - 1)
+                let y1 = positionAttr.getY(i - 1)
+                let z1 = positionAttr.getZ(i - 1)
+                let x2 = positionAttr.getX(i)
+                let y2 = positionAttr.getY(i)
+                let z2 = positionAttr.getZ(i)
+                let dx = x2 - x1
+                let dy = y2 - y1
+                let dz = z2 - z1
+                totalDistance += sqrt(dx * dx + dy * dy + dz * dz)
+                lineDistanceAttr.setX(i, totalDistance)
+            }
         }
         return this
     }
@@ -169,18 +167,19 @@ public open class Line <: Object3D {
         let drawRange = geometry.drawRange
 
         // Checking boundingSphere distance to ray
-        match (geometry.boundingSphere) {
-            case None => geometry.computeBoundingSphere()
-            case Some(_) => ()
+        if (let Some(_) <- geometry.boundingSphere) {
+            ()
+        } else {
+            geometry.computeBoundingSphere()
         }
         let sphere = Sphere()
-        match (geometry.boundingSphere) {
-            case Some(bs) =>
-                sphere.copy(bs)
-                sphere.applyMatrix4(matrixWorld)
-                sphere.radius = sphere.radius + threshold
-                if (raycaster.ray.intersectsSphere(sphere) == false) { return }
-            case None => return
+        if (let Some(bs) <- geometry.boundingSphere) {
+            sphere.copy(bs)
+            sphere.applyMatrix4(matrixWorld)
+            sphere.radius = sphere.radius + threshold
+            if (raycaster.ray.intersectsSphere(sphere) == false) { return }
+        } else {
+            return
         }
 
         // transform ray to local space
@@ -200,121 +199,114 @@ public open class Line <: Object3D {
         let step = if (isLineSegments) { 2 } else { 1 }
 
         let indexAttrOpt = geometry.index
-        match (indexAttrOpt) {
-            case Some(indexAttr) =>
+        if (let Some(indexAttr) <- indexAttrOpt) {
+            let start = if (drawRange[0] > 0) { drawRange[0] } else { 0 }
+            let end = if (Int64(indexAttr.count) < drawRange[0] + drawRange[1]) { Int64(indexAttr.count) } else { drawRange[0] + drawRange[1] }
+            var i = start
+            while (i + 1 < end) {
+                let a = Int64(indexAttr.getX(i))
+                let b = Int64(indexAttr.getX(i + 1))
+                // checkIntersection
+                if (let Some(positionAttr) <- geometry.getAttribute("position")) {
+                    let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
+                    let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
+                    let intersectPointOnRay = Vector3()
+                    let intersectPointOnSegment = Vector3()
+                    let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
+                    if (distSq > localThresholdSq) {
+                        // 不命中
+                    } else {
+                        // Move back to world space for distance calculation
+                        intersectPointOnRay.applyMatrix4(matrixWorld)
+                        let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
+                        if (distance >= raycaster.near && distance <= raycaster.far) {
+                            // 对照 JS checkIntersection 命中对象：{distance, point, index, face:null, faceIndex:null, barycoord:null, object}
+                            let intersection = Intersection()
+                            intersection.distance = distance
+                            intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
+                            intersection.index = i
+                            intersection.obj = Some(this)
+                            intersects.add(intersection)
+                        }
+                    }
+                }
+                i += step
+            }
+                // isLineLoop 闭合段：end-1 → start
+            if (isLineLoop && end > start) {
+                let a = Int64(indexAttr.getX(end - 1))
+                let b = Int64(indexAttr.getX(start))
+                if (let Some(positionAttr) <- geometry.getAttribute("position")) {
+                    let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
+                    let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
+                    let intersectPointOnRay = Vector3()
+                    let intersectPointOnSegment = Vector3()
+                    let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
+                    if (distSq <= localThresholdSq) {
+                        intersectPointOnRay.applyMatrix4(matrixWorld)
+                        let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
+                        if (distance >= raycaster.near && distance <= raycaster.far) {
+                            let intersection = Intersection()
+                            intersection.distance = distance
+                            intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
+                            intersection.index = end - 1
+                            intersection.obj = Some(this)
+                            intersects.add(intersection)
+                        }
+                    }
+                }
+            }
+        } else {
+            // non-indexed
+            if (let Some(positionAttr) <- geometry.getAttribute("position")) {
                 let start = if (drawRange[0] > 0) { drawRange[0] } else { 0 }
-                let end = if (Int64(indexAttr.count) < drawRange[0] + drawRange[1]) { Int64(indexAttr.count) } else { drawRange[0] + drawRange[1] }
+                        let end = if (Int64(positionAttr.count) < drawRange[0] + drawRange[1]) { Int64(positionAttr.count) } else { drawRange[0] + drawRange[1] }
                 var i = start
                 while (i + 1 < end) {
-                    let a = Int64(indexAttr.getX(i))
-                    let b = Int64(indexAttr.getX(i + 1))
-                    // checkIntersection
-                    match (geometry.getAttribute("position")) {
-                        case Some(positionAttr) =>
-                            let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
-                            let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
-                            let intersectPointOnRay = Vector3()
-                            let intersectPointOnSegment = Vector3()
-                            let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
-                            if (distSq > localThresholdSq) {
-                                // 不命中
-                            } else {
-                                // Move back to world space for distance calculation
-                                intersectPointOnRay.applyMatrix4(matrixWorld)
-                                let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
-                                if (distance >= raycaster.near && distance <= raycaster.far) {
-                                    // 对照 JS checkIntersection 命中对象：{distance, point, index, face:null, faceIndex:null, barycoord:null, object}
-                                    let intersection = Intersection()
-                                    intersection.distance = distance
-                                    intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
-                                    intersection.index = i
-                                    intersection.obj = Some(this)
-                                    intersects.add(intersection)
-                                }
-                            }
-                        case None => ()
+                    let a = i
+                    let b = i + 1
+                    let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
+                    let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
+                    let intersectPointOnRay = Vector3()
+                    let intersectPointOnSegment = Vector3()
+                    let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
+                    if (distSq <= localThresholdSq) {
+                        intersectPointOnRay.applyMatrix4(matrixWorld)
+                        let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
+                        if (distance >= raycaster.near && distance <= raycaster.far) {
+                            let intersection = Intersection()
+                            intersection.distance = distance
+                            intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
+                            intersection.index = i
+                            intersection.obj = Some(this)
+                            intersects.add(intersection)
+                        }
                     }
                     i += step
                 }
                 // isLineLoop 闭合段：end-1 → start
                 if (isLineLoop && end > start) {
-                    let a = Int64(indexAttr.getX(end - 1))
-                    let b = Int64(indexAttr.getX(start))
-                    match (geometry.getAttribute("position")) {
-                        case Some(positionAttr) =>
-                            let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
-                            let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
-                            let intersectPointOnRay = Vector3()
-                            let intersectPointOnSegment = Vector3()
-                            let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
-                            if (distSq <= localThresholdSq) {
-                                intersectPointOnRay.applyMatrix4(matrixWorld)
-                                let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
-                                if (distance >= raycaster.near && distance <= raycaster.far) {
-                                    let intersection = Intersection()
-                                    intersection.distance = distance
-                                    intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
-                                    intersection.index = end - 1
-                                    intersection.obj = Some(this)
-                                    intersects.add(intersection)
-                                }
-                            }
-                        case None => ()
+                    let a = end - 1
+                    let b = start
+                    let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
+                    let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
+                    let intersectPointOnRay = Vector3()
+                    let intersectPointOnSegment = Vector3()
+                    let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
+                    if (distSq <= localThresholdSq) {
+                        intersectPointOnRay.applyMatrix4(matrixWorld)
+                        let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
+                        if (distance >= raycaster.near && distance <= raycaster.far) {
+                            let intersection = Intersection()
+                            intersection.distance = distance
+                            intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
+                            intersection.index = end - 1
+                            intersection.obj = Some(this)
+                            intersects.add(intersection)
+                        }
                     }
                 }
-            case None =>
-                // non-indexed
-                match (geometry.getAttribute("position")) {
-                    case Some(positionAttr) =>
-                        let start = if (drawRange[0] > 0) { drawRange[0] } else { 0 }
-                        let end = if (Int64(positionAttr.count) < drawRange[0] + drawRange[1]) { Int64(positionAttr.count) } else { drawRange[0] + drawRange[1] }
-                        var i = start
-                        while (i + 1 < end) {
-                            let a = i
-                            let b = i + 1
-                            let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
-                            let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
-                            let intersectPointOnRay = Vector3()
-                            let intersectPointOnSegment = Vector3()
-                            let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
-                            if (distSq <= localThresholdSq) {
-                                intersectPointOnRay.applyMatrix4(matrixWorld)
-                                let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
-                                if (distance >= raycaster.near && distance <= raycaster.far) {
-                                    let intersection = Intersection()
-                                    intersection.distance = distance
-                                    intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
-                                    intersection.index = i
-                                    intersection.obj = Some(this)
-                                    intersects.add(intersection)
-                                }
-                            }
-                            i += step
-                        }
-                        // isLineLoop 闭合段：end-1 → start
-                        if (isLineLoop && end > start) {
-                            let a = end - 1
-                            let b = start
-                            let vStart = Vector3(positionAttr.getX(a), positionAttr.getY(a), positionAttr.getZ(a))
-                            let vEnd = Vector3(positionAttr.getX(b), positionAttr.getY(b), positionAttr.getZ(b))
-                            let intersectPointOnRay = Vector3()
-                            let intersectPointOnSegment = Vector3()
-                            let distSq = ray.distanceSqToSegment(vStart, vEnd, optionalPointOnRay: Some(intersectPointOnRay), optionalPointOnSegment: Some(intersectPointOnSegment))
-                            if (distSq <= localThresholdSq) {
-                                intersectPointOnRay.applyMatrix4(matrixWorld)
-                                let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
-                                if (distance >= raycaster.near && distance <= raycaster.far) {
-                                    let intersection = Intersection()
-                                    intersection.distance = distance
-                                    intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)
-                                    intersection.index = end - 1
-                                    intersection.obj = Some(this)
-                                    intersects.add(intersection)
-                                }
-                            }
-                        }
-                    case None => ()
-                }
+            }
         }
     }
 

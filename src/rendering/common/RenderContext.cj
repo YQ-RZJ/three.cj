@@ -27,7 +27,6 @@
  * RenderContext 封装 view/projection 矩阵、viewport、scissor、renderTarget、
  * clippingContext、active、occlusion、clearColor/Depth/Stencil 等字段。
  * 实现 IRenderContext 占位接口。
- * 对照源码: three.js/src/renderers/common/RenderContext.js (289 行)
  *
  * @file[en] RenderContext
  * @brief[en] Render context, encapsulating the complete state of a render pass
@@ -35,7 +34,6 @@
  * RenderContext encapsulates view/projection matrices, viewport, scissor, renderTarget,
  * clippingContext, active, occlusion, clearColor/Depth/Stencil and other fields.
  * Implements the IRenderContext placeholder interface.
- * Corresponding source: three.js/src/renderers/common/RenderContext.js (289 lines)
  */
 package three.rendering.common
 

@@ -43,7 +43,7 @@ public init(enabled: Bool, fullWidth: Float64, fullHeight: Float64, offsetX: Flo
 ```cj
 public func toHashMap(): HashMap < String, Any >
 ```
-转换为 HashMap（供手写 toJSON 兼容层输出 three.js view 对象结构）
+转换为 HashMap（供手写 toJSON 兼容层输出渲染引擎 view 对象结构）
 
 返回: 
 

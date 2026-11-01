@@ -51,23 +51,23 @@ public const common: String = #"
 #endif
 #define whiteComplement( a ) ( 1.0 - saturate( a ) )
 
-// three.js chunk 用 normal/position/uv 等属性名，但 bgfx $input 用 a_normal/a_position/a_texcoord0
+// 通用 chunk 用 normal/position/uv 等属性名，但 bgfx $input 用 a_normal/a_position/a_texcoord0
 #define normal a_normal
 #define position a_position
 #define uv a_texcoord0
 #define normalMatrix u_normalMatrix
 
-// three.js chunk 引用 modelViewMatrix/projectionMatrix/viewMatrix/modelMatrix 等标准 uniform 变量名
+// 通用 chunk 引用 modelViewMatrix/projectionMatrix/viewMatrix/modelMatrix 等标准 uniform 变量名
 // 映射到 bgfx scene 标准 uniform（由 ThreeRenderer 绑定到 u_view/u_proj/u_model[0] 等）
 // 注意：modelViewMatrix = viewMatrix * modelMatrix，无对应 bgfx 单独 uniform，用 u_viewProj 近似
 #define viewMatrix u_view
 #define projectionMatrix u_proj
 #define modelMatrix u_model[0]
-// three.js chunk body 用 camelCase vNormal/vTangent/vBitangent，但 $output 声明用 snake_case v_normal
+// 通用 chunk body 用 camelCase vNormal/vTangent/vBitangent，但 $output 声明用 snake_case v_normal
 #define vNormal v_normal
 #define vTangent v_tangent
 #define vBitangent v_bitangent
-// three.js chunk body 用 camelCase vUv/vMapUv/vMetalnessMapUv 等，但 $output 声明用 snake_case v_uv/v_mapUv/...
+// 通用 chunk body 用 camelCase vUv/vMapUv/vMetalnessMapUv 等，但 $output 声明用 snake_case v_uv/v_mapUv/...
 #define vUv v_uv
 #define vMapUv v_mapUv
 #define vAlphaMapUv v_alphaMapUv
@@ -92,7 +92,7 @@ public const common: String = #"
 #define vSpecularIntensityMapUv v_specularIntensityMapUv
 #define vTransmissionMapUv v_transmissionMapUv
 #define vThicknessMapUv v_thicknessMapUv
-// three.js uv_vertex 用 MAP_UV/METALNESSMAP_UV 等宏取基 UV；Three.js 由 WebGLProgram
+// uv_vertex 用 MAP_UV/METALNESSMAP_UV 等宏取基 UV；由 WebGLProgram
 // 按参数注入 #define MAP_UV vUv，此处统一映射到 vUv（vUv 已映射到 v_uv）
 #define MAP_UV vUv
 #define ALPHAMAP_UV vUv
@@ -123,7 +123,7 @@ public const common: String = #"
 #define vViewPosition v_viewPos
 #define isOrthographic false
 
-// three.js envmap_fragment/light 等 chunk 引用 cameraPosition，shell 对应 u_cameraPos
+// envmap_fragment/light 等 chunk 引用 cameraPosition，shell 对应 u_cameraPos
 #define cameraPosition u_cameraPos
 
 float pow2( const in float x ) { return x*x; }

@@ -2,7 +2,7 @@
  * @file Base64EncodeTest
  * @brief Base64 编解码正确性测试（stdx 驱动版）
  *
- * 对照: RFC 4648 官方测试向量 + three.js（CCC Base64.ts）行为
+ * 对照: RFC 4648 官方测试向量与主流实现的 Base64 行为
  * 覆盖：
  * - RFC 4648 §10 标准向量（空串、单字节、双字节、三字节…）
  * - 编码折行（每 76 字符 \r\n）

@@ -7,7 +7,7 @@ package volumecloud
  * - EffectComposer 链：RenderPass → VolumeCloudPass（全屏 ray marching 体积云）→ OutputPass → 上屏
  * - 验证 VolumeCloudPass 体积云效果（3D Simplex 噪声 + wang_hash 抖动 + smoothstep 密度 + 差分着色）
  *
- * 对照 three.js: examples/webgl_volume_cloud.html（相机绕原点轨道旋转观察云盒）
+ * 相机绕原点轨道旋转观察云盒（参照官方 examples/webgl_volume_cloud.html）
  *
  * 按键交互（详见 win32.cj printHelp）：
  *   - 1: 完整体积云流程（默认参数：threshold=0.25 opacity=0.25 range=0.1 steps=100）

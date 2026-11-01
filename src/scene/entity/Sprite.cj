@@ -89,6 +89,18 @@ public class Sprite <: Object3D {
     public var center: Vector2
 
     /**
+     * @brief[zh-cn] 世界包围球复用缓冲（[cx, cy, cz, radius]）
+     * @explain[zh-cn] getWorldBoundingSphere 每帧被视锥剔除调用，广告牌变换每帧变化使缓存
+     *               恒失效；用固定缓冲原地写入，避免逐帧分配新数组（精灵密集场景的主要垃圾源）。
+     *
+     * @brief[en] Reused world bounding-sphere buffer ([cx, cy, cz, radius])
+     * @explain[en] getWorldBoundingSphere is called every frame by frustum culling and the
+     *              billboard transform invalidates the cache each frame; writing into a fixed
+     *              buffer avoids allocating a new array per sprite per frame.
+     */
+    private var _worldSphereBuf: Array<Float64> = [0.0, 0.0, 0.0, 0.0]
+
+    /**
      * @brief[zh-cn] 构造一个新的精灵
      * @param[zh-cn] material 精灵材质，默认空 SpriteMaterial
      *
@@ -114,9 +126,8 @@ public class Sprite <: Object3D {
     private static var _unitQuadGeom: Option<BufferGeometry> = None
 
     public static func _getUnitQuadGeometry(): BufferGeometry {
-        match (_unitQuadGeom) {
-            case Some(g) => return g
-            case None => ()
+        if (let Some(g) <- _unitQuadGeom) {
+            return g
         }
         // 单位 quad：[-0.5, 0.5]²，含 position/uv/index（CCW 点序）
         let positions = [-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.5, 0.0]
@@ -157,9 +168,10 @@ public class Sprite <: Object3D {
      */
     public func raycast(raycaster: Raycaster, intersects: ArrayList<Intersection>): Unit {
         // 检查相机是否已设置
-        match (raycaster.camera) {
-            case Some(_) => ()
-            case None => return
+        if (let Some(_) <- raycaster.camera) {
+            ()
+        } else {
+            return
         }
 
         // 获取世界缩放
@@ -295,11 +307,24 @@ public class Sprite <: Object3D {
      * @return[en] Some([cx, cy, cz, radius]) or None
      */
     public override func getWorldBoundingSphere(): Option<Array<Float64>> {
-        
-        let offset = Vector2(0.5, 0.5).distanceTo(this.center)
-        let sphere = Sphere(Vector3(0.0, 0.0, 0.0), 0.7071067811865476 + offset)
-        sphere.applyMatrix4(this.matrixWorld)
-        return Some([sphere.center.x, sphere.center.y, sphere.center.z, sphere.radius])
+        // 零分配重算：原实现每次分配 Vector2 + Sphere + Vector3 + Array(4)
+        // （广告牌随相机/自身变换每帧变化，缓存必然失效 → 逐帧每精灵 4 次堆分配）。
+        // 数学等价于 Sphere(Vector3(0,0,0), 0.7071+offset).applyMatrix4(matrixWorld)：
+        //   中心 = matrixWorld × (0,0,0) = 平移列 [12,13,14]；
+        //   半径 *= 第一列长度（与本类基类 Object3D 的半径口径一致）。
+        let dx = 0.5 - this.center.x
+        let dy = 0.5 - this.center.y
+        let offset = sqrt(dx * dx + dy * dy)
+        let e = this.matrixWorld.elements
+        let sx = e[0]
+        let sy = e[1]
+        let sz = e[2]
+        let buf = this._worldSphereBuf
+        buf[0] = e[12]
+        buf[1] = e[13]
+        buf[2] = e[14]
+        buf[3] = (0.7071067811865476 + offset) * sqrt(sx * sx + sy * sy + sz * sz)
+        return Some(buf)
     }
 }
 

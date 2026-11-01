@@ -221,6 +221,12 @@ public var height: Int64
 ```
 Texture height in pixels
 
+### let id
+```cj
+public let id: Int64
+```
+Process-unique integer identifier (assigned at construction, auto-incrementing)
+
 ### var image
 ```cj
 public var image: Array < UInt8 >

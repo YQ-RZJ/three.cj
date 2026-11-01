@@ -6,7 +6,7 @@
 [package]
   cjc-version = "1.1.0"
   compile-option = "-Woff unused -g -O0"
-  description = "test_j_audio - migrate three.js unit/src/audio tests"
+  description = "test_j_audio"
   link-option = "-l user32 -l gdi32 -l winmm -lole32 -luuid"
   name = "test_j_audio"
   output-type = "executable"

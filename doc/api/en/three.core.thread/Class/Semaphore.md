@@ -13,7 +13,7 @@ Destroy the semaphore
 
 ### func init\(UInt32\)
 ```cj
-public init(initialValue!: UInt32 = 0)
+public init(initVal!: UInt32 = 0)
 ```
 Constructor: create a semaphore
 
@@ -21,7 +21,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|initialValue|UInt32|Initial count value|
+|initVal|UInt32|Initial count value|
 
 ### func signal\(\)
 ```cj

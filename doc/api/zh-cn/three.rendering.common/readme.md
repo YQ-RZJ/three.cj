@@ -53,6 +53,8 @@
 |[Renderer](./类/Renderer.md#class-renderer)|渲染器抽象基类|
 |[SampledTexture](./类/SampledTexture.md#class-sampledtexture)|采样纹理类，关联纹理与采样器参数|
 |[Sampler](./类/Sampler.md#class-sampler)|纹理采样器类|
+|[SceneCullIndex](./类/SceneCullIndex.md#class-scenecullindex)|场景空间索引|
+|[SceneMeshCache](./类/SceneMeshCache.md#class-scenemeshcache)|帧级场景网格缓存|
 |[Storage3DTexture](./类/Storage3DTexture.md#class-storage3dtexture)|3D 存储纹理类|
 |[StorageArrayTexture](./类/StorageArrayTexture.md#class-storagearraytexture)|存储数组纹理类|
 |[StorageBufferAttribute](./类/StorageBufferAttribute.md#class-storagebufferattribute)|存储缓冲属性类|

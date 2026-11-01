@@ -34,7 +34,7 @@
 |[colorspace_fragment](./Variables%20&%20constants.md#const-colorspace_fragment)|colorspace_fragment GLSL 片段字符串  使用仓颉三引号多行字符串语法 `"""..."""`。|
 |[colorspace_pars_fragment](./Variables%20&%20constants.md#const-colorspace_pars_fragment)|colorspace_pars_fragment GLSL 片段字符串  使用仓颉三引号多行字符串语法 `"""..."""`。|
 |[common](./Variables%20&%20constants.md#const-common)|common GLSL 片段字符串  使用仓颉三引号多行字符串语法 `"""..."""`。|
-|[cube_uv_reflection_fragment](./Variables%20&%20constants.md#const-cube_uv_reflection_fragment)|cube_uv_reflection_fragment GLSL 片段字符串  使用仓颉三引号多行字符串语法 `"""..."""`。|
+|[cube_uv_reflection_fragment](./Variables%20&%20constants.md#const-cube_uv_reflection_fragment)|cube_uv_reflection_fragment GLSL 片段字符串  ★CubeUV 图集布局（与 PMREMGenerator 的常量一一对应，改动必须两边同步）： - 共 5 个 mip 层级，面尺寸 faceSize = 256 / 128 / 64 / 32 / 16（level 0 最清晰）； - 每层平面为 3 列 × 2 行 的 faceSize 方块（face 0,1,2 → 第 0 行；face 3,4,5 → 第 1 行）； - 各层自上而下堆叠，y 偏移依次为 0 / 512 / 768 / 896 / 960； - 图集总尺寸 768 × 992； - 单像素采样点为 texel 中心（uv * (faceSize - 1) + 0.5），配合 ClampToEdge + LinearFilter。 使用仓颉三引号多行字符串语法 `"""..."""`。|
 |[default_fragment](./Variables%20&%20constants.md#const-default_fragment)|default_fragment GLSL 片段字符串  使用仓颉三引号多行字符串语法 `"""..."""`。|
 |[default_vertex](./Variables%20&%20constants.md#const-default_vertex)|default_vertex GLSL 片段字符串  使用仓颉三引号多行字符串语法 `"""..."""`。|
 |[defaultnormal_vertex](./Variables%20&%20constants.md#const-defaultnormal_vertex)|defaultnormal_vertex GLSL 片段字符串  使用仓颉三引号多行字符串语法 `"""..."""`。|

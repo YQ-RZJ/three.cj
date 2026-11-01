@@ -62,7 +62,7 @@ public const shadowmap_vertex: String = #"
   #if NUM_DIR_LIGHT_SHADOWS > 0
 
    // bgfx4cj: 方向光阴影坐标（varying 单实例，用 directionalShadowMatrix 数组的第 0 个矩阵）。
-   // normalBias 用 per-light 数组 u_dirShadowParams[0].y（对齐 three.js：每光源独立 shadowNormalBias）。
+   // normalBias 用 per-light 数组 u_dirShadowParams[0].y（对齐参考实现：每光源独立 shadowNormalBias）。
    // 法线偏移沿世界法线方向，棱线处相邻面自然连续，不产生接缝缝隙（depth bias 才造成接缝）。
    shadowWorldPosition = worldPosition + vec4( shadowWorldNormal * u_dirShadowParams[0].y, 0 );
    vDirectionalShadowCoord = mul(directionalShadowMatrix[0], shadowWorldPosition);
@@ -73,7 +73,7 @@ public const shadowmap_vertex: String = #"
 	#if NUM_RECT_AREA_LIGHTS > 0
 
 		// TODO (abelnation): update vAreaShadowCoord with area light info
-		// Ignore: JS 原文 TODO（area light shadow coord），属 three.js 上游未实现项。
+		// Ignore: JS 原文 TODO（area light shadow coord），属上游未实现项。
 
 	#endif
 	*/

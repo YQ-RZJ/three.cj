@@ -1,6 +1,6 @@
 /**
  * @file MaterialBehaviorTest
- * @brief 补充迁移 three.js test/unit/src/materials/Material.tests.js 的 dispose/type 断言
+ * @brief 补充迁移上游 JS 库 test/unit/src/materials/Material.tests.js 的 dispose/type 断言
  *
  * 对照 JS:
  *   new Material() → object.type === 'Material'

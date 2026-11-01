@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * CylinderGeometry 继承自 BufferGeometry，生成圆柱体的顶点、法线、UV 和索引数据。
  * 包含 torso（侧面）和 top/bottom cap（顶底封闭面，openEnded=false 时）。
- * 对应 Three.js geometries/CylinderGeometry.js。
  *
  * @file[en] Cylinder Geometry
  * @brief[en] Cylinder geometry composed of a torso and optional top/bottom caps
  * @explain[en] 
  * CylinderGeometry extends BufferGeometry, generating vertex, normal, UV and index data for a cylinder.
  * Includes torso (side) and top/bottom cap (when openEnded=false).
- * Corresponds to Three.js geometries/CylinderGeometry.js.
  */
 package three.rendering.geometry
 
@@ -45,11 +43,11 @@ import std.math.*
 /**
  * @brief[zh-cn] 圆柱几何体类
  * @explain[zh-cn] 
- * 参照 Three.js CylinderGeometry.js 实现，包含 torso（侧面）和 top/bottom cap（顶底封闭面，openEnded=false 时）。
+ * 参照 CylinderGeometry.js 的通行做法实现，包含 torso（侧面）和 top/bottom cap（顶底封闭面，openEnded=false 时）。
  *
  * @brief[en] Cylinder geometry class
  * @explain[en] 
- * Implements Three.js CylinderGeometry.js, including torso (side) and top/bottom cap (when openEnded=false).
+ * Implements the common CylinderGeometry.js approach, including torso (side) and top/bottom cap (when openEnded=false).
  */
 public open class CylinderGeometry <: BufferGeometry {
     public var parameters: HashMap<String, Any>

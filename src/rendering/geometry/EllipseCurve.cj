@@ -23,13 +23,9 @@
  *
  * @file[zh-cn] 椭圆曲线
  * @brief[zh-cn] 绕中心点的椭圆曲线
- * @explain[zh-cn] 
- * 对应 Three.js extras/curves/EllipseCurve.js。
  *
  * @file[en] Ellipse Curve
  * @brief[en] Elliptical curve around a center point
- * @explain[en] 
- * Corresponds to Three.js extras/curves/EllipseCurve.js.
  */
 package three.rendering.geometry
 import std.collection.*

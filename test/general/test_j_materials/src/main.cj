@@ -2,7 +2,7 @@
  * @file main
  * @brief test_materials 独立测试项目入口
  *
- * 迁移自 three.js test/unit/src/materials 目录的 tests.js 测试：
+ * 迁移自上游 JS 库 test/unit/src/materials 目录的 tests.js 测试：
  * Material / MeshBasicMaterial / MeshLambertMaterial / MeshPhongMaterial /
  * MeshStandardMaterial / MeshPhysicalMaterial / MeshToonMaterial /
  * MeshMatcapMaterial / MeshNormalMaterial / MeshDepthMaterial /

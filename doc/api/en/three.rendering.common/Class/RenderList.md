@@ -21,6 +21,12 @@ Return:
 
 - Sorted render item list
 
+### func getOpaqueItems\(\)
+```cj
+public func getOpaqueItems(): ArrayList < RenderItem >
+```
+Get the opaque render item list (internal reference, for batching route in-place modification)
+
 ### func init\(\)
 ```cj
 public init()
@@ -44,6 +50,24 @@ Parameter:
 |renderOrder|Int64||
 |z|Float64||
 |group|Int64||
+
+### func removeOpaqueItem\(RenderItem\)
+```cj
+public func removeOpaqueItem(item: RenderItem): Unit
+```
+Remove an opaque render item by reference
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|item|RenderItem||
+
+### func removeOpaqueMarked\(\)
+```cj
+public func removeOpaqueMarked(): Unit
+```
+Batch-remove all opaque render items flagged with routeSuppressed
 
 ### func sort\(\)
 ```cj

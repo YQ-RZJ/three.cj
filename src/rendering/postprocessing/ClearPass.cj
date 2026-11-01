@@ -58,6 +58,8 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
 import std.collection.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 清屏 pass
@@ -113,6 +115,7 @@ public class ClearPass <: Pass {
      * @param[en] readBuffer Read buffer (cleared when renderToScreen=false)
      * @param[en] deltaTime Frame delta time
      */
+    @Zone[three.rendering.postprocessing.ClearPass.render, name=clearPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,

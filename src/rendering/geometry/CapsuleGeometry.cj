@@ -25,13 +25,11 @@
  * @brief[zh-cn] 由圆柱体 + 两个半球帽组成的胶囊体几何体
  * @explain[zh-cn] 
  * CapsuleGeometry 继承自 BufferGeometry，由圆柱体中间段和两个半球帽组成。
- * 对应 Three.js geometries/CapsuleGeometry.js。
  *
  * @file[en] Capsule Geometry
  * @brief[en] Capsule geometry composed of a cylinder and two hemispherical caps
  * @explain[en] 
  * CapsuleGeometry extends BufferGeometry, composed of a cylindrical middle section and two hemispherical caps.
- * Corresponds to Three.js geometries/CapsuleGeometry.js.
  */
 package three.rendering.geometry
 

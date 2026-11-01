@@ -24,14 +24,14 @@
  * @file[zh-cn] 聚光源阴影配置
  * @brief[zh-cn] 专用于SpotLight的阴影配置，根据光源角度动态调整相机视锥
  * @explain[zh-cn] 
- * 对应 Three.js lights/SpotLightShadow.js。内部相机为 PerspectiveCamera（透视投影），
+ * 内部相机为 PerspectiveCamera（透视投影），
  * 默认 fov=50、aspect=1、near=0.5、far=500。每次更新时根据光源角度和 focus 动态调整相机视锥，
  * 确保阴影贴图仅覆盖聚光锥体有效区域。
  *
  * @file[en] Spot Light Shadow
  * @brief[en] Shadow configuration specific to SpotLight, dynamically adjusts camera frustum based on light angle
  * @explain[en] 
- * Corresponds to Three.js lights/SpotLightShadow.js. The internal camera is a PerspectiveCamera,
+ * The internal camera is a PerspectiveCamera,
  * default fov=50, aspect=1, near=0.5, far=500. Each update dynamically adjusts the camera frustum
  * based on the light angle and focus, ensuring the shadow map only covers the spotlight cone's effective area.
  */
@@ -49,13 +49,13 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 专用于SpotLight的阴影配置，根据光源角度动态调整相机视锥
  * @explain[zh-cn] 
- * 对应 Three.js lights/SpotLightShadow.js。内部相机为 PerspectiveCamera（透视投影），
+ * 内部相机为 PerspectiveCamera（透视投影），
  * 默认 fov=50、aspect=1、near=0.5、far=500。每次更新时根据光源角度和 focus 动态调整相机视锥，
  * 确保阴影贴图仅覆盖聚光锥体有效区域。
  *
  * @brief[en] Shadow configuration specific to SpotLight, dynamically adjusts camera frustum based on light angle
  * @explain[en] 
- * Corresponds to Three.js lights/SpotLightShadow.js. The internal camera is a PerspectiveCamera,
+ * The internal camera is a PerspectiveCamera,
  * default fov=50, aspect=1, near=0.5, far=500. Each update dynamically adjusts the camera frustum
  * based on the light angle and focus, ensuring the shadow map only covers the spotlight cone's effective area.
  */

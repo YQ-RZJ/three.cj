@@ -1,6 +1,6 @@
 /**
  * @file MaterialsInheritanceTest
- * @brief 迁移 three.js test/unit/src/materials 目录 tests.js 的 Extending 断言
+ * @brief 迁移上游 JS 库 test/unit/src/materials 目录 tests.js 的 Extending 断言
  *
  * 对照 JS:
  *   new MeshBasicMaterial() instanceof Material → true

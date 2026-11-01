@@ -177,9 +177,10 @@ public class PoolManager {
      * @throws[en] IllegalStateException When the ID is not registered
      */
     public func get(id: Int64): Object {
-        match (_pools.get(id)) {
-            case Some(pool) => return pool.allocate()
-            case None => throw IllegalStateException("object type not registered: id=${id}")
+        if (let Some(pool) <- _pools.get(id)) {
+            return pool.allocate()
+        } else {
+            throw IllegalStateException("object type not registered: id=${id}")
         }
     }
 
@@ -196,9 +197,10 @@ public class PoolManager {
      * @throws[en] IllegalStateException When the ID is not registered
      */
     public func recycle(id: Int64, obj: Object): Unit {
-        match (_pools.get(id)) {
-            case Some(pool) => pool.recycle(obj)
-            case None => throw IllegalStateException("object type not registered: id=${id}")
+        if (let Some(pool) <- _pools.get(id)) {
+            pool.recycle(obj)
+        } else {
+            throw IllegalStateException("object type not registered: id=${id}")
         }
     }
 

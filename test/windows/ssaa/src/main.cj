@@ -81,7 +81,7 @@ public class TestWindow <: WindowEngine {
         // ---- 步骤 4: 进入渲染循环（SSAARenderPass → 上屏） ----
         println("[4/5] 进入渲染循环（SSAARenderPass via EffectComposer）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   composer.addPass(new SSAARenderPass(scene, camera))   // 自己渲染场景（无需 RenderPass）
         //   ssaaRenderPass.sampleLevel = 3   // 2^3 = 8 样本
         let composer = EffectComposer(this.renderer)
@@ -95,7 +95,7 @@ public class TestWindow <: WindowEngine {
     // ===== 生命周期：每循环（读固定快照——逻辑+渲染） =====
     public override func onFrame(dt: Float64): Unit {
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // 鼠标左键拖动：调整公转角度
         if (_mouse.getOrThrow().isMouseButtonDown(MouseButton.LEFT)) {

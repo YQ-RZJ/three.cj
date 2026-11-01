@@ -23,13 +23,9 @@
  *
  * @file[zh-cn] 2D 三次贝塞尔曲线
  * @brief[zh-cn] 4 个控制点定义的 2D 三次贝塞尔曲线
- * @explain[zh-cn] 
- * 对应 Three.js extras/curves/CubicBezierCurve.js。
  *
  * @file[en] 2D Cubic Bezier Curve
  * @brief[en] 2D cubic Bezier curve defined by 4 control points
- * @explain[en] 
- * Corresponds to Three.js extras/curves/CubicBezierCurve.js.
  */
 package three.rendering.geometry
 

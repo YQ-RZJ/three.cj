@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx Uniform 变量管理
  * @brief[zh-cn] 替代 WebGLUniforms，使用 bgfx UniformHandle 管理 Uniform 变量
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLUniforms.js。在 WebGL 中通过 gl.getUniformLocation/gl.uniform* 设置 uniform，在 bgfx 中通过 bgfx_create_uniform_cj/bgfx_set_uniform_cj 管理。对外返回/接受的句柄统一为 Box 包装类型。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.getUniformLocation/gl.uniform* 设置 uniform，在 bgfx 中通过 bgfx_create_uniform_cj/bgfx_set_uniform_cj 管理。对外返回/接受的句柄统一为 Box 包装类型。
  *
  * @file[en] bgfx Uniform Variable Management
  * @brief[en] Replaces WebGLUniforms, manages uniform variables using bgfx UniformHandle
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLUniforms.js. In WebGL, uniforms are set via gl.getUniformLocation/gl.uniform*; in bgfx, they are managed via bgfx_create_uniform_cj/bgfx_set_uniform_cj. External handle types are unified as Box wrapper types.
+ * @explain[en] In WebGL, uniforms are set via gl.getUniformLocation/gl.uniform*; in bgfx, they are managed via bgfx_create_uniform_cj/bgfx_set_uniform_cj. External handle types are unified as Box wrapper types.
  */
 package three.rendering.bgfx
 
@@ -129,21 +129,20 @@ public class BgfxUniforms {
     public func createUniform(name: String, uniformType: UInt32, num: UInt16): UniformHandle {
         bgfxCallMtx.lock()
         try {
-            match (uniforms.get(name)) {
-                case Some(info) =>
-                    return info.handle
-                case None =>
-                    @LogDebug(["uniforms", "createUniform CREATE: name=" + name + " type=" + uniformType.toString() + " num=" + num.toString()])
-                    let cName = unsafe { LibC.mallocCString(name) }
-                    let cNameHolder = AutoFreePtr<UInt8>(unsafe { cName.getChars() })
-                    let handle = bgfx.bgfx_create_uniform_cj(cName, uniformType, num)
-                    cNameHolder.dispose()
-                    let info = UniformInfo()
-                    info.handle = Box(handle)
-                    info.name = name
-                    info.uniformType = uniformType
-                    uniforms.add(name, info)
-                    return info.handle
+            if (let Some(info) <- uniforms.get(name)) {
+                return info.handle
+            } else {
+                @LogDebug(["uniforms", "createUniform CREATE: name=" + name + " type=" + uniformType.toString() + " num=" + num.toString()])
+                let cName = unsafe { LibC.mallocCString(name) }
+                let cNameHolder = AutoFreePtr<UInt8>(unsafe { cName.getChars() })
+                let handle = bgfx.bgfx_create_uniform_cj(cName, uniformType, num)
+                cNameHolder.dispose()
+                let info = UniformInfo()
+                info.handle = Box(handle)
+                info.name = name
+                info.uniformType = uniformType
+                uniforms.add(name, info)
+                return info.handle
             }
         } finally {
             bgfxCallMtx.unlock()
@@ -162,16 +161,13 @@ public class BgfxUniforms {
      * data Data (BgfxMemory, internal pointer)
      */
     public func setVec4(name: String, data: BgfxMemory): Unit {
-        match (uniforms.get(name)) {
-            case Some(info) =>
-                bgfxCallMtx.lock()
-                try {
-                    bgfx.bgfx_set_uniform_cj(info.handle.value, unsafe { CPointer<Unit>(data.data()) }, 1u16)
-                } finally {
-                    bgfxCallMtx.unlock()
-                }
-            case None =>
-                ()
+        if (let Some(info) <- uniforms.get(name)) {
+            bgfxCallMtx.lock()
+            try {
+                bgfx.bgfx_set_uniform_cj(info.handle.value, unsafe { CPointer<Unit>(data.data()) }, 1u16)
+            } finally {
+                bgfxCallMtx.unlock()
+            }
         }
     }
 
@@ -187,16 +183,13 @@ public class BgfxUniforms {
      * data Data (BgfxMemory, internal pointer)
      */
     public func setMat4(name: String, data: BgfxMemory): Unit {
-        match (uniforms.get(name)) {
-            case Some(info) =>
-                bgfxCallMtx.lock()
-                try {
-                    bgfx.bgfx_set_uniform_cj(info.handle.value, unsafe { CPointer<Unit>(data.data()) }, 1u16)
-                } finally {
-                    bgfxCallMtx.unlock()
-                }
-            case None =>
-                ()
+        if (let Some(info) <- uniforms.get(name)) {
+            bgfxCallMtx.lock()
+            try {
+                bgfx.bgfx_set_uniform_cj(info.handle.value, unsafe { CPointer<Unit>(data.data()) }, 1u16)
+            } finally {
+                bgfxCallMtx.unlock()
+            }
         }
     }
 
@@ -212,16 +205,13 @@ public class BgfxUniforms {
      * data Data (BgfxMemory, internal pointer)
      */
     public func setMat3(name: String, data: BgfxMemory): Unit {
-        match (uniforms.get(name)) {
-            case Some(info) =>
-                bgfxCallMtx.lock()
-                try {
-                    bgfx.bgfx_set_uniform_cj(info.handle.value, unsafe { CPointer<Unit>(data.data()) }, 1u16)
-                } finally {
-                    bgfxCallMtx.unlock()
-                }
-            case None =>
-                ()
+        if (let Some(info) <- uniforms.get(name)) {
+            bgfxCallMtx.lock()
+            try {
+                bgfx.bgfx_set_uniform_cj(info.handle.value, unsafe { CPointer<Unit>(data.data()) }, 1u16)
+            } finally {
+                bgfxCallMtx.unlock()
+            }
         }
     }
 
@@ -241,11 +231,8 @@ public class BgfxUniforms {
      * flags Sampler flags
      */
     public func setTexture(name: String, stage: UInt8, handle: TextureHandle, flags: UInt32): Unit {
-        match (uniforms.get(name)) {
-            case Some(info) =>
-                bgfx.bgfx_set_texture_cj(stage, info.handle.value, handle.value, flags)
-            case None =>
-                ()
+        if (let Some(info) <- uniforms.get(name)) {
+            bgfx.bgfx_set_texture_cj(stage, info.handle.value, handle.value, flags)
         }
     }
 
@@ -259,9 +246,10 @@ public class BgfxUniforms {
      * @return[en] Uniform handle (None if not found)
      */
     public func getHandle(name: String): Option<UniformHandle> {
-        match (uniforms.get(name)) {
-            case Some(info) => Some(info.handle)
-            case None => None
+        if (let Some(info) <- uniforms.get(name)) {
+            Some(info.handle)
+        } else {
+            None
         }
     }
 

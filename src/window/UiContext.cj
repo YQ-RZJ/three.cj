@@ -210,13 +210,11 @@ public class UiContext {
             ImGui_ImplSDL3_Shutdown_cj()
         })
         // 关闭 bgfx 后端（bgfx 渲染线程）
-        match (this._execBgfx) {
-            case Some(execFn) =>
-                execFn({ =>
-                    ImGui_SetCurrentContext_cj(ctxPtr)
-                    ImGui_Implbgfx_Shutdown_cj()
-                })
-            case None => ()
+        if (let Some(execFn) <- this._execBgfx) {
+            execFn({ =>
+                ImGui_SetCurrentContext_cj(ctxPtr)
+                ImGui_Implbgfx_Shutdown_cj()
+            })
         }
         // 销毁 ImGui 上下文（泵线程）
         ImGui_SetCurrentContext_cj(this._ctx)

@@ -59,7 +59,7 @@ public func createScene(width: Int32, height: Int32): SceneObjects {
     println("  相机创建成功: ${camera.name}")
 
     // ---- 环境光（被测光源：均匀打亮场景）----
-    // 对照 three.js webgl_lights_ambientlight 示例：
+    // 参照 webgl_lights_ambientlight 官方示例：
     // 环境光不产生阴影、不依赖方向/位置，颜色均匀叠加到各物体。
     let ambient = AmbientLight(color: Color(0xffffff), intensity: 0.45)
     ambient.name = "Ambient"

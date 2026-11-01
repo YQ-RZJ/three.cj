@@ -2,7 +2,7 @@
  * @file main
  * @brief test_textures 独立测试项目入口
  *
- * 迁移自 three.js test/unit/src/textures 目录的 tests.js 测试：
+ * 迁移自上游 JS 库 test/unit/src/textures 目录的 tests.js 测试：
  * - Texture / Source / CanvasTexture / CompressedTexture / CompressedArrayTexture /
  *   CubeTexture / CubeDepthTexture / DataTexture / Data3DTexture / DataArrayTexture /
  *   DepthTexture / FramebufferTexture / VideoTexture

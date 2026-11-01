@@ -64,6 +64,23 @@ public open func getRenderViewId(): UInt16
 
 - bgfx view id
 
+### func getSceneMeshes\(Object3D,Bool\)
+```cj
+public func getSceneMeshes(scene: Object3D, visibleOnly!: Bool = false): ArrayList < RenderObject >
+```
+获取本帧场景中的 Mesh 渲染对象列表（帧级共享缓存）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|scene|Object3D|场景根节点visibleOnly 是否只返回可见对象（SSR 等 pass 需要跳过不可见对象防止自反射）|
+|visibleOnly|Bool||
+
+返回: 
+
+- Mesh 渲染对象列表（内部引用，调用方只读）
+
 ### func getSize\(\)
 ```cj
 public func getSize():(Int64, Int64)
@@ -184,6 +201,18 @@ public var background: Background = Background()
 public var depth: Bool = true
 ```
 是否启用深度缓冲
+
+### var enableSpatialCulling
+```cj
+public var enableSpatialCulling: Bool = true
+```
+是否启用空间剔除（BVH 加速）
+
+### var frameIndex
+```cj
+public var frameIndex: Int64 = 0
+```
+帧序号（每次 render() 自增）
 
 ### var height
 ```cj

@@ -40,6 +40,8 @@ package three.animation.skeletal
 import std.math.*
 import three.core.math.soa.*
 import three.core.math.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 采样上下文（帧间缓存）
@@ -178,10 +180,7 @@ public class SamplingJob {
      * @return[en] true if the job can run
      */
     public func validate(): Bool {
-        let a = match (this.animation) {
-            case Some(a) => a
-            case None => return false
-        }
+        let a = if (let Some(a) <- this.animation) { a } else { return false }
         if (a.numTracks <= 0) {
             return true  // 空动画合法
         }
@@ -214,11 +213,9 @@ public class SamplingJob {
      *                     the local transform
      *                  4. Packs the results into SoaTransform outputs
      */
+    @Zone[three.animation.skeletal.SamplingJob.run, name=SamplingJob.run]
     public func run(): Bool {
-        let clip = match (this.animation) {
-            case Some(a) => a
-            case None => return false
-        }
+        let clip = if (let Some(a) <- this.animation) { a } else { return false }
         let numTracks = clip.numTracks
         if (numTracks <= 0) { return true }
 
@@ -227,20 +224,34 @@ public class SamplingJob {
         let time = this.ratio * clip.duration
         let numSoa = clip.numSoaJoints()
 
+        // 4 槽位的临时数组：提到循环外复用（逐帧采样是热路径，逐块分配 10 个数组纯属浪费）
+        let tx = Array<Float32>(4, { _ => 0.0f32 })
+        let ty = Array<Float32>(4, { _ => 0.0f32 })
+        let tz = Array<Float32>(4, { _ => 0.0f32 })
+        let rx = Array<Float32>(4, { _ => 0.0f32 })
+        let ry = Array<Float32>(4, { _ => 0.0f32 })
+        let rz = Array<Float32>(4, { _ => 0.0f32 })
+        let rw = Array<Float32>(4, { _ => 1.0f32 })
+        let sx = Array<Float32>(4, { _ => 1.0f32 })
+        let sy = Array<Float32>(4, { _ => 1.0f32 })
+        let sz = Array<Float32>(4, { _ => 1.0f32 })
+
         for (soaIdx in 0..numSoa) {
             let baseJoint = soaIdx * 4
 
-            // 为 4 个槽位采样
-            var tx = Array<Float32>(4, { _ => 0.0f32 })
-            var ty = Array<Float32>(4, { _ => 0.0f32 })
-            var tz = Array<Float32>(4, { _ => 0.0f32 })
-            var rx = Array<Float32>(4, { _ => 0.0f32 })
-            var ry = Array<Float32>(4, { _ => 0.0f32 })
-            var rz = Array<Float32>(4, { _ => 0.0f32 })
-            var rw = Array<Float32>(4, { _ => 1.0f32 })
-            var sx = Array<Float32>(4, { _ => 1.0f32 })
-            var sy = Array<Float32>(4, { _ => 1.0f32 })
-            var sz = Array<Float32>(4, { _ => 1.0f32 })
+            // 复位默认值（轨道数不足 4 时尾部槽位保持单位变换）
+            for (slot in 0..4) {
+                tx[slot] = 0.0f32
+                ty[slot] = 0.0f32
+                tz[slot] = 0.0f32
+                rx[slot] = 0.0f32
+                ry[slot] = 0.0f32
+                rz[slot] = 0.0f32
+                rw[slot] = 1.0f32
+                sx[slot] = 1.0f32
+                sy[slot] = 1.0f32
+                sz[slot] = 1.0f32
+            }
 
             for (slot in 0..4) {
                 let track = baseJoint + slot

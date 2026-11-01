@@ -6,7 +6,7 @@ package bloom_basic
  * - 一束弱方向光 + 环境光提供基础照明
  * - 启用简单版 Bloom（BgfxBloomPass：水平卷积 + 垂直卷积 + strength 合成）
  *
- * 验证：three.js BloomPass（简单版）迁移到 Three.cj 后的正确性。
+ * 验证：BloomPass（简单版）在 Three.cj 中的实现正确性。
  * 与 unreal_bloom（UnrealBloomPass 5 级金字塔）形成对照：
  *   - BloomPass：kernelSize=25 / sigma=4，两遍卷积 + 合成，开销小
  *   - UnrealBloomPass：threshold 亮度提取 + 5 级 mip 模糊，效果更柔

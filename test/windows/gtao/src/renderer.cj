@@ -1,7 +1,7 @@
 package sp_gtao
 
 /**
- * sp_gtao 渲染场景（对齐 three.js 官方案例 webgl_postprocessing_gtao.html 的尺度与参数，v2 生命周期模式）：
+ * sp_gtao 渲染场景（对齐官方案例 webgl_postprocessing_gtao.html 的尺度与参数，v2 生命周期模式）：
  * - 场景：自建"小街区"（地面 + 建筑 + 球体），细节尺度 0.25~3 单位
  *   （官方用 LittlestTokyo.glb scale 0.01，模型细节 ~1 单位；Three.cj 的 GltfLoader
  *   对该 4MB/71mesh/618accessor 模型解析过慢且不重建节点层级，故以自建几何体复刻尺度）

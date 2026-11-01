@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 3D 存储纹理
  * @brief[zh-cn] 3D 存储纹理类，用于 GPU 计算/存储的 3D 纹理资源
- * @explain[zh-cn] Storage3DTexture 表示可在计算着色器中读写的三维纹理存储资源，kind 属性标识纹理类型。对照源码: three.js/src/renderers/common/Storage3DTexture.js
+ * @explain[zh-cn] Storage3DTexture 表示可在计算着色器中读写的三维纹理存储资源，kind 属性标识纹理类型。
  *
  * @file[en] Storage 3D Texture
  * @brief[en] Storage 3D texture class, used for GPU compute/storage 3D texture resources
- * @explain[en] Storage3DTexture represents a 3D texture storage resource that can be read and written in compute shaders, with a kind property identifying the texture type. Reference: three.js/src/renderers/common/Storage3DTexture.js
+ * @explain[en] Storage3DTexture represents a 3D texture storage resource that can be read and written in compute shaders, with a kind property identifying the texture type.
  */
 package three.rendering.common
 

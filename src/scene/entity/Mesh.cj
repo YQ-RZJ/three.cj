@@ -44,6 +44,8 @@ import three.core.math.*
 import three.rendering.materials.*
 import three.rendering.cameras.*
 import three.scene.interfaces.IMesh
+import three.profiler.*
+import three.profiler.macros.*
 import std.collection.*
 import fastjson.*
 import fastjson.macros.*
@@ -157,10 +159,10 @@ public open class Mesh <: Object3D & IMesh {
      */
     public open func getVertexPosition(index: Int64, target: Vector3): Vector3 {
         let posOpt = this.geometry.getAttribute("position")
-        match (posOpt) {
-            case Some(attr) => return target.set(attr.getX(index), attr.getY(index), attr.getZ(index))
-            case None => return target
+        if (let Some(attr) <- posOpt) {
+            return target.set(attr.getX(index), attr.getY(index), attr.getZ(index))
         }
+        return target
     }
 
     /**
@@ -185,15 +187,17 @@ public open class Mesh <: Object3D & IMesh {
      * @param[en] raycaster The raycaster
      * intersects Intersection result accumulator
      */
+    @Zone[three.scene.entity.Mesh.raycast, name=meshRaycast]
     public open func raycast(raycaster: Raycaster, intersects: ArrayList<Intersection>): Unit {
         let geometry = this.geometry
         let matrixWorld = this.matrixWorld
 
         // bounding sphere test in world space
         let sphere = Sphere()
-        match (geometry.boundingSphere) {
-            case Some(bs) => sphere.copy(bs)
-            case None => return
+        if (let Some(bs) <- geometry.boundingSphere) {
+            sphere.copy(bs)
+        } else {
+            return
         }
         sphere.applyMatrix4(matrixWorld)
 
@@ -201,12 +205,12 @@ public open class Mesh <: Object3D & IMesh {
         ray.copy(raycaster.ray)
         if (sphere.containsPoint(ray.origin) == false) {
             let hit = ray.intersectSphere(sphere, Vector3())
-            match (hit) {
-                case Some(pt) =>
-                    let distSq = ray.origin.distanceToSquared(pt)
-                    let farSq = (raycaster.far - raycaster.near)
-                    if (distSq > farSq * farSq) { return }
-                case None => return
+            if (let Some(pt) <- hit) {
+                let distSq = ray.origin.distanceToSquared(pt)
+                let farSq = (raycaster.far - raycaster.near)
+                if (distSq > farSq * farSq) { return }
+            } else {
+                return
             }
         }
 
@@ -219,132 +223,124 @@ public open class Mesh <: Object3D & IMesh {
         ray.direction.transformDirection(invMatrix)
 
         // bounding box test in local space
-        match (geometry.boundingBox) {
-            case Some(box) =>
-                if (box.isEmpty() == false) {
-                    let boxHit = ray.intersectBox(box, Vector3())
-                    match (boxHit) {
-                        case None => return
-                        case Some(_) => ()
-                    }
+        if (let Some(box) <- geometry.boundingBox) {
+            if (box.isEmpty() == false) {
+                let boxHit = ray.intersectBox(box, Vector3())
+                if (let Some(_) <- boxHit) {
+                    ()
+                } else {
+                    return
                 }
-            case None => ()
+            }
         }
 
         // triangle intersection
         let posOpt = geometry.getAttribute("position")
         let indexAttrOpt = geometry.index
-        match (posOpt) {
-            case Some(posAttr) =>
-                if (posAttr.count < 3) { return }
-                let (triCount, useIndex) = match (indexAttrOpt) {
-                    case Some(idxAttr) => (idxAttr.count / 3, true)
-                    case None => (posAttr.count / 3, false)
-                }
+        if (let Some(posAttr) <- posOpt) {
+            if (posAttr.count < 3) { return }
+            let (triCount, useIndex) = if (let Some(idxAttr) <- indexAttrOpt) {
+                (idxAttr.count / 3, true)
+            } else {
+                (posAttr.count / 3, false)
+            }
+                // 循环外复用暂存：原实现每三角形分配 3 个顶点 Vector3 + Triangle
+                // （Triangle 构造内部再 clone 3 个 Vector3）+ 命中 target Vector3，
+                // 大网格（TorusKnot 等数千三角形）逐帧遍历时产生大量短命对象。
+                // side 只取决于材质，移出循环只算一次。
+                let pA = Vector3()
+                let pB = Vector3()
+                let pC = Vector3()
+                let tri = Triangle()
+                let hitTmp = Vector3()
+                let side = match (this.material) { case m: Material => m.side; case _ => 0 }
                 for (i in 0..triCount) {
                     let a: Int64; let b: Int64; let c: Int64
                     if (useIndex) {
-                        match (indexAttrOpt) {
-                            case Some(idxAttr) =>
-                                a = Int64(idxAttr.getX(i * 3))
-                                b = Int64(idxAttr.getX(i * 3 + 1))
-                                c = Int64(idxAttr.getX(i * 3 + 2))
-                            case None => continue
+                        if (let Some(idxAttr) <- indexAttrOpt) {
+                            a = Int64(idxAttr.getX(i * 3))
+                            b = Int64(idxAttr.getX(i * 3 + 1))
+                            c = Int64(idxAttr.getX(i * 3 + 2))
+                        } else {
+                            continue
                         }
                     } else {
                         a = i * 3; b = i * 3 + 1; c = i * 3 + 2
                     }
                     
-                    let pA = Vector3()
-                    let pB = Vector3()
-                    let pC = Vector3()
                     this.getVertexPosition(a, pA)
                     this.getVertexPosition(b, pB)
                     this.getVertexPosition(c, pC)
-                    let tri = Triangle(pA, pB, pC)
+                    tri.set(pA, pB, pC)
                     
-                    let side = match (this.material) { case m: Material => m.side; case _ => 0 }
                     let hitPoint = if (side == 1) {
-                        ray.intersectTriangle(pC, pB, pA, true, Vector3())
+                        ray.intersectTriangle(pC, pB, pA, true, hitTmp)
                     } else {
-                        ray.intersectTriangle(pA, pB, pC, (side == 0), Vector3())
+                        ray.intersectTriangle(pA, pB, pC, (side == 0), hitTmp)
                     }
-                    match (hitPoint) {
-                        case Some(pt) =>
-                            // world space intersection point
-                            let worldPt = pt.clone().applyMatrix4(matrixWorld)
-                            let dist = raycaster.ray.origin.distanceTo(worldPt)
-                            if (dist < raycaster.near || dist > raycaster.far) {
-                                continue
+                    if (let Some(pt) <- hitPoint) {
+                        // world space intersection point
+                        let worldPt = pt.clone().applyMatrix4(matrixWorld)
+                        let dist = raycaster.ray.origin.distanceTo(worldPt)
+                        if (dist < raycaster.near || dist > raycaster.far) {
+                            continue
+                        }
+                        
+                        let barycoord = Vector3()
+                        tri.getBarycoord(pt, barycoord)
+                        // uv/uv1/normal 插值（对照 JS Triangle.getInterpolatedAttribute）
+                        var uvVal: ?Vector2 = None
+                        if (let Some(uvAttr) <- geometry.getAttribute("uv")) {
+                            let uA = Vector3(uvAttr.getX(a), uvAttr.getY(a), 0.0)
+                            let uB = Vector3(uvAttr.getX(b), uvAttr.getY(b), 0.0)
+                            let uC = Vector3(uvAttr.getX(c), uvAttr.getY(c), 0.0)
+                            let uvTarget = Vector3()
+                            if (let Some(_) <- tri.getInterpolation(pt, uA, uB, uC, uvTarget)) {
+                                uvVal = Some(Vector2(uvTarget.x, uvTarget.y))
                             }
-                            
-                            let barycoord = Vector3()
-                            tri.getBarycoord(pt, barycoord)
-                            // uv/uv1/normal 插值（对照 JS Triangle.getInterpolatedAttribute）
-                            var uvVal: ?Vector2 = None
-                            match (geometry.getAttribute("uv")) {
-                                case Some(uvAttr) =>
-                                    let uA = Vector3(uvAttr.getX(a), uvAttr.getY(a), 0.0)
-                                    let uB = Vector3(uvAttr.getX(b), uvAttr.getY(b), 0.0)
-                                    let uC = Vector3(uvAttr.getX(c), uvAttr.getY(c), 0.0)
-                                    let uvTarget = Vector3()
-                                    match (tri.getInterpolation(pt, uA, uB, uC, uvTarget)) {
-                                        case Some(_) => uvVal = Some(Vector2(uvTarget.x, uvTarget.y))
-                                        case None => ()
-                                    }
-                                case None => ()
+                        }
+                        var uv1Val: ?Vector2 = None
+                        if (let Some(uv1Attr) <- geometry.getAttribute("uv1")) {
+                            let uA = Vector3(uv1Attr.getX(a), uv1Attr.getY(a), 0.0)
+                            let uB = Vector3(uv1Attr.getX(b), uv1Attr.getY(b), 0.0)
+                            let uC = Vector3(uv1Attr.getX(c), uv1Attr.getY(c), 0.0)
+                            let uvTarget = Vector3()
+                            if (let Some(_) <- tri.getInterpolation(pt, uA, uB, uC, uvTarget)) {
+                                uv1Val = Some(Vector2(uvTarget.x, uvTarget.y))
                             }
-                            var uv1Val: ?Vector2 = None
-                            match (geometry.getAttribute("uv1")) {
-                                case Some(uv1Attr) =>
-                                    let uA = Vector3(uv1Attr.getX(a), uv1Attr.getY(a), 0.0)
-                                    let uB = Vector3(uv1Attr.getX(b), uv1Attr.getY(b), 0.0)
-                                    let uC = Vector3(uv1Attr.getX(c), uv1Attr.getY(c), 0.0)
-                                    let uvTarget = Vector3()
-                                    match (tri.getInterpolation(pt, uA, uB, uC, uvTarget)) {
-                                        case Some(_) => uv1Val = Some(Vector2(uvTarget.x, uvTarget.y))
-                                        case None => ()
-                                    }
-                                case None => ()
+                        }
+                        var normalVal: ?Vector3 = None
+                        if (let Some(nAttr) <- geometry.getAttribute("normal")) {
+                            let nA = Vector3(nAttr.getX(a), nAttr.getY(a), nAttr.getZ(a))
+                            let nB = Vector3(nAttr.getX(b), nAttr.getY(b), nAttr.getZ(b))
+                            let nC = Vector3(nAttr.getX(c), nAttr.getY(c), nAttr.getZ(c))
+                            let nTarget = Vector3()
+                            if (let Some(_) <- tri.getInterpolation(pt, nA, nB, nC, nTarget)) {
+                                
+                                if (nTarget.dot(ray.direction) > 0.0) {
+                                    nTarget.multiplyScalar(-1.0)
+                                }
+                                normalVal = Some(nTarget)
                             }
-                            var normalVal: ?Vector3 = None
-                            match (geometry.getAttribute("normal")) {
-                                case Some(nAttr) =>
-                                    let nA = Vector3(nAttr.getX(a), nAttr.getY(a), nAttr.getZ(a))
-                                    let nB = Vector3(nAttr.getX(b), nAttr.getY(b), nAttr.getZ(b))
-                                    let nC = Vector3(nAttr.getX(c), nAttr.getY(c), nAttr.getZ(c))
-                                    let nTarget = Vector3()
-                                    match (tri.getInterpolation(pt, nA, nB, nC, nTarget)) {
-                                        case Some(_) =>
-                                            
-                                            if (nTarget.dot(ray.direction) > 0.0) {
-                                                nTarget.multiplyScalar(-1.0)
-                                            }
-                                            normalVal = Some(nTarget)
-                                        case None => ()
-                                    }
-                                case None => ()
-                            }
-                            // face: { a, b, c, normal, materialIndex }
-                            let faceNormal = Vector3()
-                            tri.getNormal(faceNormal)
-                            let face = Face(a: a, b: b, c: c, normal: faceNormal, materialIndex: 0)
-                            // 构建完整 Intersection
-                            let intersection = Intersection()
-                            intersection.distance = dist
-                            intersection.point = worldPt
-                            intersection.obj = Some(this)
-                            intersection.faceIndex = i
-                            intersection.uv = uvVal
-                            intersection.uv1 = uv1Val
-                            intersection.normal = normalVal
-                            intersection.barycoord = Some(barycoord)
-                            intersection.face = Some(face)
-                            intersects.add(intersection)
-                        case None => ()
+                        }
+                        // face: { a, b, c, normal, materialIndex }
+                        let faceNormal = Vector3()
+                        tri.getNormal(faceNormal)
+                        let face = Face(a: a, b: b, c: c, normal: faceNormal, materialIndex: 0)
+                        // 构建完整 Intersection
+                        let intersection = Intersection()
+                        intersection.distance = dist
+                        intersection.point = worldPt
+                        intersection.obj = Some(this)
+                        intersection.faceIndex = i
+                        intersection.uv = uvVal
+                        intersection.uv1 = uv1Val
+                        intersection.normal = normalVal
+                        intersection.barycoord = Some(barycoord)
+                        intersection.face = Some(face)
+                        intersects.add(intersection)
                     }
                 }
-            case None => ()
         }
     }
 

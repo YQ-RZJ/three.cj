@@ -5,13 +5,13 @@ package toon_pipeline
  *
  * 设计目标：完整实现自定义后处理 pass，不复用引擎内置 OutlinePass。
  *
- * 算法流程（基于深度的 Sobel 边缘检测，对照 three.js OutlinePass 简化版）：
+ * 算法流程（基于深度的 Sobel 边缘检测，参照 OutlinePass 简化版）：
  *   1. 场景渲染到 readBuffer（由 RenderPass 完成）
  *   2. ToonOutlinePass 采样 readBuffer 的颜色 + 深度
  *   3. 用 Sobel 算子检测深度边缘
  *   4. 边缘像素混合描边颜色，输出到 writeBuffer
  *
- * 渲染管线组装（对照 three.js 官方 toon 案例 webgl_materials_toon.html）：
+ * 渲染管线组装（对照官方 toon 案例 webgl_materials_toon.html）：
  *   EffectComposer
  *     ├── RenderPass（场景→readBuffer）
  *     └── ToonOutlinePass（边缘检测描边→writeBuffer→上屏）
@@ -22,7 +22,7 @@ package toon_pipeline
  *   - 深度纹理通过 readBuffer 的 depth attachment 获取
  *   - view id 独立分配（避免与 EffectComposer 内部 view 冲突）
  *
- * 对照 three.js OutlinePass.js：
+ * 对照参考实现（OutlinePass）：
  *   - JS 用 WebGLRenderTarget + FullScreenQuad；
  *     本 pass 用 ThreeRenderer 高阶 API + 自定义全屏 quad submit
  *   - JS 7-pass chain（depth/mask/downsample/edge/blur1/blur2/overlay）；

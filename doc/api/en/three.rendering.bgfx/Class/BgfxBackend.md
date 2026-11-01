@@ -314,6 +314,12 @@ Parameter:
 |w|Int32||
 |h|Int32||
 
+### var info
+```cj
+public var info: BgfxInfo
+```
+Render statistics
+
 ### var maxDirLights
 ```cj
 public var maxDirLights: Int64 = 4

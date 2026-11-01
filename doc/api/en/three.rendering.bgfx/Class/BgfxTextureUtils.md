@@ -9,13 +9,13 @@ bgfx texture utilities
 ```cj
 public func convertFormat(format: Int64): UInt32
 ```
-Convert three.js pixel format to bgfx TextureFormat
+Convert engine pixel format to bgfx TextureFormat
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|format|Int64|three.js pixel format constant|
+|format|Int64|engine pixel format constant|
 
 Return: 
 

@@ -27,7 +27,7 @@ public init()
 ```cj
 public var angularVelocityX: Float64 = 0.0
 ```
-Angular velocity (referring to Three.js targetRay/grip angularVelocity)
+Angular velocity (corresponding to targetRay/grip angularVelocity)
 
 ### var angularVelocityY
 ```cj
@@ -45,7 +45,7 @@ Angular velocity Z component
 ```cj
 public var eventsEnabled: Bool = true
 ```
-Whether events are enabled (referring to Three.js grip.eventsEnabled)
+Whether events are enabled (corresponding to grip.eventsEnabled)
 
 ### var hasAngularVelocity
 ```cj
@@ -69,19 +69,19 @@ public var hasLinearVelocity: Bool = false
 ```cj
 public var inputState: HashMap < String, Any >
 ```
-Input state (referring to Three.js hand.inputState)
+Input state (corresponding to hand.inputState)
 
 ### var joints
 ```cj
 public var joints: HashMap < String, XRControllerSpace >
 ```
-Hand joint mapping (referring to Three.js hand.joints)
+Hand joint mapping (corresponding to hand.joints)
 
 ### var linearVelocityX
 ```cj
 public var linearVelocityX: Float64 = 0.0
 ```
-Linear velocity (referring to Three.js targetRay/grip linearVelocity)
+Linear velocity (corresponding to targetRay/grip linearVelocity)
 
 ### var linearVelocityY
 ```cj

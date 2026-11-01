@@ -9,13 +9,13 @@ bgfx constants mapping
 ```cj
 public static func convertBlendFactor(factor: Int64): UInt64
 ```
-Converts three.js blend factor to bgfx blend factor
+Converts engine blend factor to bgfx blend factor
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|factor|Int64|Three.js blend factor constant|
+|factor|Int64|Engine blend factor constant|
 
 Return: 
 
@@ -25,7 +25,7 @@ Return:
 ```cj
 public static func convertBlendFunc(srcFactor: Int64, dstFactor: Int64, srcAlphaFactor: Int64, dstAlphaFactor: Int64): UInt64
 ```
-Converts three.js blend mode to bgfx blend state
+Converts engine blend mode to bgfx blend state
 
 Parameter: 
 
@@ -44,13 +44,13 @@ Return:
 ```cj
 public static func convertCullMode(side: Int64): UInt64
 ```
-Converts three.js side to bgfx cull mode
+Converts engine side to bgfx cull mode
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|side|Int64|Three.js side constant|
+|side|Int64|Engine side constant|
 
 Return: 
 
@@ -60,13 +60,13 @@ Return:
 ```cj
 public static func convertDepthFunc(depthFunc: Int64): UInt64
 ```
-Converts three.js depth test mode to bgfx state flag
+Converts engine depth test mode to bgfx state flag
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|depthFunc|Int64|Three.js depth test constant|
+|depthFunc|Int64|Engine depth test constant|
 
 Return: 
 

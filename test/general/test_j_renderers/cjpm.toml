@@ -6,7 +6,7 @@
 [package]
   cjc-version = "1.1.0"
   compile-option = "-Woff unused -g -O0"
-  description = "test_j_renderers - migrate three.js renderers tests + BgfxRenderTarget window render"
+  description = "test_j_renderers"
   link-option = "-l user32 -l gdi32"
   name = "test_j_renderers"
   output-type = "executable"

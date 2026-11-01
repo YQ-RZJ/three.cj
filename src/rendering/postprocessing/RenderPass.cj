@@ -59,6 +59,8 @@ import three.rendering.bgfx.BgfxConstants
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.rendering.types.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 场景渲染 pass
@@ -135,6 +137,7 @@ public class RenderPass <: Pass {
      * @param[en] readBuffer Read buffer (render target of this pass)
      * @param[en] deltaTime Frame delta time
      */
+    @Zone[three.rendering.postprocessing.RenderPass.render, name=renderPass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -142,10 +145,7 @@ public class RenderPass <: Pass {
         deltaTime: Float64
     ): Unit {
         // 1. 把主 view 0 的输出 frame buffer 指向 readBuffer（经渲染线程序列化）
-        let clearColVal: UInt32 = match (this.clearColor) {
-            case Some(c) => c
-            case None => renderer.clearColor
-        }
+        let clearColVal: UInt32 = if (let Some(c) <- this.clearColor) { c } else { renderer.clearColor }
         renderer.setViewFrameBuffer(renderer.viewId, readBuffer)
 
         // 2. 设置 view 0 的 clear（颜色 + 深度）
@@ -153,9 +153,9 @@ public class RenderPass <: Pass {
         renderer.setViewClear(renderer.viewId, clearFlags, clearColVal, depth: 1.0f32, stencil: 0u8)
 
         // 3. 调 renderer.render 把场景绘制到 readBuffer
-        //    renderer.render 内部走 _execBgfx 排队到渲染线程，
+        //    renderer.render 内部走 _execBgfx；本方法由 EffectComposer 的整链提交
+        //    在渲染线程上执行，故命中渲染线程快路径（直接执行，无线程往返、无死锁）。
         //    view 0 frame buffer 已设为 readBuffer，场景输出写入 readBuffer。
-        //    注意：不能把 renderer.render 放进 execBgfx 闭包，否则 _execBgfx 嵌套死锁。
         renderer.render(this.scene, this.camera)
     }
 }

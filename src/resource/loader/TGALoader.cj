@@ -22,11 +22,11 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] TGALoader Targa 图片加载器
- * @brief[zh-cn] 对应 Three.js examples/jsm/loaders/TGALoader.js 的仓颉侧实现
+ * @brief[zh-cn] TGA 纹理的仓颉侧实现
  * @explain[zh-cn] Targa (TGA) 图片加载器：支持索引色/RGB/灰度及其 RLE 变体，8/16/24/32 位像素深度，输出 DataTexture（RGBA8）。仓颉侧使用 std 字节解析，无浏览器依赖。
  *
  * @file[en] TGALoader  Targa image loader
- * @brief[en] Cangjie implementation corresponding to Three.js examples/jsm/loaders/TGALoader.js
+ * @brief[en] Cangjie implementation of the TGA texture loader
  * @explain[en] Targa (TGA) image loader: supports indexed/RGB/grayscale and their RLE variants, 8/16/24/32-bit pixel depth, outputting DataTexture (RGBA8). Cangjie side uses std byte parsing with no browser dependency.
  */
 package three.resource.loader

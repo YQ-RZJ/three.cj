@@ -153,10 +153,7 @@ public class ObjectPool<T> where T <: Object {
         _stack.remove(last..last + 1)
         // IPoolObject 自动构造（无感）
         _tryConstruct(ret)
-        match (_onReuse) {
-            case Some(fn) => fn(ret)
-            case None => ()
-        }
+        if (let Some(fn) <- _onReuse) { fn(ret) }
         return ret
     }
 
@@ -179,10 +176,7 @@ public class ObjectPool<T> where T <: Object {
         }
         // IPoolObject 自动析构（无感）
         _tryDestruct(obj)
-        match (_onRecycle) {
-            case Some(fn) => fn(obj)
-            case None => ()
-        }
+        if (let Some(fn) <- _onRecycle) { fn(obj) }
         _stack.add(obj)
         return true
     }

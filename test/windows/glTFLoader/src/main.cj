@@ -1,10 +1,10 @@
 package threeTest
 
 /**
- * 测试入口：Three.js + bgfx GLTF 模型加载测试（v2 生命周期模式）
+ * 测试入口：引擎 + bgfx GLTF 模型加载测试（v2 生命周期模式）
  *
  * 模块说明：
- * - renderer.cj:   Three.js 场景设置、GLB 模型加载、createScene
+ * - renderer.cj:   引擎场景设置、GLB 模型加载、createScene
  * - resources.cj:  模块占位（无自定义着色器）
  * 窗口通过 three 引擎自带的 WindowEngine v2 创建：TestWindow <: WindowEngine，
  * onInit/onFrame/onClose 生命周期由窗口泵线程驱动。

@@ -22,12 +22,12 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] 交错缓冲区属性
- * @brief[zh-cn] 引用 InterleavedBuffer 中不同 offset 的属性视图，对应 Three.js InterleavedBufferAttribute.js
+ * @brief[zh-cn] 引用 InterleavedBuffer 中不同 offset 的属性视图
  * @explain[zh-cn] "交错"指多个属性（位置、法线、UV、颜色等）被打包到同一数组缓冲区中。
  * 本类不持有数据，而是通过 data/offset/itemSize 描述一个属性视图。
  *
  * @file[en] Interleaved Buffer Attribute
- * @brief[en] Attribute view referencing different offsets in InterleavedBuffer, corresponding to Three.js InterleavedBufferAttribute.js
+ * @brief[en] Attribute view referencing different offsets in InterleavedBuffer
  * @explain[en] "Interleaved" means multiple attributes (position, normal, UV, color, etc.) are packed into the same array buffer.
  * This class does not hold data, but describes an attribute view through data/offset/itemSize.
  *

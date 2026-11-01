@@ -25,7 +25,8 @@
  * @brief[zh-cn] 提供后端无关的物理世界门面，持有独立物理线程序列化所有后端调用
  * @explain[zh-cn] 线程模型（对齐 AudioContext._audioLoop / ThreeRenderer._renderLoop）：
  * - 持有独立 three.core.thread.SThread，所有后端调用经 _execPhysics 序列化到物理线程执行。
- * - 同步原语使用 three.core.thread 的系统级 Mutex/Condition（基于 sdl4cj，跨用户态与系统线程同步）。
+ * - 命令通道：SPSC 无锁队列（_physicsQueue）+ FrameFence 帧栅栏 + 信号量唤醒，
+ *   依据《多线程改造计划》阶段 2 重构：批量排空、唤醒次数由命令数降为批次数。
  * - 死锁约束：_execPhysics 不可重入——闭包内只能包含对 backend 的原始调用，
  * 禁止嵌套调用其它走 _execPhysics 的方法，否则自我等待死锁。
  * 可插拔后端：
@@ -33,9 +34,10 @@
  * - 构造时注入具体后端实例（默认 JoltBackend）；运行时可通过 setBackend 切换。
  * - 替换底层物理库只需新写一个 IPhysicsBackend 实现，无需改 world/body/binding。
  * 步进驱动：PhysicsWorld.update(dt) 由主渲染线程每帧调用；
- * - _execPhysics({ => backend.update(dt, steps) })
- * - 同步：update 返回后，将刚体 transform 同步到绑定的 Object3D
- * （读取经 _execPhysics 序列化到物理线程，避免 Object3D 矩阵跨线程竞争）。
+ * - _execPhysics({ => backend.update(dt, steps) + 回读位姿写 back 快照 })
+ * - 同步：update 返回后主线程读 front 快照，将刚体 transform 应用到绑定的 Object3D。
+ * 回读与应用分处两端：物理线程只写快照数据（不触碰 Object3D），Object3D 由主线程
+ * 独占写入；借助帧栅栏的 happens-before，快照交换零锁零往返（阶段 2 任务 2）。
  *
  * @file[en] PhysicsWorld Physics-world facade + dedicated physics thread
  * @brief[en] Provides a backend-agnostic physics-world facade with a dedicated physics thread serializing all backend calls
@@ -54,10 +56,13 @@
  * - replacing the underlying engine only needs a new IPhysicsBackend
  * implementation, without touching world/body/binding.
  * Stepping: PhysicsWorld.update(dt) is called by the main render thread every frame;
- * - _execPhysics({ => backend.update(dt, steps) })
- * - after update returns, body transforms are synced to the bound Object3D
- * (reads are serialized to the physics thread via _execPhysics, avoiding
- * cross-thread races on Object3D matrices).
+ * - _execPhysics({ => backend.update(dt, steps) + write back snapshot })
+ * - synchronous: after update returns, the main thread reads the front snapshot and
+ * applies body transforms to the bound Object3D. Read-back and application run on
+ * different sides: the physics thread only writes snapshot data (never touches
+ * Object3D); Object3D is written exclusively by the main thread. The frame fence
+ * provides happens-before, so the snapshot swap is zero-lock, zero extra round-trip
+ * (Phase 2 task 2).
  */
 package three.physics.world
 
@@ -66,7 +71,13 @@ import three.physics.interfaces.*
 import three.physics.backend.*
 import three.scene.objects.*
 import std.collection.*
+import std.collection.concurrent.ConcurrentLinkedQueue
+import std.sync.{ AtomicBool, AtomicInt64 }
 import three.core.thread.*
+import three.profiler.*
+import three.profiler.macros.*
+import three.utils.log.*
+import three.utils.log.macros.*
 
 /**
  * @brief[zh-cn] 绑定条目：Object3D ↔ 物理刚体句柄
@@ -130,6 +141,123 @@ internal class PhysicsBinding {
 }
 
 /**
+ * @brief[zh-cn] 位姿快照条目（阶段 2 任务 2 双缓冲快照的元素）
+ * @explain[zh-cn] 物理线程每帧把活跃刚体的位姿（两处 FFI 的返回对象）直接存入快照，
+ * 不触碰 Object3D；主线程在 update 返回后读取快照并应用到 Object3D。
+ * 该设计把"回读（FFI）"留在物理线程、把"渲染对象写入"留在主线程，
+ * 物理线程关键路径不再承担渲染对象的 bookkeeping。
+ *
+ * @brief[en] Transform-snapshot entry (element of the Phase 2 task 2 double-buffer snapshot)
+ * @explain[en] Each frame the physics thread stores active bodies' poses (the objects
+ * returned by the two FFI reads) directly into the snapshot without touching Object3D;
+ * the main thread reads the snapshot after update returns and applies it to Object3D.
+ * This keeps FFI read-back on the physics thread and render-object writes on the main
+ * thread, so the physics thread's hot path does no render-object bookkeeping.
+ */
+internal class TransformSnapshot {
+    /**
+     * @brief[zh-cn] 目标渲染对象
+     *
+     * @brief[en] The target render object
+     */
+    public var object3d: Object3D
+    /**
+     * @brief[zh-cn] 世界坐标位置（backend 返回对象，直接引用复用）
+     *
+     * @brief[en] World-space position (backend-returned object, referenced directly)
+     */
+    public var pos: Vector3
+    /**
+     * @brief[zh-cn] 世界旋转（四元数）
+     *
+     * @brief[en] World rotation (quaternion)
+     */
+    public var rot: Quaternion
+
+    /**
+     * @brief[zh-cn] 创建快照条目
+     *
+     * @brief[en] Creates a snapshot entry
+     */
+    public init(object3d: Object3D, pos: Vector3, rot: Quaternion) {
+        this.object3d = object3d
+        this.pos = pos
+        this.rot = rot
+    }
+}
+
+/**
+ * @brief[zh-cn] 传感器事件数据（阶段 2 任务 4 回调投递的队列元素）
+ * @explain[zh-cn] Jolt 的接触/激活/休眠回调发生在物理线程（backend.update 内部），
+ * 不直接调用用户监听器：先打包成该结构入队（ConcurrentLinkedQueue），
+ * 主线程在 update() 末尾出队派发。kind 区分三类事件，激活/休眠时 bodyID2/event 无效。
+ *
+ * @brief[en] Sensor event data (queue element for Phase 2 task 4 callback posting)
+ * @explain[en] Jolt's contact/activation/sleep callbacks fire on the physics thread
+ * (inside backend.update); instead of calling the user listener directly, they are
+ * packed into this structure and enqueued (ConcurrentLinkedQueue), then drained and
+ * dispatched by the main thread at the end of update(). kind selects the event class;
+ * bodyID2/event are meaningless for activation/sleep events.
+ */
+internal class SensorEventData {
+    /// 事件种类：0=接触，1=激活，2=休眠
+    public let kind: Int32
+    /// 刚体 1 的 BodyID（接触事件两体均有效）
+    public let bodyID1: UInt32
+    /// 刚体 2 的 BodyID（仅接触事件有效）
+    public let bodyID2: UInt32
+    /// 接触事件类型（仅接触事件有效）
+    public let event: PhysicsContactEvent
+
+    /**
+     * @brief[zh-cn] 创建事件数据
+     *
+     * @brief[en] Creates event data
+     */
+    public init(kind: Int32, bodyID1: UInt32, bodyID2: UInt32, event: PhysicsContactEvent) {
+        this.kind = kind
+        this.bodyID1 = bodyID1
+        this.bodyID2 = bodyID2
+        this.event = event
+    }
+}
+
+/**
+ * @brief[zh-cn] 传感器事件投递适配器（阶段 2 任务 4）
+ * @explain[zh-cn] 以 IPhysicsSensorListener 形式注册进后端，替换"直接调用用户监听器"：
+ * 回调线程（物理线程/Jolt）只做一次入队（无锁队列，安全且不阻塞），
+ * 用户回调的执行被推迟到主线程 update() 末尾的 _dispatchSensorEvents。
+ * 该设计同时保住"回调内禁止调 _execPhysics"约束——入队不经过物理命令通道。
+ *
+ * @brief[en] Sensor-event delivery adapter (Phase 2 task 4)
+ * @explain[en] Registered into the backend as an IPhysicsSensorListener, replacing
+ * direct user-listener calls: the calling thread (physics/Jolt) only enqueues into a
+ * lock-free queue (safe, non-blocking); user callbacks run later on the main thread
+ * via _dispatchSensorEvents at the end of update(). This also preserves the
+ * "no _execPhysics inside callbacks" rule — enqueueing bypasses the command channel.
+ */
+internal class SensorEventPoster <: IPhysicsSensorListener {
+    /// 事件队列：回调线程入队，主线程出队
+    private let _events: ConcurrentLinkedQueue<SensorEventData>
+
+    public init(events: ConcurrentLinkedQueue<SensorEventData>) {
+        this._events = events
+    }
+
+    public func onContact(bodyID1: UInt32, bodyID2: UInt32, event: PhysicsContactEvent): Unit {
+        this._events.add(SensorEventData(0, bodyID1, bodyID2, event))
+    }
+
+    public func onBodyActivated(bodyID: UInt32): Unit {
+        this._events.add(SensorEventData(1, bodyID, 0u32, PhysicsContactEvent.Added))
+    }
+
+    public func onBodyDeactivated(bodyID: UInt32): Unit {
+        this._events.add(SensorEventData(2, bodyID, 0u32, PhysicsContactEvent.Added))
+    }
+}
+
+/**
  * @brief[zh-cn] 物理世界门面
  * @explain[zh-cn] 典型用法：
  * let world = PhysicsWorld(JoltBackend())
@@ -163,14 +291,40 @@ public class PhysicsWorld {
     /// 绑定映射：Object3D.id -> PhysicsBinding
     private var _bindings: HashMap<Int64, PhysicsBinding> = HashMap<Int64, PhysicsBinding>()
 
-    /// ===== 物理同步原语（对齐 ThreeRenderer._renderMtx/_renderCmdCnd） =====
-    private var _physicsMtx = Mutex()
-    private var _physicsCmdCnd = Condition()
-    private var _physicsDoneCnd = Condition()
-    private var _physicsCmd: Option<() -> Unit> = None
-    private var _physicsDone: Bool = false
-    private var _physicsExit: Bool = false
+    /// ===== 物理同步原语（依据《多线程改造计划》阶段 2 重构） =====
+    // 旧模型：单命令槽（_physicsCmd）+ Mutex + 双条件变量。
+    //   瓶颈：每条后端调用一次"写槽 + signal + 等待完成"的完整同步往返；
+    //   命令无法批量排空，唤醒次数 = 命令数；transform 回读逐刚体走 _execPhysics。
+    // 新模型（本文件）：
+    // - 命令队列 → SPSCQueue（无锁环形缓冲，push/pop 无 CAS 无 Mutex）；
+    // - 完成同步 → FrameFence（原子提交/完成序号 + 等待路径条件变量），
+    //   完成序号按"批"推进，唤醒次数由命令数降为批次数；
+    // - 唤醒 → _physicsWake 信号量（一次性通知，无谓词状态）；
+    // - 退出标志 → AtomicBool（无锁读写）。
+    // 多提交者并发安全说明：跨线程投递必须来自同一外部线程（当前场景为主渲染线程）。
+    // 渲染线程自身经 _execPhysicsSync 路径等待，物理线程自身不可再投递（见死锁约束）。
+    private let _physicsQueue = SPSCQueue<() -> Unit>(capacity: 1024)
+    private let _physicsWake = Semaphore(initVal: 0)
+    private let _physicsFence = FrameFence()
+    private let _physicsExit = AtomicBool(false)
     private var _physicsSThread: Option<SThread<Unit>> = None
+
+    // ===== 双缓冲快照（阶段 2 任务 2） =====
+    // 物理线程在每帧 update 闭包内写 _snapBack（只读位姿 FFI + 存快照，不触碰 Object3D）；
+    // 主线程在 _execPhysics 返回后交换缓冲并读 _snapFront 应用到 Object3D。
+    // 因 _execPhysics 是同步等待（fence 提供 happens-before），交换无竞争、无需原子标志；
+    // 空快照（无活跃刚体/未步进）天然回退为"跳过同步"。容量按活跃绑定数自适应增长。
+    private var _snapBack = ArrayList<TransformSnapshot>()
+    private var _snapFront = ArrayList<TransformSnapshot>()
+
+    // ===== 传感器回调投递（阶段 2 任务 4） =====
+    // Jolt 接触/激活/休眠回调发生在物理线程（backend.update 内部）；为避免回调线程
+    // 直接执行用户逻辑（竞态 + 死锁约束），后端只注册 _sensorPoster（入队），
+    // 主循环在 update() 末尾统一出队派发到 _sensorListener（始终运行在主线程）。
+    // 事件仅在 step 期间产生，故队列长度受"相邻两次 update 之间的事件数"约束。
+    private let _sensorEvents: ConcurrentLinkedQueue<SensorEventData>
+    private let _sensorPoster: SensorEventPoster
+    private var _sensorListener: Option<IPhysicsSensorListener> = None
 
     /**
      * @brief[zh-cn] 构造物理世界
@@ -181,6 +335,8 @@ public class PhysicsWorld {
      */
     public init(backend!: IPhysicsBackend = JoltBackend()) {
         this._backend = backend
+        this._sensorEvents = ConcurrentLinkedQueue<SensorEventData>()
+        this._sensorPoster = SensorEventPoster(this._sensorEvents)
     }
 
     /**
@@ -226,39 +382,107 @@ public class PhysicsWorld {
     }
 
     private func _physicsLoop(): Unit {
-        while (!this._physicsExit) {
-            this._physicsMtx.lock()
-            while (this._physicsCmd.isNone() && !this._physicsExit) {
-                this._physicsCmdCnd.wait(this._physicsMtx)
+        while (!this._physicsExit.load()) {
+            // 批量排空（无锁）：一次执行当前队列中的全部命令，整批完成后再推进完成序号。
+            // 与旧实现（单槽 + 每次一条命令 lock/signal/broadcast）相比，
+            // 锁与唤醒次数由"命令数"降为"批次数"。
+            let n = this._drainAndExec()
+            if (n > 0) {
+                this._physicsFence.advanceBy(n)
+            } else {
+                // 无命令：睡到有新命令投递（信号量唤醒，一次性通知无需谓词重查）
+                if (!this._physicsExit.load()) { this._physicsWake.wait() }
             }
-            match (this._physicsCmd) {
-                case Some(cmd) =>
-                    cmd()
-                    this._physicsCmd = None
-                    this._physicsDone = true
-                    this._physicsDoneCnd.signal()
-                case None => ()
-            }
-            this._physicsMtx.unlock()
         }
+        // 退出路径：补齐"已提交-已完成"缺口，唤醒仍可能在等待的提交者，
+        // 避免 shutdown 期间任何人悬挂（与旧实现退出分支等价）。
+        let outstanding = this._physicsFence.submitted() - this._physicsFence.done()
+        if (outstanding > 0) {
+            this._physicsFence.advanceBy(outstanding)
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 批量排空命令队列并在物理线程执行（无锁 pop）
+     * @return[zh-cn] 本批实际执行的命令数
+     * @explain[zh-cn] 循环 pop 直到队列空，逐条在物理线程执行闭包。
+     *               单条命令失败仅记录日志（异常隔离），不终止排空，保证其提交者
+     *               的完成序号仍会被推进。
+     *
+     * @brief[en] Drain the command queue in batches and execute on the physics thread (lock-free pop)
+     * @return[en] Number of commands executed in this batch
+     * @explain[en] Pops until empty, executing each closure on the physics thread.
+     *              A single failing command is logged (isolation) and does not stop the
+     *              drain, so its submitter's done sequence is still advanced.
+     */
+    private func _drainAndExec(): Int64 {
+        var n: Int64 = 0
+        while (true) {
+            if (let Some(cmd) <- this._physicsQueue.pop()) {
+                try {
+                    cmd()
+                } catch (e: Error) {
+                    // 异常隔离：单条命令失败不能杀物理线程，否则其提交者永久等待
+                    @LogWarn(["PhysicsWorld:", "cmd failed: " + e.toString()])
+                }
+                n += 1
+            } else {
+                break
+            }
+        }
+        return n
     }
 
     /**
      * 内部线程序列化：将 cmd 提交到物理线程同步执行并等待完成。
      * 闭包内只能包含对 backend 的原始调用，禁止嵌套调用其它走 _execPhysics 的方法。
      */
+    @Zone[three.physics.world.PhysicsWorld.execPhysics, name=physicsExec]
     private func _execPhysics(cmd: () -> Unit): Unit {
         if (this._physicsSThread.isNone()) {
             this._initPhysicsThread()
         }
-        this._physicsMtx.lock()
-        this._physicsCmd = Some(cmd)
-        this._physicsDone = false
-        this._physicsCmdCnd.signal()
-        while (!this._physicsDone) {
-            this._physicsDoneCnd.wait(this._physicsMtx)
+        // 提交取序号 → 入队（满则自旋等待物理线程排空）→ 信号量唤醒 → 按序号等待完成
+        let seq = this._enqueue(cmd)
+        if (seq == 0) { return }
+        this._physicsFence.waitUntil(seq)
+    }
+
+    /**
+     * @brief[zh-cn] 投递一条命令到物理线程（异步，不等待完成）
+     * @explain[zh-cn] 供确认无需回读结果/无需保序的调用使用（如低频状态设置），
+     *               可批量合并执行。返回值 0 表示物理线程已退出，命令被丢弃。
+     * @param[zh-cn] cmd 待执行闭包（遵守与 _execPhysics 相同的死锁约束）
+     * @return[zh-cn] 投递序号（供内部诊断）；0 = 系统已退出
+     *
+     * @brief[en] Post a command to the physics thread (async, without waiting for completion)
+     * @explain[en] For calls that need no result read-back and no ordering guarantee
+     *               (e.g. low-frequency state sets); commands are batch-executed.
+     *               A return of 0 means the physics thread has exited and the command is dropped.
+     * @param[en] cmd Closure to run (same deadlock rule as _execPhysics)
+     * @return[en] Post sequence (for diagnostics); 0 = system already exited
+     */
+    protected func _postPhysics(cmd: () -> Unit): Int64 {
+        if (this._physicsSThread.isNone()) {
+            this._initPhysicsThread()
         }
-        this._physicsMtx.unlock()
+        return this._enqueue(cmd)
+    }
+
+    /**
+     * @brief[zh-cn] 提交命令并取回序号（内部实现）
+     * @return[zh-cn] 投递序号；物理线程已退出时返回 0
+     */
+    private func _enqueue(cmd: () -> Unit): Int64 {
+        let seq = this._physicsFence.submit()
+        while (!this._physicsQueue.push(cmd)) {
+            // 队列满（极端积压）：等待物理线程排空后再试。
+            // SPSC 单生产者前提下，满判定与重试之间无并发投递者，不会覆盖生产顺序。
+            if (this._physicsExit.load()) { return 0 }
+            sleepNS(1000)
+        }
+        this._physicsWake.signal()
+        return seq
     }
 
     /**
@@ -287,9 +511,10 @@ public class PhysicsWorld {
         // 逃逸闭包不能捕获可变局部变量，故用 Box 持有结果（box 为 let，仅改其 value 字段）
         let box: Box<Option<T>> = Box<Option<T>>(None)
         this._execPhysics({=> box.value = Some(cmd())})
-        match (box.value) {
-            case Some(v) => v
-            case None => throw IllegalStateException("execPhysicsResult: empty result")
+        if (let Some(v) <- box.value) {
+            v
+        } else {
+            throw IllegalStateException("execPhysicsResult: empty result")
         }
     }
 
@@ -330,11 +555,9 @@ public class PhysicsWorld {
         let be = this._backend
         _execPhysics({=> be.shutdown()})
 
-        // 通知物理线程退出
-        this._physicsMtx.lock()
-        this._physicsExit = true
-        this._physicsCmdCnd.signal()
-        this._physicsMtx.unlock()
+        // 通知物理线程退出（无锁原子标志 + 信号量唤醒；残留命令由线程退出前缀额外推进补齐）
+        this._physicsExit.store(true)
+        this._physicsWake.signal()
     }
 
     /**
@@ -413,9 +636,8 @@ public class PhysicsWorld {
                 break
             }
         }
-        match (keyToRemove) {
-            case Some(k) => this._bindings.remove(k)
-            case None => ()
+        if (let Some(k) <- keyToRemove) {
+            this._bindings.remove(k)
         }
         let be = this._backend
         _execPhysics({=> be.destroyBody(handle)})
@@ -466,9 +688,10 @@ public class PhysicsWorld {
      * @return[en] The body handle, or INVALID if not bound
      */
     public func getBoundHandle(object3d: Object3D): PhysicsBodyHandle {
-        match (this._bindings.get(object3d.id)) {
-            case Some(b) => b.handle
-            case None => PhysicsBodyHandle.INVALID
+        if (let Some(b) <- this._bindings.get(object3d.id)) {
+            b.handle
+        } else {
+            PhysicsBodyHandle.INVALID
         }
     }
 
@@ -478,53 +701,143 @@ public class PhysicsWorld {
 
     /**
      * @brief[zh-cn] 步进物理世界一帧 + 同步刚体 transform 到绑定的 Object3D
-     * @explain[zh-cn] 线程约定：update 由主渲染线程每帧调用；内部 _execPhysics 将
-     * backend.update + transform 读取 + Object3D 写入一起序列化到物理线程。
-     * 这样 Object3D 的 position/quaternion 只在物理线程写入，避免与渲染线程的
-     * updateMatrixWorld 竞争（渲染线程在 renderer.render 之前 updateMatrixWorld，
-     * 此时物理线程已结束本帧同步——_execPhysics 是同步等待语义）。
+     * @explain[zh-cn] 线程约定：update 由主渲染线程每帧调用；
+     * - 内部 _execPhysics 将 backend.update + 位姿回读（写 back 快照）序列化到物理线程；
+     * - 返回前主线程交换缓冲并读 front 快照，把 transform 应用到 Object3D。
+     * 这样 Object3D 的 position/quaternion 只在主线程写入，与渲染线程的
+     * updateMatrixWorld（renderer.render 前调用）天然同线程，无竞争。
+     * 语义保持同步：update 返回后，本帧步进结果已应用到 Object3D
+     * （测试依赖"update 后读到的 transform 是最新值"）。
      * @param[zh-cn] deltaTime 时间步长（秒），典型 1/60
      * collisionSteps 每步内的碰撞细分次数（1/60s 一步取 1）
      * @return[zh-cn] 更新错误标志（0 = 完整完成）
      *
      * @brief[en] Steps the physics world by one frame + syncs body transforms to the bound Object3D
      * @explain[en] Threading contract: update is called by the main render thread every frame;
-     * internally _execPhysics serializes backend.update + transform reads + Object3D
-     * writes onto the physics thread. This way an Object3D's position/quaternion are
-     * only written on the physics thread, avoiding races with the render thread's
-     * updateMatrixWorld (the render thread calls updateMatrixWorld before
-     * renderer.render, by which time the physics thread has finished this frame's
-     * sync — _execPhysics is synchronous-wait semantics).
+     * - internally _execPhysics serializes backend.update + pose read-back (into the back
+     *   snapshot) onto the physics thread;
+     * - before returning, the main thread swaps the buffers and reads the front snapshot,
+     *   applying transforms to Object3D.
+     * Object3D position/quaternion are thus only written on the main thread, so they never
+     * race with the render thread's updateMatrixWorld (called before renderer.render).
+     * Semantics stay synchronous: after update returns, this frame's step results are
+     * already applied to Object3D (tests rely on reading the latest transform right after).
      * @param[en] deltaTime The time step (seconds), typically 1/60
      * collisionSteps The number of collision substeps per step (1 for a 1/60s step)
      * @return[en] The update error flags (0 = completed fully)
      */
+    @Zone[three.physics.world.PhysicsWorld.update, name=physicsUpdate]
     public func update(deltaTime: Float32, collisionSteps!: Int32 = 1): UInt32 {
         let errBox: Box<UInt32> = Box(0u32)
-        let be = this._backend
-        let bindings = this._bindings
+        // 本轮回读缓冲：主线程唯一持有引用；物理线程仅在本批闭包内写它
+        let back = this._snapBack
         _execPhysics(
             {
                 =>
-                    errBox.value = be.update(deltaTime, collisionSteps)
-                    // 同步 transform 到绑定的 Object3D
-                    for ((_, b) in bindings) {
-                        if (!b.syncToObj) {
-                            continue
-                        }
-                        if (!b.handle.isValid()) {
-                            continue
-                        }
-                        let pos = be.getPosition(b.handle)
-                        let rot = be.getRotation(b.handle)
-                        b.object3d.position.set(pos.x, pos.y, pos.z)
-                        b.object3d.quaternion.set(rot.x, rot.y, rot.z, rot.w)
-                        // 触发矩阵更新（matrixAutoUpdate=true 时 renderer.render 会重算）
-                        b.object3d.matrixWorldNeedsUpdate = true
-                    }
+                    this._stepBackend(deltaTime, collisionSteps, errBox)
+                    // 只做位姿回读并写入 back 快照（不再在物理线程触碰 Object3D）
+                    this._fillSnapshot(back)
             }
         )
+        // 交换缓冲（物理线程已因 fence 完成，无竞争），并在主线程把最新位姿应用到 Object3D
+        let t = this._snapFront
+        this._snapFront = this._snapBack
+        this._snapBack = t
+        this._applySnapshot(this._snapFront)
+        // 派发本帧步进期间累积的传感器事件（用户回调运行在主线程）
+        this._dispatchSensorEvents()
         return errBox.value
+    }
+
+    /**
+     * @brief[zh-cn] 后端步进（在物理线程上执行，单独计时以便与 transform 回写分离）
+     *
+     * @brief[en] Backend step (runs on the physics thread; timed separately from the transform write-back)
+     */
+    @Zone[three.physics.world.PhysicsWorld.stepBackend, name=physicsStep]
+    private func _stepBackend(deltaTime: Float32, collisionSteps: Int32, errBox: Box<UInt32>): Unit {
+        errBox.value = this._backend.update(deltaTime, collisionSteps)
+    }
+
+    /**
+     * @brief[zh-cn] 把物理刚体位姿回读到 back 快照（在物理线程上执行）
+     * @explain[zh-cn] 每帧对全部绑定做 getPosition + getRotation（2 次 FFI/刚体），
+     * 把返回值直接存入快照；对象数多时是物理线程侧的主要开销，单独计时观察。
+     * 不再直接写 Object3D——渲染对象写入移到主线程 _applySnapshot。
+     *
+     * @brief[en] Reads body poses into the back snapshot (runs on the physics thread)
+     * @explain[en] Runs getPosition + getRotation (2 FFI calls per body) for every binding and
+     *              stores the results in the snapshot directly; the dominant physics-thread cost
+     *              in scenes with many bodies, so it is timed separately.
+     *              Object3D is no longer touched here — render-object writes moved to the
+     *              main-thread _applySnapshot.
+     */
+    @Zone[three.physics.world.PhysicsWorld.syncBoundTransforms, name=physicsSync]
+    private func _fillSnapshot(back: ArrayList<TransformSnapshot>): Unit {
+        back.clear()
+        let be = this._backend
+        for ((_, b) in this._bindings) {
+            if (!b.syncToObj) {
+                continue
+            }
+            if (!b.handle.isValid()) {
+                continue
+            }
+            // 休眠刚体本帧位姿不变（Jolt 只在活动态推进变换）：跳过 2 次位姿 FFI。
+            // 稳态场景里绝大多数刚体处于休眠，这一跳过可去掉大半回读开销。
+            if (!be.isBodyActive(b.handle)) {
+                continue
+            }
+            back.add(TransformSnapshot(b.object3d, be.getPosition(b.handle), be.getRotation(b.handle)))
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 把 front 快照应用到绑定的 Object3D（主线程执行）
+     * @explain[zh-cn] update 返回前调用；与渲染线程 updateMatrixWorld 同线程，
+     * 无需跨线程同步。矩阵更新标志沿用旧实现约定（matrixAutoUpdate=true 时由
+     * renderer.render 触发重算）。
+     *
+     * @brief[en] Applies the front snapshot to the bound Object3Ds (main thread)
+     * @explain[en] Called before update returns; same thread as the render loop's
+     * updateMatrixWorld, so no cross-thread sync is needed. The matrix-update flag follows
+     * the old convention (with matrixAutoUpdate=true, renderer.render recomputes matrices).
+     */
+    private func _applySnapshot(front: ArrayList<TransformSnapshot>): Unit {
+        for (s in front) {
+            s.object3d.position.set(s.pos.x, s.pos.y, s.pos.z)
+            s.object3d.quaternion.set(s.rot.x, s.rot.y, s.rot.z, s.rot.w)
+            // 触发矩阵更新（matrixAutoUpdate=true 时 renderer.render 会重算）
+            s.object3d.matrixWorldNeedsUpdate = true
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 派发传感器事件队列到用户监听器（主线程执行）
+     * @explain[zh-cn] 在 update() 末尾、物理步进完成之后调用：清空 _sensorEvents 并
+     * 把每条事件转发给 _sensorListener 的对应回调。此时用户回调总在主线程运行，
+     * 且处于"本帧步进已完成"的语义下；无监听器时仅清空遗留事件。
+     *
+     * @brief[en] Dispatches the sensor-event queue to the user listener (main thread)
+     * @explain[en] Called at the end of update(), after the physics step completes:
+     * drains _sensorEvents and forwards each event to the matching _sensorListener
+     * callback. User callbacks therefore always run on the main thread, in the
+     * "this frame's step is done" semantics; with no listener the queue is just drained.
+     */
+    private func _dispatchSensorEvents(): Unit {
+        if (let Some(listener) <- this._sensorListener) {
+            while (let Some(e) <- this._sensorEvents.remove()) {
+                match (e.kind) {
+                    case 0 => listener.onContact(e.bodyID1, e.bodyID2, e.event)
+                    case 1 => listener.onBodyActivated(e.bodyID1)
+                    case 2 => listener.onBodyDeactivated(e.bodyID1)
+                    case _ => ()
+                }
+            }
+        } else {
+            // 已注销监听器：丢弃遗留事件，避免队列无限累积
+            while (let Some(_) <- this._sensorEvents.remove()) { () }
+        }
     }
 
     // =========================================================================
@@ -887,13 +1200,25 @@ public class PhysicsWorld {
     /**
      * @brief[zh-cn] 注册碰撞事件监听器（接触回调 + 激活/休眠回调）
      * @param[zh-cn] listener 监听器；None 注销
+     * @explain[zh-cn] 阶段 2 任务 4：用户监听器只由主线程持有；后端注册的是
+     * 投递适配器 _sensorPoster（回调线程仅入队），真实回调在 update() 末尾
+     * _dispatchSensorEvents 中于主线程执行。
      *
      * @brief[en] Registers a collision event listener (contact + activation/sleep callbacks)
      * @param[en] listener The listener, or None to unregister
+     * @explain[en] Phase 2 task 4: the user listener is owned by the main thread only;
+     * the backend registers the _sensorPoster adapter (callback threads only enqueue),
+     * and the real callbacks are dispatched on the main thread via _dispatchSensorEvents
+     * at the end of update().
      */
     public func setContactListener(listener: Option<IPhysicsSensorListener>): Unit {
+        this._sensorListener = listener
         let be = this._backend
-        _execPhysics({=> be.setContactListener(listener)})
+        if (let Some(_) <- listener) {
+            _execPhysics({=> be.setContactListener(Some(this._sensorPoster))})
+        } else {
+            _execPhysics({=> be.setContactListener(None)})
+        }
     }
 
     // =========================================================================

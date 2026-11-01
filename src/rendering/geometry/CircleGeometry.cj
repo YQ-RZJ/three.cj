@@ -25,13 +25,11 @@
  * @brief[zh-cn] 圆形/扇形几何体，由半径、分段数和角度范围定义
  * @explain[zh-cn] 
  * CircleGeometry 继承自 BufferGeometry，生成圆形或扇形的顶点、法线、UV 和索引数据。
- * 对应 Three.js geometries/CircleGeometry.js。
  *
  * @file[en] Circle Geometry
  * @brief[en] Circle/sector geometry defined by radius, segments and angle range
  * @explain[en] 
  * CircleGeometry extends BufferGeometry, generating vertex, normal, UV and index data for a circle or sector.
- * Corresponds to Three.js geometries/CircleGeometry.js.
  */
 package three.rendering.geometry
 

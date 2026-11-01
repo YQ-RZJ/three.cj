@@ -85,7 +85,7 @@ GPU zone 开始（queryId 与 zoneEnd/time 配对）
 
 |名称|类型|描述|
 |---|---|---|
-|srcloc|UInt64||
+|srcloc|UInt64|静态源位置指针地址（见 ProfZone.srclocHandle；worker 对静态 srcloc 永不 free，禁止传入动态 alloc 句柄）|
 |queryId|UInt16||
 |context|UInt8||
 

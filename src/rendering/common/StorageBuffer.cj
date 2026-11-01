@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 存储缓冲
  * @brief[zh-cn] 存储缓冲类，用于 GPU 计算/存储的缓冲资源
- * @explain[zh-cn] StorageBuffer 继承自 DataMap，表示可在计算着色器中读写的缓冲存储资源。对照源码: three.js/src/renderers/common/StorageBuffer.js
+ * @explain[zh-cn] StorageBuffer 继承自 DataMap，表示可在计算着色器中读写的缓冲存储资源。
  *
  * @file[en] Storage Buffer
  * @brief[en] Storage buffer class, used for GPU compute/storage buffer resources
- * @explain[en] StorageBuffer extends DataMap, representing a buffer storage resource that can be read and written in compute shaders. Reference: three.js/src/renderers/common/StorageBuffer.js
+ * @explain[en] StorageBuffer extends DataMap, representing a buffer storage resource that can be read and written in compute shaders.
  */
 package three.rendering.common
 

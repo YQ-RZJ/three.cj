@@ -25,13 +25,13 @@
  * @brief[zh-cn] 渲染束，包含一组渲染对象的集合
  * @explain[zh-cn] 
  * RenderBundle 将多个 RenderObject 组合为一个渲染束，用于批量提交渲染命令，
- * 提高渲染性能。对应 Three.js 中的 BundleGroup 渲染束概念。
+ * 提高渲染性能。
  *
  * @file[en] RenderBundle
  * @brief[en] Render bundle, containing a collection of render objects
  * @explain[en] 
  * RenderBundle combines multiple RenderObjects into a render bundle for batch submission of render commands,
- * improving rendering performance. Corresponds to the BundleGroup render bundle concept in Three.js.
+ * improving rendering performance.
  */
 package three.rendering.common
 

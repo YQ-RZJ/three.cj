@@ -24,13 +24,13 @@
  * @file[zh-cn] Sprite材质
  * @brief[zh-cn] Sprite材质，用于精灵图渲染，支持尺寸衰减和UV旋转
  * @explain[zh-cn] 
- * 对应 Three.js materials/SpriteMaterial.js。支持 sizeAttenuation/rotation、map/alphaMap、fog。
+ * 支持 sizeAttenuation/rotation、map/alphaMap、fog。
  * Sprite 材质默认透明（transparent=true）。
  *
  * @file[en] Sprite Material
  * @brief[en] Sprite material, used for sprite rendering, supporting size attenuation and UV rotation
  * @explain[en] 
- * Corresponds to Three.js materials/SpriteMaterial.js. Supports sizeAttenuation/rotation, map/alphaMap, fog.
+ * Supports sizeAttenuation/rotation, map/alphaMap, fog.
  * Sprite material is transparent by default (transparent=true).
  */
 package three.rendering.materials
@@ -44,12 +44,12 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] Sprite材质，用于精灵图渲染，支持尺寸衰减和UV旋转
  * @explain[zh-cn] 
- * 对应 Three.js materials/SpriteMaterial.js。支持 sizeAttenuation/rotation、map/alphaMap、fog。
+ * 支持 sizeAttenuation/rotation、map/alphaMap、fog。
  * Sprite 材质默认透明（transparent=true）。
  *
  * @brief[en] Sprite material, used for sprite rendering, supporting size attenuation and UV rotation
  * @explain[en] 
- * Corresponds to Three.js materials/SpriteMaterial.js. Supports sizeAttenuation/rotation, map/alphaMap, fog.
+ * Supports sizeAttenuation/rotation, map/alphaMap, fog.
  * Sprite material is transparent by default (transparent=true).
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Material]

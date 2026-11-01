@@ -6,7 +6,7 @@ package mask
  * - EffectComposer 链：RenderPass → MaskPass → ClearMaskPass
  *   MaskPass 把场景几何体写入 stencil buffer 定义遮罩区域（写值 1），
  *   后续 pass 仅在 stencil==1 区域渲染；ClearMaskPass 重置 stencil 状态，
- *   使后续 pass 不再受遮罩约束（对齐 Three.js MaskPass/ClearMaskPass 用法）。
+ *   使后续 pass 不再受遮罩约束（标准 MaskPass/ClearMaskPass 用法）。
  *
  * 体现：MaskPass + ClearMaskPass 遮罩控制的基础设施 pass 集成、
  *       bgfx stencil（bgfx_set_stencil_cj）在 composer 链中的生命周期管理。

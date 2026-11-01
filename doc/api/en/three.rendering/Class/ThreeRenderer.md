@@ -5,6 +5,12 @@ public class ThreeRenderer <: Renderer & IRenderer
 ```
 bgfx renderer — thin Renderer implementation
 
+### func \_syncRenderStats\(\)
+```cj
+public override func _syncRenderStats(): Unit
+```
+Sync bgfx backend render stats into abstract-layer info (frame-end hook)
+
 ### func attachmentInit\(CPointer<bgfx\.Attachment>,TextureHandle,UInt32,UInt16,UInt16,UInt16,UInt8\)
 ```cj
 public func attachmentInit(attachment: CPointer < bgfx.Attachment >, tex: TextureHandle, access: UInt32, layer: UInt16, numLayers: UInt16, mip: UInt16, resolve: UInt8): Unit
@@ -195,6 +201,24 @@ Parameter:
 |format|UInt32||
 |textureFlags|UInt64||
 
+### func createFrameBuffer\(UInt8,Array<TextureHandle>,Bool\)
+```cj
+public func createFrameBuffer(numAttachments: UInt8, handles: Array < TextureHandle >, destroyHandles: Bool): FrameBufferHandle
+```
+Create Frame buffer from multiple texture handles
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|numAttachments|UInt8|Number of attachmentshandles Attachment texture handle arraydestroyHandles Whether bgfx auto-destroys these texture handles when FB is destroyed|
+|handles|Array<TextureHandle>||
+|destroyHandles|Bool||
+
+Return: 
+
+- Frame buffer handle
+
 ### func createFrameBuffer\(UInt16,UInt16,UInt32,UInt64\)
 ```cj
 public func createFrameBuffer(w: UInt16, h: UInt16, format: UInt32, depthFlags: UInt64): FrameBufferHandle
@@ -209,24 +233,6 @@ Parameter:
 |h|UInt16||
 |format|UInt32||
 |depthFlags|UInt64||
-
-Return: 
-
-- Frame buffer handle
-
-### func createFrameBuffer\(UInt8,Array<TextureHandle>,Bool\)
-```cj
-public func createFrameBuffer(numAttachments: UInt8, handles: Array < TextureHandle >, destroyHandles: Bool): FrameBufferHandle
-```
-Create Frame buffer from multiple texture handles
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|numAttachments|UInt8|Number of attachmentshandles Attachment texture handle arraydestroyHandles Whether bgfx auto-destroys these texture handles when FB is destroyed|
-|handles|Array<TextureHandle>||
-|destroyHandles|Bool||
 
 Return: 
 
@@ -1548,9 +1554,9 @@ Parameter:
 |handle|UniformHandle|uniform handleinfo output UniformInfo pointer|
 |info|UniformInfoPtr||
 
-### func initBgfx\(UIntNative,Int32,Int32\)
+### func initBgfx\(UIntNative,Int32,Int32,Bool,UInt32,UInt32,UInt8,UInt8\)
 ```cj
-public func initBgfx(hwnd: UIntNative, width: Int32, height: Int32): Bool
+public func initBgfx(hwnd: UIntNative, width: Int32, height: Int32, vsync!: Bool = false, msaa!: UInt32 = RESET_NONE, maxAnisotropy!: UInt32 = RESET_NONE, numBackBuffers!: UInt8 = 2u8, maxFrameLatency!: UInt8 = 2u8): Bool
 ```
 Initialize bgfx renderer
 
@@ -1558,9 +1564,14 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|hwnd|UIntNative|Native window handlewidth Window logical widthheight Window logical height|
+|hwnd|UIntNative|Native window handlewidth Window logical widthheight Window logical heightvsync Enable vertical sync (default false, i.e. refresh rate not capped). When on, the framerate is capped by the display refresh rate (60Hz display → 60FPS ceiling); when off, framesare produced as fast as CPU/GPU allow (hundreds of FPS on simple scenes) buttearing/uneven pacing may appear.msaa Multisample level, combine bgfx.RESET_MSAA_* constants (0 = disabled).maxAnisotropy Maximum anisotropy filtering (0 = disabled).numBackBuffers Number of back buffers (1..MAX_BACK_BUFFERS; more hides GPU jitter, adds latency).maxFrameLatency Maximum DXGI queued frames.|
 |width|Int32||
 |height|Int32||
+|vsync|Bool||
+|msaa|UInt32||
+|maxAnisotropy|UInt32||
+|numBackBuffers|UInt8||
+|maxFrameLatency|UInt8||
 
 Return: 
 
@@ -1724,7 +1735,7 @@ Parameter:
 ```cj
 public func setClearColor(color: Color, alpha!: Float64 = 1.0): Unit
 ```
-Set clear color — Three.js alignment: renderer.setClearColor(color, alpha)
+Set clear color — aligns with renderer.setClearColor(color, alpha)
 
 Parameter: 
 

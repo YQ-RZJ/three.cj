@@ -1,0 +1,7 @@
+# Variables & constants
+## const MAX\_STRING\_BYTES
+```cj
+public const MAX_STRING_BYTES: Int64 = 16 * 1024 * 1024
+```
+单个字符串编码的最大字节数（16MB，防恶意长度声明）
+

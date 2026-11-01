@@ -9,7 +9,7 @@ bgfx utility class providing format conversion and capability queries
 ```cj
 public static func convertDrawMode(mode: Int64): UInt64
 ```
-Convert three.js draw mode to bgfx primitive type
+Convert engine draw mode to bgfx primitive type
 
 Parameter: 
 
@@ -25,13 +25,13 @@ Return:
 ```cj
 public static func convert(format: Int64, colorSpace: String): Option < UInt32 >
 ```
-Convert three.js pixel format to bgfx TextureFormat
+Convert engine pixel format to bgfx TextureFormat
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|format|Int64|three.js pixel format constantcolorSpace Color space (used to determine sRGB variant)|
+|format|Int64|engine pixel format constantcolorSpace Color space (used to determine sRGB variant)|
 |colorSpace|String||
 
 Return: 

@@ -877,6 +877,19 @@ public prop closeRequested: Bool
 ```
 Whether the user requested to close the window (reads the snapshot - fixed)
 
+### prop elapsedTime: Float64
+```cj
+public prop elapsedTime: Float64
+```
+Cumulative running seconds since the window pump loop started
+(accumulated per frame: elapsedTime += frameDeltaTime)
+
+### prop frameDeltaTime: Float64
+```cj
+public prop frameDeltaTime: Float64
+```
+Seconds since the previous loop (real measured frame interval)
+
 ### prop gui: Option < UiContext >
 ```cj
 public prop gui: Option < UiContext >
@@ -888,4 +901,10 @@ Gets the GUI context (created by _windowLoop after enabling)
 public prop initialized: Bool
 ```
 Whether the window has been initialized
+
+### prop targetFrameRate: Float64
+```cj
+public mut prop targetFrameRate: Float64
+```
+Target frame-rate cap (frames/sec; 0 = uncapped)
 

@@ -1,7 +1,7 @@
 package sp_ssr
 
 /**
- * sp_ssr 渲染场景（对照 three.js 官方案例 webgl_postprocessing_ssr.html）：
+ * sp_ssr 渲染场景（对照官方案例 webgl_postprocessing_ssr.html）：
  * - 场景：开放盒子（内壁反射）+ 地板 + 球体 + 立方体，提供典型反射几何
  * - 相机：PerspectiveCamera(50, aspect, near=0.1, far=100)，position (0,1.5,5)，target (0,1,0)
  * - 灯光：环境光 + 方向光 + 点光（多光源凸显反射差异）
@@ -108,7 +108,7 @@ public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera,
     // ★z-fighting 修复：普通地面 y=-0.07，反射器 y=-0.05（在上方 0.02）。
     //   若两者同平面（同为 y=-0.05），bgfx 深度测试 DEPTH_TEST_LESS（严格小于）下
     //   反射器片元深度等于 GroundPlane → 深度测试失败 → 反射器被完全丢弃，
-    //   地面只显示普通灰色、无反射效果（three.js 默认 LessEqual 且透明后渲才能重叠显示）。
+    //   地面只显示普通灰色、无反射效果（参考实现默认 LessEqual 且透明后渲才能重叠显示）。
     groundPlane.position.set(0.0, -0.07, 0.0)
     groundPlane.name = "GroundPlane"
     scene.add(groundPlane)

@@ -34,7 +34,7 @@ public func setMasterVolume(value: Float64): Unit
 Sets the master volume
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>When the context is initialized, the AL_GAIN is pushed to the OpenAL
-listener synchronously via execAudio.</p>
+listener asynchronously via postAudio (never blocks the caller).</p>
 
 Parameter: 
 
@@ -49,7 +49,9 @@ public override func updateMatrixWorld(force: Bool): Unit
 Overrides updateMatrixWorld to sync the world transform to the OpenAL listener
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Decomposes the position and orientation from matrixWorld, converts them to
-the OpenAL right-handed system and applies them to the listener.
+the OpenAL right-handed system and writes them into the transform slot; the audio
+thread submits dirty slots to the listener in its next loop iteration, so the
+render thread never blocks.
 LH → RH conversion:
 - Position: (x, y, z) → (x, y, -z)
 - Forward (at): (x, y, z) → (x, y, -z)

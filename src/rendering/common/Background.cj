@@ -96,32 +96,30 @@ public open class Background <: DataMap {
     }
 
     /**
-     * @brief[zh-cn] 渲染背景，按 three.js 语义决定 view0 的清除色
+     * @brief[zh-cn] 渲染背景，按引擎通用语义决定 view0 的清除色
      * @explain[zh-cn] 
      * 当 scene.background 为 Color 时覆盖 renderer.clearColor；
      * 否则保留 beginRender 已设置的清除色，避免无条件覆盖导致灰色背景 bug。
      * @param[zh-cn] scene 场景对象
      *
-     * @brief[en] Renders the background, determining view0 clear color by Three.js semantics
+     * @brief[en] Renders the background, determining view0 clear color by common engine semantics
      * @explain[en] 
      * When scene.background is a Color, overrides renderer.clearColor;
      * otherwise preserves the clear color already set by beginRender, avoiding unconditional override that causes a gray background bug.
      * @param[en] scene Scene object
      */
     public func render(scene: Scene): Unit {
-        match (scene.background) {
-            case Some(bg) =>
-                match (bg) {
-                    case c: Color =>
-                        let r = UInt8(c.r * 255.0)
-                        let g = UInt8(c.g * 255.0)
-                        let b = UInt8(c.b * 255.0)
-                        let a = UInt8(255)
-                        let newColor = (UInt32(r) << 24) | (UInt32(g) << 16) | (UInt32(b) << 8) | UInt32(a)
-                        bgfx_set_view_clear_cj(0, CLEAR_COLOR | CLEAR_DEPTH, newColor, 1.0f32, 0)
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(bg) <- scene.background) {
+            match (bg) {
+                case c: Color =>
+                    let r = UInt8(c.r * 255.0)
+                    let g = UInt8(c.g * 255.0)
+                    let b = UInt8(c.b * 255.0)
+                    let a = UInt8(255)
+                    let newColor = (UInt32(r) << 24) | (UInt32(g) << 16) | (UInt32(b) << 8) | UInt32(a)
+                    bgfx_set_view_clear_cj(0, CLEAR_COLOR | CLEAR_DEPTH, newColor, 1.0f32, 0)
+                case _ => ()
+            }
         }
     }
 }

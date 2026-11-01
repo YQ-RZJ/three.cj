@@ -81,7 +81,7 @@ public class TestWindow <: WindowEngine {
         this.camera = camera
         this.spheres = spheres
 
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   composer.addPass(new RenderPass(scene, camera))     // 场景渲到 readBuffer
         //   composer.addPass(new OutlinePass(res, scene, camera, selectedObjects))
         //   最后一个 enabled pass 自动 renderToScreen=true 上屏

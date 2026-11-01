@@ -5,7 +5,7 @@ package toon_pipeline
  *
  * 设计目标：完整实现自定义卡通渲染管线测试，不复用引擎内置 ToonMaterial。
  *
- * 渲染管线流程（对照 three.js 官方 toon 案例 webgl_materials_toon.html）：
+ * 渲染管线流程（对照官方 toon 案例 webgl_materials_toon.html）：
  *   1. 创建场景：方向光 + 环境光 + 多几何体（球/立方体/圆环/甜甜圈）
  *   2. 每个几何体使用自定义 ToonShader（ShaderMaterial）
  *      - 卡通量化光照（gradientMap 或硬编码 3 级量化）
@@ -13,7 +13,7 @@ package toon_pipeline
  *   3. ToonOutlinePass 后处理：基于深度的 Sobel 边缘检测描边
  *   4. 渲染循环：相机轨道控制 + 自定义渲染管线帧提交
  *
- * 卡通渲染核心算法（对照 three.js MeshToonMaterial + getGradientIrradiance）：
+ * 卡通渲染核心算法（参照 MeshToonMaterial + getGradientIrradiance 的通用做法）：
  *   - 计算 N·L（法线与光照方向点积）
  *   - 用 gradientMap 采样得到量化光照强度
  *   - 若无 gradientMap，用硬编码 3 级量化
@@ -66,7 +66,7 @@ public class ToonScene {
 /**
  * 创建场景、相机、灯光与卡通测试几何体。
  *
- * 几何布局（对照 three.js 官方 toon 案例）：
+ * 几何布局（对照官方 toon 案例）：
  *   - 球体（半径 0.8）：置于中央左侧，卡通量化光照
  *   - 立方体（1×1×1）：置于中央，硬边缘卡通
  *   - 圆环（半径 0.5，管 0.2）：置于中央右侧，曲面卡通
@@ -116,7 +116,7 @@ public func createScene(width: Int32, height: Int32): ToonScene {
 
     println("  灯光创建成功: ambient + 2 directional")
 
-    // 卡通测试几何体组（对照 three.js 官方 toon 案例布局）
+    // 卡通测试几何体组（对照官方 toon 案例布局）
     let meshes = ArrayList<Mesh>()
 
     // 球体（置于中央左侧，曲面卡通量化光照）
@@ -166,7 +166,7 @@ public func createScene(width: Int32, height: Int32): ToonScene {
 /**
  * 创建卡通材质。
  *
- * 使用引擎内置 MeshToonMaterial（已迁移完整，对照 three.js MeshToonMaterial）。
+ * 使用引擎内置 MeshToonMaterial（已迁移完整，与通用 MeshToonMaterial 语义一致）。
  * 该材质走 BgfxBackend 标准 uniform 绑定路径（u_color/u_opacity/u_shininess 等），
  * 确保渲染正确（自定义 ShaderMaterial 的 uniform 未被 _bindMaterialUniforms 绑定 → 全黑）。
  *

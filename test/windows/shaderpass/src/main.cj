@@ -83,7 +83,7 @@ public class TestWindow <: WindowEngine {
         // ---- 步骤 4: 进入渲染循环（RenderPass → ShaderPass("copy") → 上屏） ----
         println("[4/5] 进入渲染循环（RenderPass + ShaderPass via EffectComposer）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   composer.addPass(new RenderPass(scene, camera))   // 场景渲到 readBuffer
         //   composer.addPass(new ShaderPass(CopyShader))      // 透传 readBuffer 到 writeBuffer/屏幕
         // ShaderPass 用 ShaderLibs 已注册的 "copy" shader（CopyShader），textureID="tDiffuse"。

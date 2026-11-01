@@ -86,7 +86,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 球体连续螺旋绕光源运动（覆盖 cube 全部 6 个面）----
         // polar 在 [0, π] 连续摆动：polar=0 → +Y 顶，polar=π → -Y 底

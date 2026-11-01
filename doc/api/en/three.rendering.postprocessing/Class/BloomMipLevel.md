@@ -11,6 +11,14 @@ public init()
 ```
 
 
+### var gaussCoefs
+```cj
+public var gaussCoefs: Array < Float64 >= Array < Float64 >(0, { _ =>
+    0.0
+})
+```
+Precomputed Gaussian coefficients (vec4 array: x=coefficient, yzw=padding)
+
 ### var height
 ```cj
 public var height: Int64 = 0

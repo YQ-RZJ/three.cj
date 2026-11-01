@@ -56,6 +56,8 @@ import openalsoft4cj.alc.*
 import std.sync.*
 
 import three.audio.device.*
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 音频监听器，代表场景中的"耳朵"
@@ -94,6 +96,21 @@ public open class AudioListener <: Object3D {
     public var timeDelta: Float64
 
     /**
+     * @brief[zh-cn] 音频变换槽（异步下发到 OpenAL 监听器）
+     * @explain[zh-cn] 渲染线程每帧把监听器的世界变换写进槽内并置脏，音频线程在
+     *               自己的循环里取走脏槽并调用 alListenerfv，避免每帧一次跨线程
+     *               阻塞往返（实测单次 70~180µs）。
+     *
+     * @brief[en] The audio transform slot (submitted asynchronously to the OpenAL listener)
+     * @explain[en] Every frame the render thread writes the listener's world transform
+     *               into the slot and flags it dirty; the audio thread picks up dirty
+     *               slots in its own loop and calls alListenerfv, avoiding a blocking
+     *               cross-thread round trip per frame (measured 70~180µs each).
+     */
+    @JsonIgnore
+    private var _slot: AudioTransformSlot = AudioTransformSlot()
+
+    /**
      * @brief[zh-cn] 创建音频监听器
      * @param[zh-cn] context 音频上下文（默认使用 AudioContext.context 单例）
      *
@@ -105,6 +122,8 @@ public open class AudioListener <: Object3D {
         this.context = context
         this.gain = 1.0
         this.timeDelta = 0.0
+        this._slot.isListener = true
+        this.context.registerTransformSlot(this._slot)
     }
 
     /**
@@ -125,15 +144,15 @@ public open class AudioListener <: Object3D {
      * @brief[en] Sets the master volume
      * @param[en] value Target volume (0.0 = mute, 1.0 = unity)
      *
-     * @note[zh-cn] 上下文已初始化时同步通过 execAudio 下发 AL_GAIN 到 OpenAL 监听器。
+     * @note[zh-cn] 上下文已初始化时通过 postAudio 异步下发 AL_GAIN 到 OpenAL 监听器（不阻塞调用方）。
      * @note[en] When the context is initialized, the AL_GAIN is pushed to the OpenAL
-     * listener synchronously via execAudio.
+     * listener asynchronously via postAudio (never blocks the caller).
      */
     public func setMasterVolume(value: Float64): Unit {
         this.gain = value
         if (this.context.initialized) {
             let g = Float32(value)
-            this.context.execAudio({ => alListenerf_cj(AL_GAIN, g) })
+            this.context.postAudio({ => alListenerf_cj(AL_GAIN, g) })
         }
     }
 
@@ -144,18 +163,22 @@ public open class AudioListener <: Object3D {
      * @brief[en] Overrides updateMatrixWorld to sync the world transform to the OpenAL listener
      * @param[en] force Whether to force updating the world matrix
      *
-     * @note[zh-cn] 从 matrixWorld 分解位置和朝向，转换到 OpenAL 右手坐标系后设置到监听器。
+     * @note[zh-cn] 从 matrixWorld 分解位置和朝向，转换到 OpenAL 右手坐标系后写入变换槽；
+     * 音频线程在下一轮循环中把脏槽下发到监听器，渲染线程不产生任何阻塞等待。
      * 左手系 → 右手系转换：
      * - 位置: (x, y, z) → (x, y, -z)
      * - 前方向(at): (x, y, z) → (x, y, -z)
      * - 上方向(up): (upX, upY, upZ) → (upX, upY, -upZ)
      * @note[en] Decomposes the position and orientation from matrixWorld, converts them to
-     * the OpenAL right-handed system and applies them to the listener.
+     * the OpenAL right-handed system and writes them into the transform slot; the audio
+     * thread submits dirty slots to the listener in its next loop iteration, so the
+     * render thread never blocks.
      * LH → RH conversion:
      * - Position: (x, y, z) → (x, y, -z)
      * - Forward (at): (x, y, z) → (x, y, -z)
      * - Up: (upX, upY, upZ) → (upX, upY, -upZ)
      */
+    @Zone[three.audio.listener.AudioListener.updateMatrixWorld, name=audioListenerUpdate]
     public override func updateMatrixWorld(force: Bool): Unit {
         super.updateMatrixWorld(force)
 
@@ -163,56 +186,36 @@ public open class AudioListener <: Object3D {
 
         let te = this.matrixWorld.elements
 
-        // 从世界矩阵提取位置（左手系）
-        let px = te[12]
-        let py = te[13]
-        let pz = te[14]
+        // 从世界矩阵提取位置（左手系 → OpenAL 右手系：翻转 Z）
+        let px = Float32(te[12])
+        let py = Float32(te[13])
+        let pz = Float32(-te[14])
 
         // 从世界矩阵提取朝向
         // 左手系中 Object3D 的 -Z 方向为"前方向"（与相机一致）
         // matrixWorld 的列向量：col0=right, col1=up, col2=forward(LH: +Z)
-        // 在 Three.js 左手系中，getWorldDirection 返回 +Z 方向
+        // 在本引擎左手系中，getWorldDirection 返回 +Z 方向
         // 但对于监听器"看向"的方向，应该取 -Z（与相机 lookAt 一致）
         // forward 在左手系 = (te[8], te[9], te[10])
         // up 在左手系 = (te[4], te[5], te[6])
 
-        // 转换到 OpenAL 右手系：翻转 Z
+        // 前方向（LH +Z → RH -Z 方向翻转）
         let atX = Float32(te[8])
         let atY = Float32(te[9])
-        let atZ = Float32(-te[10])   // LH +Z → RH -Z 方向翻转
+        let atZ = Float32(-te[10])
 
+        // 上方向（LH +Z → RH -Z 方向翻转）
         let upX = Float32(te[4])
         let upY = Float32(te[5])
-        let upZ = Float32(-te[6])    // LH +Z → RH -Z 方向翻转
+        let upZ = Float32(-te[6])
 
-        // 设置监听器位置（LH → RH: z 翻转）
-        let posBuf = unsafe { LibC.malloc<Float32>(count: 3) }
-        unsafe {
-            posBuf.write(Float32(px))
-            (posBuf + 1).write(Float32(py))
-            (posBuf + 2).write(Float32(-pz))  // LH → RH: z 翻转
-        }
-
-        // 设置监听器朝向 [atX, atY, atZ, upX, upY, upZ]
-        let orientBuf = unsafe { LibC.malloc<Float32>(count: 6) }
-        unsafe {
-            orientBuf.write(atX)
-            (orientBuf + 1).write(atY)
-            (orientBuf + 2).write(atZ)
-            (orientBuf + 3).write(upX)
-            (orientBuf + 4).write(upY)
-            (orientBuf + 5).write(upZ)
-        }
-
-        let gainVal = Float32(this.gain)
-        // 三个监听器属性在单次 execAudio 闭包内提交，减少线程往返
-        this.context.execAudio({ =>
-            alListenerfv_cj(AL_POSITION, posBuf)
-            alListenerfv_cj(AL_ORIENTATION, orientBuf)
-            alListenerf_cj(AL_GAIN, gainVal)
-        })
-
-        unsafe { LibC.free(posBuf) }
-        unsafe { LibC.free(orientBuf) }
+        // 异步提交：只写槽内字段并置脏，音频线程负责下发 OpenAL
+        this.context.postTransform(
+            this._slot,
+            px, py, pz,
+            atX, atY, atZ,
+            upX, upY, upZ,
+            Float32(this.gain)
+        )
     }
 }

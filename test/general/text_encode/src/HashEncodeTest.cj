@@ -2,7 +2,7 @@
  * @file HashEncodeTest
  * @brief 非加密哈希（FNV-1a 32 / MurmurHash3 32）正确性测试
  *
- * 对照: three.js（CCC Hash.ts）与业界已知哈希值
+ * 对照: 业界已知哈希值与主流实现行为
  * 覆盖：
  * - FNV-1a 32 已知向量（RFC 官方示例 "foobar"、"hello"）
  * - MurmurHash3 32 已知向量（空串、种子差异）

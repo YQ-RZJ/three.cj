@@ -9,13 +9,13 @@ bgfx 常量映射
 ```cj
 public static func convertBlendFactor(factor: Int64): UInt64
 ```
-将 three.js 混合因子转换为 bgfx 混合因子
+将引擎混合因子转换为 bgfx 混合因子
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|factor|Int64|three.js 混合因子常量|
+|factor|Int64|引擎混合因子常量|
 
 返回: 
 
@@ -25,7 +25,7 @@ public static func convertBlendFactor(factor: Int64): UInt64
 ```cj
 public static func convertBlendFunc(srcFactor: Int64, dstFactor: Int64, srcAlphaFactor: Int64, dstAlphaFactor: Int64): UInt64
 ```
-将 three.js 混合模式转换为 bgfx 混合状态
+将引擎混合模式转换为 bgfx 混合状态
 
 参数: 
 
@@ -44,13 +44,13 @@ public static func convertBlendFunc(srcFactor: Int64, dstFactor: Int64, srcAlpha
 ```cj
 public static func convertCullMode(side: Int64): UInt64
 ```
-将 three.js 侧面转换为 bgfx 剔除模式
+将引擎侧面转换为 bgfx 剔除模式
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|side|Int64|three.js 侧面常量|
+|side|Int64|引擎侧面常量|
 
 返回: 
 
@@ -60,13 +60,13 @@ public static func convertCullMode(side: Int64): UInt64
 ```cj
 public static func convertDepthFunc(depthFunc: Int64): UInt64
 ```
-将 three.js 深度测试模式转换为 bgfx 状态标志
+将引擎深度测试模式转换为 bgfx 状态标志
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|depthFunc|Int64|three.js 深度测试常量|
+|depthFunc|Int64|引擎深度测试常量|
 
 返回: 
 

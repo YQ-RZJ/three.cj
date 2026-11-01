@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 渲染目标
  * @brief[zh-cn] 几何缓冲区（颜色、可选深度/模板）的持包，用于离屏渲染
- * @explain[zh-cn] 在 bgfx 渲染后端中，渲染目标对应 bgfx 的 FrameBuffer handle。本类仅持有描述性字段（width/height/depth/scissor/viewport/textures/samples 等），具体 GPU 句柄实现推迟到 Level 8 由 bgfx4cj 接管。对照源码: Three.js RenderTarget.js
+ * @explain[zh-cn] 在 bgfx 渲染后端中，渲染目标对应 bgfx 的 FrameBuffer handle。本类仅持有描述性字段（width/height/depth/scissor/viewport/textures/samples 等），具体 GPU 句柄实现推迟到 Level 8 由 bgfx4cj 接管。
  *
  * @file[en] Render Target
  * @brief[en] Holder for geometry buffers (color, optional depth/stencil), used for off-screen rendering
- * @explain[en] In the bgfx rendering backend, render targets correspond to bgfx's FrameBuffer handle. This class only holds descriptive fields (width/height/depth/scissor/viewport/textures/samples, etc.), and the actual GPU handle implementation is deferred to Level 8 managed by bgfx4cj. Reference: Three.js RenderTarget.js
+ * @explain[en] In the bgfx rendering backend, render targets correspond to bgfx's FrameBuffer handle. This class only holds descriptive fields (width/height/depth/scissor/viewport/textures/samples, etc.), and the actual GPU handle implementation is deferred to Level 8 managed by bgfx4cj.
  */
 package three.rendering.rendertarget
 
@@ -401,7 +401,7 @@ public open class RenderTarget <: EventDispatcher {
         this.kind = "RenderTarget"
         this.width = width
         this.height = height
-        let opts = match (options) { case Some(o) => o; case None => RenderTargetOptions() }
+        let opts = if (let Some(o) <- options) { o } else { RenderTargetOptions() }
         this.depth = opts.depth
         this.scissor = Vector4(0.0, 0.0, Float64(width), Float64(height))
         this.scissorTest = false
@@ -500,15 +500,9 @@ public open class RenderTarget <: EventDispatcher {
         
         // 解 RT 纹理反向引用：跨包循环依赖通过 core 侧 IRenderTargetTexture 接口解除，
         // 旧/新纹理的具体类型 Texture 在 textures 包中实现本接口，core 经接口访问。
-        match (this._depthTexture) {
-            case Some(old) => old.rtRenderTarget = None
-            case None => ()
-        }
+        if (let Some(old) <- this._depthTexture) { old.rtRenderTarget = None }
         
-        match (current) {
-            case Some(c) => c.rtRenderTarget = Some(this)
-            case None => ()
-        }
+        if (let Some(c) <- current) { c.rtRenderTarget = Some(this) }
         this._depthTexture = current
     }
 
@@ -530,16 +524,14 @@ public open class RenderTarget <: EventDispatcher {
             this.depth = depth
             
             for (i in 0..this.textures.size) {
-                match (this.textures[i]) {
-                    case Some(tex) =>
-                        tex.rtWidth = width
-                        tex.rtHeight = height
-                        tex.rtDepth = depth
-                        
-                        if (!tex.rtIsData3DTexture()) {
-                            tex.rtIsArrayTexture = depth > 1
-                        }
-                    case None => ()
+                if (let Some(tex) <- this.textures[i]) {
+                    tex.rtWidth = width
+                    tex.rtHeight = height
+                    tex.rtDepth = depth
+                    
+                    if (!tex.rtIsData3DTexture()) {
+                        tex.rtIsArrayTexture = depth > 1
+                    }
                 }
             }
             this.dispose()
@@ -581,15 +573,14 @@ public open class RenderTarget <: EventDispatcher {
             
             // 解循环依赖：纹理类型 Texture 在 textures 包中实现 IRenderTargetTexture 接口，
             // core 侧经接口访问，避免 core→textures 反向导入。
-            match (source.textures[i]) {
-                case Some(srcTex) =>
-                    let cloned = srcTex.rtClone()
-                    cloned.rtIsRenderTargetTexture = true
-                    cloned.rtRenderTarget = Some(this)
-                    this.textures.add(Some(cloned))
-                case None =>
-                    // 空槽直接复制 None
-                    this.textures.add(None)
+            if (let Some(srcTex) <- source.textures[i]) {
+                let cloned = srcTex.rtClone()
+                cloned.rtIsRenderTargetTexture = true
+                cloned.rtRenderTarget = Some(this)
+                this.textures.add(Some(cloned))
+            } else {
+                // 空槽直接复制 None
+                this.textures.add(None)
             }
         }
         this.depthBuffer = source.depthBuffer
@@ -601,15 +592,15 @@ public open class RenderTarget <: EventDispatcher {
         this.storeMultisampledDepthBuffer = source.storeMultisampledDepthBuffer
         this.storeMultisampledStencilBuffer = source.storeMultisampledStencilBuffer
         
-        match (source._depthTexture) {
-            case Some(srcDepth) =>
-                match (srcDepth) {
-                    case srcDepthTex: IRenderTargetTexture =>
-                        let clonedDepth = srcDepthTex.rtClone()
-                        this.setDepthTexture(Some(clonedDepth))
-                    case _ => this._depthTexture = source._depthTexture
-                }
-            case None => this._depthTexture = None
+        if (let Some(srcDepth) <- source._depthTexture) {
+            if (srcDepth is IRenderTargetTexture) {
+                let clonedDepth = (srcDepth as IRenderTargetTexture).getOrThrow().rtClone()
+                this.setDepthTexture(Some(clonedDepth))
+            } else {
+                this._depthTexture = source._depthTexture
+            }
+        } else {
+            this._depthTexture = None
         }
         this.samples = source.samples
         this.multiview = source.multiview

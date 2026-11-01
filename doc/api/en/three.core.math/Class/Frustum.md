@@ -69,6 +69,27 @@ public init()
 ```
 
 
+### func intersectsBoxComponents\(Float64,Float64,Float64,Float64,Float64,Float64\)
+```cj
+public func intersectsBoxComponents(minX: Float64, minY: Float64, minZ: Float64, maxX: Float64, maxY: Float64, maxZ: Float64): Bool
+```
+Check if bounding-box components intersect the frustum (zero-allocation overload)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|minX|Float64|Box min XminY Box min YminZ Box min ZmaxX Box max XmaxY Box max YmaxZ Box max Z|
+|minY|Float64||
+|minZ|Float64||
+|maxX|Float64||
+|maxY|Float64||
+|maxZ|Float64||
+
+Return: 
+
+- Whether they intersect
+
 ### func intersectsBox\(Box3\)
 ```cj
 public func intersectsBox(box: Box3): Bool
@@ -100,6 +121,37 @@ Parameter:
 Return: 
 
 - Whether they intersect
+
+### func intersectsSphereArray\(Array<Float64>\)
+```cj
+public func intersectsSphereArray(sphere: Array < Float64 >): Bool
+```
+Check if a sphere ([cx,cy,cz,radius]) intersects the frustum, with zero allocation
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|sphere|Array<Float64>|Sphere as [centerX, centerY, centerZ, radius]|
+
+Return: 
+
+- Whether they intersect
+
+### func intersectsSphereComponents\(Float64,Float64,Float64,Float64\)
+```cj
+public func intersectsSphereComponents(cx: Float64, cy: Float64, cz: Float64, radius: Float64): Bool
+```
+Check if sphere components intersect the frustum (zero-allocation overload)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|cx|Float64||
+|cy|Float64||
+|cz|Float64||
+|radius|Float64||
 
 ### func intersectsSphere\(Sphere\)
 ```cj

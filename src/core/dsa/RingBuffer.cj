@@ -234,9 +234,8 @@ public class RingBuffer<T> {
     public func toArray(): Array<T> {
         let list = ArrayList<T>()
         for (i in 0.._size) {
-            match (_data[(_head + i) % _capacity]) {
-                case Some(e) => list.add(e)
-                case None => ()
+            if (let Some(e) <- _data[(_head + i) % _capacity]) {
+                list.add(e)
             }
         }
         return Array<T>(list.size, { i => list[i] })

@@ -1,6 +1,6 @@
 /**
  * @file TextureBehaviorTest
- * @brief 补充迁移 three.js test/unit/src/textures/Texture.tests.js 的 dispose 等行为断言
+ * @brief 补充迁移上游 JS 库 test/unit/src/textures/Texture.tests.js 的 dispose 等行为断言
  *
  * 对照 JS:
  *   new Texture() → texture.needsUpdate 初始 false

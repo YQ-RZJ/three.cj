@@ -43,7 +43,7 @@ Parameter:
 ```cj
 public func toHashMap(): HashMap < String, Any >
 ```
-Convert to HashMap (for handwritten toJSON compatibility layer to output three.js view object structure)
+Convert to HashMap (for handwritten toJSON compatibility layer to output rendering engine view object structure)
 
 Return: 
 

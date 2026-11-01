@@ -92,9 +92,47 @@ internal func resolveLogLevel(): Int64 {
     }
 }
 
-/// 判断给定级别当前是否允许生成代码（>= 编译期档位则允许）
+/**
+ * @brief[zh-cn] 判断给定级别当前是否允许生成代码（>= 编译期档位则允许）
+ * @param[zh-cn] minLevel 级别阈值（1=error 2=warn 3=info 4=debug 5=trace）
+ *
+ * @brief[en] Whether code at the given level is generated (allowed when >= the compile-time level)
+ * @param[en] minLevel Level threshold (1=error 2=warn 3=info 4=debug 5=trace)
+ */
 internal func levelEnabled(minLevel: Int64): Bool {
     return COMPILE_LOG_LEVEL >= minLevel
+}
+
+/**
+ * @brief[zh-cn] 编译期常量宏：给定级别是否启用（展开为 true / false 字面量）
+ * @param[zh-cn] level 级别阈值（1=error 2=warn 3=info 4=debug 5=trace）
+ * @explain[zh-cn] 宏包内不能导出 public func（Cangjie 限制），因此改用宏把编译期档位
+ *               以**字面量**形式注入调用点：展开为 `true` / `false`，调用处的
+ *               `if (@LogLevelEnabled(4)) { ... }` 会被常量折叠 + 死代码消除，
+ *               整个分支（含昂贵的诊断计算）在非 debug 档位下**完全不生成代码**。
+ *
+ * @brief[en] Compile-time constant macro: whether the given level is enabled
+ * @param[en] level Level threshold (1=error 2=warn 3=info 4=debug 5=trace)
+ * @explain[en] A macro package cannot export public funcs (Cangjie restriction), so this macro
+ *              injects the compile-time level as a **literal** at the call site: it expands to
+ *              `true` / `false`, so `if (@LogLevelEnabled(4)) { ... }` is constant-folded and the
+ *              whole branch (including expensive diagnostic computation) is eliminated entirely
+ *              at non-debug levels.
+ */
+public macro LogLevelEnabled(levelTokens: Tokens): Tokens {
+    let raw = levelTokens.toString().trimAscii()
+    let level: Int64 = match (raw) {
+        case "1" => 1
+        case "2" => 2
+        case "3" => 3
+        case "4" => 4
+        case "5" => 5
+        case _ => -1
+    }
+    if (!levelEnabled(level)) {
+        return cangjieLex("false")
+    }
+    return cangjieLex("true")
 }
 
 /// 将实参 Tokens 组装为展开代码（运行时统一走 Logger，通道由 Logger 决定）：

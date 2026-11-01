@@ -80,8 +80,8 @@ public class TestWindow <: WindowEngine {
         this.objs = createScene(w, h)
 
         // ---- 启用 debug mode 7（shadowMatrix 投影 UV 可视化） ----
-        // 新架构对齐 Three.js：renderer.setDebugMode 已移除。
-        // Debug 可视化用 Three.js 标准 scene.overrideMaterial：
+        // 新架构不再提供 renderer.setDebugMode。
+        // Debug 可视化用标准 scene.overrideMaterial：
         //   scene.overrideMaterial = Some(ShadowProjMaterial())
         // ShadowProjMaterial 是 bgfx4cj 扩展内置材质，kind 映射到 ShaderLibs 已注册的
         // "shadowproj" 程序，把 receiver 顶点经 directionalShadowMatrix 投影后的 xy 当颜色输出，
@@ -103,7 +103,7 @@ public class TestWindow <: WindowEngine {
     public override func onFrame(dt: Float64): Unit {
         this.totalFrames++
         this.frame++
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
 
         // ---- 悬浮立方体缓慢自转 ----
         this.objs.cube.rotation.y = t * 0.5

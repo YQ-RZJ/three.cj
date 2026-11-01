@@ -210,9 +210,8 @@ public class LuaHotReload {
             return false
         }
         let hash = LuaHotReload._hashOf(src)
-        match (this._onBefore) {
-            case Some(cb) => cb()
-            case None => ()
+        if (let Some(cb) <- this._onBefore) {
+            cb()
         }
         var ok = false
         try {
@@ -229,9 +228,8 @@ public class LuaHotReload {
         if (ok) {
             this._lastHash = hash
         }
-        match (this._onAfter) {
-            case Some(cb) => cb()
-            case None => ()
+        if (let Some(cb) <- this._onAfter) {
+            cb()
         }
         return ok
     }

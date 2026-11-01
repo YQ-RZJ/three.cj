@@ -87,7 +87,7 @@ public class TestWindow <: WindowEngine {
         this.spheres = spheres
         this.stripeTex = createStripeTexture(this.renderer)
 
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   composer.addPass(new RenderPass(scene, camera))   // 场景渲到 readBuffer
         //   composer.addPass(new TexturePass(stripeTex, 1.0)) // 用彩条纹理覆盖屏幕
         // 视觉效果：RenderPass 把场景画进 readBuffer，TexturePass 紧跟着用彩条纹理覆盖 readBuffer，

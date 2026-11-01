@@ -24,13 +24,13 @@
  * @file[zh-cn] CameraView 相机多视口裁剪配置
  * @brief[zh-cn] 相机多视口裁剪配置
  * @explain[zh-cn] 原实现使用 Option<HashMap<String, Any>> 承载，fastjson 宏要求字段为具体类型，
- * 故提取为独立类：字段与 three.js view 对象的 key 一一对应。
+ * 故提取为独立类：字段与渲染引擎 view 对象的 key 一一对应。
  *
  * @file[en] CameraView camera multi-viewport clipping configuration
  * @brief[en] Camera multi-viewport clipping configuration
  * @explain[en] Original implementation used Option<HashMap<String, Any>>, but fastjson macro requires
  * concrete type fields, so extracted as an independent class: fields correspond one-to-one
- * with three.js view object keys.
+ * with rendering engine view object keys.
  *
  * @package three.rendering.cameras
  */
@@ -152,10 +152,10 @@ public class CameraView {
     }
 
     /**
-     * @brief[zh-cn] 转换为 HashMap（供手写 toJSON 兼容层输出 three.js view 对象结构）
+     * @brief[zh-cn] 转换为 HashMap（供手写 toJSON 兼容层输出渲染引擎 view 对象结构）
      * @return[zh-cn] 视口配置 HashMap
      *
-     * @brief[en] Convert to HashMap (for handwritten toJSON compatibility layer to output three.js view object structure)
+     * @brief[en] Convert to HashMap (for handwritten toJSON compatibility layer to output rendering engine view object structure)
      * @return[en] View configuration HashMap
      */
     public func toHashMap(): HashMap<String, Any> {

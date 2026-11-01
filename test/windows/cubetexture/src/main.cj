@@ -86,7 +86,7 @@ public class TestWindow <: WindowEngine {
         println("[4/5] 进入渲染循环（RenderPass + CubeTexturePass via EffectComposer）...")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
 
-        // 对齐 Three.js EffectComposer 用法：
+        // 按后处理链的标准用法组织：
         //   composer.addPass(new RenderPass(scene, camera))                       // 场景渲到 readBuffer
         //   composer.addPass(new CubeTexturePass(camera, cubeTex, 1))            // 立方体贴图背景
         //   最后一个 enabled pass 自动 renderToScreen=true 上屏

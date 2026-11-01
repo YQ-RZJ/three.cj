@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 扩展兼容层
  * @brief[zh-cn] 替代 WebGLExtensions，提供兼容接口
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLExtensions.js。bgfx 内部处理所有平台扩展，不需要像 WebGL 那样手动查询和加载扩展。此类提供兼容接口，使上层代码无需修改。
+ * @explain[zh-cn] bgfx 内部处理所有平台扩展，不需要像 WebGL 那样手动查询和加载扩展。此类提供兼容接口，使上层代码无需修改。
  *
  * @file[en] bgfx Extension Compatibility Layer
  * @brief[en] Replaces WebGLExtensions, provides compatible interface
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLExtensions.js. bgfx internally handles all platform extensions without needing manual query/load like WebGL. This class provides a compatible interface so upper-level code needs no modification.
+ * @explain[en] bgfx internally handles all platform extensions without needing manual query/load like WebGL. This class provides a compatible interface so upper-level code needs no modification.
  */
 package three.rendering.bgfx
 

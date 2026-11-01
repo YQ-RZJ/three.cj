@@ -49,7 +49,7 @@ public class SceneObjects {
 /// 按索引创建对应材质类型的球体
 /// 覆盖渲染器分发的全部材质类型（对照 BgfxBackend 的 mat.kind 分发）
 /// SpriteMaterial 特殊：改为面片模型（PlaneGeometry）展示广告牌视觉效果
-/// （对照 three.js Sprite：SpriteMaterial 本质渲染于始终朝向相机的面片）
+/// （对照通用 Sprite 做法：SpriteMaterial 本质渲染于始终朝向相机的面片）
 func createSphereByMaterialType(i: Int64): Object3D {
     var material: Material = MeshBasicMaterial()
     var typeName = ""
@@ -153,7 +153,7 @@ func createSphereByMaterialType(i: Int64): Object3D {
             typeName = "SpriteMaterial"
     }
 
-    // 模型适配（对照 three.js：材质决定着色，图元/模型决定视觉形态）：
+    // 模型适配（通用做法：材质决定着色，图元/模型决定视觉形态）：
     //   - SpriteMaterial → PlaneGeometry 面片（广告牌，spriteVS 内始终朝向相机）
     //   - LineBasicMaterial/LineDashedMaterial → EdgesGeometry 线框球（LINES 图元，
     //     只渲染边缘线段，避免球体三角索引被 LINES 图元渲染成混乱线条）

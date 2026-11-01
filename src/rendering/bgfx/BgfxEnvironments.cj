@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 环境贴图管理
  * @brief[zh-cn] 替代 WebGLEnvironments，管理环境贴图
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLEnvironments.js。WebGLEnvironments 负责管理 PMREM 环境贴图，bgfx 版本使用 TextureHandle 替代 WebGL 纹理对象。
+ * @explain[zh-cn] WebGLEnvironments 负责管理 PMREM 环境贴图，bgfx 版本使用 TextureHandle 替代 WebGL 纹理对象。
  *
  * @file[en] bgfx Environment Map Management
  * @brief[en] Replaces WebGLEnvironments, manages environment maps
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLEnvironments.js. WebGLEnvironments manages PMREM environment maps; the bgfx version uses TextureHandle instead of WebGL texture objects.
+ * @explain[en] WebGLEnvironments manages PMREM environment maps; the bgfx version uses TextureHandle instead of WebGL texture objects.
  */
 package three.rendering.bgfx
 
@@ -97,13 +97,13 @@ public class BgfxEnvironments {
      * @return[en] Environment map info
      */
     public func get(textureId: Int64, usePMREM: Bool): EnvironmentInfo {
-        match (environments.get(textureId)) {
-            case Some(env) => return env
-            case None =>
-                let env = EnvironmentInfo()
-                env.usePMREM = usePMREM
-                environments.add(textureId, env)
-                return env
+        if (let Some(env) <- environments.get(textureId)) {
+            return env
+        } else {
+            let env = EnvironmentInfo()
+            env.usePMREM = usePMREM
+            environments.add(textureId, env)
+            return env
         }
     }
 
@@ -115,14 +115,11 @@ public class BgfxEnvironments {
      * @param[en] textureId Texture ID
      */
     public func dispose(textureId: Int64): Unit {
-        match (environments.get(textureId)) {
-            case Some(env) =>
-                if (env.texture.idx != 0xFFFFu16) {
-                    bgfx_destroy_texture_cj(env.texture)
-                }
-                environments.remove(textureId)
-            case None =>
-                ()
+        if (let Some(env) <- environments.get(textureId)) {
+            if (env.texture.idx != 0xFFFFu16) {
+                bgfx_destroy_texture_cj(env.texture)
+            }
+            environments.remove(textureId)
         }
     }
 

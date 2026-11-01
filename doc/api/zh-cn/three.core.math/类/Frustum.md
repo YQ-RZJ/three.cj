@@ -69,6 +69,27 @@ public init()
 ```
 
 
+### func intersectsBoxComponents\(Float64,Float64,Float64,Float64,Float64,Float64\)
+```cj
+public func intersectsBoxComponents(minX: Float64, minY: Float64, minZ: Float64, maxX: Float64, maxY: Float64, maxZ: Float64): Bool
+```
+判断包围盒分量是否与视锥体相交（零分配重载）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|minX|Float64|包围盒最小 XminY 包围盒最小 YminZ 包围盒最小 ZmaxX 包围盒最大 XmaxY 包围盒最大 YmaxZ 包围盒最大 Z|
+|minY|Float64||
+|minZ|Float64||
+|maxX|Float64||
+|maxY|Float64||
+|maxZ|Float64||
+
+返回: 
+
+- 是否相交
+
 ### func intersectsBox\(Box3\)
 ```cj
 public func intersectsBox(box: Box3): Bool
@@ -100,6 +121,37 @@ public func intersectsObject(object: IFrustumCullable): Bool
 返回: 
 
 - 是否相交
+
+### func intersectsSphereArray\(Array<Float64>\)
+```cj
+public func intersectsSphereArray(sphere: Array < Float64 >): Bool
+```
+判断球（[cx,cy,cz,radius] 四元数组）是否与视锥体相交
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|sphere|Array<Float64>||
+
+返回: 
+
+- 
+
+### func intersectsSphereComponents\(Float64,Float64,Float64,Float64\)
+```cj
+public func intersectsSphereComponents(cx: Float64, cy: Float64, cz: Float64, radius: Float64): Bool
+```
+判断球体分量是否与视锥体相交（零分配重载）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|cx|Float64||
+|cy|Float64||
+|cz|Float64||
+|radius|Float64||
 
 ### func intersectsSphere\(Sphere\)
 ```cj

@@ -30,3 +30,4 @@ libs/*
 _reference
 openspec/
 tools/
+captures/*

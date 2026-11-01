@@ -22,7 +22,7 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] GltfLoader glTF 加载器
- * @brief[zh-cn] 对应 Three.js loaders/GLTFLoader.js，加载 glTF 格式的 3D 模型
+ * @brief[zh-cn] 加载 glTF 格式的 3D 模型
  * @explain[zh-cn] 完整解析 glTF 的核心功能：顶点属性、索引缓冲、材质（PBR Metallic-Roughness）、纹理贴图、场景层级、多网格多图元。
  *
  * @file[en] GltfLoader  glTF loader
@@ -202,78 +202,65 @@ public class GltfLoader <: Loader {
 
         // 构建 meshMap：meshIdx -> 该 mesh 的所有 primitive Mesh 列表（供 buildNodes 层级挂载）
         let meshMap = HashMap<Int64, ArrayList<Mesh>>()
-        match (meshes) {
-            case Some(m) =>
-                let meshArr = toArrayAny(m)
-                for (mi in 0..meshArr.size) {
-                    let meshObj = match (meshArr[mi]) {
+        if (let Some(m) <- meshes) {
+            let meshArr = toArrayAny(m)
+            for (mi in 0..meshArr.size) {
+                let meshObj = match (meshArr[mi]) {
+                    case hm: HashMap<String, Any> => hm
+                    case _ => continue
+                }
+                let primitives = if (let Some(p) <- meshObj.get("primitives")) { toArrayAny(p) } else { continue }
+                let primMeshes = ArrayList<Mesh>()
+                for (pi in 0..primitives.size) {
+                    let prim = match (primitives[pi]) {
                         case hm: HashMap<String, Any> => hm
                         case _ => continue
                     }
-                    let primitives = match (meshObj.get("primitives")) {
-                        case Some(p) => toArrayAny(p)
-                        case None => continue
+                    let geom = buildGeometry(prim, accessors, bufferViews, loadedBuffers)
+                    let mat = if (let Some(matIdx) <- prim.get("material")) {
+                        let idx = getInt(matIdx)
+                        parsedMaterials.get(idx)
+                    } else {
+                        let emptyNone: Option<Material> = None
+                        emptyNone
                     }
-                    let primMeshes = ArrayList<Mesh>()
-                    for (pi in 0..primitives.size) {
-                        let prim = match (primitives[pi]) {
-                            case hm: HashMap<String, Any> => hm
-                            case _ => continue
-                        }
-                        let geom = buildGeometry(prim, accessors, bufferViews, loadedBuffers)
-                        let mat = match (prim.get("material")) {
-                            case Some(matIdx) =>
-                                let idx = getInt(matIdx)
-                                parsedMaterials.get(idx)
-                            case None =>
-                                let emptyNone: Option<Material> = None
-                                emptyNone
-                        }
-                        let material = match (mat) {
-                            case Some(m) => m
-                            case None =>
-                                let defaultMat = MeshBasicMaterial()
-                                defaultMat.color = Color(0xcccccc)
-                                defaultMat
-                        }
-                        let meshNode = Mesh(geometry: geom, material: material)
-                        meshNode.name = "mesh_${mi}_prim_${pi}"
-                        primMeshes.add(meshNode)
+                    let material = if (let Some(m) <- mat) {
+                        m
+                    } else {
+                        let defaultMat = MeshBasicMaterial()
+                        defaultMat.color = Color(0xcccccc)
+                        defaultMat
                     }
-                    meshMap.add(Int64(mi), primMeshes)
+                    let meshNode = Mesh(geometry: geom, material: material)
+                    meshNode.name = "mesh_${mi}_prim_${pi}"
+                    primMeshes.add(meshNode)
                 }
-            case None => ()
+                meshMap.add(Int64(mi), primMeshes)
+            }
         }
 
         // 层级应用：优先走 scenes -> nodes 路径（应用节点变换矩阵/TRS 与层级），
         //   无 scenes/nodes 时回退平铺（兼容简单模型）；nodesOpt 复用上方 L206 的绑定
         let scenesOpt = json.get("scenes")
         var appliedHierarchy = false
-        match (scenesOpt) {
-            case Some(scenesVal) =>
-                let scenesArr = toArrayAny(scenesVal)
-                if (scenesArr.size > 0) {
-                    let sceneObj = match (scenesArr[0]) {
-                        case hm: HashMap<String, Any> => hm
-                        case _ => HashMap<String, Any>()
-                    }
-                    match (sceneObj.get("nodes")) {
-                        case Some(rootNodes) =>
-                            let rootArr = toArrayAny(rootNodes)
-                            let identity = Array<Float64>(16, { i => if (i % 5 == 0) { 1.0 } else { 0.0 } })
-                            for (ri in 0..rootArr.size) {
-                                let rootIdx = getInt(Some(rootArr[ri]))
-                                let obj = buildNodes(rootIdx, nodesOpt, meshMap, identity, 0)
-                                match (obj) {
-                                    case Some(o) => result.add(o)
-                                    case None => ()
-                                }
-                            }
-                            appliedHierarchy = true
-                        case None => ()
-                    }
+        if (let Some(scenesVal) <- scenesOpt) {
+            let scenesArr = toArrayAny(scenesVal)
+            if (scenesArr.size > 0) {
+                let sceneObj = match (scenesArr[0]) {
+                    case hm: HashMap<String, Any> => hm
+                    case _ => HashMap<String, Any>()
                 }
-            case None => ()
+                if (let Some(rootNodes) <- sceneObj.get("nodes")) {
+                    let rootArr = toArrayAny(rootNodes)
+                    let identity = Array<Float64>(16, { i => if (i % 5 == 0) { 1.0 } else { 0.0 } })
+                    for (ri in 0..rootArr.size) {
+                        let rootIdx = getInt(Some(rootArr[ri]))
+                        let obj = buildNodes(rootIdx, nodesOpt, meshMap, identity, 0)
+                        if (let Some(o) <- obj) { result.add(o) }
+                    }
+                    appliedHierarchy = true
+                }
+            }
         }
 
         // 回退：无 scenes/nodes 时，将所有 mesh 平铺到 Group（保持旧行为）
@@ -289,18 +276,9 @@ public class GltfLoader <: Loader {
         //   gltfSkins/gltfAnimations 为结构化解析结果；
         //   gltfNodes/gltfAccessors/gltfBufferViews 为 JSON 原始 Any 数组；
         //   gltfBuffers 为已加载的二进制缓冲列表。
-        let nodesArr = match (nodesOpt) {
-            case Some(n) => toArrayAny(n)
-            case None => Array<Any>()
-        }
-        let accessorsArr = match (accessors) {
-            case Some(a) => toArrayAny(a)
-            case None => Array<Any>()
-        }
-        let bufferViewsArr = match (bufferViews) {
-            case Some(bv) => toArrayAny(bv)
-            case None => Array<Any>()
-        }
+        let nodesArr = if (let Some(n) <- nodesOpt) { toArrayAny(n) } else { Array<Any>() }
+        let accessorsArr = if (let Some(a) <- accessors) { toArrayAny(a) } else { Array<Any>() }
+        let bufferViewsArr = if (let Some(bv) <- bufferViews) { toArrayAny(bv) } else { Array<Any>() }
         result.userData.add("gltfSkins", parsedSkins)
         result.userData.add("gltfAnimations", parsedAnimations)
         result.userData.add("gltfNodes", nodesArr)
@@ -317,10 +295,7 @@ public class GltfLoader <: Loader {
 
     private func parseMaterials(materialsOpt: Option<Any>, texturesOpt: Option<Any>, imagesOpt: Option<Any>, bufferViewsOpt: Option<Any>, samplersOpt: Option<Any>, binData: Array<UInt8>, basePath: String): HashMap<Int64, Material> {
         let result = HashMap<Int64, Material>()
-        let materials = match (materialsOpt) {
-            case Some(m) => toArrayAny(m)
-            case None => return result
-        }
+        let materials = if (let Some(m) <- materialsOpt) { toArrayAny(m) } else { return result }
         for (i in 0..materials.size) {
             let matObj = match (materials[i]) {
                 case hm: HashMap<String, Any> => hm
@@ -334,139 +309,106 @@ public class GltfLoader <: Loader {
 
     private func buildMaterial(matObj: HashMap<String, Any>, texturesOpt: Option<Any>, imagesOpt: Option<Any>, bufferViewsOpt: Option<Any>, samplersOpt: Option<Any>, binData: Array<UInt8>, basePath: String): Material {
         let material = MeshStandardMaterial()
-        material.name = match (matObj.get("name")) {
-            case Some(n) => match (n) { case s: String => s; case _ => "material" }
-            case None => "material"
-        }
+        material.name = if (let Some(n) <- matObj.get("name")) {
+            match (n) { case s: String => s; case _ => "material" }
+        } else { "material" }
 
         // 解析 PBR Metallic-Roughness
-        match (matObj.get("pbrMetallicRoughness")) {
-            case Some(pbr) =>
-                let pbrObj = match (pbr) { case hm: HashMap<String, Any> => hm; case _ => return material }
-                // baseColorFactor
-                match (pbrObj.get("baseColorFactor")) {
-                    case Some(factors) =>
-                        let arr = match (factors) { case a: Array<Any> => a; case _ => Array<Any>() }
-                        if (arr.size >= 3) {
-                            let r = getFloat(Some(arr[0])); let g = getFloat(Some(arr[1]))
-                            let b = getFloat(Some(arr[2])); let a = if (arr.size >= 4) { getFloat(Some(arr[3])) } else { 1.0 }
-                            material.color = Color(r, g, b)
-                            material.opacity = a
-                            if (a < 1.0) { material.transparent = true }
+        if (let Some(pbr) <- matObj.get("pbrMetallicRoughness")) {
+            let pbrObj = match (pbr) { case hm: HashMap<String, Any> => hm; case _ => return material }
+            // baseColorFactor
+            if (let Some(factors) <- pbrObj.get("baseColorFactor")) {
+                let arr = match (factors) { case a: Array<Any> => a; case _ => Array<Any>() }
+                if (arr.size >= 3) {
+                    let r = getFloat(Some(arr[0])); let g = getFloat(Some(arr[1]))
+                    let b = getFloat(Some(arr[2])); let a = if (arr.size >= 4) { getFloat(Some(arr[3])) } else { 1.0 }
+                    material.color = Color(r, g, b)
+                    material.opacity = a
+                    if (a < 1.0) { material.transparent = true }
+                }
+            }
+            // metallicFactor / roughnessFactor
+            // 参照 glTF 规范惯例：metallicFactor 默认 1.0, roughnessFactor 默认 1.0
+            if (let Some(v) <- pbrObj.get("metallicFactor")) {
+                material.metalness = getFloat(v)
+            } else {
+                material.metalness = 1.0  // glTF 默认金属度为 1.0
+            }
+            if (let Some(v) <- pbrObj.get("roughnessFactor")) {
+                material.roughness = getFloat(v)
+            } else {
+                material.roughness = 1.0  // glTF 默认粗糙度为 1.0
+            }
+            // baseColorTexture
+            if (let Some(texInfo) <- pbrObj.get("baseColorTexture")) {
+                match (texInfo) {
+                    case hm: HashMap<String, Any> =>
+                        let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
+                        if (let Some(t) <- tex) { material.map = Some(t) }
+                    case _ => ()
+                }
+            }
+            // metallicRoughnessTexture
+            if (let Some(texInfo) <- pbrObj.get("metallicRoughnessTexture")) {
+                match (texInfo) {
+                    case hm: HashMap<String, Any> =>
+                        let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
+                        if (let Some(t) <- tex) {
+                            material.metalnessMap = Some(t)
+                            material.roughnessMap = Some(t)
                         }
-                    case None => ()
+                    case _ => ()
                 }
-                // metallicFactor / roughnessFactor
-                // 参照 Three.js GLTFLoader.js: metallicFactor 默认 1.0, roughnessFactor 默认 1.0
-                match (pbrObj.get("metallicFactor")) {
-                    case Some(v) => material.metalness = getFloat(v)
-                    case None => material.metalness = 1.0  // glTF 默认金属度为 1.0
-                }
-                match (pbrObj.get("roughnessFactor")) {
-                    case Some(v) => material.roughness = getFloat(v)
-                    case None => material.roughness = 1.0  // glTF 默认粗糙度为 1.0
-                }
-                // baseColorTexture
-                match (pbrObj.get("baseColorTexture")) {
-                    case Some(texInfo) =>
-                        match (texInfo) {
-                            case hm: HashMap<String, Any> =>
-                                let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
-                                match (tex) {
-                                    case Some(t) => material.map = Some(t)
-                                    case None => ()
-                                }
-                            case _ => ()
-                        }
-                    case None => ()
-                }
-                // metallicRoughnessTexture
-                match (pbrObj.get("metallicRoughnessTexture")) {
-                    case Some(texInfo) =>
-                        match (texInfo) {
-                            case hm: HashMap<String, Any> =>
-                                let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
-                                match (tex) {
-                                    case Some(t) =>
-                                        material.metalnessMap = Some(t)
-                                        material.roughnessMap = Some(t)
-                                    case None => ()
-                                }
-                            case _ => ()
-                        }
-                    case None => ()
-                }
-            case None => ()
+            }
         }
 
         // normalTexture
-        match (matObj.get("normalTexture")) {
-            case Some(texInfo) =>
-                match (texInfo) {
-                    case hm: HashMap<String, Any> =>
-                        let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
-                        match (tex) {
-                            case Some(t) => material.normalMap = Some(t)
-                            case None => ()
-                        }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(texInfo) <- matObj.get("normalTexture")) {
+            match (texInfo) {
+                case hm: HashMap<String, Any> =>
+                    let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
+                    if (let Some(t) <- tex) { material.normalMap = Some(t) }
+                case _ => ()
+            }
         }
         // occlusionTexture
-        match (matObj.get("occlusionTexture")) {
-            case Some(texInfo) =>
-                match (texInfo) {
-                    case hm: HashMap<String, Any> =>
-                        let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
-                        match (tex) {
-                            case Some(t) => material.aoMap = Some(t)
-                            case None => ()
-                        }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(texInfo) <- matObj.get("occlusionTexture")) {
+            match (texInfo) {
+                case hm: HashMap<String, Any> =>
+                    let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
+                    if (let Some(t) <- tex) { material.aoMap = Some(t) }
+                case _ => ()
+            }
         }
         // emissiveTexture
-        match (matObj.get("emissiveTexture")) {
-            case Some(texInfo) =>
-                match (texInfo) {
-                    case hm: HashMap<String, Any> =>
-                        let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
-                        match (tex) {
-                            case Some(t) => material.emissiveMap = Some(t)
-                            case None => ()
-                        }
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(texInfo) <- matObj.get("emissiveTexture")) {
+            match (texInfo) {
+                case hm: HashMap<String, Any> =>
+                    let tex = loadTexture(hm, texturesOpt, imagesOpt, bufferViewsOpt, samplersOpt, binData, basePath)
+                    if (let Some(t) <- tex) { material.emissiveMap = Some(t) }
+                case _ => ()
+            }
         }
         // emissiveFactor
-        match (matObj.get("emissiveFactor")) {
-            case Some(factors) =>
-                let arr = match (factors) { case a: Array<Any> => a; case _ => Array<Any>() }
-                if (arr.size >= 3) {
-                    let r = getFloat(Some(arr[0])); let g = getFloat(Some(arr[1])); let b = getFloat(Some(arr[2]))
-                    material.emissive = Color(r, g, b)
-                }
-            case None => ()
+        if (let Some(factors) <- matObj.get("emissiveFactor")) {
+            let arr = match (factors) { case a: Array<Any> => a; case _ => Array<Any>() }
+            if (arr.size >= 3) {
+                let r = getFloat(Some(arr[0])); let g = getFloat(Some(arr[1])); let b = getFloat(Some(arr[2]))
+                material.emissive = Color(r, g, b)
+            }
         }
         // alphaMode
-        match (matObj.get("alphaMode")) {
-            case Some(mode) =>
-                let modeStr = match (mode) { case s: String => s; case _ => "" }
-                if (modeStr == "BLEND") { material.transparent = true }
-                else if (modeStr == "MASK") { material.transparent = true }
-            case None => ()
+        if (let Some(mode) <- matObj.get("alphaMode")) {
+            let modeStr = match (mode) { case s: String => s; case _ => "" }
+            if (modeStr == "BLEND") { material.transparent = true }
+            else if (modeStr == "MASK") { material.transparent = true }
         }
         // doubleSided
-        match (matObj.get("doubleSided")) {
-            case Some(ds) =>
-                match (ds) {
-                    case b: Bool => if (b) { material.side = 2 } // DoubleSide
-                    case _ => ()
-                }
-            case None => ()
+        if (let Some(ds) <- matObj.get("doubleSided")) {
+            match (ds) {
+                case b: Bool => if (b) { material.side = 2 } // DoubleSide
+                case _ => ()
+            }
         }
 
         return material
@@ -475,10 +417,7 @@ public class GltfLoader <: Loader {
     private func loadTexture(texInfo: HashMap<String, Any>, texturesOpt: Option<Any>, imagesOpt: Option<Any>, bufferViewsOpt: Option<Any>, samplersOpt: Option<Any>, binData: Array<UInt8>, basePath: String): Option<Texture> {
         // 获取纹理索引
         let texIdx = getInt(texInfo.get("index"))
-        let textures = match (texturesOpt) {
-            case Some(t) => toArrayAny(t)
-            case None => return None
-        }
+        let textures = if (let Some(t) <- texturesOpt) { toArrayAny(t) } else { return None }
         if (texIdx < 0 || texIdx >= textures.size) { return None }
         let texDef = match (textures[texIdx]) {
             case hm: HashMap<String, Any> => hm
@@ -486,10 +425,7 @@ public class GltfLoader <: Loader {
         }
         // 获取图像源索引
         let sourceIdx = getInt(texDef.get("source"))
-        let images = match (imagesOpt) {
-            case Some(img) => toArrayAny(img)
-            case None => return None
-        }
+        let images = if (let Some(img) <- imagesOpt) { toArrayAny(img) } else { return None }
         if (sourceIdx < 0 || sourceIdx >= images.size) { return None }
         let imgDef = match (images[sourceIdx]) {
             case hm: HashMap<String, Any> => hm
@@ -497,10 +433,7 @@ public class GltfLoader <: Loader {
         }
         // 读取 bufferView 中的图像数据
         let bvIdx = getInt(imgDef.get("bufferView"))
-        let bufferViews = match (bufferViewsOpt) {
-            case Some(bv) => toArrayAny(bv)
-            case None => return None
-        }
+        let bufferViews = if (let Some(bv) <- bufferViewsOpt) { toArrayAny(bv) } else { return None }
         if (bvIdx < 0 || bvIdx >= bufferViews.size) { return None }
         let bv = match (bufferViews[bvIdx]) {
             case hm: HashMap<String, Any> => hm
@@ -546,42 +479,24 @@ public class GltfLoader <: Loader {
         bimg_image_free_cj(ic)
         // 创建 DataTexture
         let texture = DataTexture(rgbaData, Int64(imgWidth), Int64(imgHeight))
-        texture.name = match (texDef.get("name")) {
-            case Some(n) => match (n) { case s: String => s; case _ => "texture_${texIdx}" }
-            case None => "texture_${texIdx}"
-        }
+        texture.name = if (let Some(n) <- texDef.get("name")) {
+            match (n) { case s: String => s; case _ => "texture_${texIdx}" }
+        } else { "texture_${texIdx}" }
         texture.flipY = false
         // 应用采样器设置
-        match (texDef.get("sampler")) {
-            case Some(samplerIdx) =>
-                let samplers = match (samplersOpt) {
-                    case Some(s) => toArrayAny(s)
-                    case None => Array<Any>()
+        if (let Some(samplerIdx) <- texDef.get("sampler")) {
+            let samplers = if (let Some(s) <- samplersOpt) { toArrayAny(s) } else { Array<Any>() }
+            let sIdx = getInt(samplerIdx)
+            if (sIdx >= 0 && sIdx < samplers.size) {
+                match (samplers[sIdx]) {
+                    case hm: HashMap<String, Any> =>
+                        if (let Some(v) <- hm.get("magFilter")) { texture.magFilter = getInt(v) }
+                        if (let Some(v) <- hm.get("minFilter")) { texture.minFilter = getInt(v) }
+                        if (let Some(v) <- hm.get("wrapS")) { texture.wrapS = getInt(v) }
+                        if (let Some(v) <- hm.get("wrapT")) { texture.wrapT = getInt(v) }
+                    case _ => ()
                 }
-                let sIdx = getInt(samplerIdx)
-                if (sIdx >= 0 && sIdx < samplers.size) {
-                    match (samplers[sIdx]) {
-                        case hm: HashMap<String, Any> =>
-                            match (hm.get("magFilter")) {
-                                case Some(v) => texture.magFilter = getInt(v)
-                                case None => ()
-                            }
-                            match (hm.get("minFilter")) {
-                                case Some(v) => texture.minFilter = getInt(v)
-                                case None => ()
-                            }
-                            match (hm.get("wrapS")) {
-                                case Some(v) => texture.wrapS = getInt(v)
-                                case None => ()
-                            }
-                            match (hm.get("wrapT")) {
-                                case Some(v) => texture.wrapT = getInt(v)
-                                case None => ()
-                            }
-                        case _ => ()
-                    }
-                }
-            case None => ()
+            }
         }
         return Some(texture)
     }
@@ -591,69 +506,58 @@ public class GltfLoader <: Loader {
     // =========================================================================
 
     private func buildNodes(nodeIdx: Int64, nodesOpt: Option<Any>, meshMap: HashMap<Int64, ArrayList<Mesh>>, parentMatrix: Array<Float64>, depth: Int64): Option<Object3D> {
-        let nodes = match (nodesOpt) {
-            case Some(n) => toArrayAny(n)
-            case None => return None
-        }
+        let nodes = if (let Some(n) <- nodesOpt) { toArrayAny(n) } else { return None }
         if (nodeIdx < 0 || nodeIdx >= nodes.size) { return None }
         let node = match (nodes[nodeIdx]) {
             case hm: HashMap<String, Any> => hm
             case _ => return None
         }
         let group = Group()
-        group.name = match (node.get("name")) {
-            case Some(n) => match (n) { case s: String => s; case _ => "node_${nodeIdx}" }
-            case None => "node_${nodeIdx}"
-        }
+        group.name = if (let Some(n) <- node.get("name")) {
+            match (n) { case s: String => s; case _ => "node_${nodeIdx}" }
+        } else { "node_${nodeIdx}" }
 
         // 解析变换矩阵
         let matrix = Array<Float64>(16, { i => if (i % 5 == 0) { 1.0 } else { 0.0 } })
-        match (node.get("matrix")) {
-            case Some(m) =>
-                let arr = match (m) { case a: Array<Any> => a; case _ => Array<Any>() }
-                if (arr.size >= 16) {
-                    for (i in 0..16) {
-                        matrix[i] = getFloat(Some(arr[i]))
+        if (let Some(m) <- node.get("matrix")) {
+            let arr = match (m) { case a: Array<Any> => a; case _ => Array<Any>() }
+            if (arr.size >= 16) {
+                for (i in 0..16) {
+                    matrix[i] = getFloat(Some(arr[i]))
+                }
+            }
+        } else {
+            // 解析 TRS
+            if (let Some(t) <- node.get("translation")) {
+                let arr = match (t) { case a: Array<Any> => a; case _ => Array<Any>() }
+                if (arr.size >= 3) {
+                    matrix[12] = getFloat(Some(arr[0]))
+                    matrix[13] = getFloat(Some(arr[1]))
+                    matrix[14] = getFloat(Some(arr[2]))
+                }
+            }
+            if (let Some(r) <- node.get("rotation")) {
+                let arr = match (r) { case a: Array<Any> => a; case _ => Array<Any>() }
+                if (arr.size >= 4) {
+                    let qx = getFloat(Some(arr[0])); let qy = getFloat(Some(arr[1]))
+                    let qz = getFloat(Some(arr[2])); let qw = getFloat(Some(arr[3]))
+                    let quat = Quaternion(qx, qy, qz, qw)
+                    let rotMat = Matrix4().makeRotationFromQuaternion(quat)
+                    let me = rotMat.elements
+                    for (i in 0..3) {
+                        matrix[i] = me[i]; matrix[4 + i] = me[4 + i]; matrix[8 + i] = me[8 + i]
                     }
                 }
-            case None =>
-                // 解析 TRS
-                match (node.get("translation")) {
-                    case Some(t) =>
-                        let arr = match (t) { case a: Array<Any> => a; case _ => Array<Any>() }
-                        if (arr.size >= 3) {
-                            matrix[12] = getFloat(Some(arr[0]))
-                            matrix[13] = getFloat(Some(arr[1]))
-                            matrix[14] = getFloat(Some(arr[2]))
-                        }
-                    case None => ()
+            }
+            if (let Some(s) <- node.get("scale")) {
+                let arr = match (s) { case a: Array<Any> => a; case _ => Array<Any>() }
+                if (arr.size >= 3) {
+                    let sx = getFloat(Some(arr[0])); let sy = getFloat(Some(arr[1])); let sz = getFloat(Some(arr[2]))
+                    for (i in 0..3) {
+                        matrix[i] *= sx; matrix[4 + i] *= sy; matrix[8 + i] *= sz
+                    }
                 }
-                match (node.get("rotation")) {
-                    case Some(r) =>
-                        let arr = match (r) { case a: Array<Any> => a; case _ => Array<Any>() }
-                        if (arr.size >= 4) {
-                            let qx = getFloat(Some(arr[0])); let qy = getFloat(Some(arr[1]))
-                            let qz = getFloat(Some(arr[2])); let qw = getFloat(Some(arr[3]))
-                            let quat = Quaternion(qx, qy, qz, qw)
-                            let rotMat = Matrix4().makeRotationFromQuaternion(quat)
-                            let me = rotMat.elements
-                            for (i in 0..3) {
-                                matrix[i] = me[i]; matrix[4 + i] = me[4 + i]; matrix[8 + i] = me[8 + i]
-                            }
-                        }
-                    case None => ()
-                }
-                match (node.get("scale")) {
-                    case Some(s) =>
-                        let arr = match (s) { case a: Array<Any> => a; case _ => Array<Any>() }
-                        if (arr.size >= 3) {
-                            let sx = getFloat(Some(arr[0])); let sy = getFloat(Some(arr[1])); let sz = getFloat(Some(arr[2]))
-                            for (i in 0..3) {
-                                matrix[i] *= sx; matrix[4 + i] *= sy; matrix[8 + i] *= sz
-                            }
-                        }
-                    case None => ()
-                }
+            }
         }
 
         // 设置局部矩阵
@@ -661,32 +565,23 @@ public class GltfLoader <: Loader {
         group.matrixAutoUpdate = false
 
         // 添加 Mesh
-        match (node.get("mesh")) {
-            case Some(meshIdx) =>
-                let idx = getInt(meshIdx)
-                match (meshMap.get(idx)) {
-                    case Some(meshes) =>
-                        for (m in meshes) {
-                            group.add(m)
-                        }
-                    case None => ()
+        if (let Some(meshIdx) <- node.get("mesh")) {
+            let idx = getInt(meshIdx)
+            if (let Some(meshes) <- meshMap.get(idx)) {
+                for (m in meshes) {
+                    group.add(m)
                 }
-            case None => ()
+            }
         }
 
         // 递归子节点
-        match (node.get("children")) {
-            case Some(children) =>
-                let childArr = toArrayAny(children)
-                for (ci in 0..childArr.size) {
-                    let childIdx = getInt(Some(childArr[ci]))
-                    let childObj = buildNodes(childIdx, nodesOpt, meshMap, matrix, depth + 1)
-                    match (childObj) {
-                        case Some(o) => group.add(o)
-                        case None => ()
-                    }
-                }
-            case None => ()
+        if (let Some(children) <- node.get("children")) {
+            let childArr = toArrayAny(children)
+            for (ci in 0..childArr.size) {
+                let childIdx = getInt(Some(childArr[ci]))
+                let childObj = buildNodes(childIdx, nodesOpt, meshMap, matrix, depth + 1)
+                if (let Some(o) <- childObj) { group.add(o) }
+            }
         }
 
         return Some(group)
@@ -699,104 +594,57 @@ public class GltfLoader <: Loader {
     private func buildGeometry(prim: HashMap<String, Any>, accessorsOpt: Option<Any>, bufferViewsOpt: Option<Any>, loadedBuffers: ArrayList<Array<UInt8>>): BufferGeometry {
         let geom = BufferGeometry()
 
-        match (prim.get("indices")) {
-            case Some(idxAccessorIdx) =>
-                let idx = getInt(idxAccessorIdx)
-                let idxData = readAccessorData(idx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                match (idxData) {
-                    case Some(data) => geom.setIndex(BufferAttribute(data, 1))
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(idxAccessorIdx) <- prim.get("indices")) {
+            let idx = getInt(idxAccessorIdx)
+            let idxData = readAccessorData(idx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+            if (let Some(data) <- idxData) { geom.setIndex(BufferAttribute(data, 1)) }
         }
 
-        match (prim.get("attributes")) {
-            case Some(attrVal) =>
-                let attrs = match (attrVal) {
-                    case hm: HashMap<String, Any> => hm
-                    case _ => return geom
-                }
-                match (attrs.get("POSITION")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("position", BufferAttribute(d, 3))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-                match (attrs.get("NORMAL")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("normal", BufferAttribute(d, 3))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-                match (attrs.get("TEXCOORD_0")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("uv", BufferAttribute(d, 2))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-                match (attrs.get("COLOR_0")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("color", BufferAttribute(d, 3))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-                match (attrs.get("TANGENT")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("tangent", BufferAttribute(d, 4))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-                match (attrs.get("TEXCOORD_1")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("uv2", BufferAttribute(d, 2))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-                match (attrs.get("JOINTS_0")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("skinIndex", BufferAttribute(d, 4))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-                match (attrs.get("WEIGHTS_0")) {
-                    case Some(v) =>
-                        let accIdx = getInt(v)
-                        let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
-                        match (data) {
-                            case Some(d) => geom.setAttribute("skinWeight", BufferAttribute(d, 4))
-                            case None => ()
-                        }
-                    case None => ()
-                }
-            case None => ()
+        if (let Some(attrVal) <- prim.get("attributes")) {
+            let attrs = match (attrVal) {
+                case hm: HashMap<String, Any> => hm
+                case _ => return geom
+            }
+            if (let Some(v) <- attrs.get("POSITION")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("position", BufferAttribute(d, 3)) }
+            }
+            if (let Some(v) <- attrs.get("NORMAL")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("normal", BufferAttribute(d, 3)) }
+            }
+            if (let Some(v) <- attrs.get("TEXCOORD_0")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("uv", BufferAttribute(d, 2)) }
+            }
+            if (let Some(v) <- attrs.get("COLOR_0")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("color", BufferAttribute(d, 3)) }
+            }
+            if (let Some(v) <- attrs.get("TANGENT")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("tangent", BufferAttribute(d, 4)) }
+            }
+            if (let Some(v) <- attrs.get("TEXCOORD_1")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("uv2", BufferAttribute(d, 2)) }
+            }
+            if (let Some(v) <- attrs.get("JOINTS_0")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("skinIndex", BufferAttribute(d, 4)) }
+            }
+            if (let Some(v) <- attrs.get("WEIGHTS_0")) {
+                let accIdx = getInt(v)
+                let data = readAccessorData(accIdx, accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(d) <- data) { geom.setAttribute("skinWeight", BufferAttribute(d, 4)) }
+            }
         }
         return geom
     }
@@ -806,13 +654,11 @@ public class GltfLoader <: Loader {
     // =========================================================================
 
     private func readAccessorData(accessorIdx: Int64, accessorsOpt: Option<Any>, bufferViewsOpt: Option<Any>, loadedBuffers: ArrayList<Array<UInt8>>): Option<Array<Float64>> {
-        let accessors = match (accessorsOpt) {
-            case Some(a) =>
-                let arr = toArrayAny(a)
-                if (arr.size == 0) { return None }
-                arr
-            case None => return None
-        }
+        let accessors = if (let Some(a) <- accessorsOpt) {
+            let arr = toArrayAny(a)
+            if (arr.size == 0) { return None }
+            arr
+        } else { return None }
         if (accessorIdx < 0 || accessorIdx >= accessors.size) { return None }
         let accessor = match (accessors[accessorIdx]) {
             case hm: HashMap<String, Any> => hm
@@ -822,23 +668,20 @@ public class GltfLoader <: Loader {
         let byteOffset = getInt(accessor.get("byteOffset"))
         let componentType = getInt(accessor.get("componentType"))
         let count = getInt(accessor.get("count"))
-        let typeStr = match (accessor.get("type")) {
-            case Some(s) => match (s) { case str: String => str; case _ => "SCALAR" }
-            case None => "SCALAR"
-        }
+        let typeStr = if (let Some(s) <- accessor.get("type")) {
+            match (s) { case str: String => str; case _ => "SCALAR" }
+        } else { "SCALAR" }
         let numComponents = match (typeStr) {
             case "SCALAR" => 1; case "VEC2" => 2; case "VEC3" => 3; case "VEC4" => 4
             case "MAT2" => 4; case "MAT3" => 9; case "MAT4" => 16
             case _ => 1
         }
 
-        let bufferViews = match (bufferViewsOpt) {
-            case Some(b) =>
-                let arr = toArrayAny(b)
-                if (arr.size == 0) { return None }
-                arr
-            case None => return None
-        }
+        let bufferViews = if (let Some(b) <- bufferViewsOpt) {
+            let arr = toArrayAny(b)
+            if (arr.size == 0) { return None }
+            arr
+        } else { return None }
         if (bufferViewIdx < 0 || bufferViewIdx >= bufferViews.size) { return None }
         let bv = match (bufferViews[bufferViewIdx]) {
             case hm: HashMap<String, Any> => hm
@@ -950,35 +793,32 @@ public class GltfLoader <: Loader {
 
     private func loadBuffers(buffersOpt: Option<Any>, binData: Array<UInt8>, basePath: String): ArrayList<Array<UInt8>> {
         let result = ArrayList<Array<UInt8>>()
-        let buffers = match (buffersOpt) {
-            case Some(b) =>
-                let arr = toArrayAny(b)
-                if (arr.size == 0) { return result }
-                arr
-            case None => return result
-        }
+        let buffers = if (let Some(b) <- buffersOpt) {
+            let arr = toArrayAny(b)
+            if (arr.size == 0) { return result }
+            arr
+        } else { return result }
         for (i in 0..buffers.size) {
             let buf = match (buffers[i]) {
                 case hm: HashMap<String, Any> => hm
                 case _ => continue
             }
             let byteLength = getInt(buf.get("byteLength"))
-            match (buf.get("uri")) {
-                case Some(uriVal) =>
-                    let uri = match (uriVal) { case s: String => s; case _ => continue }
-                    if (uri.startsWith("data:")) {
+            if (let Some(uriVal) <- buf.get("uri")) {
+                let uri = match (uriVal) { case s: String => s; case _ => continue }
+                if (uri.startsWith("data:")) {
+                    result.add(Array<UInt8>(byteLength, { _ => 0u8 }))
+                } else {
+                    let binPath = Path(basePath).join(uri)
+                    try {
+                        let binBytes = File.readFrom(binPath)
+                        result.add(binBytes)
+                    } catch (_: Exception) {
                         result.add(Array<UInt8>(byteLength, { _ => 0u8 }))
-                    } else {
-                        let binPath = Path(basePath).join(uri)
-                        try {
-                            let binBytes = File.readFrom(binPath)
-                            result.add(binBytes)
-                        } catch (_: Exception) {
-                            result.add(Array<UInt8>(byteLength, { _ => 0u8 }))
-                        }
                     }
-                case None =>
-                    result.add(binData)
+                }
+            } else {
+                result.add(binData)
             }
         }
         return result
@@ -997,19 +837,10 @@ public class GltfLoader <: Loader {
      */
     private func parseSkins(skinsOpt: Option<Any>, nodesOpt: Option<Any>, accessorsOpt: Option<Any>, bufferViewsOpt: Option<Any>, loadedBuffers: ArrayList<Array<UInt8>>): ArrayList<GltfSkinData> {
         let result = ArrayList<GltfSkinData>()
-        let skins = match (skinsOpt) {
-            case Some(s) => toArrayAny(s)
-            case None => return result
-        }
+        let skins = if (let Some(s) <- skinsOpt) { toArrayAny(s) } else { return result }
 
-        let accessors = match (accessorsOpt) {
-            case Some(a) => toArrayAny(a)
-            case None => return result
-        }
-        let bufferViews = match (bufferViewsOpt) {
-            case Some(bv) => toArrayAny(bv)
-            case None => return result
-        }
+        let accessors = if (let Some(a) <- accessorsOpt) { toArrayAny(a) } else { return result }
+        let bufferViews = if (let Some(bv) <- bufferViewsOpt) { toArrayAny(bv) } else { return result }
 
         for (si in 0..skins.size) {
             let skinObj = match (skins[si]) {
@@ -1019,46 +850,34 @@ public class GltfLoader <: Loader {
 
             // 解析 inverseBindMatrices accessor（MAT4，Float32，每矩阵 64 字节）
             var inverseBindMatrices = ArrayList<Array<Float64>>()
-            match (skinObj.get("inverseBindMatrices")) {
-                case Some(ibmIdxVal) =>
-                    let flatData = readAccessorData(getInt(Some(ibmIdxVal)), accessorsOpt, bufferViewsOpt, loadedBuffers)
-                    match (flatData) {
-                        case Some(data) =>
-                            let count = data.size / 16
-                            for (m in 0..count) {
-                                let base = m * 16
-                                let mat = Array<Float64>(16, { i => data[base + i] })
-                                inverseBindMatrices.add(mat)
-                            }
-                        case None => ()
+            if (let Some(ibmIdxVal) <- skinObj.get("inverseBindMatrices")) {
+                let flatData = readAccessorData(getInt(Some(ibmIdxVal)), accessorsOpt, bufferViewsOpt, loadedBuffers)
+                if (let Some(data) <- flatData) {
+                    let count = data.size / 16
+                    for (m in 0..count) {
+                        let base = m * 16
+                        let mat = Array<Float64>(16, { i => data[base + i] })
+                        inverseBindMatrices.add(mat)
                     }
-                case None => ()
+                }
             }
 
             // 解析 skeleton root node index
             var skeletonRoot = -1
-            match (skinObj.get("skeleton")) {
-                case Some(skelIdx) => skeletonRoot = getInt(Some(skelIdx))
-                case None => ()
-            }
+            if (let Some(skelIdx) <- skinObj.get("skeleton")) { skeletonRoot = getInt(Some(skelIdx)) }
 
             // 解析 joints 数组
             let joints = ArrayList<Int>()
-            match (skinObj.get("joints")) {
-                case Some(jointsVal) =>
-                    let jointsArr = toArrayAny(jointsVal)
-                    for (ji in 0..jointsArr.size) {
-                        joints.add(getInt(Some(jointsArr[ji])))
-                    }
-                case None => ()
+            if (let Some(jointsVal) <- skinObj.get("joints")) {
+                let jointsArr = toArrayAny(jointsVal)
+                for (ji in 0..jointsArr.size) {
+                    joints.add(getInt(Some(jointsArr[ji])))
+                }
             }
 
             // 解析 name
             var skinName = "skin_${si}"
-            match (skinObj.get("name")) {
-                case Some(n) => skinName = match (n) { case s: String => s; case _ => skinName }
-                case None => ()
-            }
+            if (let Some(n) <- skinObj.get("name")) { skinName = match (n) { case s: String => s; case _ => skinName } }
 
             let ibmFinal = inverseBindMatrices
             result.add(GltfSkinData(
@@ -1089,10 +908,7 @@ public class GltfLoader <: Loader {
      */
     private func parseAnimations(animationsOpt: Option<Any>, accessorsOpt: Option<Any>, bufferViewsOpt: Option<Any>, loadedBuffers: ArrayList<Array<UInt8>>): ArrayList<GltfAnimationData> {
         let result = ArrayList<GltfAnimationData>()
-        let animations = match (animationsOpt) {
-            case Some(a) => toArrayAny(a)
-            case None => return result
-        }
+        let animations = if (let Some(a) <- animationsOpt) { toArrayAny(a) } else { return result }
 
         for (ai in 0..animations.size) {
             let animObj = match (animations[ai]) {
@@ -1102,62 +918,47 @@ public class GltfLoader <: Loader {
 
             // 解析 name
             var animName = "animation_${ai}"
-            match (animObj.get("name")) {
-                case Some(n) => animName = match (n) { case s: String => s; case _ => animName }
-                case None => ()
-            }
+            if (let Some(n) <- animObj.get("name")) { animName = match (n) { case s: String => s; case _ => animName } }
 
             // 解析 channels
             let channels = ArrayList<GltfAnimationChannel>()
-            match (animObj.get("channels")) {
-                case Some(channelsVal) =>
-                    let channelsArr = toArrayAny(channelsVal)
-                    for (ci in 0..channelsArr.size) {
-                        let chObj = match (channelsArr[ci]) {
+            if (let Some(channelsVal) <- animObj.get("channels")) {
+                let channelsArr = toArrayAny(channelsVal)
+                for (ci in 0..channelsArr.size) {
+                    let chObj = match (channelsArr[ci]) {
+                        case hm: HashMap<String, Any> => hm
+                        case _ => continue
+                    }
+                    let samplerIdx = getInt(chObj.get("sampler"))
+                    var targetNode = -1
+                    var targetPath = ""
+                    if (let Some(targetVal) <- chObj.get("target")) {
+                        let targetObj = match (targetVal) {
                             case hm: HashMap<String, Any> => hm
                             case _ => continue
                         }
-                        let samplerIdx = getInt(chObj.get("sampler"))
-                        var targetNode = -1
-                        var targetPath = ""
-                        match (chObj.get("target")) {
-                            case Some(targetVal) =>
-                                let targetObj = match (targetVal) {
-                                    case hm: HashMap<String, Any> => hm
-                                    case _ => continue
-                                }
-                                targetNode = getInt(targetObj.get("node"))
-                                match (targetObj.get("path")) {
-                                    case Some(p) => targetPath = match (p) { case s: String => s; case _ => "" }
-                                    case None => ()
-                                }
-                            case None => ()
-                        }
-                        channels.add(GltfAnimationChannel(samplerIdx, targetNode, targetPath))
+                        targetNode = getInt(targetObj.get("node"))
+                        if (let Some(p) <- targetObj.get("path")) { targetPath = match (p) { case s: String => s; case _ => "" } }
                     }
-                case None => ()
+                    channels.add(GltfAnimationChannel(samplerIdx, targetNode, targetPath))
+                }
             }
 
             // 解析 samplers
             let samplers = ArrayList<GltfAnimationSampler>()
-            match (animObj.get("samplers")) {
-                case Some(samplersVal) =>
-                    let samplersArr = toArrayAny(samplersVal)
-                    for (si in 0..samplersArr.size) {
-                        let spObj = match (samplersArr[si]) {
-                            case hm: HashMap<String, Any> => hm
-                            case _ => continue
-                        }
-                        let inputIdx = getInt(spObj.get("input"))
-                        let outputIdx = getInt(spObj.get("output"))
-                        var interpolation = "LINEAR"
-                        match (spObj.get("interpolation")) {
-                            case Some(interp) => interpolation = match (interp) { case s: String => s; case _ => "LINEAR" }
-                            case None => ()
-                        }
-                        samplers.add(GltfAnimationSampler(inputIdx, outputIdx, interpolation))
+            if (let Some(samplersVal) <- animObj.get("samplers")) {
+                let samplersArr = toArrayAny(samplersVal)
+                for (si in 0..samplersArr.size) {
+                    let spObj = match (samplersArr[si]) {
+                        case hm: HashMap<String, Any> => hm
+                        case _ => continue
                     }
-                case None => ()
+                    let inputIdx = getInt(spObj.get("input"))
+                    let outputIdx = getInt(spObj.get("output"))
+                    var interpolation = "LINEAR"
+                    if (let Some(interp) <- spObj.get("interpolation")) { interpolation = match (interp) { case s: String => s; case _ => "LINEAR" } }
+                    samplers.add(GltfAnimationSampler(inputIdx, outputIdx, interpolation))
+                }
             }
 
             result.add(GltfAnimationData(animName, Array<GltfAnimationChannel>(channels.size, { i => channels[i] }), Array<GltfAnimationSampler>(samplers.size, { i => samplers[i] })))
@@ -1171,27 +972,23 @@ public class GltfLoader <: Loader {
     // =========================================================================
 
     private func getInt(v: Option<Any>): Int64 {
-        match (v) {
-            case Some(val) =>
-                match (val) {
-                    case i: Int64 => i
-                    case f: Float64 => Int64(f)
-                    case _ => 0
-                }
-            case None => 0
-        }
+        if (let Some(val) <- v) {
+            match (val) {
+                case i: Int64 => i
+                case f: Float64 => Int64(f)
+                case _ => 0
+            }
+        } else { 0 }
     }
 
     private func getFloat(v: Option<Any>): Float64 {
-        match (v) {
-            case Some(val) =>
-                match (val) {
-                    case f: Float64 => f
-                    case i: Int64 => Float64(i)
-                    case _ => 0.0
-                }
-            case None => 0.0
-        }
+        if (let Some(val) <- v) {
+            match (val) {
+                case f: Float64 => f
+                case i: Int64 => Float64(i)
+                case _ => 0.0
+            }
+        } else { 0.0 }
     }
 
     // =========================================================================

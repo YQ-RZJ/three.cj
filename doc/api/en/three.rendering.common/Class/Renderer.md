@@ -64,6 +64,23 @@ Return:
 
 - bgfx view id
 
+### func getSceneMeshes\(Object3D,Bool\)
+```cj
+public func getSceneMeshes(scene: Object3D, visibleOnly!: Bool = false): ArrayList < RenderObject >
+```
+Get this frame's list of Mesh render objects (frame-scoped shared cache)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|scene|Object3D|Scene root nodevisibleOnly Whether to return only visible objects (passes such as SSR skipinvisible objects to avoid self-reflection)|
+|visibleOnly|Bool||
+
+Return: 
+
+- Mesh render object list (internal reference, read-only for callers)
+
 ### func getSize\(\)
 ```cj
 public func getSize():(Int64, Int64)
@@ -184,6 +201,18 @@ Background renderer
 public var depth: Bool = true
 ```
 Whether depth buffer is enabled
+
+### var enableSpatialCulling
+```cj
+public var enableSpatialCulling: Bool = true
+```
+Whether spatial culling (BVH acceleration) is enabled
+
+### var frameIndex
+```cj
+public var frameIndex: Int64 = 0
+```
+Frame index (incremented on every render())
 
 ### var height
 ```cj

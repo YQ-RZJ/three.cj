@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-0.1.0-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-0.2.0-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-Cross--Platform-lightgrey" style="display: inline-block;" />
@@ -34,10 +34,12 @@ This project is actively maintained. Follow [Bilibili UID:3546853029185667](http
 - **Multiple Material Types** — MeshBasic/Lambert/Phong/Standard/Physical/Toon/Matcap/Normal/Depth materials with custom ShaderMaterial support
 - **Complete Post-Processing Pipeline** — FXAA/SMAA/SSAO/SSR/GTAO/Bloom/UnrealBloom/Outline/Glitch/Halftone and 30+ post-processing passes
 - **Asset Loading System** — glTF/OBJ/MTL/PLY/STL models, DDS/KTX/PVR/EXR/HDR/TGA textures, Font/Animation/Audio loaders with caching and serialization
+- **Asset Pipeline** — AssetBundle pack/read by name + AssetManager async frame-spread loading + AssetCache ref-counted unloading
 - **Animation System** — AnimationClip / AnimationMixer / AnimationAction / KeyframeTrack (Boolean/Color/Number/Quaternion/String/Vector)
 - **Physics Engine Integration** — Pluggable physics backend based on Jolt, running on an independent physics thread, supporting rigid bodies, characters, constraints, and Object3D binding, plus extended physics objects such as heightfield terrain, soft bodies/cloth, vehicles, and ragdolls, along with a physics debug renderer
 - **Audio Subsystem** — Based on OpenAL: audio context / listener / static · positional · streaming sources / recording / EFX effects & filters
 - **Scripting System** — Based on LuaJIT, with bidirectional Cangjie-Lua binding and script hot-reloading
+- **Game Networking Stack** — PacketWriter/PacketReader protocol codec + Connection/ReliableChannel reliable transport + Lockstep lockstep/SnapshotBuffer snapshot interpolation
 - **Window & Input Engine** — Cross-platform window engine v2 based on SDL3 (lifecycle callbacks + per-window independent event pump), with keyboard/mouse/touch/gamepad input providers
 - **GUI Subsystem** — Immediate-mode UI based on ImGui (imgui4cj) (`three.window.ui`): enabled with a single call to `WindowEngine.useGui()`, with SDL3 event bridging and the bgfx rendering backend wired up automatically (both routed to their corresponding system threads); provides 30+ widgets (windows/buttons/input fields/sliders/trees/list boxes/color pickers, etc.) plus layout/menus/tabs/tables/popups/drag-drop/font/style themes/custom draw-list capabilities
 - **Profiling Subsystem** — Real-time profiling based on Tracy (tracy4cj) (`three.profiler`): CPU zones, frame marks, plots, messages, memory events, GPU timing domains, lock contention, fibers, and call-stack sampling; scope classes (ProfZone/ProfGpuZone/ProfLockZone/FiberScope) implement the `Resource` interface for direct use with try-with-resources; facade classes carry the `Prof` prefix (ProfZone/ProfFrame/ProfPlot/ProfMessage/ProfFiber/ProfMemory, etc.) so they never clash with same-named macros — `import three.profiler.*` and `import three.profiler.macros.*` can coexist
@@ -54,11 +56,15 @@ This project is actively maintained. Follow [Bilibili UID:3546853029185667](http
 | `three.animation` | Animation system (clips, blending, action scheduling, keyframe tracks) | `src/animation/` |
 | `three.audio` | Audio subsystem (OpenAL: context/listener/sources/recording/EFX) | `src/audio/` |
 | `three.core` | Core infrastructure (math, data structures, events, frame dispatch, threads, time) | `src/core/` |
-| `three.network` | Networking module (HTTP / Socket) | `src/network/` |
+| `three.network` | Networking module (HTTP / Socket / protocol codec / reliable transport / lockstep & snapshot interpolation) | `src/network/` |
+| `three.network.protocol` | Game protocol codec (PacketWriter/PacketReader big-endian streams) | `src/network/protocol/` |
+| `three.network.transport` | Reliable transport (TCP Connection framing/heartbeat/reconnect + UDP ReliableChannel) | `src/network/transport/` |
+| `three.network.sync` | Sync models (LockstepSession deterministic lockstep + SnapshotBuffer interpolation) | `src/network/sync/` |
 | `three.physics` | Physics system (Jolt: world/rigid bodies/characters/constraints/binding/heightfield/soft bodies/vehicles/ragdolls/debug rendering) | `src/physics/` |
 | `three.profiler` | Profiling subsystem (Tracy: zones/frame marks/plots/messages/memory/GPU timing/locks/fibers/sampling, plus auto-instrumentation macros) | `src/profiler/` |
 | `three.rendering` | Rendering system (bgfx backend, cameras, geometry, materials, lights, post-processing, shaders) | `src/rendering/` |
-| `three.resource` | Asset loading & caching (model/texture/animation loaders, serialization) | `src/resource/` |
+| `three.resource` | Asset loading & caching (model/texture/animation loaders, serialization, asset pipeline) | `src/resource/` |
+| `three.resource.pipeline` | Asset pipeline (AssetBundle pack/read, AssetManager async frame-spread loading, AssetCache ref-counted unloading) | `src/resource/pipeline/` |
 | `three.scene` | Scene management (scene graph, entities, ECS, Object3D, raycasting) | `src/scene/` |
 | `three.script` | Scripting system (LuaJIT VM, bidirectional binding, hot-reloading) | `src/script/` |
 | `three.utils` | Utility library (logging, encoding, object pool, memory, allocator) | `src/utils/` |
@@ -103,7 +109,10 @@ three/
 │   │   └── time/           # Time (Clock/Timer)
 │   ├── network/            # Networking module
 │   │   ├── http/           # HTTP client (via httpclient4cj)
-│   │   └── socket/         # Socket client/server/UDP
+│   │   ├── protocol/       # Game protocol codec (PacketCodec: PacketWriter/PacketReader big-endian streams)
+│   │   ├── socket/         # Socket client/server/UDP
+│   │   ├── sync/           # Sync models (Lockstep: LockstepSession deterministic lockstep/SnapshotBuffer interpolation)
+│   │   └── transport/      # Reliable transport (Connection: TCP framing/heartbeat/reconnect; ReliableChannel: reliable UDP)
 │   ├── physics/            # Physics system (Jolt)
 │   │   ├── backend/        # Physics backend adapter (JoltBackend)
 │   │   ├── binding/        # Object3D ↔ RigidBody binding (PhysicsBinding)
@@ -141,6 +150,7 @@ three/
 │   │   ├── bgfx/           # bgfx low-level resource operations
 │   │   ├── cache/          # Resource cache (Cache)
 │   │   ├── loader/         # Loaders (glTF/OBJ/MTL/PLY/STL/DDS/KTX/PVR/EXR/HDR/TGA/Font...)
+│   │   ├── pipeline/       # Asset pipeline (AssetBundle/AssetBundleBuilder pack & read, AssetManager async frame-spread loading, AssetCache ref-counted unloading)
 │   │   └── serializer/     # Serialization (Serializer)
 │   ├── scene/              # Scene management
 │   │   ├── ecs/            # ECS framework (World/Entity/Component/System/Registry)
@@ -163,7 +173,7 @@ three/
 │   └── window/             # Window & input engine (WindowEngine v2 + input providers)
 │       └── ui/             # GUI subsystem (ImGui widgets/layout/menus/tabs/tables/popups/drag-drop/fonts/styles/draw lists)
 └── test/                   # Test projects
-    ├── general/            # General feature tests (math/data structures/ECS/network/serialization/encoding...)
+    ├── general/            # General feature tests (math/data structures/ECS/network/asset pipeline/serialization/encoding...)
     ├── ohos/               # HarmonyOS test projects (audio/base/gui/pc/physics)
     └── windows/            # Windows test cases (boxshow/geometries/materials/helpers/post-processing/glTF/physics/gui...)
 ```
@@ -289,6 +299,12 @@ The runtime facade (direct API calls in the `three.profiler` package such as `Pr
 data is viewed in the Tracy GUI (provided by the tracy4cj repository); sampling and GUI
 connection are controlled by `three.profiler.Sampling` / `ProfilerState`.
 
+For headless environments (CI, no GUI available), `scripts/tracy_receiver.py` acts as a
+Tracy GUI/Worker: it connects to the profiled process, writes the raw/structured artifacts to
+disk and emits hotspot statistics (call count, duration, P50/P95/P99). The real-pipeline
+performance baseline harness lives in `test/windows/perf_render/`. See
+[`doc/materials/en/profiler-usage.md`](./doc/materials/en/profiler-usage.md) section VII.
+
 > Note: like `THREE_LOG_LEVEL`, links are read at macro expansion time (compile time) and
 > baked into the binary; they are independent of the runtime environment. After changing,
 > run `cjpm clean` for a full rebuild.
@@ -330,6 +346,10 @@ import three.scene.entity.*         // Entities (Mesh/Points/Line/Sprite...)
 import three.core.math.*            // Math utilities
 import three.window.*               // Window & input (WindowEngine)
 import three.resource.*             // Asset loading
+import three.resource.pipeline.*    // Asset pipeline (AssetBundle/AssetManager/AssetCache)
+import three.network.protocol.*     // Protocol codec (PacketWriter/PacketReader)
+import three.network.transport.*    // Reliable transport (Connection/ReliableChannel)
+import three.network.sync.*         // Sync models (LockstepSession/SnapshotBuffer)
 import three.physics.*              // Physics
 import three.audio.*                // Audio
 import three.script.*               // Scripting
@@ -345,7 +365,8 @@ All engine subsystems follow a unified "dedicated system thread + serialized cal
 | `BgfxRenderer` | All bgfx API calls are serialized to a dedicated rendering system thread (`SThread`) via `_execBgfx` |
 | `AudioContext` | All OpenAL calls are serialized to an audio system thread |
 | `PhysicsWorld` | Physics backend calls are serialized to a physics thread via `_execPhysics`; the rendering thread only reads back transform data for synchronization |
-| `WindowEngine` | SDL main-thread APIs are pinned to a single system thread (event pump); each window has its own user-mode pump thread (reads fixed event snapshots + lifecycle callbacks) |
+| `WindowEngine` | SDL main-thread APIs are pinned to a single system thread (event pump); each window has its own user-mode pump thread (reads fixed event snapshots + lifecycle callbacks); the main loop pumps `AssetManager` every frame, dispatching async asset-load completions across frames within a time budget |
+| `Connection` / `ReliableChannel` | Each spawns a receive thread after `connect()`/`bind()` (blocking frame reads / `receiveFrom`) handling heartbeat replies, ack receipts and the out-of-order cache; `onMessage` and connection-state callbacks are dispatched on the main-loop `update()`, and `send`/`update` are concurrency-safe with the receive thread |
 | `ShaderCompiler` | Runtime shader compilation spawns dedicated system threads on demand (`SThread`, custom stack default 8MB); a single worker compiles serially (glslang is not thread-safe), started/stopped via `start()`/`restart()` |
 
 ## API Documentation

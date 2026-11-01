@@ -24,7 +24,7 @@
  * @file[zh-cn] 缓冲几何体
  * @brief[zh-cn] 三维几何体的基础类，存储顶点属性与索引
  * @explain[zh-cn] 
- * BufferGeometry 是 Three.js 中最核心的几何体类，存储顶点属性（position、normal、uv、color 等）与索引。
+ * BufferGeometry 是最核心的几何体类，存储顶点属性（position、normal、uv、color 等）与索引。
  * 在 bgfx 渲染后端中，缓冲几何体对应 bgfx 的顶点缓冲区与索引缓冲区。
  * 关键概念：
  * - attributes: 命名顶点属性的字典，每个属性是 BufferAttribute
@@ -36,7 +36,7 @@
  * @file[en] Buffer Geometry
  * @brief[en] Base class for 3D geometry, storing vertex attributes and indices
  * @explain[en] 
- * BufferGeometry is the most core geometry class in Three.js, storing vertex attributes (position, normal, uv, color, etc.) and indices.
+ * BufferGeometry is the most core geometry class, storing vertex attributes (position, normal, uv, color, etc.) and indices.
  * In the bgfx rendering backend, buffer geometry corresponds to bgfx's vertex buffer and index buffer.
  * Key concepts:
  * - attributes: Named vertex attribute dictionary, each attribute is a BufferAttribute
@@ -54,6 +54,7 @@ import three.core.interfaces.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.core.interfaces.ILoadResult
+import three.utils.allocator.IdAllocator
 import std.math.*
 import std.collection.*
 import fastjson.*
@@ -160,6 +161,24 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
     public var uuid: String
 
     /**
+     * @brief[zh-cn] 进程内唯一整数标识（构造时分配）
+     * @explain[zh-cn] 与 uuid 等价但为整数，供渲染热路径做 map 键：draw-plan 缓存、
+     * 材质状态缓存、program 变体缓存、自动实例化分组键每帧都要按几何体取键，
+     * 用 uuid.hashCode() 等于每帧每 draw 重算一次 36 字符字符串哈希。
+     *
+     * @brief[en] Process-unique integer identifier (assigned at construction)
+     * @explain[en] Equivalent to uuid but an integer, for use as a map key in render hot paths:
+     * draw-plan cache, material state cache, program variant cache and auto-instancing group keys
+     * all look up by geometry every frame, where uuid.hashCode() means recomputing a
+     * 36-char string hash for every draw every frame.
+     */
+    @JsonIgnore
+    public let id: Int64
+
+    @JsonIgnore
+    private static let _idGen: IdAllocator = IdAllocator(startId: 1)
+
+    /**
      * @brief[zh-cn] 几何体名称
      *
      * @brief[en] Geometry name
@@ -255,12 +274,31 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
     private var _transformed: Bool
 
     /**
+     * @brief[zh-cn] 包围盒/球的缓存版本戳：为 null 表示"无缓存"，
+     *               否则与 position 属性的 version 一致时才可复用缓存
+     *
+     * @brief[en] Cache version stamp of the bounding box/sphere; null means
+     *            "no cache", otherwise the cache is reusable only while it
+     *            matches the position attribute's version
+     */
+    private var _bboxCacheVersion: ?Int64
+
+    /**
+     * @brief[zh-cn] 包围球的缓存版本戳（与包围盒独立，形变属性也会影响球）
+     *
+     * @brief[en] Cache version stamp of the bounding sphere (tracked separately
+     *            from the box since morph attributes also affect the sphere)
+     */
+    private var _bsphereCacheVersion: ?Int64
+
+    /**
      * @brief[zh-cn] 构造新的缓冲几何体
      *
      * @brief[en] Constructs a new buffer geometry
      */
     public init() {
         this.kind = "BufferGeometry"
+        this.id = BufferGeometry._idGen.allocate()
         this.uuid = MathUtils.generateUUID()
         this.name = ""
         this.index = None
@@ -272,6 +310,8 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
         this.groups = ArrayList<BufferGeometryGroup>()
         this.boundingBox = None
         this.boundingSphere = None
+        this._bboxCacheVersion = None
+        this._bsphereCacheVersion = None
         this.drawRange = (0, Int64.Max)
         this.userData = HashMap<String, Any>()
         this._transformed = false
@@ -369,9 +409,10 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
      * @brief[en] Gets vertex attribute by name (interface implementation, converts to AttributeReader read-only view)
      */
     public func getAttributeReader(name: String): Option<AttributeReader> {
-        match (this.getAttribute(name)) {
-            case Some(attr) => return Some(attr)
-            case None => return None
+        if (let Some(attr) <- this.getAttribute(name)) {
+            return Some(attr)
+        } else {
+            return None
         }
     }
 
@@ -683,16 +724,32 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
 
     /**
      * @brief[zh-cn] 计算几何体的包围盒并更新 boundingBox 成员
-     * @explain[zh-cn] 
+     * @explain[zh-cn]
      * 引擎不会自动计算包围盒；必须由应用主动调用。
      * 若几何体顶点被修改，可能需要重新计算包围盒。
      *
+     * 带跨帧缓存：position 属性的 version 未变且已有结果时直接返回，
+     * 避免对同一份顶点数据重复做双趟全量循环（大量 Mesh 共享同一 geometry
+     * 时收益显著）。顶点修改请走 BufferAttribute 的写接口并调用
+     * markNeedsUpdate()，或直接调用 invalidateBounds()。
+     *
      * @brief[en] Computes the bounding box and updates the boundingBox member
-     * @explain[en] 
+     * @explain[en]
      * The engine does not automatically compute the bounding box; it must be called explicitly by the application.
      * If geometry vertices are modified, the bounding box may need to be recomputed.
+     *
+     * Cross-frame cached: when the position attribute's version is unchanged and a
+     * result already exists, return immediately instead of re-running the two full
+     * passes over the vertices (a big win when many Meshes share one geometry).
+     * Mutate vertices through the BufferAttribute write APIs plus
+     * markNeedsUpdate(), or call invalidateBounds() directly.
      */
     public func computeBoundingBox(): Unit {
+        let curVersion = this._boundsSourceVersion()
+        if (this.boundingBox.isSome() && this._bboxCacheVersion.isSome() &&
+            this._bboxCacheVersion.getOrThrow() == curVersion) {
+            return
+        }
         if (this.boundingBox.isNone()) {
             this.boundingBox = Some(Box3())
         }
@@ -734,20 +791,72 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
                 box.makeEmpty()
             }
         }
+        this._bboxCacheVersion = Some(curVersion)
+    }
+
+    /**
+     * @brief[zh-cn] 失效包围盒/球的跨帧缓存
+     * @explain[zh-cn]
+     * 直接改写顶点数据而未走 BufferAttribute.markNeedsUpdate() 时调用；
+     * 正常使用写接口会自动递增 version，无需手动调用。
+     *
+     * @brief[en] Invalidates the cross-frame bounding box/sphere cache
+     * @explain[en]
+     * Call this when vertices are written directly without going through
+     * BufferAttribute.markNeedsUpdate(); the normal write APIs bump the version
+     * automatically, so a manual call is not needed.
+     */
+    public func invalidateBounds(): Unit {
+        this._bboxCacheVersion = None
+        this._bsphereCacheVersion = None
+    }
+
+    /**
+     * @brief[zh-cn] 取包围盒/球计算所依赖的数据版本戳（position 与 morph position 之和）
+     *
+     * @brief[en] Returns the data version stamp the bounding box/sphere depends on
+     *            (the sum of position and morph position versions)
+     */
+    private func _boundsSourceVersion(): Int64 {
+        var v: Int64 = 0
+        if (let Some(position) <- this.attributes.get("position")) {
+            v += position.version
+        }
+        if (let Some(morphPositions) <- this.morphAttributes.get("position")) {
+            for (attr in morphPositions) {
+                v += attr.version
+            }
+        }
+        if (this.morphTargetsRelative) {
+            v += 1
+        }
+        return v
     }
 
     /**
      * @brief[zh-cn] 计算几何体的包围球并更新 boundingSphere 成员
-     * @explain[zh-cn] 
+     * @explain[zh-cn]
      * 引擎在需要时（如射线投射或视锥剔除）自动计算包围球。
      * 若几何体顶点被修改，可能需要重新计算包围球。
      *
+     * 带跨帧缓存：数据版本戳未变且已有结果时直接返回，避免每帧对同一份顶点
+     * 数据重复做双趟全量循环（视锥剔除每帧每对象都会调用本方法）。
+     *
      * @brief[en] Computes the bounding sphere and updates the boundingSphere member
-     * @explain[en] 
+     * @explain[en]
      * The engine automatically computes the bounding sphere when needed (e.g., for raycasting or frustum culling).
      * If geometry vertices are modified, the bounding sphere may need to be recomputed.
+     *
+     * Cross-frame cached: when the data version stamp is unchanged and a result
+     * already exists, return immediately instead of re-running the two full passes
+     * over the vertices (frustum culling calls this per object per frame).
      */
     public func computeBoundingSphere(): Unit {
+        let curVersion = this._boundsSourceVersion()
+        if (this.boundingSphere.isSome() && this._bsphereCacheVersion.isSome() &&
+            this._bsphereCacheVersion.getOrThrow() == curVersion) {
+            return
+        }
         if (this.boundingSphere.isNone()) {
             this.boundingSphere = Some(Sphere())
         }
@@ -812,6 +921,7 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
                 sphere.radius = sqrt(maxRadiusSq)
             }
         }
+        this._bsphereCacheVersion = Some(curVersion)
     }
 
     /**
@@ -1148,6 +1258,7 @@ public open class BufferGeometry <: ILoadResult & IGeometryProvider {
         this.groups = ArrayList<BufferGeometryGroup>()
         this.boundingBox = None
         this.boundingSphere = None
+        this.invalidateBounds()
         // name
         this.name = source.name
         // index

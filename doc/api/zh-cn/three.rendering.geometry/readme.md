@@ -29,7 +29,7 @@
 |[CurvePath](./类/CurvePath.md#class-curvepath)|曲线路径类，由多条曲线串联而成的复合路径|
 |[Curve](./类/Curve.md#class-curve)|曲线抽象基类|
 |[CylinderGeometry](./类/CylinderGeometry.md#class-cylindergeometry)|圆柱几何体类|
-|[DataUtils](./类/DataUtils.md#class-datautils)|数据工具类，提供半精度浮点数转换的静态方法  此类是 toHalfFloat 和 fromHalfFloat 函数的面向对象封装， 与 Three.js 的 DataUtils 类接口保持一致。|
+|[DataUtils](./类/DataUtils.md#class-datautils)|数据工具类，提供半精度浮点数转换的静态方法  此类是 toHalfFloat 和 fromHalfFloat 函数的面向对象封装， 与主流 Web 引擎的 DataUtils 类接口保持一致。|
 |[DodecahedronGeometry](./类/DodecahedronGeometry.md#class-dodecahedrongeometry)|十二面体几何体（多面体特例）|
 |[Earcut](./类/Earcut.md#class-earcut)|Earcut 多边形三角剖分工具类  提供 earcut 算法的静态接口，将一个 2D 多边形（可能含孔洞） 剖分为若干三角形，返回三角形顶点索引数组。  注意：本文件同时包含底层算法实现（earcut/deviation）与 Earcut 封装类（Windows 文件系统大小写不敏感，Earcut.cj 与 earcut.cj 实为同一文件，故合并于此）。  参见：https://github.com/mapbox/earcut|
 |[EdgesGeometry](./类/EdgesGeometry.md#class-edgesgeometry)|边线几何体类，从 BufferGeometry 中提取边线|

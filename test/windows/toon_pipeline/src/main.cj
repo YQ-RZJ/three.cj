@@ -8,7 +8,7 @@ package toon_pipeline
  *   2. onFrame：相机轨道控制 + 几何体自旋 + 自定义渲染管线帧提交
  *   3. onClose：释放 ToonOutlinePass 资源 + 统计输出 + 关闭渲染器
  *
- * 对照 three.js 官方案例 webgl_materials_toon.html：
+ * 对照官方 toon 案例 webgl_materials_toon.html：
  *   - 卡通量化光照（gradientMap 或硬编码 3 级量化）
  *   - 多方向光累加
  *   - ToonOutlinePass 后处理描边（基于深度的 Sobel 边缘检测）
@@ -137,7 +137,7 @@ public class TestWindow <: WindowEngine {
         camera.updateProjectionMatrix()
 
         // 动画：几何体自旋（凸显卡通量化光照动态变化）
-        let t = Float64(this.frame) * 0.016
+        let t = this.elapsedTime
         for (i in 0..this.sceneObj.meshes.size) {
             let mesh = this.sceneObj.meshes[i]
             mesh.rotation.y = t * 0.3 + Float64(i) * 0.5

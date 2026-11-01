@@ -152,7 +152,7 @@ public class AudioEffectSlot <: IAudioEffectSlot {
         if (this.slotId == 0u32) { this.create() }
         let sid = this.slotId
         let eid = effect.effectId
-        this.context.execAudio({ => alAuxiliaryEffectSloti_cj(sid, AL_EFFECTSLOT_EFFECT, Int32(eid)) })
+        this.context.postAudio({ => alAuxiliaryEffectSloti_cj(sid, AL_EFFECTSLOT_EFFECT, Int32(eid)) })
         return this
     }
 
@@ -171,7 +171,7 @@ public class AudioEffectSlot <: IAudioEffectSlot {
     public func setGain(value: Float32): AudioEffectSlot {
         if (this.slotId == 0u32) { return this }
         let sid = this.slotId
-        this.context.execAudio({ => alAuxiliaryEffectSlotf_cj(sid, AL_EFFECTSLOT_GAIN, value) })
+        this.context.postAudio({ => alAuxiliaryEffectSlotf_cj(sid, AL_EFFECTSLOT_GAIN, value) })
         return this
     }
 
@@ -188,7 +188,7 @@ public class AudioEffectSlot <: IAudioEffectSlot {
     public func clearEffect(): AudioEffectSlot {
         if (this.slotId == 0u32) { return this }
         let sid = this.slotId
-        this.context.execAudio({ => alAuxiliaryEffectSloti_cj(sid, AL_EFFECTSLOT_EFFECT, 0) })
+        this.context.postAudio({ => alAuxiliaryEffectSloti_cj(sid, AL_EFFECTSLOT_EFFECT, 0) })
         return this
     }
 

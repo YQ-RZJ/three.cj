@@ -151,7 +151,7 @@ public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera,
                 pc.updateProjectionMatrix()
             case _ => ()
         }
-        // per-light bias（对齐 three.js：bias 是 light.shadow 属性，由场景设置）。
+        // per-light bias（bias 是 light.shadow 属性，由场景设置）。
         // 本实现比较语义下点光源需负 bias 抗自阴影（acne），取 -0.01。
         pl.shadow.bias = -0.01
         pl.name = "PointLight"

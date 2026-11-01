@@ -7,7 +7,7 @@ package sp_ssr
  * - resources.cj: 开放盒子几何体构造（反射房间）
  * - renderer.cj:  场景设置（房间 + 球 + 立方体 + 圆环 + SSR）与 createScene
  *
- * 对照 three.js 官方案例 webgl_postprocessing_ssr.html。
+ * 对照官方案例 webgl_postprocessing_ssr.html。
  */
 
 import std.io.*
@@ -95,7 +95,7 @@ public class TestWindow <: WindowEngine {
         println("        O/P=opacity-/+ T/Y=thickness-/+ M/N=maxDistance-/+ H=help")
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
 
-        // 对齐 Three.js EffectComposer 用法（对照官方 webgl_postprocessing_ssr.html）：
+        // 按后处理链的标准用法组织（对照官方 webgl_postprocessing_ssr.html）：
         //   const composer = new EffectComposer(renderer)
         //   composer.addPass(new RenderPass(scene, camera))
         //   const ssrPass = new SSRPass({ scene, camera, width, height })
@@ -110,7 +110,7 @@ public class TestWindow <: WindowEngine {
         // output=Default（0）：场景色 + SSR 混合
         ssrPass.output = SSRPass.OUTPUT_DEFAULT
         // selective 模式——只有模型执行 SSR（球/立方体/甜甜圈），地面不执行：
-        //   Three.js 官方范式：groundReflector（地板 portal 反射）+ selects=[金属物体]，
+        //   官方范式：groundReflector（地板 portal 反射）+ selects=[金属物体]，
         //   SSR 只处理 selects 中的物体表面反射。
         //   地面用 GroundReflector（平面反射：镜像相机渲场景到反射 RT，
         //   ReflectorShader 经 textureMatrix 投影到地面），地面自身不执行 SSR——

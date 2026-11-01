@@ -24,12 +24,12 @@
  * @file[zh-cn] 插值函数
  * @brief[zh-cn] 包含样条和贝塞尔插值函数，由具体曲线类内部使用
  * @explain[zh-cn] 
- * 对应 Three.js extras/core/Interpolations.js，提供 CatmullRom、QuadraticBezier、CubicBezier 插值函数。
+ * 提供 CatmullRom、QuadraticBezier、CubicBezier 插值函数。
  *
  * @file[en] Interpolation Functions
  * @brief[en] Contains spline and Bezier interpolation functions used internally by curve classes
  * @explain[en] 
- * Corresponds to Three.js extras/core/Interpolations.js, providing CatmullRom, QuadraticBezier, CubicBezier interpolation functions.
+ * Provides CatmullRom, QuadraticBezier, CubicBezier interpolation functions.
  */
 package three.rendering.geometry
 

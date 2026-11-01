@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 纹理管理
  * @brief[zh-cn] 替代 WebGLTextures，使用 bgfx TextureHandle 管理纹理生命周期
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLTextures.js。在 WebGL 中通过 gl.createTexture/gl.texImage2D 管理纹理，在 bgfx 中通过 bgfx_create_texture_2d_cj/bgfx_destroy_texture_cj 管理。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.createTexture/gl.texImage2D 管理纹理，在 bgfx 中通过 bgfx_create_texture_2d_cj/bgfx_destroy_texture_cj 管理。
  *
  * @file[en] bgfx Texture Management
  * @brief[en] Replaces WebGLTextures, manages texture lifecycle using bgfx TextureHandle
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLTextures.js. In WebGL, textures are managed via gl.createTexture/gl.texImage2D; in bgfx, they are managed via bgfx_create_texture_2d_cj/bgfx_destroy_texture_cj.
+ * @explain[en] In WebGL, textures are managed via gl.createTexture/gl.texImage2D; in bgfx, they are managed via bgfx_create_texture_2d_cj/bgfx_destroy_texture_cj.
  */
 package three.rendering.bgfx
 
@@ -168,10 +168,7 @@ public class BgfxTextures {
      * @return[en] Texture handle
      */
     public func createTexture2D(textureId: Int64, width: Int64, height: Int64, format: UInt32, flags: UInt64, mem: Option<BgfxMemory>): TextureHandle {
-        let memPtr = match (mem) {
-            case Some(m) => m.get()
-            case None => CPointer<Memory>()
-        }
+        let memPtr = if (let Some(m) <- mem) { m.get() } else { CPointer<Memory>() }
         let handle = bgfx_create_texture_2d_cj(UInt16(width), UInt16(height), false, 1u16, format, flags, memPtr)
         let texInfo = TextureInfo()
         texInfo.handle = handle
@@ -206,14 +203,11 @@ public class BgfxTextures {
      * pitch Row pitch
      */
     public func updateTexture2D(textureId: Int64, x: UInt16, y: UInt16, width: UInt16, height: UInt16, mem: BgfxMemory, pitch: UInt16): Unit {
-        match (textures.get(textureId)) {
-            case Some(texInfo) =>
-                if (texInfo.handle.idx != 0xFFFFu16) {
-                    bgfx_update_texture_2d_cj(texInfo.handle, 0u16, 0u8, x, y, width, height, mem.get(), pitch)
-                    texInfo.needsUpdate = false
-                }
-            case None =>
-                ()
+        if (let Some(texInfo) <- textures.get(textureId)) {
+            if (texInfo.handle.idx != 0xFFFFu16) {
+                bgfx_update_texture_2d_cj(texInfo.handle, 0u16, 0u8, x, y, width, height, mem.get(), pitch)
+                texInfo.needsUpdate = false
+            }
         }
     }
 
@@ -227,28 +221,25 @@ public class BgfxTextures {
      * @param[en] textureId Texture ID
      */
     public func destroyTexture(textureId: Int64): Unit {
-        match (textures.get(textureId)) {
-            case Some(texInfo) =>
-                if (texInfo.handle.idx != 0xFFFFu16) {
-                    bgfx_destroy_texture_cj(texInfo.handle)
-                    texInfo.handle = TextureHandle()
-                }
-                textures.remove(textureId)
-                info.memory.textures -= 1
-            case None =>
-                ()
+        if (let Some(texInfo) <- textures.get(textureId)) {
+            if (texInfo.handle.idx != 0xFFFFu16) {
+                bgfx_destroy_texture_cj(texInfo.handle)
+                texInfo.handle = TextureHandle()
+            }
+            textures.remove(textureId)
+            info.memory.textures -= 1
         }
     }
 
     /**
-     * @brief[zh-cn] 将 three.js 纹理参数转换为 bgfx 纹理标志
+     * @brief[zh-cn] 将引擎纹理参数转换为 bgfx 纹理标志
      * @explain[zh-cn] 对照 WebGLTextures.setTextureParameters()。bgfx 的采样模式通过 sampler uniform 设置，纹理标志主要用于渲染目标、sRGB、MSAA 等特性
      * @param[zh-cn] sRGB 是否使用 sRGB
      * renderTarget 是否为渲染目标
      * msaa MSAA 采样数
      * @return[zh-cn] bgfx 纹理标志
      *
-     * @brief[en] Convert three.js texture parameters to bgfx texture flags
+     * @brief[en] Convert engine texture parameters to bgfx texture flags
      * @explain[en] Corresponds to WebGLTextures.setTextureParameters(). bgfx sampling modes are set via sampler uniforms; texture flags are mainly for render target, sRGB, MSAA features
      * @param[en] sRGB Whether to use sRGB
      * renderTarget Whether this is a render target

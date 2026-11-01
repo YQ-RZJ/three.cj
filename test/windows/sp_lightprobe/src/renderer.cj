@@ -7,7 +7,7 @@ package sp_lightprobe
  * - 一个方向光（DirectionalLight，castShadow=true）：产生遮挡阴影效果
  * - 悬浮立方体（caster）+ 地面平面（receiver）+ 球体（验证各朝向辐照度差异）
  *
- * SH3 系数构造说明（对照 Three.js SphericalHarmonics3 的辐照度公式）：
+ * SH3 系数构造说明（参照 SphericalHarmonics3 的辐照度公式）：
  *   getShIrradianceAt(N) = c0 * 0.886227                       (band 0，均匀环境)
  *                        + c1 * (2 * 0.511664) * N.y            (band 1，Y 轴方向光)
  *                        + c2 * (2 * 0.511664) * N.z

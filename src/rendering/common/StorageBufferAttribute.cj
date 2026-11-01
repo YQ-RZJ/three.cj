@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] 存储缓冲属性
  * @brief[zh-cn] 存储缓冲属性类，用于 GPU 计算的缓冲属性存储资源
- * @explain[zh-cn] StorageBufferAttribute 继承自 DataMap，表示可在计算着色器中读写的缓冲属性存储资源。仓颉：nodes 包已移除，IChainValue 不再实现；本类保持纯 DataMap 存储类型。对照源码: three.js/src/renderers/common/StorageBufferAttribute.js
+ * @explain[zh-cn] StorageBufferAttribute 继承自 DataMap，表示可在计算着色器中读写的缓冲属性存储资源。仓颉：nodes 包已移除，IChainValue 不再实现；本类保持纯 DataMap 存储类型。
  *
  * @file[en] Storage Buffer Attribute
  * @brief[en] Storage buffer attribute class, used for GPU compute buffer attribute storage resources
- * @explain[en] StorageBufferAttribute extends DataMap, representing a buffer attribute storage resource that can be read and written in compute shaders. Cangjie: nodes package removed, IChainValue no longer implemented; this class remains a pure DataMap storage type. Reference: three.js/src/renderers/common/StorageBufferAttribute.js
+ * @explain[en] StorageBufferAttribute extends DataMap, representing a buffer attribute storage resource that can be read and written in compute shaders. Cangjie: nodes package removed, IChainValue no longer implemented; this class remains a pure DataMap storage type.
  */
 package three.rendering.common
 

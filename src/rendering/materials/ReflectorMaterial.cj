@@ -24,7 +24,7 @@
  * @file[zh-cn] 反射面材质
  * @brief[zh-cn] 反射面材质，GroundReflector专用，对应JS侧ReflectorShader
  * @explain[zh-cn] 
- * 对应 Three.js examples/jsm/objects/GroundReflector.js 内嵌 ReflectorShader。
+ * 参照 GroundReflector 示例中内嵌的 ReflectorShader。
  * kind = "ReflectorMaterial"，BgfxBackend 按 kind 映射到 ShaderLibs "reflector" program。
  * 持反射 RT 纹理句柄（tDiffuse/tDepth）与 ReflectorShader 全部 uniform 参数。
  * doRender() 每帧更新这些参数，渲染线程经 BgfxBackend._bindMaterialUniforms 读本材质字段绑定到 bgfx。
@@ -34,7 +34,7 @@
  * @file[en] Reflector Material
  * @brief[en] Reflector material, dedicated to GroundReflector, corresponding to JS ReflectorShader
  * @explain[en] 
- * Corresponds to Three.js examples/jsm/objects/GroundReflector.js embedded ReflectorShader.
+ * Follows the ReflectorShader embedded in the GroundReflector example.
  * kind = "ReflectorMaterial", BgfxBackend maps by kind to ShaderLibs "reflector" program.
  * Holds reflection RT texture handles (tDiffuse/tDepth) and all ReflectorShader uniform parameters.
  * doRender() updates these parameters each frame; the render thread reads material fields via BgfxBackend._bindMaterialUniforms to bind to bgfx.
@@ -50,12 +50,12 @@ import three.rendering.types.*
 /**
  * @brief[zh-cn] 反射面材质，GroundReflector专用
  * @explain[zh-cn] 
- * 对应 Three.js examples/jsm/objects/GroundReflector.js 内嵌 ReflectorShader。
+ * 参照 GroundReflector 示例中内嵌的 ReflectorShader。
  * 持反射 RT 纹理句柄与全部 uniform 参数，doRender() 每帧更新。
  *
  * @brief[en] Reflector material, dedicated to GroundReflector
  * @explain[en] 
- * Corresponds to Three.js examples/jsm/objects/GroundReflector.js embedded ReflectorShader.
+ * Follows the ReflectorShader embedded in the GroundReflector example.
  * Holds reflection RT texture handles and all uniform parameters, updated each frame by doRender().
  */
 public class ReflectorMaterial <: Material {

@@ -81,6 +81,12 @@ influences - 接收结果的目标数组（长度需 ≥ objectInfluences.length
 |index|Int64||
 |influences|Array<Float64>||
 
+### func getWorldBoundingSphere\(\)
+```cj
+public override func getWorldBoundingSphere(): Option < Array < Float64 >>
+```
+世界空间包围球（视锥剔除用，覆写基类实现）
+
 ### func init\(BufferGeometry,Material,Int64\)
 ```cj
 public init(geometry!: BufferGeometry = BufferGeometry(), material!: Material = Material(), count!: Int64 = 0)

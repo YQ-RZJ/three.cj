@@ -49,6 +49,8 @@ import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
 import three.rendering.types.*
 import three.utils.memory.BgfxMemory
+import three.profiler.*
+import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 贴纹理 pass
@@ -109,6 +111,7 @@ public class TexturePass <: Pass {
      * @param[en] readBuffer Read buffer (written here when renderToScreen=false)
      * @param[en] deltaTime Frame delta time
      */
+    @Zone[three.rendering.postprocessing.TexturePass.render, name=texturePass]
     public override func render(
         renderer: ThreeRenderer,
         writeBuffer: FrameBufferHandle,
@@ -117,46 +120,41 @@ public class TexturePass <: Pass {
     ): Unit {
         // 取 CopyShader + 编译（仅首次）
         // 后处理 shader 已迁移到 postprocessing 内部注册表 PostProcessingShaders
-        match (this._prog) {
-            case None =>
-                match (PostProcessingShaders.get("copy")) {
-                    case Some(sp) =>
-                        sp.compileBgfx()
-                        this._prog = Some(Box(sp.programHandle))
-                    case None => return
-                }
-            case Some(_) => ()
+        if (let Some(_) <- this._prog) {
+        } else {
+            if (let Some(sp) <- PostProcessingShaders.get("copy")) {
+                sp.compileBgfx()
+                this._prog = Some(Box(sp.programHandle))
+            } else {
+                return
+            }
         }
-        match (this._prog) {
-            case Some(prog) =>
-                if (!Handle.isValid(prog)) { return }
-                let viewId = TexturePass._viewId
-                let w = UInt16(renderer.width)
-                let h = UInt16(renderer.height)
-                let rt = this.renderToScreen
-                let op = this.opacity
-                let texHandle = this.map
-                // 视口
-                this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
-                // renderToScreen=true 时写 swap chain，否则写 readBuffer
-                let targetFB = if (rt) { INVALID_FRAME_BUFFER_HANDLE } else { readBuffer }
-                this.setRenderTarget(renderer, viewId, targetFB)
-                this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
+        if (let Some(prog) <- this._prog) {
+            if (!Handle.isValid(prog)) { return }
+            let viewId = TexturePass._viewId
+            let w = UInt16(renderer.width)
+            let h = UInt16(renderer.height)
+            let rt = this.renderToScreen
+            let op = this.opacity
+            let texHandle = this.map
+            // 视口
+            this.setViewport(renderer, viewId, 0u16, 0u16, w, h)
+            // renderToScreen=true 时写 swap chain，否则写 readBuffer
+            let targetFB = if (rt) { INVALID_FRAME_BUFFER_HANDLE } else { readBuffer }
+            this.setRenderTarget(renderer, viewId, targetFB)
+            this.clearRenderTarget(renderer, viewId, BgfxConstants.CLEAR_COLOR, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
 
-                // 绑 map 到 tDiffuse sampler（stage 0）
-                let uniforms = BgfxUniforms()
-                let uTex = uniforms.createUniform("tDiffuse", UniformType.Sampler.value())
-                this.bindTexture(renderer, 0u8, uTex, texHandle, 0u32)
+            // 绑 map 到 tDiffuse sampler（stage 0）
+            let uniforms = this._passUniforms()
+            let uTex = this._cachedUniform("tDiffuse", UniformType.Sampler.value())
+            this.bindTexture(renderer, 0u8, uTex, texHandle, 0u32)
 
-                // opacity uniform
-                let uOpacity = uniforms.createUniform("u_opacity", UniformType.Vec4.value())
-                let opacityMem = BgfxMemory(16u32)
-                opacityMem.writeFloats([op, 0.0, 0.0, 0.0], 4)
-                this.setUniform(renderer, uOpacity, opacityMem, num: 1u16)
+            // opacity uniform
+            let uOpacity = this._cachedUniform("u_opacity", UniformType.Vec4.value())
+            this._setScalarUniform(renderer, uOpacity, 0, op)
 
-                this.submitQuad(viewId, prog)
-                // 不在此调 present：frame 统一由 EffectComposer.render 末尾触发
-            case None => ()
+            this.submitQuad(viewId, prog)
+            // 不在此调 present：frame 统一由 EffectComposer.render 末尾触发
         }
     }
 

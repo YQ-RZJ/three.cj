@@ -9,13 +9,13 @@ bgfx 纹理工具
 ```cj
 public func convertFormat(format: Int64): UInt32
 ```
-将 three.js 像素格式转换为 bgfx TextureFormat
+将引擎像素格式转换为 bgfx TextureFormat
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|format|Int64|three.js 像素格式常量|
+|format|Int64|引擎像素格式常量|
 
 返回: 
 

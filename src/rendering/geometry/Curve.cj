@@ -26,14 +26,12 @@
  * @explain[zh-cn] 
  * 此类位于 package three.rendering.geometry，用于解 core↔curves 循环依赖。
  * 外部应通过 three.extras.core.Curve 重公开导入访问。
- * 对应 Three.js extras/core/Curve.js。
  *
  * @file[en] Curve Base Class
  * @brief[en] Abstract base class for curves, providing common curve algorithms
  * @explain[en] 
  * This class is in package three.rendering.geometry to decouple core↔curves circular dependency.
  * External code should access it through three.extras.core.Curve re-export.
- * Corresponds to Three.js extras/core/Curve.js.
  */
 package three.rendering.geometry
 

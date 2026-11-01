@@ -1,6 +1,6 @@
 /**
  * @file TextureInheritanceTest
- * @brief 迁移 three.js test/unit/src/textures 目录 tests.js 的 Extending 断言
+ * @brief 迁移上游 JS 库 test/unit/src/textures 目录 tests.js 的 Extending 断言
  *
  * 对照 JS:
  *   new DataTexture() instanceof Texture → true

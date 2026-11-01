@@ -139,14 +139,13 @@ public class UrlEncode {
         }
         let pairs = q.split("&")
         for (pair in pairs) {
-            match (pair.indexOf('=')) {
-                case None =>
-                    // 无 '='：仅 key（value 为空串），对照 JS URLSearchParams 行为
-                    out.add((percentDecode(pair), ""))
-                case Some(eq) =>
-                    let k = pair[0..eq]
-                    let v = pair[(eq + 1)..pair.size]
-                    out.add((percentDecode(k), percentDecode(v)))
+            if (let Some(eq) <- pair.indexOf('=')) {
+                let k = pair[0..eq]
+                let v = pair[(eq + 1)..pair.size]
+                out.add((percentDecode(k), percentDecode(v)))
+            } else {
+                // 无 '='：仅 key（value 为空串），对照 JS URLSearchParams 行为
+                out.add((percentDecode(pair), ""))
             }
         }
         return out.toArray()

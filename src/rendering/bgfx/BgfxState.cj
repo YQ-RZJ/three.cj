@@ -23,11 +23,11 @@
  *
  * @file[zh-cn] bgfx 渲染状态管理
  * @brief[zh-cn] 替代 WebGLState，管理混合、深度测试、模板测试、剔除等渲染状态
- * @explain[zh-cn] 对照源码 three.js/src/renderers/webgl/WebGLState.js。在 WebGL 中通过 gl.enable/disable/gl.blendFunc 等调用管理状态，在 bgfx 中通过状态标志位（BGFX_STATE_xxx）组合设置，并跟踪当前状态避免冗余设置。
+ * @explain[zh-cn] 在 WebGL 中通过 gl.enable/disable/gl.blendFunc 等调用管理状态，在 bgfx 中通过状态标志位（BGFX_STATE_xxx）组合设置，并跟踪当前状态避免冗余设置。
  *
  * @file[en] bgfx Render State Management
  * @brief[en] Replaces WebGLState, manages blending, depth test, stencil test, culling and other render states
- * @explain[en] Corresponds to three.js/src/renderers/webgl/WebGLState.js. In WebGL, states are managed via gl.enable/disable/gl.blendFunc calls; in bgfx, states are managed via combined state flags (BGFX_STATE_xxx) and tracked to avoid redundant settings.
+ * @explain[en] In WebGL, states are managed via gl.enable/disable/gl.blendFunc calls; in bgfx, states are managed via combined state flags (BGFX_STATE_xxx) and tracked to avoid redundant settings.
  */
 package three.rendering.bgfx
 

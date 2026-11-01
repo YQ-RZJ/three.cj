@@ -1,6 +1,6 @@
 /**
  * @file main
- * @brief test_j_helpers 独立测试项目入口（迁移自 three.js test/unit/src/helpers）
+ * @brief test_j_helpers 独立测试项目入口（迁移自上游 JS 库 test/unit/src/helpers）
  */
 package test_j_helpers
 

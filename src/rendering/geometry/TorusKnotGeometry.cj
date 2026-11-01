@@ -25,13 +25,11 @@
  * @brief[zh-cn] 环面纽结（扭结环）几何体
  * @explain[zh-cn] 
  * TorusKnotGeometry 继承自 BufferGeometry，生成环面纽结的顶点、法线、UV 和索引数据。
- * 对应 Three.js geometries/TorusKnotGeometry.js。
  *
  * @file[en] Torus Knot Geometry
  * @brief[en] Torus knot (knotted ring) geometry
  * @explain[en] 
  * TorusKnotGeometry extends BufferGeometry, generating vertex, normal, UV and index data for a torus knot.
- * Corresponds to Three.js geometries/TorusKnotGeometry.js.
  */
 package three.rendering.geometry
 

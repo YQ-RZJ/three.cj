@@ -10,8 +10,12 @@ Utility scripts for the three.cj project (Python 3.9+, standard library only, no
 | [`check_so_deps.py`](./check_so_deps.py) | Recursively analyzes the `DT_NEEDED` dependency chain of `.so` files and outputs Markdown | Debugging `.so` load failures in OHOS HAP / Linux cross-platform SDKs |
 | [`add_license_header.py`](./add_license_header.py) | Inserts (or creates) an `@LICENSE` copyright header into the leading `/**...*/` doc block of `src/**/*.cj` files; idempotent and safe to re-run | Initial LICENSE header rollout, or backfilling copyright comments for newly added source files |
 | [`generate_structure.py`](./generate_structure.py) | Generates a file checklist or a tree-style directory listing as Markdown | Producing source directory structure documentation |
+| [`tracy_receiver.py`](./tracy_receiver.py) | Headless Tracy protocol receiver: connects to the profiled process on its own, writes the raw/decompressed/structured artifacts to disk, and emits hotspot statistics (call count, duration, P50/P95/P99) | Capturing profiling data without the Tracy GUI, CI performance baselines, offline replay to reproduce issues |
+| [`tracy_queue_table.py`](./tracy_queue_table.py) | The Tracy protocol QueueType table (payload sizes of 132 entries, string types, timestamp bases, …), transcribed from upstream `TracyQueue.hpp` | The single lookup source when writing or validating a protocol parser |
+| [`tracy_hotspots.py`](./tracy_hotspots.py) | Formats `stats.json` into a frame summary plus a hotspot Top N table (count / total / mean / P50 / P95) | Getting a quick hotspot table right after a capture |
+| [`tracy_selftime.py`](./tracy_selftime.py) | Rebuilds the zone nesting from the event stream and reports call count / total / **self** time (children deducted); falls back to source line numbers when the client's zone names are lost | Locating the engine's own cost (separating "this layer is slow" from "a child is slow"), comparing hotspots across captures |
 
-All scripts support `-h` / `--help` for the full parameter list.
+All scripts support `-h` / `--help` for the full parameter list (`tracy_queue_table.py` is an imported constant-table module and provides no command-line entry point).
 
 ---
 
@@ -206,3 +210,204 @@ python scripts/generate_structure.py --mode 2 --root D:/other/src -o structure.m
 | `--mode` | (required) | `1`/`list`: file checklist (`- [ ]` entries); `2`/`tree`: tree listing (`├──`/`└──` connectors) |
 | `--root` | `../src` next to the script (i.e. the engine `src/`) | Root directory to scan |
 | `-o`, `--output` | Mode 1 → `File List.md`; mode 2 → `Tree structure.md` | Output Markdown path |
+
+---
+
+## tracy_receiver.py
+
+### Background
+
+The Tracy GUI requires manual interaction, so it cannot run in a CI pipeline. Once the profiled
+process statically links `libtracyc.a` it *is* the Tracy server and listens on a TCP port; this
+script plays the role of the Tracy GUI/Worker, **connects to the profiled process on its own**,
+parses the protocol, writes the full data to disk, and directly produces readable hotspot
+statistics.
+
+Protocol facts are taken from the upstream sources (each item cross-checked):
+
+- `tracy/public/common/TracyProtocol.hpp` / `TracyQueue.hpp`
+- `tracy/public/client/TracyProfiler.cpp/.hpp`
+- `tracy/server/TracyWorker.cpp`
+
+Key protocol points:
+
+| Stage | Description |
+|---|---|
+| Handshake | The receiver sends `"TracyPrf"` + `uint32(82)` first, then reads a 1-byte HandshakeStatus and a 1170-byte WelcomeMessage |
+| Data blocks | `uint32 compressedSize` + compressed bytes; LZ4 is a *stateful* stream sharing a 64 KiB dictionary across blocks, so blocks cannot be decompressed independently |
+| Timestamps | The client rewrites TSC deltas on the wire (32-bit events subtract `ProtocolOffset32Bit`, 16-bit events subtract `ProtocolOffset16Bit`); the final nanoseconds are `(ref - welcome.initBegin) * welcome.timerMul` |
+| Text | `SingleStringData = uint16 sz(+256) + text`; `SingleStringData8 = uint8 sz + text`; the text events themselves carry no payload — `ZoneText`/`ZoneName`/`Message*` consume the "previous" pending single string |
+
+### Usage
+
+```bash
+# Wait for the profiled process to appear and connect automatically
+# (by default: UDP broadcast discovery first, then scan ports 8086-8105)
+python scripts/tracy_receiver.py --out captures/run1
+
+# Fixed port + capture duration limit + timeout while waiting for the process
+python scripts/tracy_receiver.py --out captures/run1 --port 8086 --max-seconds 120 --scan-timeout 120
+
+# Offline self-test: fakes a protocol stream to validate the parser, no process needed
+python scripts/tracy_receiver.py --self-test
+
+# Offline replay of an already captured raw stream (target dir must already hold metadata.json)
+python scripts/tracy_receiver.py --replay captures/run1/raw_stream.bin --out captures/run1_replay
+```
+
+> Offline replay is the main tool for reproducing and diagnosing parser issues: replaying a
+> captured `raw_stream.bin` repeatedly reproduces stably whatever only shows up under a
+> particular finalization timing.
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--host` | `127.0.0.1` | Address of the profiled process |
+| `--port` | auto-discovered | Fixed data port; by default UDP discovery first, then a scan of 8086-8105 |
+| `--out` | `captures/run1` | Artifact directory |
+| `--max-seconds` | `0` (unlimited) | Maximum capture duration |
+| `--scan-timeout` | `60.0` | Longest time to wait for the profiled process to appear (seconds) |
+| `--self-test` | off | Offline self-test with a faked protocol stream |
+| `--replay` | none | Offline replay of the given `raw_stream.bin` |
+
+### Artifacts
+
+| File | Content |
+|------|---------|
+| `raw_stream.bin` | Raw wire stream, written block by block as `[uint32 size][compressed bytes]` |
+| `decompressed_stream.bin` | The LZ4-stream-decompressed contiguous queue stream |
+| `events.jsonl` | Structured events (zone / plot / frame / message) |
+| `metadata.json` | Handshake, Welcome, protocol version, thread names, source locations and name caches |
+| `stats.json` | Hotspot statistics: call count / total duration / mean / P50 / P95 / P99, plus frame-time statistics |
+
+After the client exits, the receiver finalizes automatically, writes `stats.json` and terminates
+on its own (exit code 0) — no manual interaction required.
+
+> **Note** <br/>
+> The bulky stream files (`raw_stream.bin` / `decompressed_stream.bin` / `events.jsonl`) are
+> reproducible artifacts; long-term archiving only needs `stats.json` and `metadata.json`.
+
+---
+
+## tracy_queue_table.py
+
+The Tracy protocol QueueType table, transcribed from upstream `tracy/public/common/TracyQueue.hpp`.
+It is the single lookup source of the `tracy_receiver.py` parser.
+
+- `PROTOCOL_VERSION = 82`; the index of `QUEUE_TYPE_ORDER` is the QueueType numeric value;
+- `QUEUE_DATA_SIZE`: the wire payload size of each type (including the 1-byte QueueHeader);
+- `STRING_TYPES` / `STRING_LEN_OFFSET` / `STRING_LEN_KIND` / `STRING_LEN_BIAS`: which types
+  append a variable-length string after their fixed payload, the offset and kind of the length
+  field, and the +256 bias of `SingleStringData`;
+- `TIME_REF_KIND`: the timestamp restoration base of each type (`thread` / `serial` / `context` /
+  `gpu` / absolute time).
+
+When the upstream protocol changes (a Tracy version bump), this table must be updated in sync
+and the parsing branches of `tracy_receiver.py` re-verified.
+
+---
+
+## tracy_hotspots.py
+
+Formats the `stats.json` produced by `tracy_receiver.py` into a frame summary plus a
+hotspot Top N table.
+
+### Background
+
+`stats.json` already aggregates per-zone call counts and duration percentiles (the
+receiver computes them while finalizing), so this script only formats them — it is the
+quick way to get a hotspot table right after a capture, without re-parsing the event
+stream.
+
+Division of labour with [`tracy_selftime.py`](./tracy_selftime.py): this script shows
+**total** time (children included, with P50/P95 percentiles), while `tracy_selftime.py`
+shows **self** time (children deducted, and it can recover zone names from source line
+numbers when the client's zone names are lost). To find out what is actually slow, use
+this script to locate the big blocks, then `tracy_selftime.py` to drill down.
+
+### Usage
+
+```bash
+# Hotspot Top 25 (label "run")
+python scripts/tracy_hotspots.py captures/t_base/stats.json run 25
+
+# Default Top 25
+python scripts/tracy_hotspots.py captures/t_base/stats.json
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `stats.json` | (required) | The hotspot statistics file produced by `tracy_receiver.py` |
+| label | `run` | Capture name printed in the header (e.g. the project name) |
+| `topN` | 25 | Number of rows in the hotspot table |
+
+### Output
+
+```
+==== [base] frames=31851 mean=0.42ms p50=0.18ms p95=1.02ms p99=0.00ms ====
+zone                              count    total(ms)    mean(us)     p50(us)     p95(us)
+----------------------------------------------------------------------------------------
+render                            31850    23326.827      732.40      493.31     2696.59
+finishRender                      15924    8088.433      507.94      286.71     2417.07
+beginRender                       15924     860.380       54.03       48.46       83.99
+```
+
+---
+
+## tracy_selftime.py
+
+Rebuilds the zone nesting from the event stream and reports each zone's call count,
+total time and **self** time (total minus children).
+
+### Background
+
+The zone totals in `stats.json` **include all children**, so they cannot tell "this
+layer is slow" from "a child is slow". For example `finishRender` owns a whole frame
+while most of `drawLoop`'s total actually comes from `draw` — reading totals alone
+misattributes a parent's cost to its child. This script rebuilds the nesting stack from
+each zone event's (start time, duration, thread) and computes the self time.
+
+The aggregation key is `name@line`: identically named zones in different places (e.g.
+`ThreeRenderer.render` / `Renderer.render` / `EffectComposer.render`) stay separate.
+
+In some captures the client's zone **name strings are lost** (shown as `0x...`
+addresses): Tracy's static source locations are resolved by the server reading the
+client's memory at the queried pointer, and a recycled string buffer can no longer be
+read back. The event stream still carries the **source line number**, so the script
+scans the engine source for `@Zone` declarations to build a "declaration line → zone
+name" map and uses it as a fallback.
+
+### Usage
+
+```bash
+# Hotspots + self time (Top 25)
+python scripts/tracy_selftime.py captures/t_audio/events.jsonl 25
+
+# With the source-line fallback (required when the client's zone names are lost)
+python scripts/tracy_selftime.py captures/t_audio/events.jsonl 25 src
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `events.jsonl` | (required) | The structured event file produced by `tracy_receiver.py` |
+| `topN` | 25 | Number of rows, ordered by total time |
+| `src_root` | empty | Engine source root; when given, enables the line-number fallback for zone names |
+
+### Output
+
+```
+zone@line                                 count    total(ms)    mean(us)     self(ms)    self(us)
+----------------------------------------------------------------------------------------------------
+execBgfxQueued@370                         3596   10352.552     2878.91    10352.552     2878.91
+render@403                                 3585    9586.484     2674.05       22.779        6.35
+finishRender@2237                          3584    3232.564      901.94     3232.564      901.94
+beginRender@552                            3585     135.259       37.73      135.259       37.73
+```
+
+`self(us)` is the average self time after deducting the children — **use it to judge the
+engine's own cost**.
