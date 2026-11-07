@@ -37,6 +37,7 @@
  */
 package three.rendering
 
+import three.utils.safe.IReleasable
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -58,7 +59,7 @@ import three.core.thread.bgfxCallMtx
  * @explain[en] Implements IRenderTarget interface, used by cameras/CubeCamera to avoid renderers↔cameras circular dependency.
  * Uses bgfx framebuffer handle internally; framebuffer is created automatically on construction.
  */
-public class ThreeRenderTarget <: IRenderTarget {
+public class ThreeRenderTarget <: IRenderTarget & IReleasable {
     /**
      * @brief[zh-cn] 渲染目标宽度（像素）
      *
@@ -127,9 +128,9 @@ public class ThreeRenderTarget <: IRenderTarget {
     /**
      * @brief[zh-cn] 销毁帧缓冲，释放 GPU 资源
      *
-     * @brief[en] Destroys the framebuffer and releases GPU resources
+     * @brief[en] destroy the framebuffer and release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (Handle.isValid(this.frameBuffer)) {
             bgfxCallMtx.lock()
             try {
@@ -138,6 +139,7 @@ public class ThreeRenderTarget <: IRenderTarget {
                 bgfxCallMtx.unlock()
             }
         }
+        return true
     }
 }
 

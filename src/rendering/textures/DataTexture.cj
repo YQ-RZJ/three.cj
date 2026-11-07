@@ -24,7 +24,7 @@
  * @file[zh-cn] 数据纹理
  * @brief[zh-cn] 直接由 Uint8Array 像素数组构造的 2D 纹理
  * @explain[zh-cn] 数据纹理：直接由 Uint8Array 像素数组构造的 2D 纹理。与 ImageTexture 不同：无需 DOM Image 解码，直接上传 data 到 GPU。默认 generateMipmaps=false、flipY=false、unpackAlignment=1（逐行紧密）。
-
+ *
  * @file[en] Data Texture
  * @brief[en] 2D texture constructed directly from a Uint8Array pixel array
  * @explain[en] Data texture: 2D texture constructed directly from a Uint8Array pixel array. Unlike ImageTexture: no DOM Image decoding needed, data is uploaded directly to GPU. Defaults generateMipmaps=false, flipY=false, unpackAlignment=1 (tight row packing). 
@@ -36,7 +36,7 @@ import three.utils.constants.*
 /**
  * @brief[zh-cn] 数据纹理类
  * @explain[zh-cn] 直接由像素数组构造的 2D 纹理，默认 generateMipmaps=false、flipY=false、unpackAlignment=1。
-
+ *
  * @brief[en] Data texture class
  * @explain[en] 2D texture constructed directly from a pixel array, defaults generateMipmaps=false, flipY=false, unpackAlignment=1.
  */
@@ -56,7 +56,7 @@ public open class DataTexture <: Texture {
      * minFilter 缩小过滤器，默认 NearestFilter
      * anisotropy 各向异性等级，默认 1
      * colorSpace 颜色空间，默认空
-
+     *
      * @brief[en] Construct a new data texture
      * @param[en] data Pixel array
      * width Texture width in pixels

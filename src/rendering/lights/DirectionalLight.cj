@@ -94,11 +94,12 @@ public class DirectionalLight <: Light {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
-        super.dispose()
-        this.shadow.dispose()
+    public override func release(): Bool {
+        super.release()
+        this.shadow.release()
+        return true
     }
 
     /**

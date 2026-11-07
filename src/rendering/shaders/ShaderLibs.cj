@@ -23,17 +23,16 @@
  *
  * @file[zh-cn] ShaderLibs  着色器库
  * @brief[zh-cn] 定义 ShaderLib 的 bgfx 实现
+ * @note[zh-cn] bgfx 着色器需要预编译的 .bin 文件，或使用 shaderc 工具离线编译。
+ * 运行时创建空着色器作为占位，实际需加载预编译的 .bin 文件。
+ * Ignore: Level 8 着色器加载范围，空着色器占位合理。
+ * 要启用动态 shader 编译，需要链接完整的 libshaderc 库。
  *
  * @file[en] ShaderLibs  Shader library
  * @brief[en] Define the bgfx implementation of ShaderLib
  * @note[en] bgfx shaders require precompiled .bin files, or offline compilation with the shaderc tool.
  * At runtime an empty shader is created as a placeholder; in practice precompiled .bin files must be loaded.
  * To enable dynamic shader compilation, the full libshaderc library must be linked.
- *
- * @note[zh-cn] bgfx 着色器需要预编译的 .bin 文件，或使用 shaderc 工具离线编译。
- * 运行时创建空着色器作为占位，实际需加载预编译的 .bin 文件。
- * Ignore: Level 8 着色器加载范围，空着色器占位合理。
- * 要启用动态 shader 编译，需要链接完整的 libshaderc 库。
  */
 package three.rendering.shaders
 
@@ -223,11 +222,47 @@ public class ShaderProgram <: IShaderProgram {
     /**
      * 把三个句柄重置为无效（强制 compileBgfxWithDefines 重编译）。
      * 供 postprocessing 等外部层调用，避免其直接构造 bgfx 原生句柄。
+     * 已有的 bgfx program/shader 会先被销毁，避免重编译时泄漏句柄。
      */
     public func resetHandles(): Unit {
-        this.vshHandle = ShaderHandle(65535u16)
-        this.fshHandle = ShaderHandle(65535u16)
-        this.programHandle = ProgramHandle(65535u16)
+        this._releaseCompiledHandles()
+    }
+
+    /**
+     * @brief[zh-cn] 销毁上一轮编译产生的 bgfx 句柄（重编译前调用，防止句柄泄漏）
+     * @explain[zh-cn] `bgfx_create_program_cj(vsh, fsh, true)` 的 destroyShaders=true 表示
+     *               着色器句柄由 program 持有，program 销毁时一并释放；因此 program 有效时
+     *               只销毁 program，不再单独销毁 shader（否则会重复释放）。仅当 program
+     *               创建失败、shader 仍存活时才逐个销毁。
+     *
+     * @brief[en] Destroys bgfx handles produced by the previous compilation (called before
+     *            recompiling to avoid handle leaks)
+     * @explain[en] With destroyShaders=true, `bgfx_create_program_cj(vsh, fsh, true)` makes the
+     *               program own the shader handles and release them when the program is
+     *               destroyed; therefore destroy only the program when it is valid (destroying
+     *               the shaders separately would double-free). Destroy standalone shaders only
+     *               when program creation failed and they are still alive.
+     */
+    private func _releaseCompiledHandles(): Unit {
+        if (this.programHandle.idx == 65535u16 &&
+            this.vshHandle.idx == 65535u16 &&
+            this.fshHandle.idx == 65535u16) {
+            return
+        }
+        bgfxCallMtx.lock()
+        try {
+            if (this.programHandle.idx != 65535u16) {
+                bgfx_destroy_program_cj(this.programHandle)
+            } else {
+                if (this.vshHandle.idx != 65535u16) { bgfx_destroy_shader_cj(this.vshHandle) }
+                if (this.fshHandle.idx != 65535u16) { bgfx_destroy_shader_cj(this.fshHandle) }
+            }
+        } finally {
+            this.programHandle = ProgramHandle(65535u16)
+            this.vshHandle = ShaderHandle(65535u16)
+            this.fshHandle = ShaderHandle(65535u16)
+            bgfxCallMtx.unlock()
+        }
     }
 
     /**
@@ -464,6 +499,10 @@ public class ShaderProgram <: IShaderProgram {
     public func compileBgfx(extraDefines!: Array<String> = Array<String>()): Unit {
         // 延迟 resolve：确保源码已解析（构造函数不再立即 resolve）
         this._ensureResolved()
+        // 重编译前释放上一轮句柄：同一 ShaderProgram 被重复 compile（如输出 pass 的
+        // toneMapping/sRGB 变化、SSR 的 MAX_STEP 变化）时，旧 program/shader 不释放
+        // 会逐次累积为 bgfx 句柄泄漏。
+        this._releaseCompiledHandles()
 
         // USE_INSTANCING 变体检测：变体 defines 含 USE_INSTANCING 时，
         // 向 VS 注入实例属性输入与 instanceMatrix 局部定义（见 _injectInstancingVS）。
@@ -3272,15 +3311,16 @@ vec2 a_texcoord0 : TEXCOORD0;
     /**
      * @brief[zh-cn] 销毁着色器库，释放所有资源，停止编译器线程
      *
-     * @brief[en] Destroy the shader library, release all resources, stop the compiler thread
+     * @brief[en] destroy the shader library, release all resources, stop the compiler thread
      */
-    public static func shutdown(): Unit {
+    public static func release(): Bool {
         ShaderCompiler.stop()
         // bgfx_shutdown 后缓存中的 program/shader 句柄全部失效；必须清空缓存，
         // 让下次 initialize() 重建全新实例。否则重进会话时 get() 返回持有死句柄
         // 的旧 ShaderProgram（compileBgfx 因源码已解析而跳过重建），全场景渲染
         // 死句柄 → 画面全黑。
         programs.clear()
+        return true
     }
 }
 

@@ -53,6 +53,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -64,25 +65,29 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 胶片颗粒后处理 pass
- * @brief[en] Film grain post-processing pass
  * @explain[zh-cn] 单遍全屏 pass，无内部 ping-pong RT（纯像素处理）。
+ *
+ * @brief[en] Film grain post-processing pass
  * @explain[en] A single-pass full-screen pass with no internal ping-pong RT (pure pixel processing).
  */
-public class FilmPass <: Pass {
+public class FilmPass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 颗粒强度（0~1）：0 = 无效果，1 = 全强度，默认 0.5
+     *
      * @brief[en] Grain intensity (0~1): 0 = no effect, 1 = full strength, default 0.5
      */
     public var intensity: Float64
 
     /**
      * @brief[zh-cn] 是否启用灰度转换，默认 false
+     *
      * @brief[en] Whether grayscale conversion is enabled, default false
      */
     public var grayscale: Bool
 
     /**
      * @brief[zh-cn] 动画时间累加器（秒），每帧 += deltaTime，驱动 rand 噪声动态变化
+     *
      * @brief[en] Animation time accumulator (seconds); += deltaTime each frame, drives dynamic rand noise
      */
     public var time: Float64 = 0.0
@@ -113,9 +118,10 @@ public class FilmPass <: Pass {
 
     /**
      * @brief[zh-cn] 构造 FilmPass
-     * @brief[en] Constructs FilmPass
      * @param[zh-cn] intensity 颗粒强度（默认 0.5）
      * @param[zh-cn] grayscale 是否灰度（默认 false）
+     *
+     * @brief[en] Constructs FilmPass
      * @param[en] intensity Grain intensity (default 0.5)
      * @param[en] grayscale Whether to use grayscale (default false)
      */
@@ -125,12 +131,15 @@ public class FilmPass <: Pass {
         this.grayscale = grayscale
         // needsSwap=true（pass 后 composer 交换 buffer）
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
      * @brief[zh-cn] 设置 pass 尺寸
-     * @brief[en] Sets the pass size
      * @explain[zh-cn] FilmPass 无内部 RT，尺寸仅用于视口记录。
+     *
+     * @brief[en] Sets the pass size
      * @explain[en] FilmPass has no internal RT; the size is only used for viewport recording.
      */
     public override func setSize(width: Int64, height: Int64): Unit {
@@ -160,19 +169,20 @@ public class FilmPass <: Pass {
 
     /**
      * @brief[zh-cn] 执行 film pass
-     * @brief[en] Executes the film pass
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] writeBuffer 写 buffer（本 pass 的输出目标）
      * @param[zh-cn] readBuffer 读 buffer（上一 pass 结果，绑到 tDiffuse）
      * @param[zh-cn] deltaTime 帧间隔
-     * @param[en] renderer Renderer
-     * @param[en] writeBuffer Write buffer (output target of this pass)
-     * @param[en] readBuffer Read buffer (previous pass result, bound to tDiffuse)
-     * @param[en] deltaTime Frame delta time
      * @explain[zh-cn] 流程：1. 绑定 tDiffuse = readBuffer.color0（stage 0）；
      *         2. 设置 u_intensity / u_grayscale / u_time uniforms；
      *         3. 全屏 quad submit（覆盖写 state）；
      *         4. time += deltaTime（驱动下一帧 rand 噪声变化）。
+     *
+     * @brief[en] Executes the film pass
+     * @param[en] renderer Renderer
+     * @param[en] writeBuffer Write buffer (output target of this pass)
+     * @param[en] readBuffer Read buffer (previous pass result, bound to tDiffuse)
+     * @param[en] deltaTime Frame delta time
      * @explain[en] Flow: 1. binds tDiffuse = readBuffer.color0 (stage 0);
      *         2. sets the u_intensity / u_grayscale / u_time uniforms;
      *         3. submits the full-screen quad (overwrite state);
@@ -244,16 +254,18 @@ public class FilmPass <: Pass {
 
     /**
      * @brief[zh-cn] 释放 film pass 占用的所有 GPU 资源
-     * @brief[en] Releases all GPU resources held by the film pass
      * @explain[zh-cn] film shader program 由 PostProcessingShaders 全局管理，不在此 dispose；
      *         全屏 quad 由 EffectComposer 持单例统一管理。
+     *
+     * @brief[en] Releases all GPU resources held by the film pass
      * @explain[en] The film shader program is managed globally by PostProcessingShaders and is not disposed here;
      *         the full-screen quad is managed as a singleton by EffectComposer.
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._filmProg = None
-        if (let Some(u) <- this._uniforms) { u.dispose() }
+        if (let Some(u) <- this._uniforms) { u.release() }
         this._uniforms = None
-        @LogTrace(["film", "disposed"])
+        @LogTrace(["film", "released"])
+        return true
     }
 }

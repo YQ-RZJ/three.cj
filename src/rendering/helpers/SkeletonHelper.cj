@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -61,7 +62,7 @@ import std.collection.*
  * Connects parent-child bones with line segments, using different colors for different bone segments.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = LineSegments]
-public class SkeletonHelper <: LineSegments {
+public class SkeletonHelper <: LineSegments & IReleasable {
     /**
      * @brief[zh-cn] 根对象
      *
@@ -194,11 +195,12 @@ public class SkeletonHelper <: LineSegments {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.geometry.dispose()
         this.material.dispose()
+        return true
     }
 }
 

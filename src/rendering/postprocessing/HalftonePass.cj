@@ -72,6 +72,7 @@
 
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -84,70 +85,81 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] RGB 半色调后处理 pass
- * @brief[en] RGB halftone post-processing pass
  * @explain[zh-cn] 单遍全屏 pass，无内部 ping-pong RT（纯像素处理）。
  *         uniforms 全部以 public 字段暴露，运行时修改字段 → render() 内每帧同步到 bgfx uniform。
+ *
+ * @brief[en] RGB halftone post-processing pass
  * @explain[en] A single-pass full-screen pass with no internal ping-pong RT (pure pixel processing).
  *         All uniforms are exposed as public fields; changing a field at runtime is synced to the bgfx
  *         uniform each frame in render().
  */
-public class HalftonePass <: Pass {
+public class HalftonePass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 网点形状（1=Dot 2=Ellipse 3=Line 4=Square 5=Diamond），默认 1
+     *
      * @brief[en] Dot shape (1=Dot 2=Ellipse 3=Line 4=Square 5=Diamond), default 1
      */
     public var shape: Int64
 
     /**
      * @brief[zh-cn] 网点半径（像素），默认 4
+     *
      * @brief[en] Dot radius (pixels), default 4
      */
     public var radius: Float64
 
     /**
      * @brief[zh-cn] R 通道网格旋转角（弧度），默认 PI/12
+     *
      * @brief[en] R channel grid rotation angle (radians), default PI/12
      */
     public var rotateR: Float64
 
     /**
      * @brief[zh-cn] G 通道网格旋转角（弧度），默认 PI/12*2
+     *
      * @brief[en] G channel grid rotation angle (radians), default PI/12*2
      */
     public var rotateG: Float64
 
     /**
      * @brief[zh-cn] B 通道网格旋转角（弧度），默认 PI/12*3
+     *
      * @brief[en] B channel grid rotation angle (radians), default PI/12*3
      */
     public var rotateB: Float64
 
     /**
      * @brief[zh-cn] 散点抖动量（0=无抖动），默认 0
+     *
      * @brief[en] Scatter dithering amount (0=no dithering), default 0
      */
     public var scatter: Float64
 
     /**
      * @brief[zh-cn] 混合强度（0=全原色 1=全 halftone），默认 1
+     *
      * @brief[en] Blending strength (0=full original 1=full halftone), default 1
      */
     public var blending: Float64
 
     /**
      * @brief[zh-cn] 混合模式（1=Linear 2=Multiply 3=Add 4=Lighter 5=Darker），默认 1
+     *
      * @brief[en] Blending mode (1=Linear 2=Multiply 3=Add 4=Lighter 5=Darker), default 1
      */
     public var blendingMode: Int64
 
     /**
      * @brief[zh-cn] 是否灰度输出，默认 false
+     *
      * @brief[en] Whether to output grayscale, default false
      */
     public var greyscale: Bool
 
     /**
      * @brief[zh-cn] 是否禁用（true=直接透传原图），默认 false
+     *
      * @brief[en] Whether to disable (true=pass the original image through), default false
      */
     public var disable: Bool
@@ -174,7 +186,6 @@ public class HalftonePass <: Pass {
 
     /**
      * @brief[zh-cn] 构造 HalftonePass
-     * @brief[en] Constructs HalftonePass
      * @param[zh-cn] shape 网点形状（默认 1=Dot）
      * @param[zh-cn] radius 网点半径（默认 4）
      * @param[zh-cn] rotateR R 通道旋转角（默认 PI/12）
@@ -185,6 +196,9 @@ public class HalftonePass <: Pass {
      * @param[zh-cn] blendingMode 混合模式（默认 1=Linear）
      * @param[zh-cn] greyscale 灰度（默认 false）
      * @param[zh-cn] disable 禁用透传（默认 false）
+     * @explain[zh-cn] 所有参数直接写入对应字段，render() 内再同步到 bgfx uniform。
+     *
+     * @brief[en] Constructs HalftonePass
      * @param[en] shape Dot shape (default 1=Dot)
      * @param[en] radius Dot radius (default 4)
      * @param[en] rotateR R channel rotation angle (default PI/12)
@@ -195,7 +209,6 @@ public class HalftonePass <: Pass {
      * @param[en] blendingMode Blending mode (default 1=Linear)
      * @param[en] greyscale Grayscale (default false)
      * @param[en] disable Disabled pass-through (default false)
-     * @explain[zh-cn] 所有参数直接写入对应字段，render() 内再同步到 bgfx uniform。
      * @explain[en] All parameters are written directly to the corresponding fields, then synced to the bgfx
      *         uniforms in render().
      */
@@ -234,12 +247,15 @@ public class HalftonePass <: Pass {
                       " blendingMode=" + blendingMode.toString() +
                       " greyscale=" + greyscale.toString() +
                       " disable=" + disable.toString()])
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
      * @brief[zh-cn] 设置 pass 尺寸
-     * @brief[en] Sets the pass size
      * @explain[zh-cn] HalftonePass 无内部 RT，width/height 在 render() 时取自 renderer 尺寸同步到 uniform。
+     *
+     * @brief[en] Sets the pass size
      * @explain[en] HalftonePass has no internal RT; width/height are taken from the renderer size and synced to
      *         the uniforms in render().
      */
@@ -297,18 +313,19 @@ public class HalftonePass <: Pass {
 
     /**
      * @brief[zh-cn] 执行 halftone pass
-     * @brief[en] Executes the halftone pass
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] writeBuffer 写 buffer（本 pass 的输出目标）
      * @param[zh-cn] readBuffer 读 buffer（上一 pass 结果，绑到 tDiffuse）
      * @param[zh-cn] deltaTime 帧间隔
+     * @explain[zh-cn] 流程：1. 绑定 tDiffuse = readBuffer.color0（stage 0）；
+     *         2. 设置 12 个 uniforms（width/height 取自 renderer 尺寸）；
+     *         3. 全屏 quad submit（覆盖写 state）。
+     *
+     * @brief[en] Executes the halftone pass
      * @param[en] renderer Renderer
      * @param[en] writeBuffer Write buffer (output target of this pass)
      * @param[en] readBuffer Read buffer (previous pass result, bound to tDiffuse)
      * @param[en] deltaTime Frame delta time
-     * @explain[zh-cn] 流程：1. 绑定 tDiffuse = readBuffer.color0（stage 0）；
-     *         2. 设置 12 个 uniforms（width/height 取自 renderer 尺寸）；
-     *         3. 全屏 quad submit（覆盖写 state）。
      * @explain[en] Flow: 1. binds tDiffuse = readBuffer.color0 (stage 0);
      *         2. sets the 12 uniforms (width/height taken from the renderer size);
      *         3. submits the full-screen quad (overwrite state).
@@ -392,13 +409,17 @@ public class HalftonePass <: Pass {
 
     /**
      * @brief[zh-cn] 释放 halftone pass 占用的所有 GPU 资源
-     * @brief[en] Releases all GPU resources held by the halftone pass
      * @explain[zh-cn] halftone shader program 由 PostProcessingShaders 全局管理，不在此 dispose；
      *         全屏 quad 由 EffectComposer 持单例统一管理。
+     *
+     * @brief[en] Releases all GPU resources held by the halftone pass
      * @explain[en] The halftone shader program is managed globally by PostProcessingShaders and is not disposed
      *         here; the full-screen quad is managed as a singleton by EffectComposer.
      */
-    public override func dispose(): Unit {
-        @LogTrace(["halftone", "disposed"])
+    public override func release(): Bool {
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        @LogTrace(["halftone", "released"])
+        return true
     }
 }

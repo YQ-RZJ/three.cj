@@ -44,6 +44,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -54,19 +55,22 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 贴纹理 pass
- * @brief[en] Texture overlay pass
  * @explain[zh-cn] 把一张纹理渲满屏（带 opacity）。
+ *
+ * @brief[en] Texture overlay pass
  * @explain[en] Renders a texture full-screen (with opacity).
  */
-public class TexturePass <: Pass {
+public class TexturePass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 待渲纹理（bgfx TextureHandle）
+     *
      * @brief[en] Texture to render (bgfx TextureHandle)
      */
     public var map: TextureHandle
 
     /**
      * @brief[zh-cn] 不透明度 [0,1]，默认 1.0（完全不透明）
+     *
      * @brief[en] Opacity [0,1], default 1.0 (fully opaque)
      */
     public var opacity: Float64 = 1.0
@@ -83,12 +87,13 @@ public class TexturePass <: Pass {
 
     /**
      * @brief[zh-cn] 构造 TexturePass
-     * @brief[en] Constructs TexturePass
      * @param[zh-cn] map 待渲纹理（bgfx TextureHandle）
      * @param[zh-cn] opacity 不透明度（默认 1.0）
+     * @explain[zh-cn] 全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
+     *
+     * @brief[en] Constructs TexturePass
      * @param[en] map Texture to render (bgfx TextureHandle)
      * @param[en] opacity Opacity (default 1.0)
-     * @explain[zh-cn] 全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
      * @explain[en] The full-screen quad is held as a singleton by EffectComposer and injected via setQuad (base class quad field).
      */
     public init(map: TextureHandle, opacity!: Float64 = 1.0) {
@@ -97,15 +102,18 @@ public class TexturePass <: Pass {
         this.opacity = opacity
         // 本 pass 是"贴图覆盖"，不交换主链
         this.needsSwap = false
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
      * @brief[zh-cn] 执行纹理 pass：把 map 渲到 readBuffer 或屏幕
-     * @brief[en] Executes the texture pass: renders the map to readBuffer or the screen
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] writeBuffer 写 buffer（本 pass 不用，结果写 readBuffer 或屏幕）
      * @param[zh-cn] readBuffer 读 buffer（renderToScreen=false 时写这里）
      * @param[zh-cn] deltaTime 帧间隔
+     *
+     * @brief[en] Executes the texture pass: renders the map to readBuffer or the screen
      * @param[en] renderer Renderer
      * @param[en] writeBuffer Write buffer (unused by this pass; result goes to readBuffer or screen)
      * @param[en] readBuffer Read buffer (written here when renderToScreen=false)
@@ -160,11 +168,15 @@ public class TexturePass <: Pass {
 
     /**
      * @brief[zh-cn] 释放 TexturePass 占用的 GPU 资源
-     * @brief[en] Releases the GPU resources held by TexturePass
      * @explain[zh-cn] shader 为全局缓存不 dispose；纹理由 caller 管理。
+     *
+     * @brief[en] Releases the GPU resources held by TexturePass
      * @explain[en] Shaders are globally cached and not disposed; textures are managed by the caller.
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
         this._prog = None
+        return true
     }
 }

@@ -70,6 +70,7 @@ import jolt4cj.jolt.*
 import std.collection.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] IPhysicsBackend 的 JoltPhysics 后端实现
@@ -88,7 +89,7 @@ import three.utils.log.macros.*
  * - _narrowQuery: NarrowPhaseQuery handle (owned by the system, no need to release)
  * - _pairFilter / _bpInterface / _ovsFilter : layer filter objects (must be destroyed after the system)
  */
-public class JoltBackend <: IPhysicsBackend {
+public class JoltBackend <: IPhysicsBackend & IReleasable {
     /// 全局初始化标志（JPH_Init_cj 进程内只调用一次）
     private static var _globalInited: Bool = false
 
@@ -351,17 +352,29 @@ public class JoltBackend <: IPhysicsBackend {
     /**
      * @brief[zh-cn] 关闭物理系统并释放全部资源（形状句柄、物理系统、监听器）
      *
-     * @brief[en] Shuts down the physics system and releases all resources (shape handles, physics system, listeners)
+     * @brief[en] shuts down the physics system and releases all resources (shape handles, physics system, listeners)
      */
-    public func shutdown(): Unit {
+    public func release(): Bool {
         if (!this._inited) {
-            return
+            return true
         }
         // 销毁所有缓存的形状句柄
         for ((_, sh) in this._shapes) {
             JPH_Shape_Destroy_cj(sh)
         }
         this._shapes.clear()
+
+        // 销毁所有约束：JPH_PhysicsSystem_Destroy 只销毁系统内部对象，
+        // 不释放通过 JPH_Constraint_* 创建的约束句柄
+        if (!this._system.isNull()) {
+            for ((_, c) in this._constraints) {
+                JPH_PhysicsSystem_RemoveConstraint_cj(this._system, c)
+                JPH_Constraint_Destroy_cj(c)
+            }
+        }
+        this._constraints.clear()
+        this._constraintTypes.clear()
+        this._constraintBodies.clear()
 
         // 销毁物理系统（joltc 语义：PhysicsSystem_Destroy 会一并释放层过滤对象）
         if (!this._system.isNull()) {
@@ -399,6 +412,7 @@ public class JoltBackend <: IPhysicsBackend {
         // 全局卸载（进程退出时调用，此处保守地不调用 JPH_Shutdown 以避免
         // 多 backend 实例时一个关闭影响另一个；真正卸载由进程退出保证）
         this._inited = false
+        true
     }
 
     /**
@@ -696,6 +710,17 @@ public class JoltBackend <: IPhysicsBackend {
     public func destroyBody(handle: PhysicsBodyHandle): Unit {
         if (!this._inited || this._bodyIface.isNull() || !handle.isValid()) {
             return
+        }
+        // 先级联销毁挂在该刚体上的约束：约束持有两端刚体，刚体销毁后约束句柄即悬空，
+        // 且 _constraints / _constraintBodies 表会永久持有它们（destroyBody 是唯一出口）
+        let constraintIDs = ArrayList<UInt32>()
+        for ((cid, pair) in this._constraintBodies) {
+            if (pair[0] == handle.bodyID || pair[1] == handle.bodyID) {
+                constraintIDs.add(cid)
+            }
+        }
+        for (cid in constraintIDs) {
+            this.destroyConstraint(PhysicsConstraintHandle(constraintID: cid))
         }
         // 移除并销毁刚体
         JPH_BodyInterface_RemoveAndDestroyBody_cj(this._bodyIface, handle.bodyID)

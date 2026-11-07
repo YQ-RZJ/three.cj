@@ -185,7 +185,7 @@ public open class RenderList {
      * @brief[zh-cn] 不透明渲染项列表
      * @explain[zh-cn] 预分配容量：收集阶段每帧可能 push 数百个成员再聚合为少数 DrawCall，
      * 避免从默认容量 16 反复扩容重分配（初始值按常见大合批场景估算，溢出仍会自动扩容）。
-
+     *
      * @brief[en] Opaque render item list
      * @explain[en] Pre-allocated capacity: the collection phase may push hundreds of members per frame
      * before aggregation collapses them into a few draw calls, avoiding repeated grow-and-realloc

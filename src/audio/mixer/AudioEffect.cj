@@ -54,6 +54,7 @@ import openalsoft4cj.efx.*
 
 import three.audio.device.*
 import three.audio.interfaces.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] EFX 效果对象，封装 OpenAL Effect 句柄
@@ -67,7 +68,7 @@ import three.audio.interfaces.*
  * attach it to an AudioEffectSlot to be processed through the source's auxiliary
  * send path.
  */
-public class AudioEffect <: IAudioEffect {
+public class AudioEffect <: IAudioEffect & IReleasable {
     /**
      * @brief[zh-cn] OpenAL 效果句柄
      *
@@ -114,11 +115,10 @@ public class AudioEffect <: IAudioEffect {
     /**
      * @brief[zh-cn] 创建并生成 OpenAL 效果对象
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 在音频线程执行 alGenEffects；若已创建则跳过。
      *
      * @brief[en] Creates and generates the OpenAL effect object
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 在音频线程执行 alGenEffects；若已创建则跳过。
      * @note[en] Runs alGenEffects on the audio thread; skips if already created.
      */
     public func create(): AudioEffect {
@@ -136,12 +136,11 @@ public class AudioEffect <: IAudioEffect {
      * @brief[zh-cn] 设置效果类型
      * @param[zh-cn] effectType 效果类型（EffectType.Reverb / Chorus / Echo / Equalizer 等）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX 的 alEffecti(effect, AL_EFFECT_TYPE, type)。
      *
      * @brief[en] Sets the effect type
      * @param[en] effectType Effect type (EffectType.Reverb / Chorus / Echo / Equalizer, etc.)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX 的 alEffecti(effect, AL_EFFECT_TYPE, type)。
      * @note[en] Maps to EFX alEffecti(effect, AL_EFFECT_TYPE, type).
      */
     public func setType(effectType: EffectType): AudioEffect {
@@ -157,13 +156,12 @@ public class AudioEffect <: IAudioEffect {
      * @param[zh-cn] param 参数常量（如 AL_REVERB_DENSITY）
      * value 参数值
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX 的 alEffectf(effect, param, value)。
      *
      * @brief[en] Sets a float parameter
      * @param[en] param Parameter constant (e.g. AL_REVERB_DENSITY)
      * value Parameter value
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX 的 alEffectf(effect, param, value)。
      * @note[en] Maps to EFX alEffectf(effect, param, value).
      */
     public func setParamf(param: UInt32, value: Float32): AudioEffect {
@@ -178,13 +176,12 @@ public class AudioEffect <: IAudioEffect {
      * @param[zh-cn] param 参数常量
      * values Float32 数组指针（调用方负责分配和释放）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 用于 EAX Reverb 等需要多值参数的效果；对应 EFX 的 alEffectfv(effect, param, values)。
      *
      * @brief[en] Sets a float vector parameter
      * @param[en] param Parameter constant
      * values Pointer to a Float32 array (caller is responsible for allocation/free)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 用于 EAX Reverb 等需要多值参数的效果；对应 EFX 的 alEffectfv(effect, param, values)。
      * @note[en] Used by effects with multi-value parameters such as EAX Reverb; maps to
      * EFX alEffectfv(effect, param, values).
      */
@@ -200,13 +197,12 @@ public class AudioEffect <: IAudioEffect {
      * @param[zh-cn] param 参数常量
      * value 参数值
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX 的 alEffecti(effect, param, value)。
      *
      * @brief[en] Sets an integer parameter
      * @param[en] param Parameter constant
      * value Parameter value
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX 的 alEffecti(effect, param, value)。
      * @note[en] Maps to EFX alEffecti(effect, param, value).
      */
     public func setParami(param: UInt32, value: Int32): AudioEffect {
@@ -217,15 +213,25 @@ public class AudioEffect <: IAudioEffect {
     }
 
     /**
+     * @brief[zh-cn] 资源是否有效（未释放）
+     * @return[zh-cn] 有效返回 true
+     *
+     * @brief[en] Whether the resource is valid (not released)
+     * @return[en] Returns true when valid
+     */
+    public prop releasable: Bool {
+        get() { !this._disposed }
+    }
+
+    /**
      * @brief[zh-cn] 释放 OpenAL 效果对象
+     * @note[zh-cn] 在音频线程执行 alDeleteEffects；重复调用幂等返回 false。
      *
      * @brief[en] Releases the OpenAL effect object
-     *
-     * @note[zh-cn] 在音频线程执行 alDeleteEffects；重复调用无副作用。
-     * @note[en] Runs alDeleteEffects on the audio thread; repeated calls have no effect.
+     * @note[en] Runs alDeleteEffects on the audio thread; repeated calls return false.
      */
-    public func dispose(): Unit {
-        if (_disposed) { return }
+    public func release(): Bool {
+        if (_disposed) { return false }
         if (this.effectId != 0u32) {
             let eid = this.effectId
             this.context.execAudio({ =>
@@ -237,6 +243,7 @@ public class AudioEffect <: IAudioEffect {
             this.effectId = 0u32
         }
         _disposed = true
+        return true
     }
 
     // ===== 便捷工厂函数 =====

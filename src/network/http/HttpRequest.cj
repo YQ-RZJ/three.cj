@@ -25,13 +25,12 @@
  * @brief[zh-cn] 描述一次 HTTP 请求的纯数据封装：URL / 方法 / 头部 / 正文
  * @explain[zh-cn] 纯数据封装，供 NetworkHttp 执行。内部经 httpclient4cj.Request 转换，
  * 上层无需接触底层 API。
+ * @note[zh-cn] 可通过静态工厂 get/post/put/delete 快速构造常见请求。
  *
  * @file[en] HttpRequest  HTTP request description (three.network.http sub-package)
  * @brief[en] Pure-data encapsulation describing an HTTP request: URL / method / headers / body
  * @explain[en] A pure-data encapsulation executed by NetworkHttp. Internally converted to an
  * httpclient4cj.Request, so callers never touch the underlying API.
- *
- * @note[zh-cn] 可通过静态工厂 get/post/put/delete 快速构造常见请求。
  * @note[en] Use the static factories get/post/put/delete to build common requests quickly.
  */
 package three.network.http

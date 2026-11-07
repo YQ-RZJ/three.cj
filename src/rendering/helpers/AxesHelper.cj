@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -59,7 +60,7 @@ import three.rendering.materials.*
  * Displays X-Y-Z axes as red-green-blue line segments, supports custom axis colors.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = LineSegments]
-public class AxesHelper <: LineSegments {
+public class AxesHelper <: LineSegments & IReleasable {
     /**
      * @brief[zh-cn] 构造坐标轴辅助对象
      * @param[zh-cn] size 轴线长度，默认 1
@@ -120,10 +121,11 @@ public class AxesHelper <: LineSegments {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.geometry.dispose()
         this.material.dispose()
+        return true
     }
 }

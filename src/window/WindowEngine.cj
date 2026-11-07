@@ -50,7 +50,7 @@
  * if (this.isKeyDown(KeyCode.ESCAPE)) { this.requestClose() }
  * renderer.render(scene, camera)
  * }
- * override func onClose() { renderer.shutdown() }
+ * override func onClose() { renderer.release() }
  * }
  * let win = MyWindow()
  * if (win.start(title: "Hello", width: 800, height: 600)) { win.wait() }
@@ -112,6 +112,7 @@ import three.core.thread.{ Mutex, Condition, SThread, sleepNS }
 import three.resource.pipeline.AssetManager
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // 轻量分发事件（分发器 → 窗口队列）
@@ -237,6 +238,7 @@ internal class SDLDispatcher {
      *       的线程"调用；而仓颉用户态线程（spawn，M:N）可能在系统线程间迁移，不能
      *       承载这些 API。故 SDL_Init/PollEvent/窗口命令全部固定在本 SThread（系统线程）
      *       内执行——本线程即"初始化线程"。
+     *
      * @note[en] SDL3 requires that SDL_PollEvent / window create/destroy/operations only be
      *       called on the thread that initialized the video subsystem; the Cangjie
      *       user-space thread (spawn, M:N) may migrate across system threads and cannot
@@ -461,14 +463,13 @@ internal class SDLDispatcher {
  * @explain[zh-cn] 语义：窗口泵线程在每循环开头从本窗口队列取出全部事件 → 更新快照，
  * 之后整个 onFrame 期间快照值固定不变（任何时刻读取一致）。
  * 输入状态由各 InputProvider 自管理，不再包含在此快照中。
+ * @note[zh-cn] 仅窗口泵线程读写（分发器只写事件队列），无需锁。
  *
  * @brief[en] Per-frame fixed window snapshot
  * @explain[en] Semantics: at the start of every loop the window pump thread drains all
  * events from this window's queue into the snapshot; the snapshot then stays
  * fixed for the whole onFrame period (reads are consistent at any moment).
  * Input state is managed by each InputProvider, no longer included in this snapshot.
- *
- * @note[zh-cn] 仅窗口泵线程读写（分发器只写事件队列），无需锁。
  * @note[en] Only the window pump thread reads and writes it (the dispatcher only writes
  * the event queue), so no lock is needed.
  */
@@ -506,13 +507,6 @@ public class InputSnapshot {
  * @explain[zh-cn] 用法：继承本类并覆写生命周期回调（onInit/onFrame/onClose/onDestroy），
  * 或直接绑定 lambda（bindOnFrame 等，绑定优先于覆写）；start() 创建窗口并
  * 启动窗口泵线程，wait() 阻塞至窗口关闭。
- *
- * @brief[en] Window engine v2 (aligned with the RGF window model)
- * @explain[en] Usage: subclass this class and override the lifecycle callbacks
- * (onInit/onFrame/onClose/onDestroy), or bind lambdas directly (e.g. bindOnFrame,
- * binding takes precedence over overriding); start() creates the window and starts
- * the window pump thread, and wait() blocks until the window is closed.
- *
  * @note[zh-cn] 窗口泵线程主循环（每个窗口实例一条用户态线程，读自己的事件队列）：
  * onInit()                          // 窗口创建后（初始化渲染器/场景）
  * while (!closeRequested):
@@ -520,6 +514,12 @@ public class InputSnapshot {
  * bindOnFrame?(dt) / onFrame(dt) // 用户逻辑/渲染——读快照（值固定）
  * snapshot.resetForNextFrame()   // 循环末重置（下一循环重新收集）
  * onClose(); onDestroy()
+ *
+ * @brief[en] Window engine v2 (aligned with the RGF window model)
+ * @explain[en] Usage: subclass this class and override the lifecycle callbacks
+ * (onInit/onFrame/onClose/onDestroy), or bind lambdas directly (e.g. bindOnFrame,
+ * binding takes precedence over overriding); start() creates the window and starts
+ * the window pump thread, and wait() blocks until the window is closed.
  * @note[en] Window pump thread main loop (one user-space thread per window instance,
  * reading its own event queue):
  * onInit()                          // after window creation (init renderer/scene)
@@ -529,7 +529,7 @@ public class InputSnapshot {
  * snapshot.resetForNextFrame()       // reset at loop end (re-collect next loop)
  * onClose(); onDestroy()
  */
-public open class WindowEngine {
+public open class WindowEngine <: IReleasable {
     // ===== 窗口状态 =====
     private var _window: SDL_Window = CPointer<Unit>()
     private var _initialized: Bool = false
@@ -617,6 +617,7 @@ public open class WindowEngine {
     }
     /**
      * @brief[zh-cn] 累计运行秒数（自窗口泵循环开始，逐帧 += frameDeltaTime）
+     *
      * @brief[en] Cumulative running seconds since the window pump loop started
      * (accumulated per frame: elapsedTime += frameDeltaTime)
      */
@@ -951,14 +952,13 @@ public open class WindowEngine {
 
     /**
      * @brief[zh-cn] 阻塞等待窗口关闭（窗口泵线程结束后返回）
+     * @note[zh-cn] 窗口关闭途径：用户点标题栏 X / Alt+F4、onFrame 内调 requestClose()、
+     * 外部调 release()。
      *
      * @brief[en] Blocks until the window is closed (returns after the window pump
      * thread ends)
-     *
-     * @note[zh-cn] 窗口关闭途径：用户点标题栏 X / Alt+F4、onFrame 内调 requestClose()、
-     * 外部调 shutdown()。
      * @note[en] Ways to close: user clicks the title bar X / Alt+F4, calling
-     * requestClose() inside onFrame, or an external shutdown() call.
+     * requestClose() inside onFrame, or an external release() call.
      */
     public func wait(): Unit {
         if (let Some(t) <- this._pumpThread) { t.get() }
@@ -982,16 +982,17 @@ public open class WindowEngine {
      * @brief[zh-cn] 关闭窗口引擎
      * @explain[zh-cn] 请求退出 + 等待窗口泵线程结束（含 onClose/onDestroy）。
      *
-     * @brief[en] Shuts down the window engine
+     * @brief[en] shuts down the window engine
      * @explain[en] Requests exit and waits for the window pump thread to finish
      * (including onClose/onDestroy).
      */
-    public func shutdown(): Unit {
-        if (!this._initialized && this._pumpThread.isNone()) { return }
+    public open func release(): Bool {
+        if (!this._initialized && this._pumpThread.isNone()) { return true }
         this._exitRequested = true
         this._snapshot.closeRequested = true
         this.wait()
         this._initialized = false
+        return true
     }
 
     /**
@@ -1029,6 +1030,38 @@ public open class WindowEngine {
     // =========================================================================
 
     private func _windowLoop(): Unit {
+        // onInit/onFrame 抛出的异常不能让本线程直接退出，否则窗口/SDL 资源全部泄漏；
+        // 统一捕获后继续走下面的清理流程（与 onFrame 异常处理一致）
+        try {
+            this._windowLoopCore()
+        } catch (e: Exception) {
+            @LogError(["WindowEngine._windowLoop: 生命周期回调抛出异常: ${e.message}"])
+            this.requestClose()
+        }
+        // 清理所有输入提供者
+        for (p in this._providers) {
+            p.release()
+        }
+        // 销毁 Gui 上下文：必须在 onClose()（renderer.shutdown() 停掉 bgfx 线程）
+        // 与 SDL 窗口销毁之前——其 SDL3/bgfx 后端关闭依赖这两个线程仍存活
+        if (let Some(ctx) <- this._gui) {
+            ctx.shutdown()
+            this._gui = None
+        }
+        // 生命周期：关闭前 + 销毁
+        if (let Some(f) <- this._bindOnClose) { f() } else { this.onClose() }
+        // 销毁窗口必须在 SDL SThread（初始化线程）内执行
+        SDLDispatcher.execSDL({ =>
+            if (!this._window.isNull()) {
+                SDL_DestroyWindow_cj(this._window)
+                this._window = CPointer<Unit>()
+            }
+        })
+        SDLDispatcher.unregister(this._windowID)
+        if (let Some(f) <- this._bindOnDestroy) { f() } else { this.onDestroy() }
+    }
+
+    private func _windowLoopCore(): Unit {
         // 初始化所有输入提供者
         for (p in this._providers) {
             p.`init`()
@@ -1126,27 +1159,6 @@ public open class WindowEngine {
                 lastFrameStart = MonoTime.now()
             }
         }
-        // 清理所有输入提供者
-        for (p in this._providers) {
-            p.shutdown()
-        }
-        // 销毁 Gui 上下文：必须在 onClose()（renderer.shutdown() 停掉 bgfx 线程）
-        // 与 SDL 窗口销毁之前——其 SDL3/bgfx 后端关闭依赖这两个线程仍存活
-        if (let Some(ctx) <- this._gui) {
-            ctx.shutdown()
-            this._gui = None
-        }
-        // 生命周期：关闭前 + 销毁
-        if (let Some(f) <- this._bindOnClose) { f() } else { this.onClose() }
-        // 销毁窗口必须在 SDL SThread（初始化线程）内执行
-        SDLDispatcher.execSDL({ =>
-            if (!this._window.isNull()) {
-                SDL_DestroyWindow_cj(this._window)
-                this._window = CPointer<Unit>()
-            }
-        })
-        SDLDispatcher.unregister(this._windowID)
-        if (let Some(f) <- this._bindOnDestroy) { f() } else { this.onDestroy() }
     }
 
     /// 取出本窗口队列中全部事件 → 更新快照
@@ -1291,11 +1303,10 @@ public open class WindowEngine {
     /**
      * @brief[zh-cn] 设置窗口是否可由用户调整大小
      * @param[zh-cn] resizable true=可调节尺寸，false=锁定尺寸（不可调节）
+     * @note[zh-cn] 创建后也可用。
      *
      * @brief[en] Sets whether the user can resize the window
      * @param[en] resizable true = resizable, false = locked (not resizable)
-     *
-     * @note[zh-cn] 创建后也可用。
      * @note[en] Also usable after creation.
      */
     public func setResizable(resizable: Bool): Unit {

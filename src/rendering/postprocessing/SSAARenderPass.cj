@@ -83,6 +83,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -137,11 +138,12 @@ public let JITTER_VECTORS: Array<Array<Array<Int64>>> = [
 
 /**
  * @brief[zh-cn] 超采样抗锯齿渲染 pass
- * @brief[en] Supersampling antialiasing render pass
  * @explain[zh-cn] 多 jitter 样本累加，sampleRT + copy shader（加性混合）。
+ *
+ * @brief[en] Supersampling antialiasing render pass
  * @explain[en] Accumulates multiple jittered samples; sampleRT + copy shader (additive blending).
  */
-public open class SSAARenderPass <: Pass {
+public open class SSAARenderPass <: Pass & IReleasable {
     /**
      * 累加 pass 用的 view ID（避开 SSAO 160/Bloom/shadow 50~127/ShaderPass 200~209/
      * SavePass 210/TexturePass 211/OutputPass 212/FXAAPass 213/SMAA 214~216）。
@@ -193,6 +195,15 @@ public open class SSAARenderPass <: Pass {
      * RT 是否已创建（TAARenderPass 子类 setSize 守卫用）。
      */
     protected var _rtsCreated: Bool = false
+
+    /**
+     * @brief[zh-cn] 内部 sampleRT 是否已创建且未被释放
+     *
+     * @brief[en] whether the internal sampleRT exists and has not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._rtsCreated }
+    }
 
     // ===== 内部 sampleRT =====
     /** sample RT 的 color 纹理（RGBA16F，HalfFloatType） */
@@ -477,9 +488,12 @@ public open class SSAARenderPass <: Pass {
     /**
      * 释放 SSAARenderPass 占用的所有 GPU 资源（sampleRT + copy shader）。
      */
-    public open override func dispose(): Unit {
+    public open override func release(): Bool {
         this._destroyRTs()
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
         this._copyProg = None
+        return true
     }
 
     // ===== 内部辅助 =====

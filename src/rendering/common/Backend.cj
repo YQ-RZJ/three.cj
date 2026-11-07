@@ -47,6 +47,7 @@ import three.scene.scenegraph.*
 import three.scene.scenegraph.*
 import bgfx4cj.bgfx.*
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 渲染对象占位接口，提供矩阵/几何体/材质/对象 ID 等查询方法
@@ -152,7 +153,7 @@ public interface IRenderContext {
  * @brief[en] Render backend abstract base class
  * @explain[en] Defines the full set of interfaces for the immediate command model. Each method is implemented in subclasses (e.g. BgfxBackend) with concrete GPU command mapping.
  */
-public open class Backend {
+public open class Backend <: IReleasable {
     /**
      * @brief[zh-cn] 后端类型标识（"WebGL"/"WebGPU"/"bgfx"）
      *
@@ -476,10 +477,11 @@ public open class Backend {
     /**
      * @brief[zh-cn] 销毁后端，释放资源
      *
-     * @brief[en] Dispose backend and release resources
+     * @brief[en] dispose backend and release resources
      */
-    public open func dispose(): Unit {
+    public open func release(): Bool {
         this.initialized = false
+        return true
     }
 
     // ===== 向后兼容重载（与既有 Renderer/BgfxBackend 配合）=====
@@ -548,15 +550,6 @@ public open class Backend {
      */
     public open func draw(geometry: BufferGeometry, material: Material): Unit {
         // base: no-op
-    }
-
-    /**
-     * @brief[zh-cn] destroy 是 dispose 的别名（旧版兼容）
-     *
-     * @brief[en] destroy is an alias of dispose (legacy compatibility)
-     */
-    public open func destroy(): Unit {
-        this.dispose()
     }
 
     // ===== 视口/裁剪/清除颜色（向下兼容已有 Backend 方法） =====

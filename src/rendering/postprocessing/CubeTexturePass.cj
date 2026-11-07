@@ -59,6 +59,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.cameras.*
 import three.rendering.textures.*
 import three.rendering.ThreeRenderer
@@ -78,25 +79,29 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 立方体贴图背景 pass
- * @brief[en] Cube-texture background pass
  * @explain[zh-cn] 把 CubeTexture 当作天空盒/背景渲染到 readBuffer 或屏幕。
+ *
+ * @brief[en] Cube-texture background pass
  * @explain[en] Renders a CubeTexture as a skybox/background to readBuffer or screen.
  */
-public class CubeTexturePass <: Pass {
+public class CubeTexturePass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 相机（取投影/朝向）
+     *
      * @brief[en] The camera (for projection/orientation)
      */
     public let camera: Camera
 
     /**
      * @brief[zh-cn] 立方体贴图引用
+     *
      * @brief[en] The cube texture reference
      */
     public var cubeTex: CubeTexture
 
     /**
      * @brief[zh-cn] 不透明度 [0,1]
+     *
      * @brief[en] Opacity [0,1]
      */
     public var opacity: Float64 = 1.0
@@ -164,6 +169,8 @@ public class CubeTexturePass <: Pass {
         this.opacity = opacity
         // 本 pass 是"背景覆盖"，不参与 composer 双 RT ping-pong
         this.needsSwap = false
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -437,9 +444,9 @@ public class CubeTexturePass <: Pass {
     }
 
     /**
-     * 释放 CubeTexturePass 占用的 GPU 资源（cube mesh + shader 缓存）。
+     * 释放 CubeTexturePass 占用的 GPU 资源（cube mesh + cube 纹理 + uniform 缓存）。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         if (let Some(renderer) <- this._renderer) {
             if (let Some(vb) <- this._cubeVB) {
                 renderer.destroyVertexBuffer(vb)
@@ -453,7 +460,17 @@ public class CubeTexturePass <: Pass {
                 renderer.destroyVertexLayout(layout)
                 this._cubeLayout = None
             }
+            // cube 纹理句柄为本 pass 经 createTextureCube 创建/bgfx 持有，须显式销毁，
+            // 否则退出时 bgfx 纹理句柄泄漏（此前仅置缓存为 None）。
+            if (let Some(cubeTex) <- this._cubeTexHandleCache) {
+                renderer.destroyTexture(cubeTex)
+                this._cubeTexHandleCache = None
+            }
         }
+        // 释放本 pass 私有 uniform 句柄缓存（tCube/u_tFlip/u_opacity 等由 _passUniforms() 创建）
+        this._disposePassUniforms()
+        // cube shader program 由 PostProcessingShaders 全局缓存管理，不在此 dispose
         this._cubeProg = None
+        return true
     }
 }

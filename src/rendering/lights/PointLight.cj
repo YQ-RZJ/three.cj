@@ -125,13 +125,14 @@ public class PointLight <: Light {
     }
 
     /**
-     * @brief[zh-cn] 释放本实例分配的GPU相关资源，当实例不再使用时应调用
+     * @brief[zh-cn] 释放本实例分配的GPU相关资源
      *
-     * @brief[en] Dispose GPU-related resources allocated by this instance, should be called when the instance is no longer used
+     * @brief[en] Release GPU-related resources allocated by this instance
      */
-    public override func dispose(): Unit {
-        super.dispose()
-        this.shadow.dispose()
+    public override func release(): Bool {
+        super.release()
+        this.shadow.release()
+        return true
     }
 
     /**

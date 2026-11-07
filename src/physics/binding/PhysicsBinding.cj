@@ -214,6 +214,8 @@ public class PhysicsBinding {
      * friction 摩擦系数，默认 0.2
      * restitution 恢复系数，默认 0.0
      * @return[zh-cn] 返回创建的 RigidBody 实例
+     * @note[zh-cn] CapsuleGeometry(radius, length) 的 length 含半球帽总高，
+     * halfHeight = (length - 2 * radius) / 2。
      *
      * @brief[en] Adds physics to a Mesh (derives a Capsule shape from CapsuleGeometry automatically)
      * @param[en] world The physics world instance
@@ -222,9 +224,6 @@ public class PhysicsBinding {
      * friction Friction coefficient, defaults to 0.2
      * restitution Restitution coefficient, defaults to 0.0
      * @return[en] Returns the created RigidBody instance
-     *
-     * @note[zh-cn] CapsuleGeometry(radius, length) 的 length 含半球帽总高，
-     * halfHeight = (length - 2 * radius) / 2。
      * @note[en] CapsuleGeometry(radius, length): length includes the total height of
      * both hemispherical caps; halfHeight = (length - 2 * radius) / 2.
      */
@@ -253,6 +252,8 @@ public class PhysicsBinding {
      * friction 摩擦系数，默认 0.2
      * restitution 恢复系数，默认 0.0
      * @return[zh-cn] 返回创建的 RigidBody 实例
+     * @note[zh-cn] CylinderGeometry(radiusTop, radiusBottom, height) 的 height 是总高，
+     * halfHeight = height / 2。
      *
      * @brief[en] Adds physics to a Mesh (derives a Cylinder shape from CylinderGeometry automatically)
      * @param[en] world The physics world instance
@@ -261,9 +262,6 @@ public class PhysicsBinding {
      * friction Friction coefficient, defaults to 0.2
      * restitution Restitution coefficient, defaults to 0.0
      * @return[en] Returns the created RigidBody instance
-     *
-     * @note[zh-cn] CylinderGeometry(radiusTop, radiusBottom, height) 的 height 是总高，
-     * halfHeight = height / 2。
      * @note[en] For CylinderGeometry(radiusTop, radiusBottom, height), height is the
      * full height; halfHeight = height / 2.
      */
@@ -289,14 +287,13 @@ public class PhysicsBinding {
      * mesh 用作地面外观的 Mesh
      * yPosition 地面 y 坐标，默认 0
      * @return[zh-cn] 返回创建的静态 RigidBody 实例
+     * @note[zh-cn] Plane 形状在后端用大盒子近似。
      *
      * @brief[en] Creates and binds a static ground (large plane)
      * @param[en] world The physics world instance
      * mesh The Mesh used as the ground's visual representation
      * yPosition The ground y coordinate, defaults to 0
      * @return[en] Returns the created static RigidBody instance
-     *
-     * @note[zh-cn] Plane 形状在后端用大盒子近似。
      * @note[en] The plane shape is approximated by a large box in the backend.
      */
     public static func ground(world: PhysicsWorld, mesh: Mesh,

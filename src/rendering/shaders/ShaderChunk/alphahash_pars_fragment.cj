@@ -34,14 +34,14 @@ package three.rendering.shaders.ShaderChunk
 
 /**
  * alphahash_pars_fragment GLSL 片段字符串
- * 
+ *
  * 使用仓颉三引号多行字符串语法 `"""..."""`。
  */
 public const alphahash_pars_fragment: String = #"
 #ifdef USE_ALPHAHASH
 
 	/**
-	 * See: https://casual-effects.com/research/Wyman2017Hashed/index.html
+  * See: https://casual-effects.com/research/Wyman2017Hashed/index.html
 	 */
 
 	const float ALPHA_HASH_SCALE = 0.05; // Derived from trials only, and may be changed.

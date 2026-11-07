@@ -24,7 +24,7 @@
  * @file[zh-cn] 立方体纹理
  * @brief[zh-cn] 由 6 张 2D 贴图组成的立方体贴图，用于环境反射、折射、天空盒等
  * @explain[zh-cn] 6 面对应 ±X/±Y/±Z 六面；mapping 默认 CubeReflectionMapping。flipY override 为 false（立方体贴图无需 Y 翻转）。
-
+ *
  * @file[en] Cube Texture
  * @brief[en] Cube map texture composed of 6 2D textures, used for environment reflection, refraction, skybox, etc.
  * @explain[en] 6 faces correspond to ±X/±Y/±Z; mapping defaults to CubeReflectionMapping. flipY is overridden to false (cube maps don't need Y flip). 
@@ -36,7 +36,7 @@ import std.math.*
 /**
  * @brief[zh-cn] 立方体纹理类
  * @explain[zh-cn] 由 6 张 2D 贴图组成的立方体贴图，用于环境反射、折射、天空盒等。flipY 默认为 false。
-
+ *
  * @brief[en] Cube texture class
  * @explain[en] Cube map texture composed of 6 2D textures, used for environment reflection, refraction, skybox, etc. flipY defaults to false.
  */
@@ -44,7 +44,7 @@ public open class CubeTexture <: Texture {
 
     /**
      * @brief[zh-cn] 6 面像素数组，按 ±X/±Y/±Z 顺序
-
+     *
      * @brief[en] 6-face pixel arrays, in ±X/±Y/±Z order
      */
     public var images: Array<Array<UInt8>>
@@ -61,7 +61,7 @@ public open class CubeTexture <: Texture {
      * type 像素数据类型，默认 UnsignedByteType
      * anisotropy 各向异性等级，默认 1
      * colorSpace 颜色空间，默认空
-
+     *
      * @brief[en] Construct a new cube texture
      * @param[en] images 6-face pixel arrays, in ±X/±Y/±Z order
      * mapping UV mapping mode, defaults to CubeReflectionMapping

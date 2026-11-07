@@ -31,6 +31,7 @@
  *   为传输留出窗口（对抗网络抖动的经典手段）。
  * - 推进条件：目标 tick 收齐全部玩家的输入才 onAdvance（确定性模拟的前提）；
  *   maxWaitMs > 0 时超时用空输入补齐强制推进（防单点卡帧拖死全场；
+ *
  *   @todo 更严谨的做法是记录超时玩家并做 desync 检测）。
  * - 确定性要求：onAdvance 里用户模拟必须只用 (tick, inputs) 派生状态，
  *   不读真实时钟/随机数（或用可播种随机）；输入数据建议经 PacketWriter 编码。
@@ -337,6 +338,19 @@ public class LockstepSession {
         this._confirmedTick = target
         this._waitStartMs = 0.0
         this._inputs.remove(target)
+        // 清理陈旧 tick 桶：已确认 tick 之前的输入不会再被消费（网络重发/乱序会留下旧桶），
+        // 不清理会随运行时长无界增长
+        if (this._inputs.size > 0) {
+            let stale = ArrayList<Int64>()
+            for ((t, _) in this._inputs) {
+                if (t < target) {
+                    stale.add(t)
+                }
+            }
+            for (t in stale) {
+                this._inputs.remove(t)
+            }
+        }
         if (let Some(cb) <- this.onAdvance) { cb(target, ids, inputs) }
     }
 

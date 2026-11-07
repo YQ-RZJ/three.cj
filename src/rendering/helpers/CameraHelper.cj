@@ -36,6 +36,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -65,7 +66,7 @@ import std.math.*
  * Displays camera near/far planes and frustum outline lines for debugging camera parameters.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = LineSegments]
-public class CameraHelper <: LineSegments {
+public class CameraHelper <: LineSegments & IReleasable {
     /**
      * @brief[zh-cn] 被可视化的相机
      *
@@ -304,10 +305,11 @@ public class CameraHelper <: LineSegments {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.geometry.dispose()
         this.material.dispose()
+        return true
     }
 }

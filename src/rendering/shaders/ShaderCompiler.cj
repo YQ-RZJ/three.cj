@@ -219,10 +219,12 @@ public class ShaderCompiler {
     /**
      * @brief[zh-cn] 启动编译器
      * @param[zh-cn] stackSize worker 栈大小（默认 8MB）
-     * @note 可多次调用：先 stop() 再 start() 可重新启动，释放旧线程资源
      *
      * @brief[en] Start the compiler
      * @param[en] stackSize Worker stack size (default 8MB)
+     *
+     * @note 可多次调用：先 stop() 再 start() 可重新启动，释放旧线程资源
+     *
      * @note May be called multiple times: stop() then start() restarts and releases old thread resources
      */
     public static func start(stackSize!: Int64 = DEFAULT_STACK_SIZE): Unit {
@@ -255,10 +257,12 @@ public class ShaderCompiler {
     /**
      * @brief[zh-cn] 重启编译器（先停止再启动）
      * @param[zh-cn] stackSize worker 栈大小（默认 8MB）
-     * @note 适合游戏中途需要重新编译 shader 时调用，释放旧线程后再创建新线程
      *
      * @brief[en] Restart the compiler (stop then start)
      * @param[en] stackSize Worker stack size (default 8MB)
+     *
+     * @note 适合游戏中途需要重新编译 shader 时调用，释放旧线程后再创建新线程
+     *
      * @note Releases old thread then creates a new one, suitable for mid-game shader compilation
      */
     public static func restart(stackSize!: Int64 = DEFAULT_STACK_SIZE): Unit {

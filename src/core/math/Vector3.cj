@@ -38,6 +38,13 @@ import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
 
+@When[cjc_version <= "1.2.0"]
+private struct Vector3Pad {
+    var pad: Float64 = 0.0      // 内联 8 字节，把 Vector3 撑到 40 字节
+}
+@When[cjc_version > "1.2.0"]
+private struct Vector3Pad {}    // 空结构体，不增加对象体积
+
 /**
  * @brief[zh-cn] 3D 向量类，表示有序三元组 (x, y, z)
  * @explain[zh-cn] 可用于表示三维空间中的点、方向和长度，或任意有序三元组。
@@ -90,8 +97,8 @@ public class Vector3 {
      *               inside the object. Higher frame rates compact the heap frontier to page
      *               boundaries more often, so hot paths reliably trigger it.
      */
-    @When[cjc_version <= "1.2.0"]
-    private var _layoutPad: Float64 = 0.0
+    @JsonIgnore
+    private var _layoutPad: Vector3Pad = Vector3Pad()
 
     /**
      * @brief[zh-cn] 默认构造函数，初始化为零向量 (0, 0, 0)

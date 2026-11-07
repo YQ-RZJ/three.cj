@@ -31,7 +31,7 @@
  * if (client.connect()) {
  * client.writeString("hello")
  * let data = client.read()
- * client.close()
+ * client.release()
  * }
  *
  * @file[en] SocketClient  High-level TCP client wrapper (three.network.socket sub-package)
@@ -45,13 +45,14 @@
  * if (client.connect()) {
  * client.writeString("hello")
  * let data = client.read()
- * client.close()
+ * client.release()
  * }
  */
 package three.network.socket
 
 import std.net.*
 import std.core.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] TCP 客户端
@@ -61,7 +62,7 @@ import std.core.*
  * @explain[en] A game-development-friendly wrapper around std.net.TcpSocket with
  * blocking read/write and event callbacks.
  */
-public class SocketClient {
+public class SocketClient <: IReleasable {
     /**
      * @brief[zh-cn] 目标主机
      *
@@ -125,11 +126,10 @@ public class SocketClient {
     /**
      * @brief[zh-cn] 建立连接（同步阻塞）
      * @return[zh-cn] 连接成功返回 true；失败返回 false
+     * @note[zh-cn] 连接成功时触发 onOpen，失败时触发 onError。
      *
      * @brief[en] Establishes a connection (synchronous, blocking)
      * @return[en] Returns true on success, false on failure
-     *
-     * @note[zh-cn] 连接成功时触发 onOpen，失败时触发 onError。
      * @note[en] Fires onOpen on success and onError on failure.
      */
     public func connect(): Bool {
@@ -190,13 +190,12 @@ public class SocketClient {
      * @brief[zh-cn] 接收数据（阻塞）
      * @param[zh-cn] buf 接收缓冲区，最多读取 buf 大小字节
      * @return[zh-cn] 返回实际读取的字节数；连接关闭或出错返回 -1
+     * @note[zh-cn] 收到数据时触发 onMessage，出错时触发 onError。
      *
      * @brief[en] Receives data (blocking)
      * @param[en] buf Receive buffer; reads at most buf.size bytes
      * @return[en] Returns the actual number of bytes read, or -1 when the connection
      * is closed or an error occurs
-     *
-     * @note[zh-cn] 收到数据时触发 onMessage，出错时触发 onError。
      * @note[en] Fires onMessage when data arrives and onError on failure.
      */
     public func read(buf: Array<UInt8>): Int64 {
@@ -224,12 +223,11 @@ public class SocketClient {
     /**
      * @brief[zh-cn] 接收文本（阻塞）
      * @return[zh-cn] 返回本次 read 读取的数据解码为 UTF-8 的字符串；无数据时返回空串
+     * @note[zh-cn] 按单次 read 返回；如需读取一整行可在上层自行组包。
      *
      * @brief[en] Receives text (blocking)
      * @return[en] Returns the data of a single read decoded as a UTF-8 string, or an
      * empty string when there is no data
-     *
-     * @note[zh-cn] 按单次 read 返回；如需读取一整行可在上层自行组包。
      * @note[en] Returns a single read; assemble frames yourself at the call site when
      * reading whole lines.
      */
@@ -246,13 +244,12 @@ public class SocketClient {
 
     /**
      * @brief[zh-cn] 关闭连接
+     * @note[zh-cn] 关闭后触发 onClose；未连接时为幂等空操作并返回 false。
      *
      * @brief[en] Closes the connection
-     *
-     * @note[zh-cn] 关闭后触发 onClose。
-     * @note[en] Fires onClose after closing.
+     * @note[en] Fires onClose after closing; idempotent no-op returning false when not connected.
      */
-    public func close(): Unit {
+    public func release(): Bool {
         if (let Some(s) <- this._socket) {
             try {
                 s.close()
@@ -262,7 +259,9 @@ public class SocketClient {
             this._socket = None
             this._connected = false
             if (let Some(l) <- this.listener) { l.onClose(this) }
+            return true
         }
+        return false
     }
 
     // =========================================================================
@@ -284,13 +283,11 @@ public class SocketClient {
      * @brief[zh-cn] 由已接受的底层套接字构造客户端
      * @param[zh-cn] tcp 底层已接受的套接字
      * @return[zh-cn] 包装好的 SocketClient（已标记为已连接）
-     *
      * @note[zh-cn] 包内使用，供 SocketServer.accept 调用。
      *
      * @brief[en] Construct a client from an accepted underlying socket
      * @param[en] tcp The underlying accepted socket
      * @return[en] Wrapped SocketClient (marked as connected)
-     *
      * @note[en] For internal package use, called by SocketServer.accept.
      */
     internal static func _fromAccepted(tcp: TcpSocket): SocketClient {

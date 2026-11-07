@@ -33,6 +33,7 @@ package three.rendering.bgfx
 
 import std.collection.*
 import bgfx4cj.bgfx.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] bgfx 着色器程序管理
@@ -41,7 +42,7 @@ import bgfx4cj.bgfx.*
  * @brief[en] bgfx shader program management
  * @explain[en] Corresponds to WebGLPrograms, manages shader program creation, caching and retrieval. Maintains program list and parameter mapping to avoid creating programs with same parameters.
  */
-public class BgfxPrograms {
+public class BgfxPrograms <: IReleasable {
     /**
      * @brief[zh-cn] 程序列表
      *
@@ -148,14 +149,15 @@ public class BgfxPrograms {
     /**
      * @brief[zh-cn] 释放所有着色器程序
      *
-     * @brief[en] Disposes all shader programs
+     * @brief[en] dispose all shader programs
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         for (data in programs) {
             program.destroyProgram(data)
         }
         programs = ArrayList<BgfxProgramData>()
         programsMap = HashMap<String, BgfxProgramData>()
+        return true
     }
 
     /**

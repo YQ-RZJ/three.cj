@@ -56,6 +56,7 @@ import three.profiler.macros.*
 import bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
+import three.utils.safe.IReleasable
 
 // ===== 点光源 cube shadow 的 6 个 face 方向常量 =====
 // 原实现把这三张表定义在 _renderPointShadowDepth 函数体内，每次调用都新建
@@ -239,6 +240,31 @@ public class BgfxShadowPass {
     private let _shadowViewMtx: Matrix4 = Matrix4()
     private var _shadowMtxMemStore: Option<BgfxMemory> = None
 
+    /**
+     * @brief[zh-cn] VSM 水平 blur 变体缓存（HORIZONTAL_PASS=1）
+     * @explain[zh-cn] 原实现每帧 `createVariant + compileBgfx`，逐帧新建 2 个 shader +
+     *               1 个 program 且从不销毁，造成 bgfx 句柄持续泄漏；改为只编译一次、
+     *               跨帧复用。dispose 时清空引用（bgfx_shutdown 后句柄失效）。
+     *
+     * @brief[en] Cached VSM horizontal blur variant (HORIZONTAL_PASS=1)
+     * @explain[en] The previous implementation created and compiled a variant every frame,
+     *               leaking two shaders and one program per frame; compile once and reuse.
+     *               Cleared on dispose (handles become invalid after bgfx_shutdown).
+     */
+    private var _vsmHorizontalProg: Option<ShaderProgram> = None
+
+    /**
+     * @brief[zh-cn] 水平变体所依据的垂直基础程序
+     * @explain[zh-cn] ShaderLibs.shutdown() 会清空程序注册表，重新初始化后 get("vsm")
+     *               返回新实例；用引用比较识别这种情况并重建水平变体，避免复用失效句柄。
+     *
+     * @brief[en] Vertical base program the horizontal variant was built from
+     * @explain[en] ShaderLibs.shutdown() clears the program registry, so get("vsm") returns a
+     *               new instance after re-initialization; a reference comparison detects this
+     *               and rebuilds the horizontal variant instead of reusing stale handles.
+     */
+    private var _vsmHorizontalBase: Option<ShaderProgram> = None
+
     /** 阴影 pass 复用的模型矩阵上传缓冲（惰性分配：bgfx 初始化后才可分配）。 */
     private prop _shadowMtxMem: BgfxMemory {
         get() {
@@ -297,10 +323,9 @@ public class BgfxShadowPass {
      * 调用完全是空转（submit 用 BGFX_DISCARD_ALL 消费绑定的前提是确有绑定需要重做）。
      * 槽表在 beginFrame 清空、由 prepareShadowMap 阶段的 renderXxxShadowMap 填充，
      * 主 pass draw 时读取即为当帧有效槽。
+     * @param[zh-cn] 当前帧是否有阴影槽
      *
      * @brief[en] Whether the current frame has any shadow slots to bind (false when no shadow-casting light)
-     *
-     * @param[zh-cn] 当前帧是否有阴影槽
      * @param[en] True if the current frame has shadow slots
      */
     public func hasShadowSlots(): Bool {
@@ -536,12 +561,29 @@ public class BgfxShadowPass {
             }
             let vProg = vsmSp.programHandle
             if (vProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm vertical compile failed"]); return }
-            // 水平变体（HORIZONTAL_PASS=1）
-            let hVariant = ShaderProgram.createVariant("vsm_h", vsmSp)
-            let defStrings = ArrayList<String>()
-            defStrings.add("HORIZONTAL_PASS=1")
-            hVariant.compileBgfx(extraDefines: defStrings.toArray())
-            let hProg = hVariant.programHandle
+            // 水平变体（HORIZONTAL_PASS=1）：只编译一次并跨帧复用。
+            // 原实现每帧 createVariant + compileBgfx，逐帧泄漏 2 个 shader + 1 个 program。
+            var hProg = ProgramHandle(65535u16)
+            var cacheHit = false
+            if (let Some(hv) <- this._vsmHorizontalProg) {
+                if (let Some(base) <- this._vsmHorizontalBase) {
+                    if (refEq(base, vsmSp)) {
+                        hProg = hv.programHandle
+                        cacheHit = true
+                    }
+                }
+            }
+            if (!cacheHit) {
+                let hVariant = ShaderProgram.createVariant("vsm_h", vsmSp)
+                let defStrings = ArrayList<String>()
+                defStrings.add("HORIZONTAL_PASS=1")
+                hVariant.compileBgfx(extraDefines: defStrings.toArray())
+                if (hVariant.programHandle.idx != 65535u16) {
+                    this._vsmHorizontalProg = Some(hVariant)
+                    this._vsmHorizontalBase = Some(vsmSp)
+                }
+                hProg = hVariant.programHandle
+            }
             if (hProg.idx == 65535u16) { @LogTrace(["shadow", "_vsmBlurPass SKIP: vsm horizontal compile failed"]); return }
 
             // 全屏四边形 VB（与 vsmVaryingDef 对齐：position + texcoord0）
@@ -1381,6 +1423,9 @@ public class BgfxShadowPass {
         this._shadowResources.clear()
         this._shadowSlots.clear()
         this._shadowSlotKind.clear()
+        // bgfx_shutdown 后缓存的 VSM 变体句柄失效，清空引用以便下次重建
+        this._vsmHorizontalProg = None
+        this._vsmHorizontalBase = None
     }
 }
 

@@ -73,6 +73,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.common.*
 import three.rendering.bgfx.*
 import three.rendering.shaders.ShaderLibs
@@ -98,7 +99,7 @@ import std.math.*
 import three.profiler.*
 import three.profiler.macros.*
 
-public class SAOPass <: Pass {
+public class SAOPass <: Pass & IReleasable {
     /** SAO pass 用的 view ID 段约定：SSAO 160~164，GTAO 165~169，SAO 170~175，composer 分配 230+ */
     public static let SAO_VIEW_ID_BASE: UInt16 = 170u16
 
@@ -178,6 +179,8 @@ public class SAOPass <: Pass {
         this._scene = Some(scene)
         this._camera = Some(camera)
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /** 设置 RT 尺寸（与渲染目标一致；composer.setSize 转发调用） */
@@ -814,7 +817,7 @@ public class SAOPass <: Pass {
     }
 
     /** 销毁全部 GPU 资源（composer.dispose 或 renderer.shutdown 调用） */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
         // 释放场景几何体缓存
@@ -832,5 +835,10 @@ public class SAOPass <: Pass {
                 this._layoutHandleCache = None
             }
         }
+        // 本 Pass 使用私有 _uniforms 字段创建了约 21 个 uniform 句柄，
+        // 必须显式 dispose，否则 composer 重建/切换后句柄泄漏（二型：私有 BgfxUniforms 字段）。
+        this._uniforms.release()
+        @LogTrace(["sao", "released"])
+        return true
     }
 }

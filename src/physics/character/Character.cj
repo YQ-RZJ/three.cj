@@ -43,7 +43,7 @@
  * ch.setLinearVelocity(walkDir * speed)
  * ch.update(dt)
  * let p = ch.getPosition()   // 同步给 Mesh
- * // 不用时：ch.dispose()
+ * // 不用时：ch.release()
  *
  * @file[en] Character high-level character-controller wrappers (three.physics.character sub-package)
  * @brief[en] Provides a three-oriented character-control layer on top of the
@@ -71,6 +71,7 @@ import three.physics.world.*
 import jolt4cj.jolt.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // 内部枚举映射辅助
@@ -177,12 +178,12 @@ public class PhysicsCharacterDesc {
 /**
  * @brief[zh-cn] 角色工厂
  * @explain[zh-cn] 在指定物理世界内创建角色（刚体角色或虚拟角色）。原生形状创建设置
- * 与坐标转换全部在物理线程内完成；失败（非 Jolt 后端等）返回 isValid=false 的对象。
+ * 与坐标转换全部在物理线程内完成；失败（非 Jolt 后端等）返回 releasable=false 的对象。
  *
  * @brief[en] Character factory
  * @explain[en] Creates characters (rigid or virtual) in the given physics world. Native
  * shape creation and coordinate conversion all happen on the physics thread; on failure
- * (e.g. a non-Jolt backend) returns an object with isValid=false.
+ * (e.g. a non-Jolt backend) returns an object with releasable=false.
  */
 public class PhysicsCharacterFactory {
     private let _desc: PhysicsCharacterDesc
@@ -329,7 +330,7 @@ public class PhysicsCharacterFactory {
  * factory.createCharacter → addToPhysicsSystem → postSimulation after each physics
  * step → getPosition/isOnGround → dispose.
  */
-public class PhysicsCharacter {
+public class PhysicsCharacter <: IReleasable {
     private let _world: PhysicsWorld
     private var _handle: CPointer<Unit> = CPointer<Unit>()
     private let _layer: UInt32
@@ -346,7 +347,7 @@ public class PhysicsCharacter {
      *
      * @brief[en] Whether the character is valid (created successfully and not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() {
             !this._disposed && !this._handle.isNull()
         }
@@ -360,7 +361,7 @@ public class PhysicsCharacter {
      * @param[en] activation Whether to activate immediately (default Activate)
      */
     public func addToPhysicsSystem(activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -377,7 +378,7 @@ public class PhysicsCharacter {
      * @brief[en] Removes the character from the physics system (can be re-added)
      */
     public func removeFromPhysicsSystem(): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -399,7 +400,7 @@ public class PhysicsCharacter {
      * @param[en] maxSeparationDistance Maximum separation distance (meters; default 0.05)
      */
     public func postSimulation(maxSeparationDistance!: Float32 = 0.05f32): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -418,7 +419,7 @@ public class PhysicsCharacter {
      * @param[en] velocity The target linear velocity (world space, three left-handed)
      */
     public func setLinearVelocity(velocity: Vector3): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -439,7 +440,7 @@ public class PhysicsCharacter {
      * @return[en] The current linear velocity (world space, three left-handed)
      */
     public func getLinearVelocity(): Vector3 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return Vector3()
         }
         let w = this._world
@@ -462,7 +463,7 @@ public class PhysicsCharacter {
      * @return[en] The current position (world space, three left-handed)
      */
     public func getPosition(): Vector3 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return Vector3()
         }
         let w = this._world
@@ -488,7 +489,7 @@ public class PhysicsCharacter {
      */
     public func setPosition(position: Vector3,
         activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -510,7 +511,7 @@ public class PhysicsCharacter {
      * @note[en] Call postSimulation first to refresh the ground state
      */
     public func isOnGround(): Bool {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return false
         }
         return this.getGroundState() == 0
@@ -522,7 +523,7 @@ public class PhysicsCharacter {
      * @brief[en] Gets the ground state (0 = OnGround, 1 = OnSteepGround, 2 = NotSupported, 3 = InAir)
      */
     public func getGroundState(): UInt32 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return 3
         }
         let w = this._world
@@ -535,11 +536,11 @@ public class PhysicsCharacter {
     /**
      * @brief[zh-cn] 销毁角色（自动从物理系统移除并释放底层句柄）
      *
-     * @brief[en] Disposes the character (auto-removes it from the physics system and frees the handle)
+     * @brief[en] disposes the character (auto-removes it from the physics system and frees the handle)
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return false
         }
         this._disposed = true
         if (!this._handle.isNull()) {
@@ -552,6 +553,7 @@ public class PhysicsCharacter {
                 JPH_CharacterBase_Destroy_cj(h)
             })
         }
+        return true
     }
 }
 
@@ -573,7 +575,7 @@ public class PhysicsCharacter {
  * flow (after PhysicsWorld.update): setLinearVelocity → update(dt) →
  * getPosition/isOnGround.
  */
-public class PhysicsCharacterVirtual {
+public class PhysicsCharacterVirtual <: IReleasable {
     private let _world: PhysicsWorld
     private var _handle: CPointer<Unit> = CPointer<Unit>()
     private let _layer: UInt32
@@ -590,7 +592,7 @@ public class PhysicsCharacterVirtual {
      *
      * @brief[en] Whether the virtual character is valid (created successfully and not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() {
             !this._disposed && !this._handle.isNull()
         }
@@ -617,7 +619,7 @@ public class PhysicsCharacterVirtual {
      * preserved and gravity is added on top)
      */
     public func update(deltaTime: Float32, gravity!: Vector3 = Vector3(0.0, -9.81, 0.0)): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -658,7 +660,7 @@ public class PhysicsCharacterVirtual {
      * @param[en] velocity The target linear velocity (world space, three left-handed)
      */
     public func setLinearVelocity(velocity: Vector3): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -679,7 +681,7 @@ public class PhysicsCharacterVirtual {
      * @return[en] The current linear velocity (world space, three left-handed)
      */
     public func getLinearVelocity(): Vector3 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return Vector3()
         }
         let w = this._world
@@ -702,7 +704,7 @@ public class PhysicsCharacterVirtual {
      * @return[en] The current position (world space, three left-handed)
      */
     public func getPosition(): Vector3 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return Vector3()
         }
         let w = this._world
@@ -725,7 +727,7 @@ public class PhysicsCharacterVirtual {
      * @param[en] position The target position (world space, three left-handed)
      */
     public func setPosition(position: Vector3): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let w = this._world
@@ -746,7 +748,7 @@ public class PhysicsCharacterVirtual {
      * @note[en] The ground state is valid for this frame after update
      */
     public func isOnGround(): Bool {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return false
         }
         return this.getGroundState() == 0
@@ -758,7 +760,7 @@ public class PhysicsCharacterVirtual {
      * @brief[en] Gets the ground state (0 = OnGround, 1 = OnSteepGround, 2 = NotSupported, 3 = InAir)
      */
     public func getGroundState(): UInt32 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return 3
         }
         let w = this._world
@@ -771,11 +773,11 @@ public class PhysicsCharacterVirtual {
     /**
      * @brief[zh-cn] 销毁虚拟角色并释放底层句柄
      *
-     * @brief[en] Disposes the virtual character and frees the underlying handle
+     * @brief[en] disposes the virtual character and frees the underlying handle
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return false
         }
         this._disposed = true
         if (!this._handle.isNull()) {
@@ -786,5 +788,6 @@ public class PhysicsCharacterVirtual {
                 => JPH_CharacterBase_Destroy_cj(h)
             })
         }
+        return true
     }
 }

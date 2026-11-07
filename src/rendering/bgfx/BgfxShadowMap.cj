@@ -37,6 +37,7 @@ import three.rendering.lights.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 阴影贴图信息
@@ -177,7 +178,7 @@ public class ShadowMapInfo {
  * @brief[en] bgfx shadow map management
  * @explain[en] Corresponds to WebGLShadowMap, manages shadow map creation, rendering and release. bgfx uses FrameBufferHandle instead of WebGLRenderTarget. Basic/PCF uses direct depth texture FrameBuffer, VSM uses two-step creation (depth texture -> blur pass -> RG color texture)
  */
-public class BgfxShadowMap {
+public class BgfxShadowMap <: IReleasable {
     /**
      * @brief[zh-cn] 阴影贴图映射（光源 ID -> ShadowMapInfo）
      *
@@ -484,9 +485,9 @@ public class BgfxShadowMap {
     /**
      * @brief[zh-cn] 释放所有阴影贴图
      *
-     * @brief[en] Dispose all shadow maps
+     * @brief[en] dispose all shadow maps
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         // 遍历的 key 收集后逐个释放（避免迭代中修改 HashMap）
         let keys = ArrayList<Int64>()
         for ((key, _) in shadowMaps) {
@@ -496,5 +497,6 @@ public class BgfxShadowMap {
             destroyShadowMap(key)
         }
         shadowMaps = HashMap<Int64, ShadowMapInfo>()
+        return true
     }
 }

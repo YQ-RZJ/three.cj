@@ -22,13 +22,13 @@
  * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
  *
  * @file[zh-cn] 2x2 矩阵
- * @file[en] 2x2 Matrix
  * @brief[zh-cn] 表示 2x2 矩阵，列主序存储
- * @brief[en] Represents a 2x2 matrix stored in column-major order
  * @explain[zh-cn] 构造函数和 set() 方法的参数按行主序提供，
  *       但内部 elements 数组按列主序存储。
  *       例如：set(11, 12, 21, 22) 对应 elements = [11, 21, 12, 22]
  *
+ * @file[en] 2x2 Matrix
+ * @brief[en] Represents a 2x2 matrix stored in column-major order
  * @explain[en] Constructor and set() method parameters are provided in row-major order,
  *       but the internal elements array is stored in column-major order.
  *       For example: set(11, 12, 21, 22) corresponds to elements = [11, 21, 12, 22]
@@ -39,11 +39,11 @@ import std.math.*
 
 /**
  * @brief[zh-cn] 2x2 矩阵类，列主序存储
- * @brief[en] 2x2 matrix class, stored in column-major order
  * @explain[zh-cn] 矩阵元素存储在 elements 数组中，按列主序排列：
  *       elements = [n11, n21, n12, n22]
  *       其中 n11, n12 为第一行，n21, n22 为第二行。
  *
+ * @brief[en] 2x2 matrix class, stored in column-major order
  * @explain[en] Matrix elements are stored in the elements array in column-major order:
  *       elements = [n11, n21, n12, n22]
  *       where n11, n12 are the first row, n21, n22 are the second row.
@@ -51,19 +51,19 @@ import std.math.*
 public class Matrix2 {
     /**
      * @brief[zh-cn] 矩阵元素，列主序存储
+     *
      * @brief[en] Matrix elements, stored in column-major order
      */
     public var elements: Array<Float64>
 
     /**
      * @brief[zh-cn] 构造一个新的 2x2 矩阵，如果提供参数则按行主序设置矩阵元素
-     * @brief[en] Construct a new 2x2 matrix, set elements in row-major order if parameters are provided
-     *
      * @param[zh-cn] n11 第 1 行第 1 列元素
      * @param[zh-cn] n12 第 1 行第 2 列元素
      * @param[zh-cn] n21 第 2 行第 1 列元素
      * @param[zh-cn] n22 第 2 行第 2 列元素
      *
+     * @brief[en] Construct a new 2x2 matrix, set elements in row-major order if parameters are provided
      * @param[en] n11 Element at row 1, column 1
      * @param[en] n12 Element at row 1, column 2
      * @param[en] n21 Element at row 2, column 1
@@ -76,9 +76,9 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 设置矩阵为单位矩阵
-     * @brief[en] Set the matrix to the identity matrix
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Set the matrix to the identity matrix
      * @return[en] Current matrix instance (supports chaining)
      */
     public func identity(): Matrix2 {
@@ -89,19 +89,17 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 按行主序设置矩阵元素
-     * @brief[en] Set matrix elements in row-major order
-     *
      * @param[zh-cn] n11 第 1 行第 1 列元素
      * @param[zh-cn] n12 第 1 行第 2 列元素
      * @param[zh-cn] n21 第 2 行第 1 列元素
      * @param[zh-cn] n22 第 2 行第 2 列元素
+     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      *
+     * @brief[en] Set matrix elements in row-major order
      * @param[en] n11 Element at row 1, column 1
      * @param[en] n12 Element at row 1, column 2
      * @param[en] n21 Element at row 2, column 1
      * @param[en] n22 Element at row 2, column 2
-     *
-     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      * @return[en] Current matrix instance (supports chaining)
      */
     public func set(n11: Float64, n12: Float64, n21: Float64, n22: Float64): Matrix2 {
@@ -112,9 +110,9 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 计算矩阵的行列式
-     * @brief[en] Calculate the determinant of the matrix
-     *
      * @return[zh-cn] 行列式值
+     *
+     * @brief[en] Calculate the determinant of the matrix
      * @return[en] The determinant value
      */
     public func determinant(): Float64 {
@@ -123,9 +121,9 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 创建此矩阵的副本
-     * @brief[en] Create a copy of this matrix
-     *
      * @return[zh-cn] 新的 Matrix2 实例
+     *
+     * @brief[en] Create a copy of this matrix
      * @return[en] A new Matrix2 instance
      */
     public func clone(): Matrix2 {
@@ -136,13 +134,11 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 将另一个矩阵的值复制到此矩阵
-     * @brief[en] Copy values from another matrix to this matrix
-     *
      * @param[zh-cn] m 源矩阵
-     *
-     * @param[en] m Source matrix
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Copy values from another matrix to this matrix
+     * @param[en] m Source matrix
      * @return[en] Current matrix instance (supports chaining)
      */
     public func copy(m: Matrix2): Matrix2 {
@@ -154,13 +150,11 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 将此矩阵的值复制到目标矩阵
-     * @brief[en] Copy values from this matrix to a target matrix
-     *
      * @param[zh-cn] m 目标矩阵
-     *
-     * @param[en] m Target matrix
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Copy values from this matrix to a target matrix
+     * @param[en] m Target matrix
      * @return[en] Current matrix instance (supports chaining)
      */
     public func copyTo(m: Matrix2): Matrix2 {
@@ -172,9 +166,9 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 计算矩阵的逆矩阵，如果行列式为 0 则将矩阵重置为单位矩阵
-     * @brief[en] Calculate the inverse of the matrix, reset to identity if determinant is 0
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Calculate the inverse of the matrix, reset to identity if determinant is 0
      * @return[en] Current matrix instance (supports chaining)
      */
     public func inverse(): Matrix2 {
@@ -190,9 +184,9 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 转置矩阵
-     * @brief[en] Transpose the matrix
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Transpose the matrix
      * @return[en] Current matrix instance (supports chaining)
      */
     public func transpose(): Matrix2 {
@@ -205,13 +199,11 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 检查此矩阵是否与另一个矩阵相等
-     * @brief[en] Check if this matrix equals another matrix
-     *
      * @param[zh-cn] m 要比较的矩阵
-     *
-     * @param[en] m The matrix to compare with
-     *
      * @return[zh-cn] 如果所有元素相等则返回 true
+     *
+     * @brief[en] Check if this matrix equals another matrix
+     * @param[en] m The matrix to compare with
      * @return[en] Returns true if all elements are equal
      */
     public func equals(m: Matrix2): Bool {
@@ -223,15 +215,13 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 从数组中读取矩阵元素（列主序）
-     * @brief[en] Read matrix elements from an array (column-major order)
-     *
      * @param[zh-cn] array 源数组
      * @param[zh-cn] offset 数组中的起始偏移量，默认为 0
+     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      *
+     * @brief[en] Read matrix elements from an array (column-major order)
      * @param[en] array Source array
      * @param[en] offset Starting offset in the array, defaults to 0
-     *
-     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      * @return[en] Current matrix instance (supports chaining)
      */
     public func fromArray(array: Array<Float64>, offset!: Int64 = 0): Matrix2 {
@@ -243,15 +233,13 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 将矩阵元素写入数组（列主序）
-     * @brief[en] Write matrix elements to an array (column-major order)
-     *
      * @param[zh-cn] array 目标数组，如果为 None 则创建新数组
      * @param[zh-cn] offset 数组中的起始偏移量，默认为 0
+     * @return[zh-cn] 包含矩阵元素的数组
      *
+     * @brief[en] Write matrix elements to an array (column-major order)
      * @param[en] array Target array, creates a new array if None
      * @param[en] offset Starting offset in the array, defaults to 0
-     *
-     * @return[zh-cn] 包含矩阵元素的数组
      * @return[en] Array containing the matrix elements
      */
     public func toArray(array!: Option<Array<Float64>> = None, offset!: Int64 = 0): Array<Float64> {
@@ -269,13 +257,11 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 将此矩阵与另一个矩阵相乘
-     * @brief[en] Multiply this matrix by another matrix
-     *
      * @param[zh-cn] m 右操作数矩阵
-     *
-     * @param[en] m Right-hand side matrix
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Multiply this matrix by another matrix
+     * @param[en] m Right-hand side matrix
      * @return[en] Current matrix instance (supports chaining)
      */
     public func multiply(m: Matrix2): Matrix2 {
@@ -284,15 +270,13 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 计算两个矩阵的乘积并存储到此矩阵
-     * @brief[en] Calculate the product of two matrices and store in this matrix
-     *
      * @param[zh-cn] a 左操作数矩阵
      * @param[zh-cn] b 右操作数矩阵
+     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      *
+     * @brief[en] Calculate the product of two matrices and store in this matrix
      * @param[en] a Left-hand side matrix
      * @param[en] b Right-hand side matrix
-     *
-     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      * @return[en] Current matrix instance (supports chaining)
      */
     public func multiplyMatrices(a: Matrix2, b: Matrix2): Matrix2 {
@@ -312,13 +296,11 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 将矩阵的每个元素乘以标量
-     * @brief[en] Multiply each element of the matrix by a scalar
-     *
      * @param[zh-cn] s 标量值
-     *
-     * @param[en] s Scalar value
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Multiply each element of the matrix by a scalar
+     * @param[en] s Scalar value
      * @return[en] Current matrix instance (supports chaining)
      */
     public func multiplyScalar(s: Float64): Matrix2 {
@@ -329,13 +311,11 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 创建旋转矩阵
-     * @brief[en] Create a rotation matrix
-     *
      * @param[zh-cn] theta 旋转角度（弧度）
-     *
-     * @param[en] theta Rotation angle in radians
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Create a rotation matrix
+     * @param[en] theta Rotation angle in radians
      * @return[en] Current matrix instance (supports chaining)
      */
     public func makeRotation(theta: Float64): Matrix2 {
@@ -347,15 +327,13 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 创建缩放矩阵
-     * @brief[en] Create a scaling matrix
-     *
      * @param[zh-cn] sx X 轴缩放因子
      * @param[zh-cn] sy Y 轴缩放因子
+     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      *
+     * @brief[en] Create a scaling matrix
      * @param[en] sx X-axis scale factor
      * @param[en] sy Y-axis scale factor
-     *
-     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      * @return[en] Current matrix instance (supports chaining)
      */
     public func makeScale(sx: Float64, sy: Float64): Matrix2 {
@@ -365,15 +343,13 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 创建平移矩阵
-     * @brief[en] Create a translation matrix
-     *
      * @param[zh-cn] tx X 轴平移量
      * @param[zh-cn] ty Y 轴平移量
+     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      *
+     * @brief[en] Create a translation matrix
      * @param[en] tx X-axis translation amount
      * @param[en] ty Y-axis translation amount
-     *
-     * @return[zh-cn] 当前矩阵实例（支持链式调用）
      * @return[en] Current matrix instance (supports chaining)
      */
     public func makeTranslation(tx: Float64, ty: Float64): Matrix2 {
@@ -383,13 +359,11 @@ public class Matrix2 {
 
     /**
      * @brief[zh-cn] 从 3x3 矩阵中提取 2x2 子矩阵
-     * @brief[en] Extract a 2x2 sub-matrix from a 3x3 matrix
-     *
      * @param[zh-cn] m 源 3x3 矩阵
-     *
-     * @param[en] m Source 3x3 matrix
-     *
      * @return[zh-cn] 当前矩阵实例（支持链式调用）
+     *
+     * @brief[en] Extract a 2x2 sub-matrix from a 3x3 matrix
+     * @param[en] m Source 3x3 matrix
      * @return[en] Current matrix instance (supports chaining)
      */
     public func setFromMatrix3(m: Matrix3): Matrix2 {

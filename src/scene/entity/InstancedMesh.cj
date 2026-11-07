@@ -54,6 +54,7 @@ import three.rendering.textures.DataTexture
 import three.utils.memory.AutoFreePtr
 import std.collection.*
 import std.math.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 实例化网格，将同一几何/材质渲染多次，每次带独立变换矩阵/颜色
@@ -61,7 +62,7 @@ import std.math.*
  * @brief[en] Instanced mesh that renders the same geometry/material multiple times with independent transform/color
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
-public class InstancedMesh <: Mesh {
+public class InstancedMesh <: Mesh & IReleasable {
 
     /**
      * @brief[zh-cn] 实例变换矩阵缓冲（每实例 16 个 Float64，column-major）
@@ -368,10 +369,15 @@ public class InstancedMesh <: Mesh {
         return obj.copy(this, true)
     }
 
-    // 释放本实例分配的 GPU 相关资源。
-    public func dispose(): Unit {
-        this.dispatchEvent(Event("dispose"))
+    /**
+     * @brief[zh-cn] 释放本实例分配的 GPU 相关资源。
+     *
+     * @brief[en] frees GPU-related resources allocated by this instance.
+     */
+    public func release(): Bool {
+        this.dispatchEvent(Event("release"))
         this.morphTexture = None
+        return true
     }
 }
 

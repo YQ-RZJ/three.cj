@@ -38,6 +38,7 @@
  * 线程模型（对齐 AudioContext/BgfxRenderer）：
  * PhysicsWorld 持有独立 three.core.thread.SThread，所有后端调用经 _execPhysics 序列化到物理线程执行，
  * 渲染线程仅读回 transform 同步到 Object3D。后端实例（IPhysicsBackend）本身可在物理线程内创建/销毁。
+ * @intro[zh-cn] three.physics 提供可插拔的物理后端抽象、Jolt 后端适配、物理世界门面以及刚体/角色/约束/绑定封装。
  *
  * @file[en] Physics Physics module parent package (only declares the three.physics package so that cjpm can recognize the interfaces/world/body/backend sub-packages)
  * @brief[en] This file declares the physics module parent package
@@ -57,8 +58,6 @@
  * three.core.thread.SThread; all backend calls are serialized onto the physics thread via
  * _execPhysics, and the render thread only reads back transforms to sync Object3D. Backend
  * instances (IPhysicsBackend) may themselves be created/destroyed on the physics thread.
- *
- * @intro[zh-cn] three.physics 提供可插拔的物理后端抽象、Jolt 后端适配、物理世界门面以及刚体/角色/约束/绑定封装。
  * @intro[en] three.physics provides a pluggable physics backend abstraction, a Jolt backend adapter,
  * a physics world facade, and rigid body / character / constraint / binding wrappers.
  */

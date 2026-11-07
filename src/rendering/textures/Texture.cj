@@ -24,7 +24,7 @@
  * @file[zh-cn] 纹理基类
  * @brief[zh-cn] 纹理资源基类，所有具体贴图类型的父类
  * @explain[zh-cn] 纹理资源基类，包装一个 Source（贴图数据源）+ 采样状态（wrapS/wrapT/magFilter/minFilter/anisotropy）+ UV 变换（offset/repeat/center/rotation/matrix）。flipY/colorSpace/premultiplyAlpha 控制上传时的像素处理。继承 EventDispatcher 以支持 dispose 事件；渲染器内部按 needsUpdate/version 增量更新 GPU 纹理。实现 IRenderTargetTexture 接口以解除 core→textures 循环依赖。
-
+ *
  * @file[en] Texture Base Class
  * @brief[en] Texture resource base class, parent of all concrete texture types
  * @explain[en] Texture resource base class, wrapping a Source (texture data source) + sampling state (wrapS/wrapT/magFilter/minFilter/anisotropy) + UV transform (offset/repeat/center/rotation/matrix). flipY/colorSpace/premultiplyAlpha control pixel processing on upload. Extends EventDispatcher to support dispose event; the renderer incrementally updates GPU textures by needsUpdate/version. Implements IRenderTargetTexture interface to break core→textures circular dependency. 
@@ -34,6 +34,7 @@ package three.rendering.textures
 import three.core.math.*
 import three.utils.constants.*
 import three.utils.allocator.IdAllocator
+import three.utils.safe.IReleasable
 import three.core.event.EventDispatcher
 import three.core.event.Event
 import three.rendering.rendertarget.RenderTarget
@@ -49,72 +50,72 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 纹理资源基类
  * @explain[zh-cn] 所有具体贴图类型（DataTexture/CubeTexture/CanvasTexture 等）继承本类。包装 Source + 采样状态 + UV 变换。继承 EventDispatcher 支持 dispose 事件；实现 IRenderTargetTexture 接口解除 core→textures 循环依赖。
-
+ *
  * @brief[en] Texture resource base class
  * @explain[en] All concrete texture types (DataTexture/CubeTexture/CanvasTexture, etc.) extend this class. Wraps Source + sampling state + UV transform. Extends EventDispatcher to support dispose event; implements IRenderTargetTexture interface to break core→textures circular dependency.
  */
 @JsonAdapter
-public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackground & ILoadResult {
+public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackground & ILoadResult & IReleasable {
 
     /**
      * @brief[zh-cn] 类型标签
-
+     *
      * @brief[en] Type tag
      */
     public var kind: String
 
     /**
      * @brief[zh-cn] 贴图数据（像素数组）
-
+     *
      * @brief[en] Texture data (pixel array)
      */
     public var image: Array<UInt8>
 
     /**
      * @brief[zh-cn] 贴图宽度（像素）
-
+     *
      * @brief[en] Texture width in pixels
      */
     public var width: Int64
 
     /**
      * @brief[zh-cn] 贴图高度（像素）
-
+     *
      * @brief[en] Texture height in pixels
      */
     public var height: Int64
 
     /**
      * @brief[zh-cn] 水平采样环绕模式，默认 ClampToEdgeWrapping
-
+     *
      * @brief[en] Horizontal sampling wrap mode, defaults to ClampToEdgeWrapping
      */
     public var wrapS: Int64
 
     /**
      * @brief[zh-cn] 垂直采样环绕模式，默认 ClampToEdgeWrapping
-
+     *
      * @brief[en] Vertical sampling wrap mode, defaults to ClampToEdgeWrapping
      */
     public var wrapT: Int64
 
     /**
      * @brief[zh-cn] 放大采样过滤器，默认 LinearFilter
-
+     *
      * @brief[en] Magnification filter, defaults to LinearFilter
      */
     public var magFilter: Int64
 
     /**
      * @brief[zh-cn] 缩小采样过滤器，默认 LinearMipmapLinearFilter
-
+     *
      * @brief[en] Minification filter, defaults to LinearMipmapLinearFilter
      */
     public var minFilter: Int64
 
     /**
      * @brief[zh-cn] 渲染器内部增量更新标志，true 时下次 render 会重传 GPU 纹理
-
+     *
      * @brief[en] Renderer internal incremental update flag, when true the next render will re-upload GPU texture
      */
     @JsonIgnore
@@ -138,56 +139,56 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
 
     /**
      * @brief[zh-cn] 渲染器内部版本号，每次 update() 递增
-
+     *
      * @brief[en] Renderer internal version number, incremented each update()
      */
     public var version: Int64
 
     /**
      * @brief[zh-cn] UV 映射模式，默认 UVMapping
-
+     *
      * @brief[en] UV mapping mode, defaults to UVMapping
      */
     public var mapping: Int64
 
     /**
      * @brief[zh-cn] 纹理像素格式，默认 RGBAFormat
-
+     *
      * @brief[en] Texture pixel format, defaults to RGBAFormat
      */
     public var format: Int64
 
     /**
      * @brief[zh-cn] 像素格式覆盖（如 "GL_RGBA16F"/"GL_R32F" 等），None 表示由 format+type 自动派生
-
+     *
      * @brief[en] Pixel format override (e.g. "GL_RGBA16F"/"GL_R32F"), None means auto-derived from format+type
      */
     public var internalFormat: Option<String>
 
     /**
      * @brief[zh-cn] 纹理像素数据类型，默认 UnsignedByteType
-
+     *
      * @brief[en] Texture pixel data type, defaults to UnsignedByteType
      */
     public var `type`: Int64
 
     /**
      * @brief[zh-cn] 各向异性采样等级，默认 1
-
+     *
      * @brief[en] Anisotropy sampling level, defaults to 1
      */
     public var anisotropy: Int64
 
     /**
      * @brief[zh-cn] 颜色空间，默认空（按渲染器全局）
-
+     *
      * @brief[en] Color space, defaults to empty (follows renderer global)
      */
     public var colorSpace: String
 
     /**
      * @brief[zh-cn] 唯一标识
-
+     *
      * @brief[en] Unique identifier
      */
     public var uuid: String
@@ -212,119 +213,119 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
 
     /**
      * @brief[zh-cn] 用户可命名标签
-
+     *
      * @brief[en] User-namable tag
      */
     public var name: String
 
     /**
      * @brief[zh-cn] 贴图数据源（持有 data + needsUpdate + version）
-
+     *
      * @brief[en] Texture data source (holds data + needsUpdate + version)
      */
     public var source: Source
 
     /**
      * @brief[zh-cn] 预生成 mipmap 数组（手动 mipmap 时填充）
-
+     *
      * @brief[en] Pre-generated mipmap array (filled when using manual mipmaps)
      */
     public var mipmaps: ArrayList<Any>
 
     /**
      * @brief[zh-cn] 通道偏移（WebGL2/GLSL3 中将某通道重解释为另一通道，0=不偏移）
-
+     *
      * @brief[en] Channel offset (reinterprets a channel as another in WebGL2/GLSL3, 0=no offset)
      */
     public var channel: Int64
 
     /**
      * @brief[zh-cn] UV 偏移
-
+     *
      * @brief[en] UV offset
      */
     public var offset: Vector2
 
     /**
      * @brief[zh-cn] UV 重复
-
+     *
      * @brief[en] UV repeat
      */
     public var repeat: Vector2
 
     /**
      * @brief[zh-cn] UV 旋转中心
-
+     *
      * @brief[en] UV rotation center
      */
     public var center: Vector2
 
     /**
      * @brief[zh-cn] UV 旋转角度（弧度）
-
+     *
      * @brief[en] UV rotation angle in radians
      */
     public var rotation: Float64
 
     /**
      * @brief[zh-cn] 是否自动更新 UV 变换矩阵
-
+     *
      * @brief[en] Whether to auto-update UV transform matrix
      */
     public var matrixAutoUpdate: Bool
 
     /**
      * @brief[zh-cn] UV 变换矩阵（3×3）
-
+     *
      * @brief[en] UV transform matrix (3×3)
      */
     public var matrix: Matrix3
 
     /**
      * @brief[zh-cn] 是否自动生成 mipmap
-
+     *
      * @brief[en] Whether to auto-generate mipmaps
      */
     public var generateMipmaps: Bool
 
     /**
      * @brief[zh-cn] 上传前是否预乘 alpha
-
+     *
      * @brief[en] Whether to premultiply alpha before upload
      */
     public var premultiplyAlpha: Bool
 
     /**
      * @brief[zh-cn] 上传时是否沿 Y 轴翻转
-
+     *
      * @brief[en] Whether to flip along Y axis on upload
      */
     public var flipY: Bool
 
     /**
      * @brief[zh-cn] 像素行对齐字节数（1/2/4/8），默认 4
-
+     *
      * @brief[en] Pixel row alignment bytes (1/2/4/8), defaults to 4
      */
     public var unpackAlignment: Int64
 
     /**
      * @brief[zh-cn] 用户自定义数据容器
-
+     *
      * @brief[en] User custom data container
      */
     public var userData: HashMap<String, Any>
 
     /**
      * @brief[zh-cn] 是否渲染目标纹理
-
+     *
      * @brief[en] Whether this is a render target texture
      */
     public var isRenderTargetTexture: Bool
 
     /**
      * @brief[zh-cn] 渲染目标反向引用
-
+     *
      * @brief[en] Render target back reference
      */
     @JsonIgnore
@@ -332,35 +333,35 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
 
     /**
      * @brief[zh-cn] 贴图深度（3D 纹理用，默认 1）
-
+     *
      * @brief[en] Texture depth (for 3D textures, defaults to 1)
      */
     public var depth: Int64
 
     /**
      * @brief[zh-cn] 是否数组纹理
-
+     *
      * @brief[en] Whether this is an array texture
      */
     public var isArrayTexture: Bool
 
     /**
      * @brief[zh-cn] 是否使用 16 位归一化整数格式，默认 false
-
+     *
      * @brief[en] Whether to use 16-bit normalized integer format, defaults to false
      */
     public var normalized: Bool
 
     /**
      * @brief[zh-cn] 是否 3D 数据纹理（子类 override 为 true）
-
+     *
      * @brief[en] Whether this is a 3D data texture (subclass overrides to true)
      */
     public open func getIsData3DTexture(): Bool { false }
 
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：贴图宽度
-
+     *
      * @brief[en] IRenderTargetTexture interface: texture width
      */
     @JsonIgnore
@@ -370,7 +371,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     }
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：贴图高度
-
+     *
      * @brief[en] IRenderTargetTexture interface: texture height
      */
     @JsonIgnore
@@ -380,7 +381,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     }
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：贴图深度
-
+     *
      * @brief[en] IRenderTargetTexture interface: texture depth
      */
     @JsonIgnore
@@ -390,7 +391,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     }
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：是否数组纹理
-
+     *
      * @brief[en] IRenderTargetTexture interface: whether array texture
      */
     @JsonIgnore
@@ -400,13 +401,13 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     }
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：是否 3D 数据纹理
-
+     *
      * @brief[en] IRenderTargetTexture interface: whether 3D data texture
      */
     public func rtIsData3DTexture(): Bool { this.getIsData3DTexture() }
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：渲染目标反向引用
-
+     *
      * @brief[en] IRenderTargetTexture interface: render target back reference
      */
     @JsonIgnore
@@ -416,7 +417,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     }
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：是否渲染目标纹理
-
+     *
      * @brief[en] IRenderTargetTexture interface: whether render target texture
      */
     @JsonIgnore
@@ -426,7 +427,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     }
     /**
      * @brief[zh-cn] IRenderTargetTexture 接口：克隆自身
-
+     *
      * @brief[en] IRenderTargetTexture interface: clone itself
      */
     public func rtClone(): IRenderTargetTexture { this.clone() }
@@ -445,7 +446,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
      * type 像素数据类型，默认 UnsignedByteType
      * anisotropy 各向异性等级，默认 1
      * colorSpace 颜色空间，默认空
-
+     *
      * @brief[en] Construct a new texture
      * @param[en] image Pixel array, defaults to empty
      * width Texture width in pixels, defaults to 0
@@ -504,16 +505,17 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
 
     /**
      * @brief[zh-cn] 释放本实例分配的 GPU 相关资源，并派发 dispose 事件
-
+     *
      * @brief[en] Release GPU-related resources allocated by this instance and dispatch dispose event
      */
-    public open func dispose(): Unit {
-        this.dispatchEvent(Event("dispose"))
+    public open func release(): Bool {
+        this.dispatchEvent(Event("release"))
+        return true
     }
 
     /**
      * @brief[zh-cn] 通知渲染器纹理内容已变，下次 render 会重传 GPU 纹理
-
+     *
      * @brief[en] Notify the renderer that texture content has changed, next render will re-upload GPU texture
      */
     public open func update(): Unit {
@@ -523,7 +525,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
 
     /**
      * @brief[zh-cn] 重算 UV 变换矩阵（按 offset/repeat/rotation/center）
-
+     *
      * @brief[en] Recalculate UV transform matrix (by offset/repeat/rotation/center)
      */
     public func updateMatrix(): Unit {
@@ -536,7 +538,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
      * @param[zh-cn] uv 待变换的 UV 坐标
      * target 接收结果的目标向量
      * @return[zh-cn] 变换后的 UV 坐标
-
+     *
      * @brief[en] Transform UV coordinates by this texture's offset/repeat/center/rotation and write to target
      * @param[en] uv UV coordinates to transform
      * target Target vector to receive the result
@@ -551,7 +553,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
      * @brief[zh-cn] 将给定纹理实例的值复制到本实例
      * @param[zh-cn] source 源纹理
      * @return[zh-cn] 当前实例
-
+     *
      * @brief[en] Copy values from the given texture instance to this instance
      * @param[en] source Source texture
      * @return[en] This instance
@@ -599,7 +601,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     /**
      * @brief[zh-cn] 返回一个与本实例值相同的新纹理实例
      * @return[zh-cn] 克隆的纹理实例
-
+     *
      * @brief[en] Return a new texture instance with the same values as this instance
      * @return[en] Cloned texture instance
      */
@@ -627,7 +629,7 @@ public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackgroun
     /**
      * @brief[zh-cn] 用 HashMap 中的值批量设置本纹理的字段（键名匹配字段名）
      * @param[zh-cn] values 字段值字典
-
+     *
      * @brief[en] Batch set texture fields from HashMap values (key names match field names)
      * @param[en] values Field value dictionary
      */

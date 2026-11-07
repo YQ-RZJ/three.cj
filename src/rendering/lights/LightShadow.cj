@@ -38,6 +38,7 @@
  */
 package three.rendering.lights
 
+import three.utils.safe.IReleasable
 import three.core.math.*
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -70,7 +71,7 @@ import fastjson.stream.*
  * Subclasses include DirectionalLightShadow, PointLightShadow, SpotLightShadow.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; ignorePrivate = true]
-public open class LightShadow {
+public open class LightShadow <: IReleasable {
     /**
      * @brief[zh-cn] 光源观察世界的视角相机
      *
@@ -496,17 +497,17 @@ public open class LightShadow {
     }
 
     /**
-     * @brief[zh-cn] 释放本实例分配的GPU相关资源，当实例不再使用时应调用
+     * @brief[zh-cn] 释放本实例分配的GPU相关资源
      *
-     * @brief[en] Dispose GPU-related resources allocated by this instance, should be called when the instance is no longer used
+     * @brief[en] Release GPU-related resources allocated by this instance
      */
-    public func dispose(): Unit {
-        
-        // 仓颉：map/mapPass 已具体化为 Option<RenderTarget>，直接调用 dispose()。
-        if (let Some(rt) <- this.map) { rt.dispose() }
+    public func release(): Bool {
+        // 仓颉：map/mapPass 已具体化为 Option<RenderTarget>，直接调用 release()。
+        if (let Some(rt) <- this.map) { rt.release() }
         this.map = None
-        if (let Some(rt) <- this.mapPass) { rt.dispose() }
+        if (let Some(rt) <- this.mapPass) { rt.release() }
         this.mapPass = None
+        return true
     }
 
     /**

@@ -34,10 +34,6 @@
  *   // Inside UiDragDropTarget:
  *   let payload = UiPayload.getCurrentPayload()
  *   if (payload.isValid() && payload.isDataType("MY_TYPE")) { ... }
- * @explain[en] Usage example:
- *   // Inside UiDragDropTarget:
- *   let payload = UiPayload.getCurrentPayload()
- *   if (payload.isValid() && payload.isDataType("MY_TYPE")) { ... }
  */
 package three.window.ui
 

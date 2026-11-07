@@ -188,14 +188,13 @@ public open class KeyframeTrack <: IKeyframeTrack {
      * times 各关键帧的时间序列
      * values 各关键帧对应的取值序列
      * interpolation 插值方式，默认为线性插值
+     * @throws[zh-cn] Exception 当名称为空或不存在任何关键帧时
      *
      * @brief[en] Creates a keyframe track with the given name, times and values
      * @param[en] name Track name, must not be empty
      * times The time sequence of each keyframe
      * values The value sequence corresponding to each keyframe
      * interpolation The interpolation mode, defaults to linear interpolation
-     *
-     * @throws[zh-cn] Exception 当名称为空或不存在任何关键帧时
      * @throws[en] Exception When the name is empty or there are no keyframes
      */
     public init(name: String, times: Array<Float64>, values: Array<Float64>, interpolation!: Int64 = InterpolateLinear) {
@@ -291,12 +290,11 @@ public open class KeyframeTrack <: IKeyframeTrack {
      * @brief[zh-cn] 设置插值方式
      * @param[zh-cn] interpolation 插值方式
      * @return[zh-cn] 返回自身以支持链式调用
+     * @note[zh-cn] 不支持的类型会回退到默认插值。
      *
      * @brief[en] Sets the interpolation mode
      * @param[en] interpolation The interpolation mode
      * @return[en] Returns itself for chaining
-     *
-     * @note[zh-cn] 不支持的类型会回退到默认插值。
      * @note[en] Unsupported types fall back to the default interpolation.
      */
     public open func setInterpolation(interpolation: Int64): KeyframeTrack {
@@ -376,13 +374,12 @@ public open class KeyframeTrack <: IKeyframeTrack {
      * @param[zh-cn] startTime 起始时间
      * endTime 结束时间
      * @return[zh-cn] 返回自身以支持链式调用
+     * @note[zh-cn] 空轨道不允许，至少保留一个关键帧。
      *
      * @brief[en] Trims the track to the given time range
      * @param[en] startTime The start time
      * endTime The end time
      * @return[en] Returns itself for chaining
-     *
-     * @note[zh-cn] 空轨道不允许，至少保留一个关键帧。
      * @note[en] Empty tracks are not allowed; at least one keyframe is kept.
      */
     public func trim(startTime: Float64, endTime: Float64): KeyframeTrack {

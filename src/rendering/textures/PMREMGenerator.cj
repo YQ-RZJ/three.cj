@@ -29,7 +29,7 @@
  * 逐面做锥形模糊（cone blur 近似 PMREM 预过滤）→ 打包为 2D CubeUV 图集（DataTexture）。
  * 生成的贴图 mapping = CubeUVReflectionMapping，供 standard/physical 材质的 IBL 采样
  * （shader chunk cube_uv_reflection_fragment，两者布局常量必须一致）。
-
+ *
  * @file[en] PMREM Generator
  * @brief[en] PMREMGenerator pre-filtered mipmap environment map generator
  * @explain[en] PMREMGenerator generates pre-filtered mipmap environment maps (CubeUV atlas) from scenes.
@@ -43,6 +43,7 @@
  */
 package three.rendering.textures
 
+import three.utils.safe.IReleasable
 import three.scene.interfaces.IScene
 import three.core.interfaces.IBackground
 import three.core.math.Color
@@ -56,12 +57,12 @@ import std.collection.*
  * @brief[zh-cn] PMREM 生成器类
  * @explain[zh-cn] 预过滤 Mipmap 环境贴图生成器。生成 CubeUV 图集（DataTexture），
  * 布局与 shader chunk cube_uv_reflection_fragment 严格对应。
-
+ *
  * @brief[en] PMREM generator class
  * @explain[en] Pre-filtered mipmap environment map generator. Produces a CubeUV atlas (DataTexture)
  * whose layout strictly matches the shader chunk cube_uv_reflection_fragment.
  */
-public class PMREMGenerator {
+public class PMREMGenerator <: IReleasable {
     /**
      * @brief[zh-cn] 类型标签
      *
@@ -282,7 +283,9 @@ public class PMREMGenerator {
      * @explain[en] The current implementation is pure CPU generation and holds no GPU resources;
      * the interface is kept to match common engine usage.
      */
-    public func dispose(): Unit { }
+    public func release(): Bool {
+        return true
+    }
 
     // ===== 内部实现 =====
 

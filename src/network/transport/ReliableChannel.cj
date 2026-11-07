@@ -31,18 +31,6 @@
  *   每次重发间隔翻倍（封顶 maxResendDelayMs）；收到确认即从 pending 移除。
  * - 有序性：收包线程按 expected seq 顺序投递；乱序包入 ooo 缓存，缺口补齐后按序派发。
  * - 确认回报：收包线程每收一包立即回一个仅 12 字节头的 ack 帧（实现简单、延迟最低；
- *   @todo 后续可合并到数据包 piggyback 以省流量）。
- * - 线程模型：bind() 后 spawn 收包线程（阻塞 receiveFrom，负责 ack 回执/乱序缓存/投递队列）；
- *   onMessage 在主循环 update() 中派发；send/update/收包线程并发安全（pending 用锁保护）。
- * - RTT：收到确认时按 pending 记录的发送时刻采样，指数平滑（smoothed = 0.875*s + 0.125*rtt），
- *   通过 rttMs 属性读取（@todo 用作自适应重发间隔）。
- * 用法：
- * let chan = ReliableChannel("127.0.0.1", 9000, bindPort: 9001)
- * chan.onMessage = Some({ data => ... })
- * chan.bind()
- * chan.send("hit".toArray())
- * // 主循环每帧：
- * chan.update()
  *
  * @file[en] ReliableChannel  Reliable UDP channel (three.network.transport sub-package)
  * @brief[en] Game-grade reliable UDP channel: seq/ack bitmap confirmation + timeout resend
@@ -71,6 +59,20 @@
  * chan.send("hit".toArray())
  * // every frame in the main loop:
  * chan.update()
+ *
+ *   @todo 后续可合并到数据包 piggyback 以省流量）。
+ * - 线程模型：bind() 后 spawn 收包线程（阻塞 receiveFrom，负责 ack 回执/乱序缓存/投递队列）；
+ *   onMessage 在主循环 update() 中派发；send/update/收包线程并发安全（pending 用锁保护）。
+ * - RTT：收到确认时按 pending 记录的发送时刻采样，指数平滑（smoothed = 0.875*s + 0.125*rtt），
+ *   通过 rttMs 属性读取（@todo 用作自适应重发间隔）。
+ * 用法：
+ * let chan = ReliableChannel("127.0.0.1", 9000, bindPort: 9001)
+ * chan.onMessage = Some({ data => ... })
+ * chan.bind()
+ * chan.send("hit".toArray())
+ * // 主循环每帧：
+ * chan.update()
+ *
  */
 package three.network.transport
 
@@ -83,6 +85,7 @@ import std.sync.*
 import std.time.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 /** 可靠包头部字节数（seq + ack + ackBits，各 4 字节大端） */
 public const RELIABLE_HEADER_SIZE: Int64 = 12
@@ -131,7 +134,7 @@ internal class PendingPacket {
  * @explain[en] seq/ack confirmation + timeout resend + in-order delivery; one channel is
  * bound to one remote peer (create one channel with its own bindPort per remote).
  */
-public class ReliableChannel {
+public class ReliableChannel <: IReleasable {
     /**
      * @brief[zh-cn] 远端主机
      *
@@ -361,10 +364,13 @@ public class ReliableChannel {
 
     /**
      * @brief[zh-cn] 关闭通道并停止收包线程
+     * @note[zh-cn] 未绑定时为幂等空操作并返回 false。
      *
      * @brief[en] Closes the channel and stops the receive thread
+     * @note[en] Idempotent no-op returning false when not bound.
      */
-    public func close(): Unit {
+    public func release(): Bool {
+        if (!this._bound && this._stop.load()) { return false }
         this._stop.store(true)
         this._bound = false
         let udpOpt = this._udp
@@ -375,6 +381,7 @@ public class ReliableChannel {
                 // 忽略关闭异常
             }
         }
+        return true
     }
 
     // ===== 内部 =====

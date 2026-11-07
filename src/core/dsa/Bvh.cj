@@ -285,18 +285,18 @@ public class Bvh {
      * @explain[zh-cn] 元素包围盒由中心与半尺寸确定：min = center - half，max = center + half。
      *               构建采用最长轴中位数分割，复杂度 O(n log n)。
      *               元素少于 2 个时建为单节点叶子。
-     *
      * @param[zh-cn] centerX 元素中心 X 分量
-     * @param[en] centerX Element center X components
      * @param[zh-cn] centerY 元素中心 Y 分量
-     * @param[en] centerY Element center Y components
      * @param[zh-cn] centerZ 元素中心 Z 分量
-     * @param[en] centerZ Element center Z components
      * @param[zh-cn] halfX 元素包围盒半尺寸 X 分量
-     * @param[en] halfX Element bounds half-extent X components
      * @param[zh-cn] halfY 元素包围盒半尺寸 Y 分量
-     * @param[en] halfY Element bounds half-extent Y components
      * @param[zh-cn] halfZ 元素包围盒半尺寸 Z 分量
+     *
+     * @param[en] centerX Element center X components
+     * @param[en] centerY Element center Y components
+     * @param[en] centerZ Element center Z components
+     * @param[en] halfX Element bounds half-extent X components
+     * @param[en] halfY Element bounds half-extent Y components
      * @param[en] halfZ Element bounds half-extent Z components
      */
     public func build(centerX: Array<Float64>, centerY: Array<Float64>, centerZ: Array<Float64>,
@@ -396,13 +396,13 @@ public class Bvh {
 
     /**
      * @brief[zh-cn] 元素中心更新后调用 refit 的便捷入口
+     * @param[zh-cn] centerX 新的中心 X 分量
+     * @param[zh-cn] centerY 新的中心 Y 分量
+     * @param[zh-cn] centerZ 新的中心 Z 分量
      *
      * @brief[en] Convenience entry: update element centers then refit
-     * @param[zh-cn] centerX 新的中心 X 分量
      * @param[en] centerX New center X components
-     * @param[zh-cn] centerY 新的中心 Y 分量
      * @param[en] centerY New center Y components
-     * @param[zh-cn] centerZ 新的中心 Z 分量
      * @param[en] centerZ New center Z components
      */
     public func updateCenters(centerX: Array<Float64>, centerY: Array<Float64>, centerZ: Array<Float64>): Unit {
@@ -416,22 +416,22 @@ public class Bvh {
      * @brief[zh-cn] 整体替换元素包围盒数据（中心 + 半尺寸）并 refit
      * @explain[zh-cn] 用于引擎侧批量更新：调用方每帧重新计算全部元素的包围盒后，
      *               用新数组整体替换（避免逐元素 API 的调用开销），再 refit 一次。
+     * @param[zh-cn] centerX 新的中心 X 分量
+     * @param[zh-cn] centerY 新的中心 Y 分量
+     * @param[zh-cn] centerZ 新的中心 Z 分量
+     * @param[zh-cn] halfX 新的半尺寸 X 分量
+     * @param[zh-cn] halfY 新的半尺寸 Y 分量
+     * @param[zh-cn] halfZ 新的半尺寸 Z 分量
      *
      * @brief[en] Replace all element bounds (center + half extents) wholesale and refit
      * @explain[en] Used by the engine for batch updates: after recomputing every element's
      *               bounds, the caller replaces the arrays wholesale (cheaper than a
      *               per-element API) and refits once.
-     * @param[zh-cn] centerX 新的中心 X 分量
      * @param[en] centerX New center X components
-     * @param[zh-cn] centerY 新的中心 Y 分量
      * @param[en] centerY New center Y components
-     * @param[zh-cn] centerZ 新的中心 Z 分量
      * @param[en] centerZ New center Z components
-     * @param[zh-cn] halfX 新的半尺寸 X 分量
      * @param[en] halfX New half-extent X components
-     * @param[zh-cn] halfY 新的半尺寸 Y 分量
      * @param[en] halfY New half-extent Y components
-     * @param[zh-cn] halfZ 新的半尺寸 Z 分量
      * @param[en] halfZ New half-extent Z components
      */
     public func updateBounds(centerX: Array<Float64>, centerY: Array<Float64>, centerZ: Array<Float64>,
@@ -448,15 +448,15 @@ public class Bvh {
     /**
      * @brief[zh-cn] 读取元素的包围盒（中心 + 半尺寸）
      * @explain[zh-cn] 供引擎侧在更新前取回旧值做差分（只更新变化的元素）。
+     * @param[zh-cn] element 元素下标
+     * @param[zh-cn] outCenter 输出中心（写入 cx, cy, cz）
+     * @param[zh-cn] outHalf 输出半尺寸（写入 hx, hy, hz）
      *
      * @brief[en] Read an element's bounds (center + half extents)
      * @explain[en] Lets the engine read the old values to diff against, so only changed
      *               elements need updating.
-     * @param[zh-cn] element 元素下标
      * @param[en] element Element index
-     * @param[zh-cn] outCenter 输出中心（写入 cx, cy, cz）
      * @param[en] outCenter Output center (cx, cy, cz written)
-     * @param[zh-cn] outHalf 输出半尺寸（写入 hx, hy, hz）
      * @param[en] outHalf Output half extents (hx, hy, hz written)
      */
     public func getElementBounds(element: Int64, outCenter: Array<Float64>, outHalf: Array<Float64>): Unit {
@@ -472,14 +472,14 @@ public class Bvh {
      * @brief[zh-cn] 视锥查询：收集包围盒与视锥相交的叶子元素下标
      * @explain[zh-cn] 遍历时若节点包围盒完全在视锥外，则整棵子树跳过；
      *               叶子节点再对其元素包围盒做一次精确相交测试。
+     * @param[zh-cn] frustum 视锥
+     * @param[zh-cn] out 输出数组（追加命中下标）
      *
      * @brief[en] Frustum query: collect leaf element indices whose bounds intersect the frustum
      * @explain[en] During traversal, a node whose bounds lie entirely outside the frustum
      *               causes its whole subtree to be skipped; leaf nodes then run an exact
      *               bounds intersection test per element.
-     * @param[zh-cn] frustum 视锥
      * @param[en] frustum Frustum
-     * @param[zh-cn] out 输出数组（追加命中下标）
      * @param[en] out Output array (hit indices are appended)
      */
     public func queryFrustum(frustum: Frustum, out: ArrayList<Int64>): Unit {
@@ -513,15 +513,15 @@ public class Bvh {
 
     /**
      * @brief[zh-cn] 射线查询：收集包围盒与射线相交的叶子元素下标
+     * @param[zh-cn] origin 射线起点
+     * @param[zh-cn] direction 射线方向（不必归一化）
+     * @param[zh-cn] maxDistance 最远距离
+     * @param[zh-cn] out 输出数组（追加命中下标）
      *
      * @brief[en] Ray query: collect leaf element indices whose bounds intersect the ray
-     * @param[zh-cn] origin 射线起点
      * @param[en] origin Ray origin
-     * @param[zh-cn] direction 射线方向（不必归一化）
      * @param[en] direction Ray direction (need not be normalized)
-     * @param[zh-cn] maxDistance 最远距离
      * @param[en] maxDistance Maximum distance
-     * @param[zh-cn] out 输出数组（追加命中下标）
      * @param[en] out Output array (hit indices are appended)
      */
     public func queryRay(origin: Vector3, direction: Vector3, maxDistance: Float64, out: ArrayList<Int64>): Unit {
@@ -559,14 +559,13 @@ public class Bvh {
 
     /**
      * @brief[zh-cn] 取根节点包围盒（最小点写入 outMin，最大点写入 outMax）
-     *
-     * @brief[en] Get the root node bounds (min into outMin, max into outMax)
      * @param[zh-cn] outMin 输出最小点
-     * @param[en] outMin Output min corner
      * @param[zh-cn] outMax 输出最大点
-     * @param[en] outMax Output max corner
      * @return[zh-cn] 是否存在根节点
      *
+     * @brief[en] Get the root node bounds (min into outMin, max into outMax)
+     * @param[en] outMin Output min corner
+     * @param[en] outMax Output max corner
      * @brief[en] Whether a root node exists
      */
     public func getRootBounds(outMin: Vector3, outMax: Vector3): Bool {

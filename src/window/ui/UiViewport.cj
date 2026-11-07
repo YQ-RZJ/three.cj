@@ -34,10 +34,6 @@
  *   let vp = UiViewport.getMain()
  *   let (cx, cy) = vp.getCenter()
  *   let (w, h) = vp.getSize()
- * @explain[en] Usage example:
- *   let vp = UiViewport.getMain()
- *   let (cx, cy) = vp.getCenter()
- *   let (w, h) = vp.getSize()
  */
 package three.window.ui
 

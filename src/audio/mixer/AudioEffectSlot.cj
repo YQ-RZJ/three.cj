@@ -60,6 +60,7 @@ import openalsoft4cj.efx.*
 
 import three.audio.device.*
 import three.audio.interfaces.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] EFX 辅助效果槽，封装 OpenAL AuxiliaryEffectSlot 句柄
@@ -71,7 +72,7 @@ import three.audio.interfaces.*
  * send to the same slot (sharing one effect instance) or to different slots
  * (each with its own independent effect).
  */
-public class AudioEffectSlot <: IAudioEffectSlot {
+public class AudioEffectSlot <: IAudioEffectSlot & IReleasable {
     /**
      * @brief[zh-cn] OpenAL 效果槽句柄
      *
@@ -118,11 +119,10 @@ public class AudioEffectSlot <: IAudioEffectSlot {
     /**
      * @brief[zh-cn] 创建并生成 OpenAL 效果槽
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 在音频线程执行 alGenAuxiliaryEffectSlots；若已创建则跳过。
      *
      * @brief[en] Creates and generates the OpenAL effect slot
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 在音频线程执行 alGenAuxiliaryEffectSlots；若已创建则跳过。
      * @note[en] Runs alGenAuxiliaryEffectSlots on the audio thread; skips if already created.
      */
     public func create(): AudioEffectSlot {
@@ -140,12 +140,11 @@ public class AudioEffectSlot <: IAudioEffectSlot {
      * @brief[zh-cn] 绑定效果到此效果槽
      * @param[zh-cn] effect 要绑定的 AudioEffect（需已 create 并 setType）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX: alAuxiliaryEffectSloti(slot, AL_EFFECTSLOT_EFFECT, effectId)。
      *
      * @brief[en] Binds an effect to this effect slot
      * @param[en] effect The AudioEffect to bind (must have been created and set a type)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX: alAuxiliaryEffectSloti(slot, AL_EFFECTSLOT_EFFECT, effectId)。
      * @note[en] Maps to EFX: alAuxiliaryEffectSloti(slot, AL_EFFECTSLOT_EFFECT, effectId).
      */
     public func setEffect(effect: AudioEffect): AudioEffectSlot {
@@ -160,12 +159,11 @@ public class AudioEffectSlot <: IAudioEffectSlot {
      * @brief[zh-cn] 设置效果槽增益（控制效果输出的整体音量）
      * @param[zh-cn] value 增益（0.0~1.0）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX: alAuxiliaryEffectSlotf(slot, AL_EFFECTSLOT_GAIN, value)。
      *
      * @brief[en] Sets the effect slot gain (overall volume of the effect output)
      * @param[en] value The gain (0.0~1.0)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX: alAuxiliaryEffectSlotf(slot, AL_EFFECTSLOT_GAIN, value)。
      * @note[en] Maps to EFX: alAuxiliaryEffectSlotf(slot, AL_EFFECTSLOT_GAIN, value).
      */
     public func setGain(value: Float32): AudioEffectSlot {
@@ -178,11 +176,10 @@ public class AudioEffectSlot <: IAudioEffectSlot {
     /**
      * @brief[zh-cn] 清除效果槽绑定的效果（解绑）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX: alAuxiliaryEffectSloti(slot, AL_EFFECTSLOT_EFFECT, AL_EFFECTSLOT_NULL)。
      *
      * @brief[en] Clears the effect bound to this effect slot (unbind)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX: alAuxiliaryEffectSloti(slot, AL_EFFECTSLOT_EFFECT, AL_EFFECTSLOT_NULL)。
      * @note[en] Maps to EFX: alAuxiliaryEffectSloti(slot, AL_EFFECTSLOT_EFFECT, AL_EFFECTSLOT_NULL).
      */
     public func clearEffect(): AudioEffectSlot {
@@ -193,15 +190,25 @@ public class AudioEffectSlot <: IAudioEffectSlot {
     }
 
     /**
+     * @brief[zh-cn] 资源是否有效（未释放）
+     * @return[zh-cn] 有效返回 true
+     *
+     * @brief[en] Whether the resource is valid (not released)
+     * @return[en] Returns true when valid
+     */
+    public prop releasable: Bool {
+        get() { !this._disposed }
+    }
+
+    /**
      * @brief[zh-cn] 释放 OpenAL 效果槽
+     * @note[zh-cn] 对应 EFX: alDeleteAuxiliaryEffectSlots；释放后句柄归零，重复调用幂等返回 false。
      *
      * @brief[en] Releases the OpenAL effect slot
-     *
-     * @note[zh-cn] 对应 EFX: alDeleteAuxiliaryEffectSlots；释放后句柄归零，重复调用安全。
-     * @note[en] Maps to EFX: alDeleteAuxiliaryEffectSlots; the handle is zeroed after release and repeated calls are safe.
+     * @note[en] Maps to EFX: alDeleteAuxiliaryEffectSlots; the handle is zeroed after release and repeated calls return false.
      */
-    public func dispose(): Unit {
-        if (_disposed) { return }
+    public func release(): Bool {
+        if (_disposed) { return false }
         if (this.slotId != 0u32) {
             let sid = this.slotId
             this.context.execAudio({ =>
@@ -213,5 +220,6 @@ public class AudioEffectSlot <: IAudioEffectSlot {
             this.slotId = 0u32
         }
         _disposed = true
+        return true
     }
 }

@@ -67,6 +67,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -83,11 +84,12 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 体积云后处理 pass（全屏 ray marching）
- * @brief[en] Volume cloud post-processing pass (full-screen ray marching)
  * @explain[zh-cn] 材质参数：threshold/opacity/range/steps/frame/base。
+ *
+ * @brief[en] Volume cloud post-processing pass (full-screen ray marching)
  * @explain[en] Material parameters: threshold/opacity/range/steps/frame/base.
  */
-public class VolumeCloudPass <: ShaderPass {
+public class VolumeCloudPass <: ShaderPass & IReleasable {
     /**
      * 相机（每帧取 projectionMatrix × matrixWorldInverse 的逆重建射线）。
      */
@@ -198,6 +200,8 @@ public class VolumeCloudPass <: ShaderPass {
                       " boxCenter=(${cloudCenter.x},${cloudCenter.y},${cloudCenter.z})" +
                       " boxHalf=(${cloudHalfSize.x},${cloudHalfSize.y},${cloudHalfSize.z})" +
                       " steps=" + steps.toString()])
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -295,7 +299,7 @@ public class VolumeCloudPass <: ShaderPass {
      * volumecloud shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
      * 3D 噪声纹理为本 pass 自建，须显式销毁；全屏 quad 由 EffectComposer 统一管理。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         if (Handle.isValid(this._noiseTex)) {
             if (let Some(r) <- this._renderer) {
                 r.destroyTexture(this._noiseTex)
@@ -305,6 +309,7 @@ public class VolumeCloudPass <: ShaderPass {
         }
         // 释放本 pass 私有 uniform 句柄缓存（ShaderPass 已有清理，此处兜底）
         this._disposePassUniforms()
+        return true
     }
 
     // ========================================================================

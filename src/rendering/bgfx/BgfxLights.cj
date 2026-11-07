@@ -32,6 +32,7 @@
 package three.rendering.bgfx
 
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 光照 uniform 缓存
@@ -555,7 +556,7 @@ public class LightUniformContainer {
  * @brief[en] bgfx light management
  * @explain[en] Corresponds to WebGLLights, collects lights in the scene and sets corresponding uniform data. Multi-light uniforms are managed via LightUniformContainer.
  */
-public class BgfxLights {
+public class BgfxLights <: IReleasable {
     /**
      * @brief[zh-cn] 光照 uniform 缓存
      *
@@ -617,9 +618,10 @@ public class BgfxLights {
     /**
      * @brief[zh-cn] 释放所有光照缓存
      *
-     * @brief[en] Disposes all light caches
+     * @brief[en] dispose all light caches
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         cache.dispose()
+        return true
     }
 }

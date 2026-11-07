@@ -32,6 +32,7 @@
 package three.core.time
 
 import std.time.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 高性能计时器类
@@ -40,7 +41,7 @@ import std.time.*
  * @brief[en] High-performance timer class
  * @explain[en] Timer is a replacement for Clock with a different API design and behavior: uses update() to refresh internal state, so getDelta() and getElapsed() return the same value within a single simulation step; supports time scaling (timescale) to control time flow; supports fixed time step mode.
  */
-public class Timer {
+public class Timer <: IReleasable {
     /** 上一次时间（毫秒偏移量） */
     private var _previousTime: Float64
 
@@ -155,8 +156,9 @@ public class Timer {
      * @brief[en] Release resources
      * @explain[en] No DOM dependency in bgfx environments, no additional cleanup needed.
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         // bgfx 环境下无 DOM 依赖，无需额外清理
+        return true
     }
 
     /**

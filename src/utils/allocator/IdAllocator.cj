@@ -38,6 +38,7 @@
 package three.utils.allocator
 
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] ID 分配器
@@ -50,6 +51,7 @@ import std.collection.*
  * func release() { idGen.release(id) }
  * }
  * ```
+ * @note[zh-cn] 起始 ID 在构造时指定（默认 0）；不是线程安全的，多线程场景需外部加锁。
  *
  * @brief[en] ID allocator
  * @explain[en] Allocates/recycles unique IDs for object instances to avoid renumbering on
@@ -62,12 +64,10 @@ import std.collection.*
  * func release() { idGen.release(id) }
  * }
  * ```
- *
- * @note[zh-cn] 起始 ID 在构造时指定（默认 0）；不是线程安全的，多线程场景需外部加锁。
  * @note[en] The start ID is given at construction (default 0); not thread-safe, so an
  * external lock is required in multi-threaded scenarios.
  */
-public class IdAllocator {
+public class IdAllocator <: IReleasable {
     /** 下一个待分配的 ID */
     private var _nextId: Int64
     /** 已回收的空闲 ID 池（栈结构） */
@@ -116,12 +116,17 @@ public class IdAllocator {
 
     /**
      * @brief[zh-cn] 重置分配器（清空空闲池，重置起始计数）
+     * @explain[zh-cn] 与带参 release(id)（回收单个 ID）区分。
      *
-     * @brief[en] Resets the allocator (clears the free pool and resets the counter)
+     * @brief[en] resets the allocator (clears the free
+     *            pool and resets the counter)
+     * @explain[en] distinct from the keyed
+     *              release(id) overload (recycles a single ID)
      */
-    public func reset(): Unit {
+    public func release(): Bool {
         _nextId = 0
         _freeIds.clear()
+        return true
     }
 
     /**

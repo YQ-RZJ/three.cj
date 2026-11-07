@@ -41,6 +41,7 @@ import std.core.*
 import imgui4cj.imgui.*
 import three.core.math.*
 import three.utils.memory.PtrArray
+import three.utils.safe.IReleasable
 import three.window.UiContext
 
 /// 确保当前系统线程的 ImGui TLS 上下文已设置（窗口泵为 spawn，可能在 execBgfx 等阻塞后迁移）
@@ -1360,9 +1361,12 @@ public class UiImageButton <: UiWidget {
     public override func draw(): Bool {
         ensureCurrentContext()
         let texRef = ImTextureRef_ImTextureRef_TextureID_cj(this._texId)
-        return igImageButton_cj(unsafe { LibC.mallocCString(this._strId) }, texRef, ImVec2(Float32(this._size.x), Float32(this._size.y)),
+        let cs = unsafe { LibC.mallocCString(this._strId) }
+        let r = igImageButton_cj(cs, texRef, ImVec2(Float32(this._size.x), Float32(this._size.y)),
                                  ImVec2(0.0, 0.0), ImVec2(1.0, 1.0),
-                                 ImVec4(1.0, 1.0, 1.0, 1.0), ImVec4(1.0, 1.0, 1.0, 1.0)) != 0
+                                 ImVec4(1.0, 1.0, 1.0, 1.0), ImVec4(1.0, 1.0, 1.0, 1.0))
+        unsafe { LibC.free(cs) }
+        return r != 0
     }
 }
 
@@ -3751,7 +3755,7 @@ public class UiValueUint <: UiWidget {
  *
  * @brief[en] Virtual list clipper for high-performance large lists (draws only visible items)
  */
-public class UiListClipper {
+public class UiListClipper <: IReleasable {
     private var _clipper: CPointer<Unit> = CPointer<Unit>()
 
     /**
@@ -3765,14 +3769,19 @@ public class UiListClipper {
 
     /**
      * @brief[zh-cn] 销毁裁剪器并释放底层资源
+     * @explain[zh-cn] 幂等（重复调用返回 false）。
      *
-     * @brief[en] Destroys the clipper and releases underlying resources
+     * @brief[en] Unified destroys the clipper and releases
+     *            underlying resources
+     * @explain[en] idempotent (repeat calls return false)
      */
-    public func destroy(): Unit {
-        if (!this._clipper.isNull()) {
-            ImGuiListClipper_destroy_cj(this._clipper)
-            this._clipper = CPointer<Unit>()
+    public func release(): Bool {
+        if (this._clipper.isNull()) {
+            return false
         }
+        ImGuiListClipper_destroy_cj(this._clipper)
+        this._clipper = CPointer<Unit>()
+        return true
     }
 
     /**
@@ -3846,7 +3855,7 @@ public class UiListClipper {
  *
  * @brief[en] Text filter supporting filtering of text lists by conditions
  */
-public class UiTextFilter {
+public class UiTextFilter <: IReleasable {
     private var _filter: CPointer<Unit> = CPointer<Unit>()
 
     /**
@@ -3864,14 +3873,19 @@ public class UiTextFilter {
 
     /**
      * @brief[zh-cn] 销毁过滤器并释放底层资源
+     * @explain[zh-cn] 幂等（重复调用返回 false）。
      *
-     * @brief[en] Destroys the filter and releases underlying resources
+     * @brief[en] destroys the filter and releases
+     *            underlying resources
+     * @explain[en] idempotent (repeat calls return false)
      */
-    public func destroy(): Unit {
-        if (!this._filter.isNull()) {
-            ImGuiTextFilter_destroy_cj(this._filter)
-            this._filter = CPointer<Unit>()
+    public func release(): Bool {
+        if (this._filter.isNull()) {
+            return false
         }
+        ImGuiTextFilter_destroy_cj(this._filter)
+        this._filter = CPointer<Unit>()
+        return true
     }
 
     /**

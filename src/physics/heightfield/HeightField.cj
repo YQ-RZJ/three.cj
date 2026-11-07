@@ -49,6 +49,7 @@ import three.physics.world.*
 import jolt4cj.jolt.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // PhysicsHeightFieldDesc 高度场描述
@@ -134,7 +135,7 @@ public class PhysicsHeightFieldDesc {
  * @explain[en] Holds the terrain body ID; surface projection queries and disposal are
  * serialized onto the physics thread via PhysicsWorld.
  */
-public class PhysicsHeightField {
+public class PhysicsHeightField <: IReleasable {
     private let _world: PhysicsWorld
     private var _bodyID: UInt32
     private let _center: Vector3
@@ -158,7 +159,7 @@ public class PhysicsHeightField {
      *
      * @brief[en] Whether the height field is valid (created successfully and not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() {
             !this._disposed && this._bodyID != 0
         }
@@ -199,7 +200,7 @@ public class PhysicsHeightField {
      * outside the terrain or invalid
      */
     public func projectOntoSurface(x: Float64, z: Float64): Vector3 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return Vector3(x, -3.4e38, z)
         }
         let w = this._world
@@ -263,11 +264,11 @@ public class PhysicsHeightField {
     /**
      * @brief[zh-cn] 销毁高度场地形（从世界移除并释放刚体）
      *
-     * @brief[en] Disposes the height-field terrain (removes from the world and releases the body)
+     * @brief[en] disposes the height-field terrain (removes from the world and releases the body)
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return true
         }
         this._disposed = true
         let w = this._world
@@ -285,6 +286,7 @@ public class PhysicsHeightField {
             }
         })
         this._bodyID = 0
+        return true
     }
 }
 
@@ -296,13 +298,13 @@ public class PhysicsHeightField {
  * @brief[zh-cn] 高度场工厂
  * @explain[zh-cn] 在指定物理世界内创建地形：高度采样 → JPH_HeightFieldShapeSettings →
  * JPH_HeightFieldShapeSettings_CreateShape → 静态刚体（CreateAndAddBody）。
- * 失败（非 Jolt 后端、采样不足）时返回 isValid=false 的对象。
+ * 失败（非 Jolt 后端、采样不足）时返回 releasable=false 的对象。
  *
  * @brief[en] Height-field factory
  * @explain[en] Creates terrain in the given physics world: height samples →
  * JPH_HeightFieldShapeSettings → CreateShape → a static body (CreateAndAddBody).
  * On failure (non-Jolt backend, insufficient samples) returns an object with
- * isValid=false.
+ * releasable=false.
  */
 public class PhysicsHeightFieldFactory {
     private let _desc: PhysicsHeightFieldDesc
@@ -372,12 +374,13 @@ public class PhysicsHeightFieldFactory {
                                 sampleCount: n, sizeX: desc.sizeX, sizeZ: desc.sizeZ)
                         } else {
                             let shape = JPH_HeightFieldShapeSettings_CreateShape_cj(settings)
+                            // CreateShape 已取得独立形状引用，设置本身必须显式销毁（与其他形状一致）
+                            JPH_ShapeSettings_Destroy_cj(settings)
                             if (shape.isNull()) {
                                 PhysicsHeightField(world: world, bodyID: 0, center: desc.center,
                                     sampleCount: n, sizeX: desc.sizeX, sizeZ: desc.sizeZ)
                             } else {
                                 // 静态刚体（MotionType_Static = 0，对象层 NonMoving = 0）
-                                // 注：形状设置无独立 Destroy 导出，settings 由 CreateShape 消耗
                                 // 刚体位姿统一走 LH→RH 转换（pos 的 z 取反、quat 镜像），
                                 // 与形状 offset/scale 的局部镜像约定保持一致
                                 let pos = JoltNative.allocVec3(desc.center)
@@ -387,14 +390,13 @@ public class PhysicsHeightFieldFactory {
                                 JPH_BodyCreationSettings_SetRestitution_cj(bcs, Float32(desc.restitution))
                                 let bodyID = JPH_BodyInterface_CreateAndAddBody_cj(bodyIface, bcs, 1)
                                 JPH_BodyCreationSettings_Destroy_cj(bcs)
-                                // 加入世界后形状引用已由刚体持有，再释放临时引用
-                                if (bodyID != 0 && bodyID != 0xFFFFFFFF) {
-                                    JPH_Shape_Destroy_cj(shape)
-                                }
                                 unsafe {
                                     LibC.free(pos)
                                     LibC.free(rot)
                                 }
+                                // 成功入世界后形状引用由刚体持有，释放临时引用；
+                                // 失败分支同样必须销毁 shape，否则每次失败都泄漏一个形状
+                                JPH_Shape_Destroy_cj(shape)
                                 if (bodyID == 0 || bodyID == 0xFFFFFFFF) {
                                     @LogError(["PhysicsHeightFieldFactory", "CreateAndAddBody 失败"])
                                     PhysicsHeightField(world: world, bodyID: 0, center: desc.center,

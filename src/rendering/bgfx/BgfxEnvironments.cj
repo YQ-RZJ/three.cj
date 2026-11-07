@@ -33,6 +33,7 @@ package three.rendering.bgfx
 
 import std.collection.*
 import bgfx4cj.bgfx.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 环境贴图信息
@@ -71,7 +72,7 @@ public class EnvironmentInfo {
  * @brief[en] bgfx environment map management
  * @explain[en] Corresponds to WebGLEnvironments, manages environment map acquisition and caching
  */
-public class BgfxEnvironments {
+public class BgfxEnvironments <: IReleasable {
     /**
      * @brief[zh-cn] 环境贴图缓存（纹理 ID -> EnvironmentInfo）
      *
@@ -126,14 +127,15 @@ public class BgfxEnvironments {
     /**
      * @brief[zh-cn] 释放所有环境贴图
      *
-     * @brief[en] Disposes all environment maps
+     * @brief[en] dispose all environment maps
      */
-    public func disposeAll(): Unit {
+    public func release(): Bool {
         for ((_, env) in environments) {
             if (env.texture.idx != 0xFFFFu16) {
                 bgfx_destroy_texture_cj(env.texture)
             }
         }
         environments = HashMap<Int64, EnvironmentInfo>()
+        return true
     }
 }

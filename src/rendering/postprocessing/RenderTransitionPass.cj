@@ -102,6 +102,7 @@
 
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.types.*
@@ -115,12 +116,13 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 场景过渡渲染 pass
- * @brief[en] Scene transition render pass
  * @explain[zh-cn] 内部 3 遍：场景 A → RT_A、场景 B → RT_B、合成混合（transition shader）。
+ *
+ * @brief[en] Scene transition render pass
  * @explain[en] Three internal passes: scene A → RT_A, scene B → RT_B, composite blend (transition shader).
  * mixRatio/threshold/useTexture/tMixTexture 以字段 + setter 暴露，运行时修改 → render() 内每帧同步到 bgfx uniform。
  */
-public class RenderTransitionPass <: Pass {
+public class RenderTransitionPass <: Pass & IReleasable {
     /**
      * 场景 A（过渡起点）。
      */
@@ -224,6 +226,8 @@ public class RenderTransitionPass <: Pass {
         this.needsSwap = true
         @LogTrace(["transition", "RenderTransitionPass constructed: sceneA=" + sceneA.name +
                       " sceneB=" + sceneB.name])
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -538,9 +542,10 @@ public class RenderTransitionPass <: Pass {
      * transition shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
      * 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         this._disposePassUniforms()
-        @LogTrace(["transition", "disposed"])
+        @LogTrace(["transition", "released"])
+        return true
     }
 }

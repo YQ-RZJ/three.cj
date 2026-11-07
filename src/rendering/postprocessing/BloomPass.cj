@@ -75,6 +75,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -90,32 +91,36 @@ import std.math.*
 
 /**
  * @brief[zh-cn] Bloom 后处理 pass（简单版）
- * @brief[en] Bloom post-processing pass (simple version)
  * @explain[zh-cn] 水平 + 垂直各一遍高斯卷积 + strength 合成回场景。
+ *
+ * @brief[en] Bloom post-processing pass (simple version)
  * @explain[en] One horizontal and one vertical Gaussian convolution pass, then combine the
  *         blurred result back into the scene scaled by strength.
  */
-public class BloomPass <: Pass {
+public class BloomPass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] Bloom 强度（合成时 blur 乘数）
-     * @brief[en] Bloom strength (blur multiplier at combine)
      * @explain[zh-cn] 默认 1.0。
+     *
+     * @brief[en] Bloom strength (blur multiplier at combine)
      * @explain[en] Default 1.0.
      */
     public var strength: Float64
 
     /**
      * @brief[zh-cn] 卷积核大小（shader 循环次数）
-     * @brief[en] Kernel size (shader loop count)
      * @explain[zh-cn] 默认 25，决定卷积采样范围。
+     *
+     * @brief[en] Kernel size (shader loop count)
      * @explain[en] Default 25, determines the convolution sampling range.
      */
     public var kernelSize: Int64
 
     /**
      * @brief[zh-cn] 高斯 sigma（控制核展宽，buildKernel 用）
-     * @brief[en] Gaussian sigma (controls kernel spread, used by buildKernel)
      * @explain[zh-cn] 默认 4。
+     *
+     * @brief[en] Gaussian sigma (controls kernel spread, used by buildKernel)
      * @explain[en] Default 4.
      */
     public var sigma: Float64
@@ -175,6 +180,15 @@ public class BloomPass <: Pass {
     private var _rtsCreated: Bool = false
 
     /**
+     * @brief[zh-cn] 内部 RT 是否已创建且未被释放
+     *
+     * @brief[en] whether the internal RTs exist and have not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._rtsCreated }
+    }
+
+    /**
      * 渲染器引用（render() 时缓存，setSize/dispose 经其高阶 API 序列化）。
      */
     private var _renderer: Option<ThreeRenderer> = None
@@ -212,6 +226,8 @@ public class BloomPass <: Pass {
         this.needsSwap = false
         // 预计算归一化高斯核（buildKernel），补齐到 kernelSize 长度供 vec4 对齐上传
         this._kernel = this._buildKernel(sigma, kernelSize)
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -399,7 +415,8 @@ public class BloomPass <: Pass {
         let progOpt = PostProcessingShaders.get("bloom_conv")
         if (let Some(sp) <- progOpt) {
             // 首次使用按 kernelSize 编译（KERNEL_SIZE_FLOAT / KERNEL_SIZE_INT 两个 define）
-            if (Handle.isValid(Box(sp.programHandle))) {
+            // 仅在尚未编译（句柄无效）时编译：此前条件写反，导致每帧重编译并泄漏 program/shader 句柄。
+            if (!Handle.isValid(Box(sp.programHandle))) {
                 let defSizeF = "KERNEL_SIZE_FLOAT=" + Float64(this.kernelSize).toString()
                 let defSizeI = "KERNEL_SIZE_INT=" + this.kernelSize.toString()
                 sp.compileBgfx(extraDefines: [defSizeF, defSizeI])
@@ -478,8 +495,11 @@ public class BloomPass <: Pass {
     /**
      * 释放 bloom pass 占用的所有 GPU 资源。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        return true
     }
 }

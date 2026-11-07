@@ -177,12 +177,11 @@ public class BgfxMemory {
      * @brief[zh-cn] 写入 UInt8 数组
      * @param[zh-cn] values UInt8 数组
      * count 写入元素数量
+     * @note[zh-cn] 用于顶点缓冲区。
      *
      * @brief[en] Writes a UInt8 array
      * @param[en] values The UInt8 array
      * count Number of elements to write
-     *
-     * @note[zh-cn] 用于顶点缓冲区。
      * @note[en] For vertex buffers.
      */
     public func writeUInt8(values: Array<UInt8>, count: Int64): Unit {
@@ -227,13 +226,12 @@ public class BgfxMemory {
      * @param[zh-cn] data 数据指针
      * size 数据大小（字节）
      * @return[zh-cn] BgfxMemory 实例
+     * @note[zh-cn] 不拷贝，不管理生命周期。
      *
      * @brief[en] Static factory: wraps existing memory via bgfx_make_ref
      * @param[en] data Data pointer
      * size Data size in bytes
      * @return[en] A BgfxMemory instance
-     *
-     * @note[zh-cn] 不拷贝，不管理生命周期。
      * @note[en] Does not copy and does not manage the lifetime.
      */
     public static func ref(data: CPointer<Unit>, size: UInt32): BgfxMemory {

@@ -55,6 +55,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.types.*
@@ -65,25 +66,29 @@ import std.collection.*
 
 /**
  * @brief[zh-cn] 后处理 pass 链调度器
- * @brief[en] Post-processing pass chain scheduler
  * @explain[zh-cn] 内部双 RT ping-pong，按 pass 链顺序执行。
+ *
+ * @brief[en] Post-processing pass chain scheduler
  * @explain[en] Internal dual-RT ping-pong, executing the pass chain in order.
  */
-public class EffectComposer {
+public class EffectComposer <: IReleasable {
     /**
      * @brief[zh-cn] 渲染器引用
+     *
      * @brief[en] Renderer reference
      */
     public let renderer: ThreeRenderer
 
     /**
      * @brief[zh-cn] 是否把最终 pass 结果渲染到屏幕，默认 true
+     *
      * @brief[en] Whether to render the final pass result to the screen, default true
      */
     public var renderToScreen: Bool = true
 
     /**
      * @brief[zh-cn] pass 链（有序）
+     *
      * @brief[en] The pass chain (ordered)
      */
     public var passes: ArrayList<Pass> = ArrayList<Pass>()
@@ -135,8 +140,9 @@ public class EffectComposer {
 
     /**
      * @brief[zh-cn] 取当前写 buffer（capture.cj 调试回读用）
-     * @brief[en] Fetches the current write buffer (used by capture.cj debug readback)
      * @return[zh-cn] 当前写 buffer 的 FrameBufferHandle
+     *
+     * @brief[en] Fetches the current write buffer (used by capture.cj debug readback)
      * @return[en] The FrameBufferHandle of the current write buffer
      */
     public func writeBuffer(): FrameBufferHandle {
@@ -149,19 +155,43 @@ public class EffectComposer {
     private var _rtsCreated: Bool = false
 
     /**
+     * @brief[zh-cn] 内部双 RT 是否已创建且未被释放
+     *
+     * @brief[en] whether the internal dual RTs exist and have not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._rtsCreated }
+    }
+
+    /**
      * RT 纹理格式（RGBA16F 半浮点）。
      */
     private static let RT_FORMAT: UInt32 = TextureFormat.RGBA16F.value()
 
     /**
+     * @brief[zh-cn] 终结器兜底释放回调（仅供终结器使用）
+     * @explain[zh-cn] 终结器内不能调用实例方法，故把释放动作包装为函数值字段，
+     *                 由终结器调用（终结器内调用函数值是允许的，参照 utils.memory）。
+     *                 dispose() 已幂等，显式调用后再次执行安全。
+     *
+     * @brief[en] GC-collection fallback release callback (for finalizers only)
+     * @explain[en] Instance methods cannot be called inside a Cangjie finalizer, so the release
+     *               action is wrapped as a function-valued field executed by the finalizer
+     *               (calling a function value from a finalizer is allowed, cf. utils.memory).
+     *               dispose() is idempotent, so re-execution after an explicit call is safe.
+     */
+    protected var _finalizerFallback: Option<() -> Unit> = None
+
+    /**
      * @brief[zh-cn] 构造 EffectComposer
-     * @brief[en] Constructs EffectComposer
      * @param[zh-cn] renderer 渲染器
-     * @param[en] renderer Renderer
      * @explain[zh-cn] 尺寸初始为渲染器尺寸；setSize 后真正创建 RT。
      *         统一注入 renderer 到共享 quad 单例：FullScreenQuad.submit 依赖 _renderer 提交 draw，
      *         若为 None 则 submitQuad 静默跳过（画面全白）。此处统一注入后，
      *         所有 pass（含未显式调用 quad.setRenderer 的 BloomPass/SSRPass 等）均能正常提交。
+     *
+     * @brief[en] Constructs EffectComposer
+     * @param[en] renderer Renderer
      * @explain[en] The size is initialized to the renderer size; RTs are created after setSize.
      *         Injects the renderer into the shared quad singleton: FullScreenQuad.submit depends on _renderer
      *         to submit the draw, silently skipping if None (blank screen). After this unified injection,
@@ -178,6 +208,8 @@ public class EffectComposer {
         // 若为 None 则 submitQuad 静默跳过（画面全白）。此处统一注入后，
         // 所有 pass（含未显式调用 quad.setRenderer 的 BloomPass/SSRPass 等）均能正常提交。
         this.quad.setRenderer(renderer)
+        // 终结器兜底：GC 回收时自动执行 dispose()（经函数值字段间接调用）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -191,11 +223,12 @@ public class EffectComposer {
 
     /**
      * @brief[zh-cn] 分配一个唯一 bgfx view id（从 230 起递增）
-     * @brief[en] Allocates a unique bgfx view id (incrementing from 230)
      * @return[zh-cn] 新分配的 view id
-     * @return[en] The newly allocated view id
      * @explain[zh-cn] bgfx 需全局唯一 view id；各 pass 在 onAttach 钩子里调用本方法申请，
      *         取代散落各文件的硬编码魔数。
+     *
+     * @brief[en] Allocates a unique bgfx view id (incrementing from 230)
+     * @return[en] The newly allocated view id
      * @explain[en] bgfx requires globally unique view ids; each pass calls this method in its onAttach hook to
      *         request one, replacing hardcoded magic numbers scattered across files.
      */
@@ -207,11 +240,12 @@ public class EffectComposer {
 
     /**
      * @brief[zh-cn] 添加 pass 到链尾
-     * @brief[en] Adds a pass to the end of the chain
      * @param[zh-cn] pass 待添加的 pass
-     * @param[en] pass The pass to add
      * @explain[zh-cn] 注入共享全屏 quad 单例 + 挂载钩子（view id 申请）；
      *         pass.setSize 内部会调 bgfx 创建 RT，须在渲染线程执行。
+     *
+     * @brief[en] Adds a pass to the end of the chain
+     * @param[en] pass The pass to add
      * @explain[en] Injects the shared full-screen quad singleton + mounts hooks (view id allocation);
      *         pass.setSize calls bgfx internally to create RTs and must run on the render thread.
      */
@@ -230,12 +264,13 @@ public class EffectComposer {
 
     /**
      * @brief[zh-cn] 在指定位置插入 pass
-     * @brief[en] Inserts a pass at the given index
      * @param[zh-cn] pass 待插入的 pass
      * @param[zh-cn] index 插入位置
+     * @explain[zh-cn] ArrayList 无 insert，用 add + 重建实现；其余同 addPass（注入 quad + 挂载钩子）。
+     *
+     * @brief[en] Inserts a pass at the given index
      * @param[en] pass The pass to insert
      * @param[en] index Insertion index
-     * @explain[zh-cn] ArrayList 无 insert，用 add + 重建实现；其余同 addPass（注入 quad + 挂载钩子）。
      * @explain[en] ArrayList has no insert, implemented via add + rebuild; otherwise same as addPass
      *         (injecting quad + mounting hooks).
      */
@@ -266,10 +301,11 @@ public class EffectComposer {
 
     /**
      * @brief[zh-cn] 移除指定 pass
-     * @brief[en] Removes the given pass
      * @param[zh-cn] pass 待移除的 pass
-     * @param[en] pass The pass to remove
      * @explain[zh-cn] ArrayList 无 removeAt，用 add + 重建实现；按对象引用（refEq）匹配移除。
+     *
+     * @brief[en] Removes the given pass
+     * @param[en] pass The pass to remove
      * @explain[en] ArrayList has no removeAt, implemented via add + rebuild; matched and removed by
      *         object reference (refEq).
      */
@@ -308,13 +344,14 @@ public class EffectComposer {
 
     /**
      * @brief[zh-cn] 设置 RT 尺寸（重建内部双 RT）
-     * @brief[en] Sets the RT size (rebuilding the internal dual RTs)
      * @param[zh-cn] width 宽度
      * @param[zh-cn] height 高度
-     * @param[en] width Width
-     * @param[en] height Height
      * @explain[zh-cn] 通知所有 pass 尺寸变化。关键：pass.setSize 内部会调 bgfx 创建/销毁 RT，
      *         必须在渲染线程执行（bgfx API 线程约束），故包进 renderer.execBgfx。
+     *
+     * @brief[en] Sets the RT size (rebuilding the internal dual RTs)
+     * @param[en] width Width
+     * @param[en] height Height
      * @explain[en] Notifies all passes of the size change. Key: pass.setSize calls bgfx internally to
      *         create/destroy RTs and must run on the render thread (bgfx API thread constraint), hence wrapped
      *         in renderer.execBgfx.
@@ -436,20 +473,23 @@ public class EffectComposer {
 
     /**
      * @brief[zh-cn] 释放 EffectComposer 占用的所有 GPU 资源（内部双 RT + 所有 pass）
-     * @brief[en] Releases all GPU resources held by EffectComposer (internal dual RTs + all passes)
      * @explain[zh-cn] 依次销毁内部双 RT、各 pass、共享全屏 quad 单例（VB/IB/layout）。
+     *
+     * @brief[en] releases all GPU resources held by
+     *           EffectComposer (internal dual RTs + all passes)
      * @explain[en] Destroys the internal dual RTs, each pass, and the shared full-screen quad singleton (VB/IB/layout).
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._rtsCreated) {
             this.renderer.destroyFrameBuffer(this._rt1.value)
             this.renderer.destroyFrameBuffer(this._rt2.value)
             this._rtsCreated = false
         }
         for (pass in this.passes) {
-            pass.dispose()
+            pass.release()
         }
         // 销毁共享全屏 quad 单例（VB/IB/layout）
-        this.quad.dispose()
+        this.quad.release()
+        return true
     }
 }

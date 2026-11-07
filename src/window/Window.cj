@@ -29,6 +29,8 @@
  * - InputEvent   : 输入事件类型定义
  * - KeyCode      : 键盘/鼠标常量
  * - Enums        : 窗口/输入枚举（SystemCursor / GamepadAxis / GamepadButton）
+ * @note[zh-cn] 本模块基于 sdl4cj 库做高级封装（three 不迁入 sdl4cj 的 FFI 代码）。
+ * 系统信息/线程/定时器见 three.core.system / three.core.thread / three.core.time。
  *
  * @file[en] Window Parent package of the window module (only declares the three.window package so that cjpm can recognize the window sub-package)
  * @brief[en] Package-level placeholder file of the window module
@@ -38,9 +40,6 @@
  * - InputEvent   : input event type definitions
  * - KeyCode      : keyboard/mouse constants
  * - Enums        : window/input enums (SystemCursor / GamepadAxis / GamepadButton)
- *
- * @note[zh-cn] 本模块基于 sdl4cj 库做高级封装（three 不迁入 sdl4cj 的 FFI 代码）。
- * 系统信息/线程/定时器见 three.core.system / three.core.thread / three.core.time。
  * @note[en] This module is a high-level wrapper over the sdl4cj library (three does not host the sdl4cj FFI code).
  * System info / threads / timers live in three.core.system / three.core.thread / three.core.time.
  */

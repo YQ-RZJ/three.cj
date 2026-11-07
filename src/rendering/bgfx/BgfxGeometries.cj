@@ -33,6 +33,7 @@ package three.rendering.bgfx
 
 import std.collection.*
 import bgfx4cj.bgfx.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] bgfx 几何体管理
@@ -41,7 +42,7 @@ import bgfx4cj.bgfx.*
  * @brief[en] bgfx geometry management
  * @explain[en] Corresponds to WebGLGeometries, manages geometry-to-buffer mapping. Tracks geometry version numbers and updates buffers when data changes. Uses HashMap instead of WeakMap.
  */
-public class BgfxGeometries {
+public class BgfxGeometries <: IReleasable {
     /**
      * @brief[zh-cn] 已注册的几何体 ID 集合
      *
@@ -247,11 +248,12 @@ public class BgfxGeometries {
     /**
      * @brief[zh-cn] 释放所有几何体
      *
-     * @brief[en] Disposes all geometries
+     * @brief[en] dispose all geometries
      */
-    public func disposeAll(): Unit {
+    public func release(): Bool {
         geometries = HashMap<Int64, Bool>()
         wireframeAttributes = HashMap<Int64, Int64>()
-        attributes.dispose()
+        attributes.release()
+        return true
     }
 }

@@ -25,14 +25,13 @@
  * @brief[zh-cn] Lua 表引用封装，包装 Lua 侧的表并支持字段与数组访问
  * @explain[zh-cn] 包装 Lua 侧的表（table），内部经 luaL_ref 注册表引用保持有效，
  * 提供字段读写（get/set）、数组索引（getIndex/setIndex）、长度等操作。
+ * @example[zh-cn] 读写表字段与数组
  *
  * @file[en] LuaTable  Lua table reference wrapper (three.script.vm sub-package)
  * @brief[en] Lua table reference wrapper encapsulating a Lua table with field and array access
  * @explain[en] Wraps a Lua table; the reference is kept alive via the luaL_ref registry.
  * Provides field read/write (get/set), array indexing (getIndex/setIndex),
  * length and other operations.
- *
- * @example[zh-cn] 读写表字段与数组
  * @example[en] Reading/writing table fields and arrays
  * vm.doString("player = {name='Alice', hp=100, x=1, y=2}")
  * let t = LuaTable.fromGlobal(vm, "player")
@@ -44,6 +43,7 @@
 package three.script.vm
 
 import luajit4cj.luajit.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] Lua 表引用
@@ -53,7 +53,7 @@ import luajit4cj.luajit.*
  * @explain[en] Holds a registry reference and supports field/array access, length query
  * and reference release.
  */
-public class LuaTable {
+public class LuaTable <: IReleasable {
     /// 所属虚拟机
     private var _vm: LuaVM
 
@@ -138,25 +138,34 @@ public class LuaTable {
      *
      * @brief[en] Whether the reference is still valid (not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() { !this._disposed }
     }
 
     /**
      * @brief[zh-cn] 释放注册表引用
-     * @explain[zh-cn] 释放后 isValid 变为 false，该引用不再可用；重复调用无副作用。
+     * @explain[zh-cn] 释放后 releasable 变为 false，该引用不再可用；重复调用无副作用。
      *
      * @brief[en] Releases the registry reference
-     * @explain[en] After release isValid becomes false and the reference is no longer usable;
+     * @explain[en] After release releasable becomes false and the reference is no longer usable;
      * calling again has no effect.
      */
-    public func dispose(): Unit {
-        if (this._disposed) { return }
+    /**
+     * @brief[zh-cn] 释放注册表引用。
+     * @explain[zh-cn] release 后 releasable 变为 false，引用不可再使用；重复调用无效果。
+     *
+     * @brief[en] releases the registry reference.
+     * @explain[en] After release releasable becomes false and the reference is no longer usable;
+     * calling again has no effect.
+     */
+    public func release(): Bool {
+        if (this._disposed) { return true }
         let L = this._vm.handle()
         if (!L.isNull()) {
             luaL_unref_cj(L, LUA_REGISTRYINDEX, this._ref)
         }
         this._disposed = true
+        return true
     }
 
     // =========================================================================

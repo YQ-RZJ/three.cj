@@ -96,12 +96,11 @@ public class UrlEncode {
      * @brief[zh-cn] 编码键值对数组为 URL 查询串
      * @param[zh-cn] pairs 键值对数组
      * @return[zh-cn] 编码后的查询串（如 "a=1&b=hello+world"）
+     * @note[zh-cn] 键值各自经 percentEncode 编码（空格→'+'），用 '=' 与 '&' 拼接。
      *
      * @brief[en] Encodes an array of key-value pairs into a URL query string
      * @param[en] pairs The array of key-value pairs
      * @return[en] The encoded query string (e.g. "a=1&b=hello+world")
-     *
-     * @note[zh-cn] 键值各自经 percentEncode 编码（空格→'+'），用 '=' 与 '&' 拼接。
      * @note[en] Each key and value is passed through percentEncode (space→'+') and joined with '=' and '&'.
      */
     public static func encodeQuery(pairs: Array<(String, String)>): String {

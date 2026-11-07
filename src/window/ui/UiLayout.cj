@@ -474,14 +474,13 @@ public class UiColumns <: UiWidget {
      * @return[en] Widget interaction result; always false for this widget
      */
     public override func draw(): Bool {
-        let countCs = unsafe { LibC.malloc<Int32>() }
-        unsafe { countCs.write(this._count) }
         let borderVal: Int32 = if (this._border) { 1 } else { 0 }
         let idCs = unsafe { LibC.mallocCString(this._id) }
         igColumns_cj(this._count, idCs, borderVal)
         this._content()
-        igColumns_cj(1, unsafe { LibC.mallocCString("") }, 0)
-        unsafe { LibC.free(idCs) }
+        let endCs = unsafe { LibC.mallocCString("") }
+        igColumns_cj(1, endCs, 0)
+        unsafe { LibC.free(idCs); LibC.free(endCs) }
         return false
     }
 }

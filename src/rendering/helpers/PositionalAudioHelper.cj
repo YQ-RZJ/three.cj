@@ -30,7 +30,6 @@
  * - 参考距离球（refDistance）与最大衰减距离球（maxDistance）
  * - 速度向量（velocity，用于多普勒效应调试）
  * 调用 update() 同步被观察音频源的最新状态。
- *
  * @note[zh-cn] Three.cj 使用左手坐标系、CCW 点序；本 helper 在左手系内绘制，
  * 音频源的朝向对应左手系 +Z 方向（与 PositionalAudio.updateMatrixWorld 同步到 OpenAL 的方向一致）。
  *
@@ -43,13 +42,13 @@
  * - Reference-distance sphere (refDistance) and max-distance sphere (maxDistance)
  * - Velocity vector (velocity, for Doppler effect debugging)
  * Call update() to sync the latest state of the observed audio source.
- *
  * @note[en] Three.cj uses a left-handed coordinate system with CCW winding; this helper
  * draws within the left-handed system. The audio source's orientation corresponds to the
  * left-handed +Z direction (consistent with what PositionalAudio.updateMatrixWorld syncs to OpenAL).
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -77,7 +76,7 @@ import std.math.*
  * wireframe spheres represent refDistance/maxDistance, and an arrow represents velocity.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
-public class PositionalAudioHelper <: Object3D {
+public class PositionalAudioHelper <: Object3D & IReleasable {
     /// 被可视化的 3D 位置音频源
     public var audio: PositionalAudio
 
@@ -210,9 +209,9 @@ public class PositionalAudioHelper <: Object3D {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Releases GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.innerCone.geometry.dispose()
         this.innerCone.material.dispose()
         this.outerCone.geometry.dispose()
@@ -221,7 +220,8 @@ public class PositionalAudioHelper <: Object3D {
         this.refSphere.material.dispose()
         this.maxSphere.geometry.dispose()
         this.maxSphere.material.dispose()
-        this.velocityArrow.dispose()
+        this.velocityArrow.release()
+        return true
     }
 
     /// 构建锥体线框几何（顶点指向 +Z，与 SpotLightHelper 一致）

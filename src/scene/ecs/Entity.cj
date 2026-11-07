@@ -217,11 +217,10 @@ public open class Entity <: EcsObject {
     /**
      * @brief[zh-cn] 添加组件
      * @param[zh-cn] c 组件实例
+     * @throws[zh-cn] EcsException 组件未注册（无 cptId）或实体内已存在同类型组件
      *
      * @brief[en] Add a component
      * @param[en] c Component instance
-     *
-     * @throws[zh-cn] EcsException 组件未注册（无 cptId）或实体内已存在同类型组件
      * @throws[en] EcsException Component not registered (no cptId) or duplicate component type in entity
      */
     public func addComponent(c: Component): Unit {

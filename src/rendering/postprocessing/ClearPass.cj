@@ -63,19 +63,22 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 清屏 pass
- * @brief[en] Clear pass
  * @explain[zh-cn] 对当前 read buffer（renderToScreen=true 时对屏幕）执行 clear。
+ *
+ * @brief[en] Clear pass
  * @explain[en] Performs clear on the current read buffer (or the screen when renderToScreen=true).
  */
 public class ClearPass <: Pass {
     /**
      * @brief[zh-cn] Clear 颜色（UInt32，0xAABBGGRR，对齐 ThreeRenderer.clearColor），默认透明黑
+     *
      * @brief[en] Clear color (UInt32, 0xAABBGGRR, aligned with ThreeRenderer.clearColor), default transparent black
      */
     public var clearColor: UInt32 = 0x00000000u32
 
     /**
      * @brief[zh-cn] Clear alpha [0,1]，默认 0
+     *
      * @brief[en] Clear alpha [0,1], default 0
      */
     public var clearAlpha: Float64 = 0.0
@@ -89,9 +92,10 @@ public class ClearPass <: Pass {
 
     /**
      * @brief[zh-cn] 构造 ClearPass
-     * @brief[en] Constructs ClearPass
      * @param[zh-cn] clearColor clear 颜色（默认透明黑 0x00000000）
      * @param[zh-cn] clearAlpha clear alpha（默认 0）
+     *
+     * @brief[en] Constructs ClearPass
      * @param[en] clearColor Clear color (default transparent black 0x00000000)
      * @param[en] clearAlpha Clear alpha (default 0)
      */
@@ -101,15 +105,18 @@ public class ClearPass <: Pass {
         this.clearAlpha = clearAlpha
         // 清屏后不交换 buffer
         this.needsSwap = false
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
      * @brief[zh-cn] 执行清屏
-     * @brief[en] Performs the clear operation
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] writeBuffer 写 buffer（本 pass 不用）
      * @param[zh-cn] readBuffer 读 buffer（renderToScreen=false 时清这个）
      * @param[zh-cn] deltaTime 帧间隔
+     *
+     * @brief[en] Performs the clear operation
      * @param[en] renderer Renderer
      * @param[en] writeBuffer Write buffer (unused by this pass)
      * @param[en] readBuffer Read buffer (cleared when renderToScreen=false)

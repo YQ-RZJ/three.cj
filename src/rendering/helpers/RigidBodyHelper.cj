@@ -29,7 +29,6 @@
  * - 线速度箭头
  * - 角速度箭头（方向为旋转轴，长度表示角速度大小）
  * 调用 update() 同步刚体最新状态。
- *
  * @note[zh-cn] Three.cj 使用左手坐标系、CCW 点序；本 helper 在左手系内绘制，
  * 与 RigidBody 绑定对象的世界变换保持一致。
  *
@@ -42,13 +41,13 @@
  * - Linear velocity arrow
  * - Angular velocity arrow (direction is the rotation axis, length represents angular speed)
  * Call update() to sync the rigid body's latest state.
- *
  * @note[en] Three.cj uses a left-handed coordinate system with CCW winding; this helper
  * draws within the left-handed system and stays consistent with the world transform of the
  * RigidBody-bound objects.
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -76,7 +75,7 @@ import std.math.*
  * Represents the collision shape with a wireframe and linear/angular velocity with arrows.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
-public class RigidBodyHelper <: Object3D {
+public class RigidBodyHelper <: Object3D & IReleasable {
     /// 被可视化的物理刚体
     @JsonIgnore
     public var body: RigidBody
@@ -206,13 +205,14 @@ public class RigidBodyHelper <: Object3D {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Releases GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.shapeLines.geometry.dispose()
         this.shapeLines.material.dispose()
-        this.velocityArrow.dispose()
-        this.angularVelocityArrow.dispose()
+        this.velocityArrow.release()
+        this.angularVelocityArrow.release()
+        return true
     }
 
     /// 根据 PhysicsShape 构建对应的线框几何

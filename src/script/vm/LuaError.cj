@@ -49,12 +49,11 @@ package three.script.vm
 /**
  * @brief[zh-cn] Lua 脚本执行异常
  * @explain[zh-cn] 携带 Lua 错误码与错误消息，供上层统一捕获并识别错误类别。
+ * @example[zh-cn] 捕获脚本语法错误
  *
  * @brief[en] Lua script execution exception
  * @explain[en] Carries the Lua error code and message so upper layers can catch and
  * classify errors uniformly.
- *
- * @example[zh-cn] 捕获脚本语法错误
  * @example[en] Catching a script syntax error
  * try {
  * vm.doString("return 1 + ")

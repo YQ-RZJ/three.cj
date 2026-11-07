@@ -69,6 +69,7 @@ import three.rendering.bgfx.*
 import three.rendering.types.*
 import three.core.thread.*
 import three.utils.memory.intToCPointer
+import three.utils.safe.IReleasable
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.profiler.*
@@ -184,7 +185,7 @@ public let BGFX_UNIFORM_MAT4: UInt32 = UniformType.Mat4.value()
  * Inherits Renderer's _render scheduling pipeline, only encapsulates bgfx-specific thread constraints.
  * All rendering logic is handled by backend: BgfxBackend:
  */
-public class ThreeRenderer <: Renderer & IRenderer {
+public class ThreeRenderer <: Renderer & IRenderer & IReleasable {
     /**
      * @brief[zh-cn] 当前渲染 view id
      *
@@ -613,7 +614,7 @@ public class ThreeRenderer <: Renderer & IRenderer {
         initParams.debug = false
         initParams.profile = false
         @LogDebug(["API", "setting nwh via intToCPointer, hwnd=" + hwnd.toString() +
-            " reset=0x" + resetFlags.toString(radix: 16) + " numBackBuffers=" + numBackBuffers.toString() +
+            " reset=" + resetFlags.toString() + " numBackBuffers=" + numBackBuffers.toString() +
             " maxFrameLatency=" + maxFrameLatency.toString()])
         initParams.swapChain.nwh = intToCPointer(hwnd)
         unsafe { initPtr.write(initParams) }
@@ -685,6 +686,43 @@ public class ThreeRenderer <: Renderer & IRenderer {
     }
 
 /**
+ * 异步渲染一帧：把整帧渲染投递到渲染线程后立即返回（管线化）
+ *
+ * 与 render 的区别：render 同步等待渲染线程执行完（含 bgfx_frame 驱动提交，
+ * 实测约 0.8ms）才返回；renderAsync 提交后立即返回，主线程的下一帧准备工作
+ * （输入/逻辑/HUD）与渲染线程的驱动提交重叠，吞吐上限由"两侧较慢者"决定。
+ *
+ * 正确性约束（必须遵守，否则产生场景读写竞争）：
+ * - 每帧在**修改场景/材质/几何体之前**先调用 syncFrame()，等待上一帧渲染执行完毕；
+ *   典型 WindowEngine 帧循环即"onFrame 开头 syncFrame → 改场景 → renderAsync"。
+ * - renderAsync 返回后到下一帧 syncFrame 之间，不要触碰场景图（只做 HUD/输入等输出型操作）。
+ * - renderer.info 在 renderAsync 返回时反映的是上一帧统计（与三.js 的"渲染后延迟一帧"语义一致）。
+ *
+ * @brief[en] Render one frame asynchronously: post the whole frame to the render thread and return immediately
+ * @explain[en] Unlike the synchronous render (which blocks until the render thread finishes,
+ * including the ~0.8ms bgfx_frame driver submission), renderAsync returns right after
+ * posting, so the next frame's main-thread work overlaps the render thread. Callers MUST
+ * call syncFrame() before mutating the scene in the next frame.
+ */
+    public func renderAsync(scene: Scene, camera: Camera): Unit {
+        _execBgfxNoWait({ => super.render(scene, camera) })
+    }
+
+/**
+ * 等待所有已投递命令（含未完成的异步帧）执行完毕
+ *
+ * 与 renderAsync 配对使用：每帧开始修改场景前调用。无未完成命令时仅一次原子读，无开销。
+ *
+ * @brief[en] Wait until all posted commands (including a pending async frame) have executed
+ * @explain[en] Paired with renderAsync: call at the start of a frame before mutating the scene.
+ * Costs one atomic read when nothing is pending.
+ */
+    public func syncFrame(): Unit {
+        if (this._renderSThread.isNone()) { return }
+        this._renderFence.waitUntil(this._renderFence.submitted())
+    }
+
+/**
  * @brief[zh-cn] 同步 bgfx 后端渲染统计到抽象层 info（帧末钩子）
  * @explain[zh-cn] bgfx 直接提交路径（_drawRenderObject 的 bgfx_submit_cj）不经过 BufferRenderer，
  * 绘制统计累加在 BgfxInfo 上；此处在渲染线程内把本帧 calls/triangles 同步到 renderer.info
@@ -719,17 +757,18 @@ public class ThreeRenderer <: Renderer & IRenderer {
 /**
  * @brief[zh-cn] 关闭 bgfx 渲染器，释放资源
  *
- * @brief[en] Shutdown bgfx renderer and release resources
+ * @brief[en] shutdown bgfx renderer and release resources
  */
-    public func shutdown(): Unit {
-        ShaderLibs.shutdown()
+    public func release(): Bool {
+        ShaderLibs.release()
         // 同步执行 bgfx_shutdown（先等它执行完，保证其前的命令已全部完成）
         _execBgfx({ => bgfx.bgfx_shutdown_cj() })
         // 置退出标志（无锁原子写）并唤醒渲染线程。
         // 渲染线程的退出路径会放弃残留命令并推进完成序号，唤醒任何仍在等待的提交者，
-        // 确保 shutdown 不悬挂（等价旧实现"排空队列 + 推进序号 + 广播"）。
+        // 确保 release 不悬挂（等价旧实现"排空队列 + 推进序号 + 广播"）。
         this._renderExit.store(true)
         this._renderWake.signal()
+        return true
     }
 
 /**

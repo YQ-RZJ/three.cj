@@ -53,6 +53,7 @@ import fastjson.macros.*
 import fastjson.stream.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 骨骼类，管理一组 Bone 及其逆矩阵
@@ -62,7 +63,7 @@ import three.utils.log.macros.*
  * @explain[en] Used by SkinnedMesh for vertex skinning transforms, boneTexture is the GPU texture wrapper of boneMatrices
  */
 @JsonAdapter
-public class Skeleton <: IPropertyBindingRoot {
+public class Skeleton <: IPropertyBindingRoot & IReleasable {
     /**
      * @brief[zh-cn] 髀骨数组
      *
@@ -356,10 +357,16 @@ public class Skeleton <: IPropertyBindingRoot {
      *
      * @brief[en] Release GPU-related resources allocated by this instance (boneTexture)
      */
-    public func dispose(): Unit {
+    /**
+     * @brief[zh-cn] 释放本实例分配的 GPU 相关资源（boneTexture 贴图）
+     *
+     * @brief[en] frees GPU-related resources allocated by this instance (boneTexture)
+     */
+    public func release(): Bool {
         if (let Some(_) <- this.boneTexture) {
             this.boneTexture = None
         }
+        return true
     }
 
     // 将本骨骼序列化为 JSON（手写 toJSON 兼容层已移除，改用 fastjson 宏）。

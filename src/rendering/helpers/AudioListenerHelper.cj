@@ -29,7 +29,6 @@
  * - 前方向箭头（+Z）
  * - 上方向半弧标记
  * 调用 update() 同步监听器的最新世界变换。
- *
  * @note[zh-cn] Three.cj 使用左手坐标系、CCW 点序；本 helper 在左手系内绘制，
  * 前方向与 AudioListener.updateMatrixWorld 同步到 OpenAL 的方向一致（取左手系 +Z）。
  *
@@ -41,13 +40,13 @@
  * - Forward direction arrow (+Z)
  * - Up-direction half-arc marker
  * Call update() to sync the listener's latest world transform.
- *
  * @note[en] Three.cj uses a left-handed coordinate system with CCW winding; this helper
  * draws within the left-handed system. The forward direction matches the direction that
  * AudioListener.updateMatrixWorld syncs to OpenAL (left-handed +Z).
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -73,7 +72,7 @@ import std.math.*
  * Visualizes the audio listener's pose with head axes, a forward arrow and an up marker.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
-public class AudioListenerHelper <: Object3D {
+public class AudioListenerHelper <: Object3D & IReleasable {
     /// 被可视化的音频监听器
     @JsonIgnore
     public var listener: AudioListener
@@ -147,13 +146,14 @@ public class AudioListenerHelper <: Object3D {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Releases GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
-        this.axes.dispose()
-        this.forwardArrow.dispose()
+    public func release(): Bool {
+        this.axes.release()
+        this.forwardArrow.release()
         this.upArc.geometry.dispose()
         this.upArc.material.dispose()
+        return true
     }
 
     /// 构建上方向半弧（XZ 平面，Y 轴朝上，左手系 CCW）

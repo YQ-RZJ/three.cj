@@ -33,6 +33,7 @@
  */
 package three.rendering.xr
 
+import three.utils.safe.IReleasable
 import std.collection.*
 
 /**
@@ -179,7 +180,7 @@ public class XRControllerSpace {
  * @brief[en] XR controller
  * @explain[en] Corresponding to WebXRController, manages different coordinate spaces of the XR controller.
  */
-public class XRController {
+public class XRController <: IReleasable {
     /**
      * @brief[zh-cn] 目标射线空间
      *
@@ -420,12 +421,13 @@ public class XRController {
     /**
      * @brief[zh-cn] 释放资源
      *
-     * @brief[en] Dispose resources
+     * @brief[en] Release resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         _targetRay = None
         _grip = None
         _hand = None
         _inputSource = None
+        return true
     }
 }

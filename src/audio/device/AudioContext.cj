@@ -77,6 +77,7 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import three.profiler.*
 import three.profiler.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 音频上下文单例，管理 OpenAL 设备和上下文 + 专用音频线程
@@ -88,7 +89,7 @@ import three.profiler.macros.*
  * the audio thread via execAudio, avoiding races and keeping the OpenAL context
  * on its owning thread.
  */
-public class AudioContext {
+public class AudioContext <: IReleasable {
     /**
      * @brief[zh-cn] 单例实例
      *
@@ -447,24 +448,23 @@ public class AudioContext {
     /**
      * @brief[zh-cn] 公开线程序列化入口，将 OpenAL API 调用提交到音频线程同步执行
      * @param[zh-cn] cmd 待执行的闭包（仅包含原始 OpenAL 调用）
-     *
-     * @brief[en] Public thread-serialization entry point that submits an OpenAL API call
-     * to the audio thread and executes it synchronously
-     * @param[en] cmd The closure to execute (raw OpenAL calls only)
-     *
      * @note[zh-cn] 外部模块（如 AudioLoader/StreamingAudio/AudioRecorder）的 OpenAL 调用必须经
      * 此方法排队到音频线程，避免数据竞争；闭包按提交顺序在音频线程执行。
      * 需要读取执行结果（如 alGenBuffers 回填句柄）时必须用本方法；
      * 纯写入且不关心何时生效的调用可用 postAudio（不阻塞调用方）。
+     * @example[zh-cn] 用法示例
+     * context.execAudio({
+     * alSourceQueueBuffers_cj(source, 1, bufPtr)
+     * })
+     *
+     * @brief[en] Public thread-serialization entry point that submits an OpenAL API call
+     * to the audio thread and executes it synchronously
+     * @param[en] cmd The closure to execute (raw OpenAL calls only)
      * @note[en] External modules (e.g. AudioLoader/StreamingAudio/AudioRecorder) must queue
      * their OpenAL calls through this method to avoid data races; closures run on the
      * audio thread in submission order. Use this method when the result is needed
      * (e.g. handles filled by alGenBuffers); pure writes that do not care when they
      * take effect may use postAudio (never blocks the caller).
-     * @example[zh-cn] 用法示例
-     * context.execAudio({
-     * alSourceQueueBuffers_cj(source, 1, bufPtr)
-     * })
      * @example[en] Usage example
      * context.execAudio({
      * alSourceQueueBuffers_cj(source, 1, bufPtr)
@@ -552,7 +552,6 @@ public class AudioContext {
      * @param[zh-cn] uy 上方向/速度 Y
      * @param[zh-cn] uz 上方向/速度 Z
      * @param[zh-cn] gain 主音量（仅监听器槽生效）
-     *
      * @explain[zh-cn] 渲染线程用 seqlock 写入参数（版本 +1 → 写字段 → 版本 +1）后立即返回；
      *               音频线程在自己的循环里取走新版本并调用 OpenAL。
      *               全程无 Mutex、无线程等待（依据《多线程改造计划》阶段 3）。
@@ -569,7 +568,6 @@ public class AudioContext {
      * @param[en] uy Up axis/velocity Y
      * @param[en] uz Up axis/velocity Z
      * @param[en] gain Master gain (effective for listener slots only)
-     *
      * @explain[en] The render thread writes the values under the slot's seqlock (version +1 →
      * write fields → version +1) and returns immediately; the audio thread picks up the new
      * version in its own loop and calls OpenAL. No Mutex and no waiting (Phase 3 of the plan).
@@ -716,13 +714,12 @@ public class AudioContext {
     /**
      * @brief[zh-cn] 初始化音频上下文（打开设备 + 创建上下文 + 在音频线程激活上下文）
      * @return[zh-cn] 是否初始化成功
+     * @note[zh-cn] alcMakeContextCurrent 必须在后续发出 OpenAL 调用的同一线程（音频线程）
+     * 上调用，故整个初始化流程在 _execAudio 闭包内完成。
      *
      * @brief[en] Initializes the audio context (opens the device, creates the context and
      * makes it current on the audio thread)
      * @return[en] Whether initialization succeeded
-     *
-     * @note[zh-cn] alcMakeContextCurrent 必须在后续发出 OpenAL 调用的同一线程（音频线程）
-     * 上调用，故整个初始化流程在 _execAudio 闭包内完成。
      * @note[en] alcMakeContextCurrent must be called on the same thread (the audio thread)
      * that later issues OpenAL calls, so the whole initialization runs inside an
      * _execAudio closure.
@@ -759,16 +756,27 @@ public class AudioContext {
     }
 
     /**
+     * @brief[zh-cn] 资源是否有效（已初始化且设备句柄可用）
+     * @return[zh-cn] 有效返回 true
+     *
+     * @brief[en] Whether the resource is valid (initialized with a usable device handle)
+     * @return[en] Returns true when valid
+     */
+    public prop releasable: Bool {
+        get() { this._initialized.load() && !this._device.isNull() }
+    }
+
+    /**
      * @brief[zh-cn] 关闭音频上下文并释放资源
+     * @note[zh-cn] 清理在音频线程执行，确保 OpenAL 调用在 context 所属线程上发出；
+     *               未初始化时为幂等空操作。
      *
      * @brief[en] Shuts down the audio context and releases resources
-     *
-     * @note[zh-cn] 清理在音频线程执行，确保 OpenAL 调用在 context 所属线程上发出。
      * @note[en] Cleanup runs on the audio thread to ensure OpenAL calls are issued on the
-     * thread that owns the context.
+     * thread that owns the context; idempotent no-op when not initialized.
      */
-    public func shutdown(): Unit {
-        if (!this._initialized.load()) { return }
+    public func release(): Bool {
+        if (!this._initialized.load()) { return false }
         _execAudio({ =>
             alcMakeContextCurrent_cj(CPointer<Unit>())
             alcDestroyContext_cj(this._context)
@@ -782,6 +790,7 @@ public class AudioContext {
         // 退出后 _enqueue 直接丢弃命令（不再入队、不会挂住调用方）。
         this._audioExit.store(true)
         this._audioWake.signal()
+        return true
     }
 
     /**
@@ -804,12 +813,11 @@ public class AudioContext {
     /**
      * @brief[zh-cn] 设置全局多普勒因子
      * @param[zh-cn] factor 多普勒因子（0.0 = 关闭多普勒，1.0 = 物理正确，越大越夸张）
+     * @note[zh-cn] OpenAL 默认值为 1.0；配合 PositionalAudio.setVelocity 使用。
      *
      * @brief[en] Sets the global Doppler factor
      * @param[en] factor Doppler factor (0.0 = disables Doppler, 1.0 = physically correct,
      * larger values exaggerate the effect)
-     *
-     * @note[zh-cn] OpenAL 默认值为 1.0；配合 PositionalAudio.setVelocity 使用。
      * @note[en] The OpenAL default is 1.0; use together with PositionalAudio.setVelocity.
      */
     public func setDopplerFactor(factor: Float32): Unit {
@@ -821,11 +829,10 @@ public class AudioContext {
     /**
      * @brief[zh-cn] 设置多普勒速度因子
      * @param[zh-cn] velocity 多普勒速度因子
+     * @deprecated[zh-cn] 旧 API，对应 AL_DOPPLER_VELOCITY，已废弃；新代码建议改用 setSpeedOfSound。
      *
      * @brief[en] Sets the Doppler velocity factor
      * @param[en] velocity Doppler velocity factor
-     *
-     * @deprecated[zh-cn] 旧 API，对应 AL_DOPPLER_VELOCITY，已废弃；新代码建议改用 setSpeedOfSound。
      * @deprecated[en] Legacy API corresponding to AL_DOPPLER_VELOCITY; use setSpeedOfSound instead.
      */
     public func setDopplerVelocity(velocity: Float32): Unit {
@@ -853,12 +860,11 @@ public class AudioContext {
     /**
      * @brief[zh-cn] 启用/禁用 HRTF（耳机空间化渲染）
      * @param[zh-cn] enabled true = 启用，false = 禁用
+     * @note[zh-cn] 对应 ALC_SOFT_HRTF：alcGetIntegerv(device, ALC_HRTF_SOFT, 1, &hrtf)，
+     * 其中 hrtf = ALC_HRTF_ENABLED_SOFT / ALC_HRTF_DISABLED_SOFT。
      *
      * @brief[en] Enables or disables HRTF (headphone spatial rendering)
      * @param[en] enabled true = enabled, false = disabled
-     *
-     * @note[zh-cn] 对应 ALC_SOFT_HRTF：alcGetIntegerv(device, ALC_HRTF_SOFT, 1, &hrtf)，
-     * 其中 hrtf = ALC_HRTF_ENABLED_SOFT / ALC_HRTF_DISABLED_SOFT。
      * @note[en] Maps to ALC_SOFT_HRTF: alcGetIntegerv(device, ALC_HRTF_SOFT, 1, &hrtf),
      * where hrtf = ALC_HRTF_ENABLED_SOFT / ALC_HRTF_DISABLED_SOFT.
      */
@@ -959,12 +965,11 @@ public class AudioContext {
     /**
      * @brief[zh-cn] 选择指定 HRTF
      * @param[zh-cn] id HRTF ID（0 ~ getHrtfCount()-1），-1 = 恢复自动选择
+     * @note[zh-cn] 需先调用 setHrtfEnabled(true) 后生效；对应 ALC_SOFT_HRTF 的
+     * ALC_HRTF_ID_SOFT 设置。
      *
      * @brief[en] Selects a specific HRTF
      * @param[en] id HRTF ID (0 ~ getHrtfCount()-1), -1 = restore automatic selection
-     *
-     * @note[zh-cn] 需先调用 setHrtfEnabled(true) 后生效；对应 ALC_SOFT_HRTF 的
-     * ALC_HRTF_ID_SOFT 设置。
      * @note[en] Takes effect after calling setHrtfEnabled(true); maps to the
      * ALC_HRTF_ID_SOFT setting of ALC_SOFT_HRTF.
      */

@@ -52,6 +52,7 @@ import openalsoft4cj.efx.*
 
 import three.audio.device.*
 import three.audio.interfaces.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] EFX 滤波器对象，封装 OpenAL Filter 句柄
@@ -66,7 +67,7 @@ import three.audio.interfaces.*
  * - Highpass: attenuates low frequencies, keeps high frequencies
  * - Bandpass: keeps only a specific frequency band
  */
-public class AudioFilter <: IAudioFilter {
+public class AudioFilter <: IAudioFilter & IReleasable {
     /**
      * @brief[zh-cn] OpenAL 滤波器句柄
      *
@@ -113,11 +114,10 @@ public class AudioFilter <: IAudioFilter {
     /**
      * @brief[zh-cn] 创建并生成 OpenAL 滤波器对象
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 在音频线程执行 alGenFilters；若已创建则跳过。
      *
      * @brief[en] Creates and generates the OpenAL filter object
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 在音频线程执行 alGenFilters；若已创建则跳过。
      * @note[en] Runs alGenFilters on the audio thread; skips if already created.
      */
     public func create(): AudioFilter {
@@ -135,12 +135,11 @@ public class AudioFilter <: IAudioFilter {
      * @brief[zh-cn] 设置滤波器类型
      * @param[zh-cn] filterType 滤波器类型（FilterType.Lowpass / Highpass / Bandpass）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX: alFilteri(filter, AL_FILTER_TYPE, type)。
      *
      * @brief[en] Sets the filter type
      * @param[en] filterType Filter type (FilterType.Lowpass / Highpass / Bandpass)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX: alFilteri(filter, AL_FILTER_TYPE, type)。
      * @note[en] Maps to EFX: alFilteri(filter, AL_FILTER_TYPE, type).
      */
     public func setType(filterType: FilterType): AudioFilter {
@@ -156,13 +155,12 @@ public class AudioFilter <: IAudioFilter {
      * @param[zh-cn] param 参数常量（如 AL_LOWPASS_GAIN / AL_LOWPASS_GAINHF）
      * value 参数值
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX: alFilterf(filter, param, value)。
      *
      * @brief[en] Sets a floating-point parameter
      * @param[en] param The parameter constant (e.g. AL_LOWPASS_GAIN / AL_LOWPASS_GAINHF)
      * value The parameter value
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX: alFilterf(filter, param, value)。
      * @note[en] Maps to EFX: alFilterf(filter, param, value).
      */
     public func setParamf(param: UInt32, value: Float32): AudioFilter {
@@ -173,15 +171,25 @@ public class AudioFilter <: IAudioFilter {
     }
 
     /**
+     * @brief[zh-cn] 资源是否有效（未释放）
+     * @return[zh-cn] 有效返回 true
+     *
+     * @brief[en] Whether the resource is valid (not released)
+     * @return[en] Returns true when valid
+     */
+    public prop releasable: Bool {
+        get() { !this._disposed }
+    }
+
+    /**
      * @brief[zh-cn] 释放 OpenAL 滤波器对象
+     * @note[zh-cn] 对应 EFX: alDeleteFilters；释放后句柄归零，重复调用幂等返回 false。
      *
      * @brief[en] Releases the OpenAL filter object
-     *
-     * @note[zh-cn] 对应 EFX: alDeleteFilters；释放后句柄归零，重复调用安全。
-     * @note[en] Maps to EFX: alDeleteFilters; the handle is zeroed after release and repeated calls are safe.
+     * @note[en] Maps to EFX: alDeleteFilters; the handle is zeroed after release and repeated calls return false.
      */
-    public func dispose(): Unit {
-        if (_disposed) { return }
+    public func release(): Bool {
+        if (_disposed) { return false }
         if (this.filterId != 0u32) {
             let fid = this.filterId
             this.context.execAudio({ =>
@@ -193,6 +201,7 @@ public class AudioFilter <: IAudioFilter {
             this.filterId = 0u32
         }
         _disposed = true
+        return true
     }
 
     // ===== 便捷工厂函数 =====

@@ -344,6 +344,10 @@ public class EventManager {
             // 但本地变量 name 仍持有原值，安全使用）
             if (let Some(ids) <- _nameToIds.get(name)) {
                 ids.remove(id)
+                // 名称桶清空后必须一并删除，否则每次"临时事件名"都会永久留下一个空桶
+                if (ids.isEmpty()) {
+                    _nameToIds.remove(name)
+                }
             }
         } else {
             return

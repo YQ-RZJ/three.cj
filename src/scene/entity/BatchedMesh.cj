@@ -50,6 +50,7 @@ import three.core.math.*
 import three.rendering.materials.*
 import three.rendering.textures.DataTexture
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 批化网格，将多份独立几何打包到单一 BufferGeometry 中渲染
@@ -57,7 +58,7 @@ import std.collection.*
  * @brief[en] Batched mesh that packs multiple independent geometries into a single BufferGeometry for rendering
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
-public class BatchedMesh <: Mesh {
+public class BatchedMesh <: Mesh & IReleasable {
 
     /**
      * @brief[zh-cn] 最大几何数量上限（构造时固定）
@@ -101,17 +102,17 @@ public class BatchedMesh <: Mesh {
     public var geometryVisible: Array<Bool>
 
     // 矩阵纹理（DataTexture）：实例矩阵打包到纹理供 shader 读取。
-    // 对照 JS `this._matricesTexture = null`（BatchedMesh.js:277），渲染器初始化时注入。
+    // 渲染器初始化时注入。
     @JsonIgnore
     public var _matricesTexture: Option<DataTexture>
 
     // 间接纹理（DataTexture）：geometryId→实例索引映射。
-    // 对照 JS `this._indirectTexture = null`（BatchedMesh.js:278），渲染器初始化时注入。
+    // 渲染器初始化时注入。
     @JsonIgnore
     public var _indirectTexture: Option<DataTexture>
 
     // 颜色纹理（DataTexture）：实例颜色打包到纹理。
-    // 对照 JS `this._colorsTexture = null`（BatchedMesh.js:279），渲染器初始化时注入。
+    // 渲染器初始化时注入。
     @JsonIgnore
     public var _colorsTexture: Option<DataTexture>
 
@@ -307,8 +308,13 @@ public class BatchedMesh <: Mesh {
         return obj.copy(this, true)
     }
 
-    // 释放本实例分配的 GPU 相关资源。
-    public func dispose(): Unit {
-        this.dispatchEvent(Event("dispose"))
+    /**
+     * @brief[zh-cn] 释放本实例分配的 GPU 相关资源。
+     *
+     * @brief[en] frees GPU-related resources allocated by this instance.
+     */
+    public func release(): Bool {
+        this.dispatchEvent(Event("release"))
+        return true
     }
 }

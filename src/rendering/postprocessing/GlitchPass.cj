@@ -108,6 +108,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -121,24 +122,27 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 数字故障后处理 pass
- * @brief[en] Digital glitch post-processing pass
  * @explain[zh-cn] 单遍全屏 pass，无内部 ping-pong RT（纯像素处理 + 位移贴图采样）。
+ *
+ * @brief[en] Digital glitch post-processing pass
  * @explain[en] Single full-screen pass with no internal ping-pong RT (pure pixel processing +
  *         displacement map sampling).
  */
-public class GlitchPass <: Pass {
+public class GlitchPass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 位移贴图尺寸（像素，正方形）
-     * @brief[en] Displacement map size (pixels, square)
      * @explain[zh-cn] 默认 64。
+     *
+     * @brief[en] Displacement map size (pixels, square)
      * @explain[en] Default 64.
      */
     public let dtSize: Int64
 
     /**
      * @brief[zh-cn] 是否显著增强 glitch 效果
-     * @brief[en] Whether to significantly intensify the glitch effect
      * @explain[zh-cn] false = 周期性弱 glitch，true = 持续强 glitch。
+     *
+     * @brief[en] Whether to significantly intensify the glitch effect
      * @explain[en] false = periodic weak glitch, true = sustained strong glitch.
      */
     public var goWild: Bool = false
@@ -167,6 +171,15 @@ public class GlitchPass <: Pass {
      * 位移贴图是否已创建（避免重复创建/泄漏）。
      */
     private var _heightMapCreated: Bool = false
+
+    /**
+     * @brief[zh-cn] 位移贴图纹理是否已创建且未被释放
+     *
+     * @brief[en] whether the heightmap texture exists and has not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._heightMapCreated }
+    }
 
     /**
      * glitch shader 是否已编译。
@@ -206,6 +219,8 @@ public class GlitchPass <: Pass {
         this._generateTrigger()
         @LogTrace(["glitch", "GlitchPass constructed: dtSize=" + dtSize.toString() +
                       " randX=" + _randX.toString()])
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -509,12 +524,15 @@ public class GlitchPass <: Pass {
      * 释放位移贴图纹理；glitch shader program 由 PostProcessingShaders 全局管理，不在此 dispose；
      * 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         if (this._heightMapCreated) {
             if (let Some(renderer) <- this._renderer) { renderer.destroyTexture(this._heightMap) }
             this._heightMapCreated = false
             @LogTrace(["glitch", "heightMap texture destroyed"])
         }
-        @LogTrace(["glitch", "disposed"])
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        @LogTrace(["glitch", "released"])
+        return true
     }
 }

@@ -660,6 +660,8 @@ public open class Renderer {
             }
             // 统一结束渲染 pass（touch + bgfx_frame 一次）
             this.backend.finishRender(renderContext)
+            // 帧末驱逐：移除本帧未被访问的 RenderObject（从场景移除的对象不再被缓存持有）
+            this.renderObjects.endFrame()
             this.info.frame += 1
             return
         } else {
@@ -685,6 +687,8 @@ public open class Renderer {
         // 同步后端渲染统计到抽象层 info（draw call / 三角形数，供 renderer.info 消费方读取）
         this._syncRenderStats()
 
+        // 帧末驱逐：移除本帧未被访问的 RenderObject（从场景移除的对象不再被缓存持有）
+        this.renderObjects.endFrame()
         this.info.frame += 1
     }
 
@@ -805,8 +809,8 @@ public open class Renderer {
                         0                    // group
                     )
                 case sprite: Sprite =>
-                    // Sprite 广告牌参与渲染：Sprite 无 geometry 字段（对照 JS Sprite 无几何，
-                    // 渲染用共享单位面片）。此处构造单位 quad 面片，spriteVS 广告牌变换
+                    // Sprite 广告牌参与渲染：Sprite 无 geometry 字段
+                    // 此处构造单位 quad 面片，spriteVS 广告牌变换
                     // 按对象 scale 放大（u_model[0]/[1] 轴长）并始终朝向相机。
                     let sgeom = Sprite._getUnitQuadGeometry()
                     let smat = sprite.material
@@ -856,6 +860,7 @@ public open class Renderer {
      * @explain[zh-cn] 流程：结构版本变化时重建索引（对象增删）→ 刷新失效对象的包围球
      *               → BVH 视锥查询 → 结果写入各对象的 cullVisible 标记。
      *               索引对象数低于阈值时关闭空间剔除（走逐对象视锥测试路径）。
+     * @param[zh-cn] scene 场景
      *
      * @brief[en] Refresh the scene spatial index and run the frustum query
      * @explain[en] Rebuild the index when the structure version changed (objects added or
@@ -863,7 +868,6 @@ public open class Renderer {
      *               query, and write the results into each object's cullVisible flag.
      *               Spatial culling is disabled when the indexed object count is below
      *               the threshold (falling back to per-object frustum tests).
-     * @param[zh-cn] scene 场景
      * @param[en] scene Scene
      */
     private func _updateSpatialCulling(scene: Scene): Unit {
@@ -918,17 +922,17 @@ public open class Renderer {
      * @brief[zh-cn] 逐个渲染项提交绘制
      * @explain[zh-cn] 单独成方法以便用函数级 @Zone 计时：draw call 提交（含逐 draw 的
      *               uniform/纹理绑定）是主 pass 的主要成本，与场景收集/合批路由分离统计。
-     *
-     * @brief[en] Submits a draw for each render item
-     * @explain[en] Extracted into its own method so it can be timed with a function-level
-     *               @Zone: the draw call submission (including the per-draw uniform and
-     *               texture binding) is the main cost of the main pass, measured apart
-     *               from scene collection and batching.
-     *
      * @param[zh-cn] renderItems 本帧渲染项
      * @param[zh-cn] renderContext 渲染上下文
      * @param[zh-cn] camera 相机
      * @param[zh-cn] scene 场景
+     *
+     * @brief[en] Submits a draw for each render item
+     * @explain[en] Extracted into its own method so it can be timed with a function-level
+     *
+     *               @Zone: the draw call submission (including the per-draw uniform and
+     *               texture binding) is the main cost of the main pass, measured apart
+     *               from scene collection and batching.
      */
     @Zone[three.rendering.common.Renderer.drawLoop]
     private func _drawRenderItems(renderItems: ArrayList<RenderItem>, renderContext: RenderContext,
@@ -1140,14 +1144,14 @@ public open class Renderer {
      * @brief[zh-cn] 更新场景树与相机的世界矩阵
      * @explain[zh-cn] 单独成方法以便用函数级 @Zone 计时：场景树规模大时，逐对象的
      *               世界矩阵重算是每帧的固定成本（与收集/合批/提交各阶段分离统计）。
+     * @param[zh-cn] scene 场景
+     * @param[zh-cn] camera 相机
      *
      * @brief[en] Updates the world matrices of the scene tree and the camera
      * @explain[en] Extracted into its own method so it can be timed with a function-level
+     *
      *               @Zone: with a large scene tree the per-object world matrix update is
      *               a fixed per-frame cost, measured apart from collection/batching/submit.
-     *
-     * @param[zh-cn] scene 场景
-     * @param[zh-cn] camera 相机
      */
     @Zone[three.rendering.common.Renderer.updateMatrixWorld]
     private func _updateWorldMatrices(scene: Scene, camera: Camera): Unit {

@@ -25,9 +25,6 @@
 /**
  * @file[zh-cn] ProfileMacros.cj — three.profiler 宏自动化侵入（THREE_PROFILER 链路门控）
  * @brief[zh-cn] @Zone/@FrameMark/@FrameStart/@FrameEnd/@Plot/@PlotI64/@Message/
- *               @Fiber/@MemAlloc/@MemFree/@GpuZone/@LockTrack 属性宏
- * @macro-package three.profiler.macros
- *
  * @explain[zh-cn] ## 设计思想
  * 宏在**编译期（宏展开进程）读取环境变量 THREE_PROFILER**，与属性声明的**链路**
  * （如 "three.test.aaa.bbb"）做**段级前缀匹配**：
@@ -69,6 +66,18 @@
  * \@Zone[three.render.shadow] func renderShadow(): Unit { ... }
  *
  * // 区间级（括号内任意代码）
+ *
+ * @file[en] ProfileMacros.cj — auto instrumentation macros gated by THREE_PROFILER
+ * @brief[en] @Zone/@FrameMark/@FrameStart/@FrameEnd/@Plot/@PlotI64/@Message/
+ * @explain[en] Macros read env THREE_PROFILER at expansion time and match the
+ * attribute link path with segment-level prefix matching: on miss tokens pass
+ * through untouched (zero intrusion); on hit code is rewritten into
+ * try{}finally{} wrappers (exception-safe). Function-level (@Zone on decls) and
+ * expression/statement-level (@X[link]( code )) forms are both supported.
+ *
+ *               @Fiber/@MemAlloc/@MemFree/@GpuZone/@LockTrack 属性宏
+ * @macro-package three.profiler.macros
+ *
  * @Zone[three.render.culling]( cullPass() )
  * @Fiber[three.jobs.worker]( workerLoop() )
  * @GpuZone[three.gpu.pass, context=0]( recordPass() )
@@ -85,14 +94,7 @@
  * @MemFree[three.pool.geo]( pool.free(p) )
  * ```
  *
- * @file[en] ProfileMacros.cj — auto instrumentation macros gated by THREE_PROFILER
- * @brief[en] @Zone/@FrameMark/@FrameStart/@FrameEnd/@Plot/@PlotI64/@Message/
  *            @Fiber/@MemAlloc/@MemFree/@GpuZone/@LockTrack attribute macros
- * @explain[en] Macros read env THREE_PROFILER at expansion time and match the
- * attribute link path with segment-level prefix matching: on miss tokens pass
- * through untouched (zero intrusion); on hit code is rewritten into
- * try{}finally{} wrappers (exception-safe). Function-level (@Zone on decls) and
- * expression/statement-level (@X[link]( code )) forms are both supported.
  */
 macro package three.profiler.macros
 
@@ -261,6 +263,7 @@ private func srclocKey(fileId: Int64, line: Int64): Int64 {
  * @brief[zh-cn] 剥离输入外层 { }（用户可写 @X[l]({...}) 或 @X[l](stmt1; stmt2)）
  *
  * @brief[en] Strip the outer braces of the input (users may write
+ *
  *            @X[l]({...}) or @X[l](stmt1; stmt2))
  */
 private func stripBraces(input: Tokens): Tokens {
@@ -302,6 +305,7 @@ private func kvValue(kvs: ArrayList<(String, String)>, key: String, fallback: St
  * 保证采集端按名字聚合时不会把不同函数的耗时混在一起。
  *
  * @brief[en] @Zone — auto-wrap in a Tracy zone (dual form: function decl or
+ *
  * @Zone[link]( code ) block), gated by THREE_PROFILER link matching.
  * The display name defaults to the last link segment; `name=xxx` overrides it
  * (useful when several classes share a member name, e.g. multiple `run` jobs).
@@ -431,6 +435,7 @@ public macro FrameMark(attrTokens: Tokens, inputTokens: Tokens): Tokens {
 
 /**
  * @brief[zh-cn] @FrameStart — 命名帧流开始标记（代码前插 Frame.start）
+ *
  * @brief[en] @FrameStart — emits Frame.start(name) before the wrapped code.
  */
 public macro FrameStart(attrTokens: Tokens, inputTokens: Tokens): Tokens {
@@ -448,6 +453,7 @@ public macro FrameStart(attrTokens: Tokens, inputTokens: Tokens): Tokens {
 
 /**
  * @brief[zh-cn] @FrameEnd — 命名帧流结束标记（代码后插 Frame.finish）
+ *
  * @brief[en] @FrameEnd — emits Frame.finish(name) after the wrapped code.
  */
 public macro FrameEnd(attrTokens: Tokens, inputTokens: Tokens): Tokens {
@@ -496,6 +502,7 @@ public macro Plot(attrTokens: Tokens, inputTokens: Tokens): Tokens {
 
 /**
  * @brief[zh-cn] @PlotI64 — 同 @Plot，表达式为 Int64（批次数/队列深度等）
+ *
  * @brief[en] @PlotI64 — like @Plot for Int64 expressions.
  */
 public macro PlotI64(attrTokens: Tokens, inputTokens: Tokens): Tokens {
@@ -624,6 +631,7 @@ public macro MemAlloc(attrTokens: Tokens, inputTokens: Tokens): Tokens {
 
 /**
  * @brief[zh-cn] @MemFree — 表达式求值（指针）并上报释放事件，指针透传
+ *
  * @brief[en] @MemFree — evaluates a pointer expression, reports a free event,
  * passes the pointer through.
  */

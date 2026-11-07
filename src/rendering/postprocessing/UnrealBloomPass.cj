@@ -53,6 +53,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -103,32 +104,36 @@ public class BloomMipLevel {
 
 /**
  * @brief[zh-cn] Bloom 后处理 pass（UnrealBloom 完整 5 级金字塔实现）
- * @brief[en] Bloom post-processing pass (full 5-level pyramid UnrealBloom implementation)
  * @explain[zh-cn] 亮度提取 → 5 级高斯金字塔模糊 → 加权合成 → 加性叠加回场景。
+ *
+ * @brief[en] Bloom post-processing pass (full 5-level pyramid UnrealBloom implementation)
  * @explain[en] Brightness extraction → 5-level Gaussian pyramid blur → weighted composite → additive
  *         blend back into the scene.
  */
-public class UnrealBloomPass <: Pass {
+public class UnrealBloomPass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] Bloom 强度
-     * @brief[en] Bloom strength
      * @explain[zh-cn] 控制整体 bloom 贡献量。
+     *
+     * @brief[en] Bloom strength
      * @explain[en] Controls overall bloom contribution.
      */
     public var strength: Float64
 
     /**
      * @brief[zh-cn] 亮度阈值（超过此亮度才贡献 bloom）
-     * @brief[en] Brightness threshold (pixels above this brightness contribute to bloom)
      * @explain[zh-cn] 低于阈值的像素不参与 bloom。
+     *
+     * @brief[en] Brightness threshold (pixels above this brightness contribute to bloom)
      * @explain[en] Pixels below the threshold do not contribute to bloom.
      */
     public var threshold: Float64
 
     /**
      * @brief[zh-cn] Bloom 半径（0~1）
-     * @brief[en] Bloom radius (0~1)
      * @explain[zh-cn] 决定模糊扩散范围。
+     *
+     * @brief[en] Bloom radius (0~1)
      * @explain[en] Determines the blur spread range.
      */
     public var radius: Float64
@@ -203,6 +208,8 @@ public class UnrealBloomPass <: Pass {
         // （或 renderToScreen=true 时写屏幕），不依赖 EffectComposer swap 交换 buffer；
         // 若设 true 会与 RenderPass 的 buffer 语义错位。
         this.needsSwap = false
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -639,8 +646,11 @@ public class UnrealBloomPass <: Pass {
     /**
      * 释放 bloom pass 占用的所有 GPU 资源。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        return true
     }
 }

@@ -34,7 +34,7 @@ package three.rendering.shaders.ShaderChunk
 
 /**
  * premultiplied_alpha_fragment GLSL 片段字符串
- * 
+ *
  * 使用仓颉三引号多行字符串语法 `"""..."""`。
  */
 public const premultiplied_alpha_fragment: String = #"

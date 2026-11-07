@@ -26,7 +26,7 @@
  * @explain[zh-cn] PMREM CubeUV 环境贴图采样（方向 → 面/UV → 2D 图集纹理）。
  *         布局必须与 PMREMGenerator 生成器严格一致（见下），否则反射方向错位。
  *         本片段由 ShaderLib 在构建完整着色器程序时按需拼接。
-
+ *
  * @file[en] cube_uv_reflection_fragment  ShaderChunk GLSL fragment
  * @brief[en] ShaderChunk GLSL fragment: cube_uv_reflection_fragment
  * @explain[en] PMREM CubeUV environment map sampling (direction -> face/UV -> 2D atlas texture).

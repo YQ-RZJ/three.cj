@@ -51,6 +51,7 @@ import std.collection.*
  * let a = mgr.get<ComponentA>(1)
  * mgr.recycle(1, a)
  * ```
+ * @note[zh-cn] 各类型对象池的最大缓存容量在构造时统一指定。
  *
  * @brief[en] Multi-type object pool management
  * @explain[en] Registers a dedicated ObjectPool per object type and uses IDs to register,
@@ -62,8 +63,6 @@ import std.collection.*
  * let a = mgr.get<ComponentA>(1)
  * mgr.recycle(1, a)
  * ```
- *
- * @note[zh-cn] 各类型对象池的最大缓存容量在构造时统一指定。
  * @note[en] The maximum cache capacity of each per-type pool is set uniformly at
  * construction time.
  */
@@ -97,12 +96,11 @@ public class PoolManager {
      * @brief[zh-cn] 注册指定 ID 的对象池
      * @param[zh-cn] id 对象类型 ID
      * factory 对象工厂
+     * @throws[zh-cn] IllegalStateException 当该 ID 已注册时
      *
      * @brief[en] Registers a pool for the given ID
      * @param[en] id Object-type ID
      * factory Object factory
-     *
-     * @throws[zh-cn] IllegalStateException 当该 ID 已注册时
      * @throws[en] IllegalStateException When the ID is already registered
      */
     public func register(id: Int64, factory: () -> Object): Unit {
@@ -118,14 +116,13 @@ public class PoolManager {
      * factory 对象工厂
      * onRecycle 回收回调
      * onReuse 复用回调
+     * @throws[zh-cn] IllegalStateException 当该 ID 已注册时
      *
      * @brief[en] Registers a pool with callbacks
      * @param[en] id Object-type ID
      * factory Object factory
      * onRecycle Recycle callback
      * onReuse Reuse callback
-     *
-     * @throws[zh-cn] IllegalStateException 当该 ID 已注册时
      * @throws[en] IllegalStateException When the ID is already registered
      */
     public func register(
@@ -168,12 +165,11 @@ public class PoolManager {
      * @brief[zh-cn] 尝试从池里获取指定对象实例
      * @param[zh-cn] id 对象类型 ID
      * @return[zh-cn] 新建或复用的对象
+     * @throws[zh-cn] IllegalStateException 当该 ID 未注册时
      *
      * @brief[en] Tries to get an object instance from the pool for the given ID
      * @param[en] id Object-type ID
      * @return[en] A newly created or reused object
-     *
-     * @throws[zh-cn] IllegalStateException 当该 ID 未注册时
      * @throws[en] IllegalStateException When the ID is not registered
      */
     public func get(id: Int64): Object {
@@ -188,12 +184,11 @@ public class PoolManager {
      * @brief[zh-cn] 回收对象
      * @param[zh-cn] id 对象类型 ID
      * obj 待回收对象
+     * @throws[zh-cn] IllegalStateException 当该 ID 未注册时
      *
      * @brief[en] Recycles an object back to the pool for the given ID
      * @param[en] id Object-type ID
      * obj The object to recycle
-     *
-     * @throws[zh-cn] IllegalStateException 当该 ID 未注册时
      * @throws[en] IllegalStateException When the ID is not registered
      */
     public func recycle(id: Int64, obj: Object): Unit {

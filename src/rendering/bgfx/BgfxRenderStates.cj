@@ -34,6 +34,7 @@ package three.rendering.bgfx
 import std.collection.*
 import three.rendering.lights.Light
 import three.rendering.lights.LightShadow
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 渲染状态
@@ -154,7 +155,7 @@ public class BgfxRenderState {
  * @brief[en] bgfx render state management
  * @explain[en] Corresponds to WebGLRenderStates, manages render state caching and switching
  */
-public class BgfxRenderStates {
+public class BgfxRenderStates <: IReleasable {
     /**
      * @brief[zh-cn] 渲染状态缓存（场景 ID -> 渲染状态）
      *
@@ -190,9 +191,10 @@ public class BgfxRenderStates {
     /**
      * @brief[zh-cn] 释放所有渲染状态
      *
-     * @brief[en] Dispose all render states
+     * @brief[en] dispose all render states
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         renderStates = HashMap<Int64, BgfxRenderState>()
+        return true
     }
 }

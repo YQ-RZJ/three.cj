@@ -29,7 +29,7 @@
  * 使用方（cameras 包 CubeCamera、extras 包 PMREMGenerator）仅以接口持有场景引用。
  * 为让 PMREMGenerator.fromScene 能读取场景背景作为环境贴图来源，接口暴露最小只读能力
  * getBackground()（返回 IBackground 标记接口，实现方为 Color/Texture/CubeTexture）。
-
+ *
  * @file[en] IScene
  * @brief[en] Scene marker interface (three.interfaces standalone interface package)
  * @explain[en] In mainstream engines, CubeCamera.update(renderer, scene) / PMREMGenerator.fromScene(scene)

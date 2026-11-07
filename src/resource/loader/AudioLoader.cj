@@ -59,15 +59,13 @@ public class AudioLoader <: Loader {
     /**
      * @param[zh-cn] url 音频文件路径（本地路径）
      * @return[zh-cn] 解码后的 AudioBuffer 实例
+     * @throws[zh-cn] Exception 文件解码失败时抛出异常
      *
      * @param[en] url Audio file path (local path)
      * @return[en] Decoded AudioBuffer instance
      *
      * 加载音频文件并创建 AudioBuffer，使用 miniaudio 将音频文件解码为 16-bit PCM，然后创建 OpenAL Buffer。
      * 支持 mp3、flac、ogg、wav 等格式。
-     *
-     * @throws[zh-cn] Exception 文件解码失败时抛出异常
-     *
      * @throws[en] Exception Thrown when file decoding fails
      */
     public func load(url: String): AudioBuffer {
@@ -100,6 +98,7 @@ public class AudioLoader <: Loader {
     /**
      * @param[zh-cn] data 音频文件的完整字节数据
      * @return[zh-cn] 解码后的 AudioBuffer 实例
+     * @throws[zh-cn] Exception 解码失败时抛出异常
      *
      * @param[en] data Complete byte data of the audio file
      * @return[en] Decoded AudioBuffer instance
@@ -110,9 +109,6 @@ public class AudioLoader <: Loader {
      * 用途：OHOS 平台 rawfile 资源不能通过文件系统路径访问（FileIo.access 失败），
      * 需经 resourceManager.getRawFileContent 拿到字节后走内存解码；
      * 桌面平台亦可传 File.readFrom 读出的字节。
-     *
-     * @throws[zh-cn] Exception 解码失败时抛出异常
-     *
      * @throws[en] Exception Thrown when decoding fails
      */
     @Zone[three.resource.loader.AudioLoader.loadFromBytes, name=audioLoadFromBytes]
@@ -159,6 +155,10 @@ public class AudioLoader <: Loader {
         }
 
         if (result != MaResult.Success.value()) {
+            // 解码失败时 miniaudio 可能已分配部分 PCM 缓冲，必须回收
+            if (!pcm.isNull()) {
+                ma_free_cj(pcm, CPointer<Unit>())
+            }
             throw Exception("AudioLoader: 解码音频数据失败, 错误码=${result.toString()}")
         }
 
@@ -222,6 +222,10 @@ public class AudioLoader <: Loader {
         }
 
         if (result != MaResult.Success.value()) {
+            // 解码失败时 miniaudio 可能已分配部分 PCM 缓冲，必须回收
+            if (!pcm.isNull()) {
+                ma_free_cj(pcm, CPointer<Unit>())
+            }
             throw Exception("AudioLoader: 解码音频文件失败: ${filePath}, 错误码=${result.toString()}")
         }
 

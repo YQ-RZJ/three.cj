@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -63,7 +64,7 @@ import std.collection.*
  * Center lines use color1, other lines use color2.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = LineSegments]
-public class GridHelper <: LineSegments {
+public class GridHelper <: LineSegments & IReleasable {
     /**
      * @brief[zh-cn] 构造网格辅助对象
      * @param[zh-cn] size 网格尺寸，默认 10
@@ -108,10 +109,11 @@ public class GridHelper <: LineSegments {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.geometry.dispose()
         this.material.dispose()
+        return true
     }
 }

@@ -69,6 +69,13 @@ public open class RenderObjects {
     private var cache: HashMap<Int64, RenderObject>
 
     /**
+     * @brief[zh-cn] 本帧被访问过的缓存键（用于帧末驱逐不再使用的条目）
+     *
+     * @brief[en] Cache keys accessed this frame (used to evict unused entries at frame end)
+     */
+    private var _touchedKeys: HashSet<Int64> = HashSet<Int64>()
+
+    /**
      * @brief[zh-cn] 构造默认渲染对象缓存
      *
      * @brief[en] Constructs a default render object cache
@@ -115,6 +122,7 @@ public open class RenderObjects {
         @LogTrace(["RenderObjects.get", "mesh.id=${mesh.id} mesh.name=${mesh.name} mat.uuid=${material.uuid} camera.id=${camera.id} key=${key}"])
         if (let Some(ro) <- this.cache.get(key)) {
                 @LogTrace(["RenderObjects.get", "CACHE HIT key=${key} cached.mesh.name=${ro.mesh.name}"])
+                this._touchedKeys.add(key)
                 // 渲染循环已在收集前全量 updateMatrixWorld，快路径只拷世界矩阵
                 ro.syncWorldMatrix()
                 return ro
@@ -123,8 +131,40 @@ public open class RenderObjects {
                                      context, camera, scene)
                 ro.syncWorldMatrix()
                 this.cache.add(key, ro)
+                this._touchedKeys.add(key)
                 return ro
             }
+    }
+
+    /**
+     * @brief[zh-cn] 帧末驱逐：移除本帧未被访问的缓存条目
+     * @explain[zh-cn] RenderObject 强引用 object/geometry/material/camera/scene，若条目
+     *               永不驱逐，从场景移除的对象会一直被缓存持有（连同其网格/材质内存），
+     *               材质或相机数量变化时还会持续新增条目。每帧渲染结束后按"本帧是否访问"
+     *               淘汰陈旧键，保证缓存只保留仍在渲染的组合。
+     *
+     * @brief[en] End-of-frame eviction: drops cache entries not accessed this frame
+     * @explain[en] A RenderObject strongly references object/geometry/material/camera/scene.
+     * Without eviction, objects removed from the scene stay referenced forever (together with
+     * their geometry/material memory), and new entries keep accumulating when materials or
+     * cameras change. After each render, stale keys are dropped so the cache only keeps
+     * combinations still being rendered.
+     */
+    public func endFrame(): Unit {
+        if (this._touchedKeys.size == this.cache.size) {
+            this._touchedKeys.clear()
+            return
+        }
+        let stale = ArrayList<Int64>()
+        for ((k, _) in this.cache) {
+            if (!this._touchedKeys.contains(k)) {
+                stale.add(k)
+            }
+        }
+        for (k in stale) {
+            this.cache.remove(k)
+        }
+        this._touchedKeys.clear()
     }
 
     /**
@@ -134,5 +174,6 @@ public open class RenderObjects {
      */
     public func clear(): Unit {
         this.cache = HashMap<Int64, RenderObject>()
+        this._touchedKeys.clear()
     }
 }

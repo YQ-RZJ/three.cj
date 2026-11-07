@@ -517,7 +517,7 @@ public open class Material <: EventDispatcher & IMaterial & ILoadResult {
      * @brief[en] Dispose GPU-related resources and dispatch dispose event
      */
     public func dispose(): Unit {
-        this.dispatchEvent(Event("dispose"))
+        this.dispatchEvent(Event("release"))
     }
 
     /**

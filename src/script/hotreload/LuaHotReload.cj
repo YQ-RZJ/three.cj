@@ -28,6 +28,7 @@
  * - 基于文件内容哈希（而非 mtime）检测变更，跨平台稳定。
  * - reload 失败时保留旧脚本继续运行（错误回滚，不中断宿主）。
  * - 每次 reload 前自动调用可选 onBeforeReload / onAfterReload 回调（用于保存/恢复状态）。
+ * @example[zh-cn] 创建热更新器并轮询变更
  *
  * @file[en] LuaHotReload  Lua script hot reload (three.script.hotreload sub-package)
  * @brief[en] Lua script hot reload; reloads Lua script files at runtime
@@ -37,8 +38,6 @@
  * - On reload failure the old script keeps running (error rollback, host keeps running).
  * - Optional onBeforeReload / onAfterReload callbacks are invoked around every reload
  * (for saving/restoring state).
- *
- * @example[zh-cn] 创建热更新器并轮询变更
  * @example[en] Creating a hot reloader and polling for changes
  * let hr = LuaHotReload(vm, "game/config.lua")
  * hr.load()                 // 首次加载并执行

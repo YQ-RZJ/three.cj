@@ -49,6 +49,7 @@ import three.physics.world.*
 import jolt4cj.jolt.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // PhysicsSoftBodyDesc 软体描述
@@ -180,7 +181,7 @@ public class PhysicsSoftBodyDesc {
  * SoftBodyMotionProperties vertex-reading FFI, so runtime vertex reads are unavailable
  * for now — the render side must maintain synchronization itself.
  */
-public class PhysicsSoftBody {
+public class PhysicsSoftBody <: IReleasable {
     private let _world: PhysicsWorld
     private var _bodyID: UInt32
     private var _disposed: Bool = false
@@ -195,7 +196,7 @@ public class PhysicsSoftBody {
      *
      * @brief[en] Whether the soft body is valid (created successfully and not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() {
             !this._disposed && this._bodyID != 0
         }
@@ -215,11 +216,11 @@ public class PhysicsSoftBody {
     /**
      * @brief[zh-cn] 销毁软体（从世界移除并释放刚体）
      *
-     * @brief[en] Disposes the soft body (removes from the world and releases the body)
+     * @brief[en] disposes the soft body (removes from the world and releases the body)
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return true
         }
         this._disposed = true
         let w = this._world
@@ -237,6 +238,7 @@ public class PhysicsSoftBody {
             }
         })
         this._bodyID = 0
+        return true
     }
 }
 
@@ -248,14 +250,14 @@ public class PhysicsSoftBody {
  * @brief[zh-cn] 软体工厂
  * @explain[zh-cn] 在指定物理世界内创建软体：SharedSettings（顶点/面/边约束）+
  * SoftBodyCreationSettings → BodyInterface_CreateAndAddSoftBody（一步创建并加入世界）。
- * 失败（非 Jolt 后端、空网格、创建失败）时返回 isValid=false 的对象。
+ * 失败（非 Jolt 后端、空网格、创建失败）时返回 releasable=false 的对象。
  *
  * @brief[en] Soft-body factory
  * @explain[en] Creates a soft body in the given physics world: SharedSettings
  * (vertices/faces/edge constraints) + SoftBodyCreationSettings →
  * BodyInterface_CreateAndAddSoftBody (created and added in one step). On failure
  * (non-Jolt backend, empty mesh, creation failure) returns an object with
- * isValid=false.
+ * releasable=false.
  */
 public class PhysicsSoftBodyFactory {
     private let _desc: PhysicsSoftBodyDesc

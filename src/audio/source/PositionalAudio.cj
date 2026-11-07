@@ -31,6 +31,8 @@
  * AL_ROLLOFF_FACTOR / AL_MAX_DISTANCE
  * - PannerNode.coneInnerAngle / coneOuterAngle / coneOuterGain →
  * AL_CONE_INNER_ANGLE / AL_CONE_OUTER_ANGLE / AL_CONE_OUTER_GAIN
+ * @note[zh-cn] Three.cj 使用左手坐标系，OpenAL 使用右手坐标系，同步位置时需要翻转
+ * Z 轴（LH → RH: z' = -z）。
  *
  * @file[en] PositionalAudio 3D positional audio source
  * @brief[en] Positional audio that adds 3D spatialization on top of Audio
@@ -43,9 +45,6 @@
  * AL_ROLLOFF_FACTOR / AL_MAX_DISTANCE
  * - PannerNode.coneInnerAngle / coneOuterAngle / coneOuterGain →
  * AL_CONE_INNER_ANGLE / AL_CONE_OUTER_ANGLE / AL_CONE_OUTER_GAIN
- *
- * @note[zh-cn] Three.cj 使用左手坐标系，OpenAL 使用右手坐标系，同步位置时需要翻转
- * Z 轴（LH → RH: z' = -z）。
  * @note[en] Three.cj uses a left-handed coordinate system while OpenAL is right-handed;
  * flip the Z axis when syncing positions (LH → RH: z' = -z).
  */
@@ -69,19 +68,19 @@ import three.audio.device.*
 import three.audio.listener.*
 import three.profiler.*
 import three.profiler.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 3D 位置音频，继承 Audio
  * @explain[zh-cn] PositionalAudio 播放的声音具有 3D 空间定位效果，会根据音频源和
  * 监听者之间的距离和方向自动衰减和空间化。
+ * @note[zh-cn] Three.cj 使用左手坐标系，OpenAL 使用右手坐标系，同步位置时需要翻转
+ * Z 轴（LH → RH: z' = -z）。
  *
  * @brief[en] 3D positional audio extending Audio
  * @explain[en] PositionalAudio plays sound with 3D spatial positioning; the sound is
  * automatically attenuated and spatialized based on the distance and
  * direction between the audio source and the listener.
- *
- * @note[zh-cn] Three.cj 使用左手坐标系，OpenAL 使用右手坐标系，同步位置时需要翻转
- * Z 轴（LH → RH: z' = -z）。
  * @note[en] Three.cj uses a left-handed coordinate system while OpenAL is right-handed;
  * flip the Z axis when syncing positions (LH → RH: z' = -z).
  */
@@ -191,6 +190,23 @@ public open class PositionalAudio <: Audio {
      */
     protected override func _onSourceReleased(): Unit {
         this._slot.invalidate()
+    }
+
+    /**
+     * @brief[zh-cn] 释放位置音频：基类释放逻辑 + 从音频上下文注销变换槽
+     * @explain[zh-cn] 变换槽注册表是 AudioContext 单例上的强引用表，不注销会导致
+     *               本对象（及其监听器子树的引用）永久存活，且音频线程每帧仍遍历该槽。
+     *
+     * @brief[en] Releases the positional audio: base release logic + unregister from the audio
+     * context transform-slot registry
+     * @explain[en] The transform-slot registry is a strong-reference table on the AudioContext
+     * singleton. Without unregistering, this object stays alive forever and the audio thread
+     * keeps iterating its slot every frame.
+     */
+    public override func release(): Bool {
+        let ok = super.release()
+        this.context.unregisterTransformSlot(this._slot)
+        return ok
     }
 
     /**
@@ -439,13 +455,12 @@ public open class PositionalAudio <: Audio {
      * @brief[zh-cn] 设置速度（m/s，世界坐标），启用多普勒效应
      * @param[zh-cn] v 速度向量（世界坐标，左手系）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 还需设置全局多普勒因子（AudioContext.setDopplerFactor）才能听到效果；
+     * 速度在每次 updateMatrixWorld 时同步到 AL_VELOCITY。
      *
      * @brief[en] Sets the velocity (m/s, world space) to enable the Doppler effect
      * @param[en] v Velocity vector (world space, left-handed)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 还需设置全局多普勒因子（AudioContext.setDopplerFactor）才能听到效果；
-     * 速度在每次 updateMatrixWorld 时同步到 AL_VELOCITY。
      * @note[en] You also need to set the global Doppler factor
      * (AudioContext.setDopplerFactor) to hear the effect; the velocity is
      * synced to AL_VELOCITY on every updateMatrixWorld.

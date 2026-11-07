@@ -78,6 +78,7 @@ import std.sync.*
 import std.time.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 /** 心跳帧（保活探测） */
 public const FRAME_PING: UInt8 = 0x01u8
@@ -101,7 +102,7 @@ public const MAX_FRAME_SIZE: Int64 = 8 * 1024 * 1024
  * any thread (locked internally); state queries are thread-safe; see the file header
  * @explain for the user-callback threading model.
  */
-public class Connection {
+public class Connection <: IReleasable {
     /**
      * @brief[zh-cn] 目标主机
      *
@@ -311,12 +312,17 @@ public class Connection {
                 let lastRecv = this._lastRecvMs.load()
                 if (lastRecv > 0 && Float64(now - lastRecv) >= this.heartbeatTimeoutMs) {
                     @LogWarn(["Connection: heartbeat timeout (${this.heartbeatTimeoutMs} ms) - marking broken"])
+                    // 关闭 socket 以解除收包线程在旧 socket 上的阻塞读
+                    this._closeSocket()
                     this._markBroken("heartbeat timeout")
                 }
             }
         } else if (this._pendingReconnect && now >= this._nextReconnectMs) {
             // 4. 自动重连（指数退避）
             this._pendingReconnect = false
+            // 重连前必须先释放旧 socket（含其收包线程的阻塞读），否则每次重连
+            // 都遗留一个 socket 句柄与一个卡在旧 socket 上的收包线程
+            this._closeSocket()
             if (this._tryConnect()) {
                 this._startRecvThread()
                 this._reconnectAttempts = 0
@@ -337,23 +343,44 @@ public class Connection {
     /**
      * @brief[zh-cn] 关闭连接（用户主动；不触发 onDisconnected、不自动重连）
      *
-     * @brief[en] Closes the connection (user-initiated; no onDisconnected, no auto reconnect)
+     * @brief[en] Closes the connection (user-initiated; no
+     * onDisconnected, no auto reconnect)
      */
-    public func close(): Unit {
+    public func release(): Bool {
         this._stop.store(true)
         this._pendingReconnect = false
         this._pendingDisconnect = None
         _connected.store(false)
-        if (let Some(s) <- this._socket) {
-            try {
-                s.close()
-            } catch (_) {
-                // 忽略关闭异常
-            }
-        }
+        this._closeSocket()
+        return true
     }
 
     // ===== 内部 =====
+
+    /**
+     * @brief[zh-cn] 关闭并清空当前 socket（可指定期望实例，避免误关重连后的新 socket）
+     * @param[zh-cn] expected 期望关闭的 socket 实例；None 表示关闭当前持有的 socket
+     *
+     * @brief[en] Closes and clears the current socket (optionally pinned to an expected instance
+     * so a reconnect-created new socket is never closed by mistake)
+     * @param[en] expected The socket instance expected to be closed; None closes the current one
+     */
+    private func _closeSocket(expected!: Option<TcpSocket> = None): Unit {
+        if (let Some(s) <- this._socket) {
+            var shouldClose = true
+            if (let Some(exp) <- expected) {
+                shouldClose = refEq(exp, s)
+            }
+            if (shouldClose) {
+                try {
+                    s.close()
+                } catch (_) {
+                    // 忽略关闭异常
+                }
+                this._socket = None
+            }
+        }
+    }
 
     /** 同步建连（不启动线程） */
     private func _tryConnect(): Bool {
@@ -409,6 +436,8 @@ public class Connection {
                 }
                 // 其他帧类型（含 PONG）忽略——收到即已刷新存活时间
             }
+            // 读失败/对端关闭：先释放本线程持有的 socket（钉住实例，避免误关重连后的新 socket）
+            this._closeSocket(expected: Some(s))
         }
         // 线程退出：统一走断线标记（update 派发回调）；用户主动 close 时不标记
         if (!this._stop.load()) {

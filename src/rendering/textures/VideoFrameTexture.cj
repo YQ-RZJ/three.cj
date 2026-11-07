@@ -24,7 +24,7 @@
  * @file[zh-cn] VideoFrame 纹理
  * @brief[zh-cn] 由 VideoFrame（WebCodecs API）构造的纹理，每次 setFrame 后重传 GPU
  * @explain[zh-cn] VideoFrame 纹理：由 VideoFrame（WebCodecs API）构造的纹理，每次 setFrame 后重传 GPU。继承 VideoTexture；bgfx4cj 跨平台后端无 DOM video API，本类保留接口签名以对齐 JS side。默认 generateMipmaps=false、flipY=false、minFilter=LinearFilter。
-
+ *
  * @file[en] VideoFrame Texture
  * @brief[en] Texture constructed from VideoFrame (WebCodecs API), re-uploaded to GPU after each setFrame
  * @explain[en] VideoFrame texture: texture constructed from VideoFrame (WebCodecs API), re-uploaded to GPU after each setFrame. Extends VideoTexture; bgfx4cj cross-platform backend has no DOM video API, this class preserves interface signature to align with JS side. Defaults generateMipmaps=false, flipY=false, minFilter=LinearFilter. 
@@ -35,7 +35,7 @@ import three.utils.constants.*
 /**
  * @brief[zh-cn] VideoFrame 纹理类
  * @explain[zh-cn] 继承 VideoTexture，由 VideoFrame（WebCodecs API）构造的纹理，每次 setFrame 后重传 GPU。
-
+ *
  * @brief[en] VideoFrame texture class
  * @explain[en] Extends VideoTexture, texture constructed from VideoFrame (WebCodecs API), re-uploaded to GPU after each setFrame.
  */
@@ -45,7 +45,7 @@ public open class VideoFrameTexture <: VideoTexture {
      * @brief[zh-cn] 构造一个新的 VideoFrame 纹理
      * @param[zh-cn] width 纹理宽度（像素）
      * height 纹理高度（像素）
-
+     *
      * @brief[en] Construct a new VideoFrame texture
      * @param[en] width Texture width in pixels
      * height Texture height in pixels
@@ -61,7 +61,7 @@ public open class VideoFrameTexture <: VideoTexture {
     /**
      * @brief[zh-cn] 设置当前帧的像素数据
      * @param[zh-cn] frame 当前帧像素数据
-
+     *
      * @brief[en] Set current frame pixel data
      * @param[en] frame Current frame pixel data
      */
@@ -75,7 +75,7 @@ public open class VideoFrameTexture <: VideoTexture {
     /**
      * @brief[zh-cn] 返回一个与本实例值相同的新 VideoFrame 纹理实例
      * @return[zh-cn] 克隆的 VideoFrame 纹理实例
-
+     *
      * @brief[en] Return a new VideoFrame texture instance with the same values as this instance
      * @return[en] Cloned VideoFrame texture instance
      */

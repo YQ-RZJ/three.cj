@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -63,7 +64,7 @@ import std.math.*
  * Call update() when the light or its properties change.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
-public class HemisphereLightHelper <: Object3D {
+public class HemisphereLightHelper <: Object3D & IReleasable {
     /**
      * @brief[zh-cn] 被可视化的光源
      *
@@ -130,9 +131,9 @@ public class HemisphereLightHelper <: Object3D {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this.children.size > 0) {
             let meshOpt = this.children[0] as Mesh
             if (let Some(mesh) <- meshOpt) {
@@ -140,6 +141,7 @@ public class HemisphereLightHelper <: Object3D {
                 mesh.material.dispose()
             }
         }
+        return true
     }
 
     /**

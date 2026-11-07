@@ -26,8 +26,6 @@
  * @file[zh-cn] Profiler.cj three.profiler 运行时门面（无开关，直接使用即侵入）
  * @brief[zh-cn] Zone/Frame/Plot/Message/Memory/Gpu/Lock/Fiber/采样的高级封装，
  *               以及 GpuZone/LockZone/FiberScope 三个 Resource 作用域类
- * @package three.profiler
- *
  * @explain[zh-cn] 本包是**无条件的运行时门面**：用户直接调用这里的 API 即视为
  * 明确的剖析意图，无论任何环境变量如何设置都始终生效（必侵入）。
  *
@@ -65,6 +63,9 @@
  * (name,file,line) key, emitted by pointer like the official Tracy macros),
  * so repeated zone entry costs no allocation and the worker never frees the
  * source location memory.
+ *
+ * @package three.profiler
+ *
  */
 package three.profiler
 
@@ -196,18 +197,17 @@ public class ProfZone <: Resource {
      * @brief[zh-cn] 开始一个命名 zone（按键缓存源位置，宏路径使用）
      * @explain[zh-cn] key 由宏在展开期按 (fileId, line) 计算为编译期常量：
      *               运行时只做一次整型键查表，不再拼接字符串键。
-     *
-     * @brief[en] Begin a named zone (source location cached by key; used by the macro path)
-     * @explain[en] The key is computed by the macro at expansion time from
-     *               (fileId, line) as a compile-time constant: at runtime there is
-     *               only an integer-keyed lookup, with no string key built.
-     *
      * @param[zh-cn] key 编译期常量源位置键
      * @param[zh-cn] name zone 显示名
      * @param[zh-cn] color Tracy 颜色（0 = 默认）
      * @param[zh-cn] file 文件标识
      * @param[zh-cn] line 行号
      * @param[zh-cn] function 函数名
+     *
+     * @brief[en] Begin a named zone (source location cached by key; used by the macro path)
+     * @explain[en] The key is computed by the macro at expansion time from
+     *               (fileId, line) as a compile-time constant: at runtime there is
+     *               only an integer-keyed lookup, with no string key built.
      */
     public init(key: Int64, name: String, color: UInt32, file: String, line: UInt32, function: String) {
         ctx = ProfZone.beginCtxByKey(key, name, file, line, function, color)
@@ -742,10 +742,12 @@ public class Gpu {
 
     /**
      * @brief[zh-cn] GPU zone 开始（queryId 与 zoneEnd/time 配对）
+     *
+     * @brief[en] Begin a GPU zone (queryId pairs with zoneEnd/time)
+     *
      * @param srcloc 静态源位置指针地址（见 ProfZone.srclocHandle；worker 对
      *               静态 srcloc 永不 free，禁止传入动态 alloc 句柄）
      *
-     * @brief[en] Begin a GPU zone (queryId pairs with zoneEnd/time)
      * @param srcloc Static srcloc pointer address (see ProfZone.srclocHandle;
      *               the worker never frees static srclocs — do NOT pass a
      *               one-shot dynamic alloc handle here)

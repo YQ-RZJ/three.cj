@@ -44,6 +44,7 @@ import std.collection.*
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] LOD 细节层级节点，根据相机距离切换不同精度层级
@@ -51,7 +52,7 @@ import fastjson.stream.*
  * @brief[en] LOD (Level of Detail) node that switches between detail levels based on camera distance
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
-public class LOD <: Object3D {
+public class LOD <: Object3D & IReleasable {
     /**
      * @brief[zh-cn] 是否自动更新（渲染器内部使用）
      *
@@ -253,11 +254,17 @@ public class LOD <: Object3D {
         return this.getObjectForDistance(distance).uuid != this.uuid
     }
 
-    // 释放本实例及其各层级子对象的 GPU 资源。
-    // 注意：JS LOD 没有 dispose() 方法，此为仓颉侧补充的清理功能
-    public func dispose(): Unit {
+    /**
+     * @brief[zh-cn] 释放本实例及其各层级子对象的 GPU 资源。
+     * @explain[zh-cn] 注意：JS LOD 没有 dispose() 方法，此为仓颉侧补充的清理功能。
+     *
+     * @brief[en] frees GPU resources of this instance and its level children.
+     * @explain[en] Note: JS LOD has no dispose() method; this is a Cangjie-side cleanup addition.
+     */
+    public func release(): Bool {
         this.levels.clear()
-        this.dispatchEvent(Event("dispose"))
+        this.dispatchEvent(Event("release"))
+        return true
     }
 
     // 将给定 LOD 实例的值复制到本实例。

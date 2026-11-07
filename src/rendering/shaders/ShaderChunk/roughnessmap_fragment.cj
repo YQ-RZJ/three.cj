@@ -34,7 +34,7 @@ package three.rendering.shaders.ShaderChunk
 
 /**
  * roughnessmap_fragment GLSL 片段字符串
- * 
+ *
  * 使用仓颉三引号多行字符串语法 `"""..."""`。
  */
 public const roughnessmap_fragment: String = #"

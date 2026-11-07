@@ -127,6 +127,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -183,11 +184,12 @@ public let TAA_JITTER_VECTORS: Array<Array<Array<Int64>>> = [
 
 /**
  * @brief[zh-cn] 时间抗锯齿渲染 pass
- * @brief[en] Temporal antialiasing render pass
  * @explain[zh-cn] 跨帧累加 jitter 样本（无重投影，故非 TRAA）。
+ *
+ * @brief[en] Temporal antialiasing render pass
  * @explain[en] Accumulates jittered samples across frames (no reprojection, so not TRAA).
  */
-public class TAARenderPass <: SSAARenderPass {
+public class TAARenderPass <: SSAARenderPass & IReleasable {
     /**
      * TAA pass 用的 view ID 段约定（避开 SSAO 160/Bloom/shadow 50~127/
      * ShaderPass 200~209/SavePass 210/TexturePass 211/OutputPass 212/FXAAPass 213/
@@ -258,6 +260,8 @@ public class TAARenderPass <: SSAARenderPass {
         this.sampleLevel = 0
         // TAA 默认 needsSwap=true（pass 后 composer 交换 buffer）
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -553,7 +557,7 @@ public class TAARenderPass <: SSAARenderPass {
     /**
      * 释放 TAARenderPass 占用的所有 GPU 资源（holdRT + copy shader）。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         // 销毁 holdRT
         if (let Some(renderer) <- this._renderer) {
             if (this._holdCreated) {
@@ -564,8 +568,11 @@ public class TAARenderPass <: SSAARenderPass {
                 this._holdCreated = false
             }
         }
-        // 父类 SSAARenderPass.dispose 销毁 sampleRT + copy shader
-        super.dispose()
+        // 父类 SSAARenderPass.release 销毁 sampleRT + copy shader
+        super.release()
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        return true
     }
 
     // ===== 内部辅助 =====

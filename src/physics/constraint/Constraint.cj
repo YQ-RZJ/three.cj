@@ -62,6 +62,7 @@ package three.physics.constraint
 import three.core.math.*
 import three.physics.interfaces.*
 import three.physics.world.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 约束运行时句柄封装
@@ -69,16 +70,16 @@ import three.physics.world.*
  * let c = PhysicsConstraint.hinge(world, a, b, anchor, axis, -3.14, 3.14)
  * c.isEnabled()          // 查询是否启用
  * c.setEnabled(false)    // 临时断开约束
- * c.dispose()            // 销毁约束
+ * c.release()           // 销毁约束
  *
  * @brief[en] Runtime handle wrapper for a constraint
  * @explain[en] Usage:
  * let c = PhysicsConstraint.hinge(world, a, b, anchor, axis, -3.14, 3.14)
  * c.isEnabled()          // query whether it is enabled
  * c.setEnabled(false)    // temporarily disable the constraint
- * c.dispose()            // destroy the constraint
+ * c.release()           // destroy the constraint
  */
-public class PhysicsConstraint {
+public class PhysicsConstraint <: IReleasable {
     /// 所属物理世界
     private var _world: PhysicsWorld
     /// 约束句柄
@@ -112,13 +113,11 @@ public class PhysicsConstraint {
 
     /**
      * @brief[zh-cn] 约束是否有效（已创建且未销毁）
-     * @return[zh-cn] 有效返回 true
      *
      * @brief[en] Whether the constraint is valid (created and not disposed)
-     * @return[en] true if valid
      */
-    public func isValid(): Bool {
-        return !this._disposed && this._handle.isValid()
+    public prop releasable: Bool {
+        get() { !this._disposed && this._handle.isValid() }
     }
 
     /**
@@ -129,7 +128,7 @@ public class PhysicsConstraint {
      * @return[en] true if enabled
      */
     public func isEnabled(): Bool {
-        if (!this.isValid()) { return false }
+        if (!this.releasable) { return false }
         return this._world.isConstraintEnabled(this._handle)
     }
 
@@ -143,7 +142,7 @@ public class PhysicsConstraint {
      * @return[en] Returns this for chaining
      */
     public func setEnabled(enabled: Bool): PhysicsConstraint {
-        if (this.isValid()) {
+        if (this.releasable) {
             this._world.setConstraintEnabled(this._handle, enabled)
         }
         return this
@@ -152,15 +151,16 @@ public class PhysicsConstraint {
     /**
      * @brief[zh-cn] 销毁约束并从世界移除
      *
-     * @brief[en] Disposes the constraint and removes it from the world
+     * @brief[en] disposes the constraint and removes it from the world
      */
-    public func dispose(): Unit {
-        if (this._disposed) { return }
+    public func release(): Bool {
+        if (this._disposed) { return true }
         if (this._handle.isValid()) {
             this._world.destroyConstraint(this._handle)
         }
         this._handle = PhysicsConstraintHandle.INVALID
         this._disposed = true
+        return true
     }
 
     // =========================================================================
