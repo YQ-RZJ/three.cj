@@ -1,23 +1,23 @@
 [dependencies]
   [dependencies.bgfx4cj]
     git = "https://gitcode.com/Cangjie-TPC/bgfx4cj.git"
-    tag = "v1.1.1"
+    tag = "v1.1.2"
     output-type = "static"
   [dependencies.openalsoft4cj]
     git = "https://gitcode.com/yq24w/openalsoft4cj.git"
-    tag = "v1.0.0"
+    tag = "v1.0.1"
     output-type = "static"
   [dependencies.jolt4cj]
     git = "https://gitcode.com/yq24w/jolt4cj.git"
-    tag = "v1.0.0"
+    tag = "v1.0.1"
     output-type = "static"
   [dependencies.luajit4cj]
     git = "https://gitcode.com/yq24w/luajit4cj.git"
-    tag = "v1.0.0"
+    tag = "v1.0.1"
     output-type = "static"
   [dependencies.httpclient4cj]
     git = "https://gitcode.com/yq24w/httpclient4cj.git"
-    tag = "v1.1.0"
+    tag = "v1.1.1"
     branch = "httpclient4cj_cangjie-1.1.0"
     output-type = "static"
   [dependencies.fastjson]
@@ -26,15 +26,15 @@
     output-type = "static"
   [dependencies.sdl4cj]
     git = "https://gitcode.com/yq24w/sdl4cj.git"
-    tag = "v1.0.0"
+    tag = "v1.0.1"
     output-type = "static"
   [dependencies.imgui4cj]
     git = "https://gitcode.com/yq24w/imgui4cj.git"
-    tag = "v1.1.0"
+    tag = "v1.1.1"
     output-type = "static"
   [dependencies.tracy4cj]
     git = "https://gitcode.com/yq24w/tracy4cj.git"
-    tag = "v1.1.0"
+    tag = "v1.1.1"
     output-type = "static"
 
 [package]
@@ -47,7 +47,7 @@
   override-compile-option = ""
   src-dir = "src"
   target-dir = ""
-  version = "0.2.0"
+  version = "1.0.0"
   [package.package-configuration]
 
 [profile]
@@ -74,9 +74,9 @@
     link-option = "-L ${EXTEDN_LIBS_PATH_LINUX_ARM64} ${EXTEDN_LINK_OPTION_LINUX_ARM64} --version-script=${EXTEDN_LIBS_PATH_LINUX_ARM64}/symbols_elf.map -l:libtracyc.a -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libstdc++.a -l:libgcc_eh.a -lX11 -lXext -lXcursor -lXi -lXfixes -lXrandr -lXrender -lGL -lasound -lstdc++ -lpthread -ldl -lrt -lm"
   # ---- macOS ----
   [target.x86_64-apple-darwin]
-    link-option = "-L ${EXTEDN_LIBS_PATH_MACOS_X64} ${EXTEDN_LINK_OPTION_MACOS_X64} -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libtracyc.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit"
+    link-option = "-L ${EXTEDN_LIBS_PATH_MACOS_X64} ${EXTEDN_LINK_OPTION_MACOS_X64} ${EXTEDN_LIBS_PATH_MACOS_X64}/libimgui.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libSDL3.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libbimg_capi.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libbimg_decode.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libtracyc.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libbimg_encode.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libgeometryc_capi.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libshaderc_capi.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libbgfx.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libbimg.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libbx.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libopenal.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libminiaudio.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libjoltc.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libJolt.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libluajit.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libtlsbridge.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libssl.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libcrypto.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libcommon.a ${EXTEDN_LIBS_PATH_MACOS_X64}/libdefault.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreHaptics -framework GameController -framework CoreMedia -framework QuartzCore -framework VideoToolbox -framework ForceFeedback -framework Carbon -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -lz"
   [target.aarch64-apple-darwin]
-    link-option = "-L ${EXTEDN_LIBS_PATH_MACOS_ARM64} ${EXTEDN_LINK_OPTION_MACOS_ARM64} -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libtracyc.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit"
+    link-option = "-L ${EXTEDN_LIBS_PATH_MACOS_ARM64} ${EXTEDN_LINK_OPTION_MACOS_ARM64} ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libimgui.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libSDL3.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libbimg_capi.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libbimg_decode.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libtracyc.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libbimg_encode.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libgeometryc_capi.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libshaderc_capi.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libbgfx.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libbimg.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libbx.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libopenal.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libminiaudio.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libjoltc.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libJolt.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libluajit.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libtlsbridge.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libssl.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libcrypto.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libcommon.a ${EXTEDN_LIBS_PATH_MACOS_ARM64}/libdefault.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreHaptics -framework GameController -framework CoreMedia -framework QuartzCore -framework VideoToolbox -framework ForceFeedback -framework Carbon -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -lz"
   # ---- OpenHarmony (OHOS) ----
   [target.aarch64-linux-ohos]
     compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/aarch64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
@@ -84,3 +84,24 @@
   [target.x86_64-linux-ohos]
     compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/x86_64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
     link-option = "-L ${EXTEDN_LIBS_PATH_OHOS_X64} ${EXTEDN_LINK_OPTION_OHOS_X64} --version-script=${EXTEDN_LIBS_PATH_OHOS_X64}/symbols_elf.map -l:libtracyc.a -l:libimgui.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -lSDL3 -lEGL -lGLESv3 -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -l:libc++_static.a -l:libc++abi.a -l:libunwind.a -lpthread -ldl -lOpenSLES -l:libnative_window.so"
+  # ---- iOS ----
+  # IOS_SYSROOT / IOS_XCODE_TOOLCHAIN 由 CI（three-ios workflow）或本地
+  # Xcode 环境提供：分别指向 iPhoneOS SDK 与 Xcode 工具链 bin 目录
+  [target.arm64-apple-ios11]
+    compile-option = "-B \"${IOS_XCODE_TOOLCHAIN}\" --sysroot \"${IOS_SYSROOT}\""
+    link-option = "-L ${EXTEDN_LIBS_PATH_IOS_ARM64} ${EXTEDN_LINK_OPTION_IOS_ARM64} ${EXTEDN_LIBS_PATH_IOS_ARM64}/libtracyc.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libimgui.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libSDL3.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libbimg_capi.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libbimg_decode.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libbimg_encode.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libgeometryc_capi.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libshaderc_capi.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libbgfx.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libbimg.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libbx.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libopenal.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libminiaudio.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libjoltc.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libJolt.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libluajit.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libtlsbridge.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libssl.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libcrypto.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libcommon.a ${EXTEDN_LIBS_PATH_IOS_ARM64}/libdefault.a -lc++ -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore -framework Metal -framework MetalKit -framework GameController -framework CoreHaptics -framework CoreMotion -framework CoreBluetooth -framework AVFAudio -framework CoreAudio -framework VideoToolbox -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -framework AudioToolbox -framework OpenGLES -framework CoreVideo -framework CoreMedia -lz"
+  # 模拟器 target：IOS_SYSROOT 指向 iPhoneSimulator SDK（CI 按矩阵注入）
+  [target.arm64-apple-ios11-simulator]
+    compile-option = "-B \"${IOS_XCODE_TOOLCHAIN}\" --sysroot \"${IOS_SYSROOT}\""
+        link-option = "-L ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64} ${EXTEDN_LINK_OPTION_IOS_SIM_ARM64} ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libtracyc.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libimgui.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libSDL3.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libbimg_capi.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libbimg_decode.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libbimg_encode.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libgeometryc_capi.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libshaderc_capi.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libbgfx.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libbimg.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libbx.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libopenal.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libminiaudio.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libjoltc.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libJolt.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libluajit.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libtlsbridge.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libssl.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libcrypto.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libcommon.a ${EXTEDN_LIBS_PATH_IOS_SIM_ARM64}/libdefault.a -lc++ -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore -framework Metal -framework MetalKit -framework GameController -framework CoreHaptics -framework CoreMotion -framework CoreBluetooth -framework AVFAudio -framework CoreAudio -framework VideoToolbox -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -framework AudioToolbox -framework OpenGLES -framework CoreVideo -framework CoreMedia -lz"
+  [target.x86_64-apple-ios11-simulator]
+    compile-option = "-B \"${IOS_XCODE_TOOLCHAIN}\" --sysroot \"${IOS_SYSROOT}\""
+        link-option = "-L ${EXTEDN_LIBS_PATH_IOS_SIM_X64} ${EXTEDN_LINK_OPTION_IOS_SIM_X64} ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libtracyc.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libimgui.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libSDL3.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libbimg_capi.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libbimg_decode.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libbimg_encode.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libgeometryc_capi.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libshaderc_capi.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libbgfx.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libbimg.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libbx.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libopenal.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libminiaudio.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libjoltc.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libJolt.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libluajit.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libtlsbridge.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libssl.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libcrypto.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libcommon.a ${EXTEDN_LIBS_PATH_IOS_SIM_X64}/libdefault.a -lc++ -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore -framework Metal -framework MetalKit -framework GameController -framework CoreHaptics -framework CoreMotion -framework CoreBluetooth -framework AVFAudio -framework CoreAudio -framework VideoToolbox -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -framework AudioToolbox -framework OpenGLES -framework CoreVideo -framework CoreMedia -lz"
+  # ---- Android ----
+  # ANDROID_NDK_HOME 由 CI（three-android workflow）或本地 NDK 环境提供；
+  [target.aarch64-linux-android]
+    compile-option = "-B \"${CANGJIE_HOME}/third_party/llvm/bin\" -B \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin\" --sysroot \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot\""
+    link-option = "-L ${EXTEDN_LIBS_PATH_ANDROID_ARM64} ${EXTEDN_LINK_OPTION_ANDROID_ARM64} --version-script=${EXTEDN_LIBS_PATH_ANDROID_ARM64}/symbols_elf.map -l:libtracyc.a -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libc++_static.a -l:libc++abi.a -ldl -lm -llog -landroid -lEGL -lGLESv3 -lOpenSLES"
+  [target.x86_64-linux-android]
+    compile-option = "-B \"${CANGJIE_HOME}/third_party/llvm/bin\" -B \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin\" --sysroot \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot\""
+    link-option = "-L ${EXTEDN_LIBS_PATH_ANDROID_X64} ${EXTEDN_LINK_OPTION_ANDROID_X64} --version-script=${EXTEDN_LIBS_PATH_ANDROID_X64}/symbols_elf.map -l:libtracyc.a -l:libimgui.a -l:libSDL3.a -l:libbimg_capi.a -l:libbimg_decode.a -l:libbimg_encode.a -l:libgeometryc_capi.a -l:libshaderc_capi.a -l:libbgfx.a -l:libbimg.a -l:libbx.a -l:libopenal.a -l:libminiaudio.a -l:libjoltc.a -l:libJolt.a -l:libluajit.a -l:libtlsbridge.a -l:libssl.a -l:libcrypto.a -l:libcommon.a -l:libdefault.a -l:libc++_static.a -l:libc++abi.a -ldl -lm -llog -landroid -lEGL -lGLESv3 -lOpenSLES"
