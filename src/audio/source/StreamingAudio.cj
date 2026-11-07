@@ -37,6 +37,8 @@
  * stream.play()
  * 每帧调用：
  * stream.updateStream()
+ * @note[zh-cn] 所有 OpenAL 调用经 context.execAudio 在音频线程执行；miniaudio decoder
+ * 也在音频线程内访问，避免跨线程竞争。
  *
  * @file[en] StreamingAudio streaming audio playback source
  * @brief[en] Streaming audio that plays large files / long audio by chunked decode and playback
@@ -56,9 +58,6 @@
  * stream.play()
  * Then each frame:
  * stream.updateStream()
- *
- * @note[zh-cn] 所有 OpenAL 调用经 context.execAudio 在音频线程执行；miniaudio decoder
- * 也在音频线程内访问，避免跨线程竞争。
  * @note[en] All OpenAL calls run on the audio thread via context.execAudio; the miniaudio
  * decoder is also accessed on the audio thread to avoid cross-thread races.
  */
@@ -84,6 +83,7 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import three.profiler.*
 import three.profiler.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 流式音频，继承 Audio
@@ -233,6 +233,25 @@ public open class StreamingAudio <: Audio {
         let bufCount = this._streamBufferCount
 
         this.context.execAudio({ =>
+            // 重复 load 时先释放上一次的解码器 / 流式缓冲 / PCM 缓冲，
+            // 否则旧资源被直接覆盖而永久泄漏
+            if (this._decoderInitialized) {
+                ma_decoder_uninit_cj(CPointer<Unit>(this._decoder))
+                this._decoderInitialized = false
+            }
+            if (!this._decoder.isNull()) {
+                unsafe { LibC.free(this._decoder) }
+                this._decoder = CPointer<UInt8>()
+            }
+            if (!this._streamBufferIds.isNull()) {
+                alDeleteBuffers_cj(bufCount, this._streamBufferIds)
+                unsafe { LibC.free(this._streamBufferIds) }
+                this._streamBufferIds = CPointer<UInt32>()
+            }
+            if (!this._pcmReadBuffer.isNull()) {
+                unsafe { LibC.free(this._pcmReadBuffer) }
+                this._pcmReadBuffer = CPointer<UInt8>()
+            }
             // 分配并初始化解码器
             this._decoder = unsafe { LibC.malloc<UInt8>(count: 1024) }
             let result = ma_decoder_init_file_cj(pathCs, CPointer<Unit>(), CPointer<Unit>(this._decoder))
@@ -554,9 +573,8 @@ public open class StreamingAudio <: Audio {
      *
      * @brief[en] Releases streaming audio resources (decoder + streaming buffers + source)
      */
-    public func dispose(): Unit {
-        this.stop()
-        this.disconnect()
+    public override func release(): Bool {
+        let ok = super.release()
 
         let decoder = this._decoder
         let streamIds = this._streamBufferIds
@@ -590,5 +608,6 @@ public open class StreamingAudio <: Audio {
         this._decoder = CPointer<UInt8>()
         this._streamBufferIds = CPointer<UInt32>()
         this._pcmReadBuffer = CPointer<UInt8>()
+        return ok
     }
 }

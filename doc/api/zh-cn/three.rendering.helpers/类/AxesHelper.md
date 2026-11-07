@@ -1,15 +1,9 @@
 # 类
 ## class AxesHelper
 ```cj
-public class AxesHelper <: LineSegments
+public class AxesHelper <: LineSegments & IReleasable
 ```
 坐标轴辅助对象，用于可视化 X/Y/Z 坐标轴
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(Float64\)
 ```cj
@@ -22,6 +16,12 @@ public init(size!: Float64 = 1.0)
 |名称|类型|描述|
 |---|---|---|
 |size|Float64|轴线长度，默认 1|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func setColors\(Color,Color,Color\)
 ```cj

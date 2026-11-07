@@ -1,15 +1,15 @@
 # Class
 ## class PhysicsSoftBody
 ```cj
-public class PhysicsSoftBody
+public class PhysicsSoftBody <: IReleasable
 ```
 Runtime soft body
 
-### func dispose\(\)
+### func release\(\)
 ```cj
-public func dispose(): Unit
+public func release(): Bool
 ```
-Disposes the soft body (removes from the world and releases the body)
+disposes the soft body (removes from the world and releases the body)
 
 ### prop bodyID: UInt32
 ```cj
@@ -17,9 +17,9 @@ public prop bodyID: UInt32
 ```
 The soft-body body ID
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 Whether the soft body is valid (created successfully and not disposed)
 

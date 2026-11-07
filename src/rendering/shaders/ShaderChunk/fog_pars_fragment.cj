@@ -34,7 +34,7 @@ package three.rendering.shaders.ShaderChunk
 
 /**
  * fog_pars_fragment GLSL 片段字符串
- * 
+ *
  * 使用仓颉三引号多行字符串语法 `"""..."""`。
  */
 public const fog_pars_fragment: String = #"

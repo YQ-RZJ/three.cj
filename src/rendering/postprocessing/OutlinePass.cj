@@ -73,6 +73,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -103,85 +104,99 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] Outline 后处理 pass
- * @brief[en] Outline post-processing pass
  * @explain[zh-cn] 基于 depth buffer 的边缘检测 + 可分离高斯模糊。
+ *
+ * @brief[en] Outline post-processing pass
  * @explain[en] Depth-buffer-based edge detection + separable Gaussian blur.
  */
-public class OutlinePass <: Pass {
+public class OutlinePass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 待渲染场景
+     *
      * @brief[en] The scene to render
      */
     public let renderScene: Scene
 
     /**
      * @brief[zh-cn] 待渲染相机
+     *
      * @brief[en] The camera to render with
      */
     public let renderCamera: Camera
 
     /**
      * @brief[zh-cn] 选中的 3D 物体（描边目标）
+     *
      * @brief[en] The selected 3D objects (outline targets)
      */
     public var selectedObjects: ArrayList<Object3D>
 
     /**
      * @brief[zh-cn] 可见边颜色
+     *
      * @brief[en] Visible edge color
      */
     public var visibleEdgeColor: Color = Color(1.0, 1.0, 1.0)
 
     /**
      * @brief[zh-cn] 隐藏边颜色
+     *
      * @brief[en] Hidden edge color
      */
     public var hiddenEdgeColor: Color = Color(0.1, 0.04, 0.02)
 
     /**
      * @brief[zh-cn] 边缘发光强度（动画 glow/pulse）
+     *
      * @brief[en] Edge glow strength (animated glow/pulse)
      */
     public var edgeGlow: Float64 = 0.0
 
     /**
      * @brief[zh-cn] 是否使用图案纹理
+     *
      * @brief[en] Whether to use the pattern texture
      */
     public var usePatternTexture: Bool = false
 
     /**
      * @brief[zh-cn] 图案纹理（需 usePatternTexture=true）
+     *
      * @brief[en] The pattern texture (requires usePatternTexture=true)
      */
     public var patternTexture: Option<Texture> = None
 
     /**
      * @brief[zh-cn] 边缘厚度
+     *
      * @brief[en] Edge thickness
      */
     public var edgeThickness: Float64 = 1.0
 
     /**
      * @brief[zh-cn] 边缘强度
+     *
      * @brief[en] Edge strength
      */
     public var edgeStrength: Float64 = 3.0
 
     /**
      * @brief[zh-cn] 降采样比例
+     *
      * @brief[en] Downsample ratio
      */
     public var downSampleRatio: Int64 = 2
 
     /**
      * @brief[zh-cn] 脉冲周期（动画 pulse）
+     *
      * @brief[en] Pulse period (animated pulse)
      */
     public var pulsePeriod: Float64 = 0.0
 
     /**
      * @brief[zh-cn] 效果分辨率（Vector2）
+     *
      * @brief[en] Effect resolution (Vector2)
      */
     public var resolution: Vector2 = Vector2(256.0, 256.0)
@@ -217,6 +232,15 @@ public class OutlinePass <: Pass {
     private var _quarterW: Int64 = 0   // 1/4 分辨率
     private var _quarterH: Int64 = 0
     private var _rtsCreated: Bool = false
+
+    /**
+     * @brief[zh-cn] 内部 RT 是否已创建且未被释放
+     *
+     * @brief[en] whether the internal RTs exist and have not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._rtsCreated }
+    }
 
     /** 渲染器引用（render() 时注入；RT 创建/销毁与几何体缓存释放走 renderer 高阶 API） */
     private var _renderer: Option<ThreeRenderer> = None
@@ -319,6 +343,8 @@ public class OutlinePass <: Pass {
         // 必须 needsSwap=true 才能把结果 swap 回 readBuffer 供后续上屏/下一 pass 使用
         // （对齐 SSAO apply 输出 writeBuffer + needsSwap=true 的成熟模式）。
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -1078,7 +1104,7 @@ public class OutlinePass <: Pass {
     /**
      * 释放 OutlinePass 占用的 GPU 资源（所有 RT + shader 缓存）。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         this._copyProg = None
         this._whiteProg = None
@@ -1090,6 +1116,9 @@ public class OutlinePass <: Pass {
             renderer.destroyVertexLayout(lh)
             this._layoutHandleCache = None
         }
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        return true
     }
 }
 

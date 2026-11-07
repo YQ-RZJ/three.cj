@@ -1,15 +1,9 @@
 # Class
 ## class PlaneHelper
 ```cj
-public class PlaneHelper <: Line
+public class PlaneHelper <: Line & IReleasable
 ```
 Plane helper for visualizing Plane objects
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ Parameter:
 |plane|Plane||
 |size|Float64||
 |hex|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func updateMatrixWorld\(Bool\)
 ```cj

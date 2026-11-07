@@ -25,14 +25,13 @@
  * @brief[zh-cn] Lua 函数引用封装，包装 Lua 侧的函数并支持调用
  * @explain[zh-cn] 包装 Lua 侧的函数（function），内部经 luaL_ref 注册表引用保持有效，
  * 提供 call() 调用（任意参数 → 任意返回值）与参数/返回值 LuaValue 转换。
+ * @example[zh-cn] 编译并调用一个加法函数
  *
  * @file[en] LuaFunction  Lua function reference wrapper (three.script.vm sub-package)
  * @brief[en] Lua function reference wrapper encapsulating a Lua function and supporting calls
  * @explain[en] Wraps a Lua function; internally the reference is kept alive via luaL_ref
  * registry references. Provides call() with arbitrary arguments/results and
  * LuaValue conversion for arguments and return values.
- *
- * @example[zh-cn] 编译并调用一个加法函数
  * @example[en] Compiling and calling an addition function
  * let f = vm.loadString("function(a, b) return a + b, a * b end")
  * let r = f.call([LuaValue.of(3.0), LuaValue.of(4.0)])
@@ -43,6 +42,7 @@ package three.script.vm
 
 import std.collection.*
 import luajit4cj.luajit.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] Lua 函数引用
@@ -52,7 +52,7 @@ import luajit4cj.luajit.*
  * @explain[en] Holds a registry reference; can be called repeatedly, queried for
  * validity and released when no longer needed.
  */
-public class LuaFunction {
+public class LuaFunction <: IReleasable {
     /// 所属虚拟机
     private var _vm: LuaVM
 
@@ -117,25 +117,34 @@ public class LuaFunction {
      *
      * @brief[en] Whether the reference is still valid (not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() { !this._disposed }
     }
 
     /**
      * @brief[zh-cn] 释放注册表引用
-     * @explain[zh-cn] 释放后 isValid 变为 false，该引用不再可用；重复调用无副作用。
+     * @explain[zh-cn] 释放后 releasable 变为 false，该引用不再可用；重复调用无副作用。
      *
      * @brief[en] Releases the registry reference
-     * @explain[en] After release isValid becomes false and the reference is no longer usable;
+     * @explain[en] After release releasable becomes false and the reference is no longer usable;
      * calling again has no effect.
      */
-    public func dispose(): Unit {
-        if (this._disposed) { return }
+    /**
+     * @brief[zh-cn] 释放注册表引用。
+     * @explain[zh-cn] release 后 releasable 变为 false，引用不可再使用；重复调用无效果。
+     *
+     * @brief[en] releases the registry reference.
+     * @explain[en] After release releasable becomes false and the reference is no longer usable;
+     * calling again has no effect.
+     */
+    public func release(): Bool {
+        if (this._disposed) { return true }
         let L = this._vm.handle()
         if (!L.isNull()) {
             luaL_unref_cj(L, LUA_REGISTRYINDEX, this._ref)
         }
         this._disposed = true
+        return true
     }
 
     // =========================================================================
@@ -146,12 +155,11 @@ public class LuaFunction {
      * @brief[zh-cn] 调用函数
      * @param[zh-cn] args 参数数组（LuaValue；空数组 = 无参数）
      * @return[zh-cn] 返回值数组（可能为空）
+     * @throws[zh-cn] LuaError 运行时错误
      *
      * @brief[en] Calls the function
      * @param[en] args Argument array (LuaValue; empty array means no arguments)
      * @return[en] The result array (may be empty)
-     *
-     * @throws[zh-cn] LuaError 运行时错误
      * @throws[en] LuaError On a runtime error
      */
     public func call(args!: Array<LuaValue> = []): Array<LuaValue> {

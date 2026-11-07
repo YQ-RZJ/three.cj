@@ -11,6 +11,12 @@ public func clear(): Unit
 ```
 清空所有缓存
 
+### func endFrame\(\)
+```cj
+public func endFrame(): Unit
+```
+帧末驱逐：移除本帧未被访问的缓存条目
+
 ### func get\(Object3D,BufferGeometry,Material,RenderContext,Camera,Scene\)
 ```cj
 public func get(mesh: Object3D, geometry: BufferGeometry, material: Material, context: RenderContext, camera: Camera, scene: Scene): RenderObject

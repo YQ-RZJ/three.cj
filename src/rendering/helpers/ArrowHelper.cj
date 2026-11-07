@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -64,7 +65,7 @@ import std.math.*
  * supports setting direction, length and color.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
-public class ArrowHelper <: Object3D {
+public class ArrowHelper <: Object3D & IReleasable {
     private static var _lineGeometry: Option<BufferGeometry> = None<BufferGeometry>
     private static var _coneGeometry: Option<BufferGeometry> = None<BufferGeometry>
     private static var _axis: Vector3 = Vector3()
@@ -213,12 +214,13 @@ public class ArrowHelper <: Object3D {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.line.geometry.dispose()
         this.line.material.dispose()
         this.cone.geometry.dispose()
         this.cone.material.dispose()
+        return true
     }
 }

@@ -24,7 +24,7 @@
  * @file[zh-cn] 压缩纹理
  * @brief[zh-cn] 由 GPU 原生压缩格式数据构造的纹理
  * @explain[zh-cn] 压缩纹理：由 GPU 原生压缩格式（BC1/BC3/ASTC/ETC/PVRTC 等）数据构造。与 DataTexture 不同：data 已是 GPU 压缩格式，直接上传无需 CPU 解码；mipmaps 数组填充各 mipmap 层压缩数据。默认 generateMipmaps=false、flipY=false、unpackAlignment=1。
-
+ *
  * @file[en] Compressed Texture
  * @brief[en] Texture constructed from GPU native compressed format data
  * @explain[en] Compressed texture: constructed from GPU native compressed format data (BC1/BC3/ASTC/ETC/PVRTC, etc.). Unlike DataTexture: data is already in GPU compressed format, uploaded directly without CPU decoding; mipmaps array is filled with compressed data for each mipmap level. Defaults generateMipmaps=false, flipY=false, unpackAlignment=1. 
@@ -35,7 +35,7 @@ import three.utils.constants.*
 /**
  * @brief[zh-cn] 压缩纹理类
  * @explain[zh-cn] 由 GPU 原生压缩格式数据构造的纹理，默认 generateMipmaps=false、flipY=false、unpackAlignment=1。
-
+ *
  * @brief[en] Compressed texture class
  * @explain[en] Texture constructed from GPU native compressed format data, defaults generateMipmaps=false, flipY=false, unpackAlignment=1.
  */
@@ -55,7 +55,7 @@ public open class CompressedTexture <: Texture {
      * minFilter 缩小过滤器，默认 LinearMipmapLinearFilter
      * anisotropy 各向异性等级，默认 1
      * colorSpace 颜色空间，默认空
-
+     *
      * @brief[en] Construct a new compressed texture
      * @param[en] data Compressed pixel array
      * width Texture width in pixels

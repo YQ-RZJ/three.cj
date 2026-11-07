@@ -1,15 +1,9 @@
 # Class
 ## class BgfxRenderStates
 ```cj
-public class BgfxRenderStates
+public class BgfxRenderStates <: IReleasable
 ```
 bgfx render state management
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose all render states
 
 ### func get\(Int64\)
 ```cj
@@ -32,4 +26,10 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all render states
 

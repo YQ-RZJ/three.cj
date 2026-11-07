@@ -1,15 +1,9 @@
 # Class
 ## class PointLightHelper
 ```cj
-public class PointLightHelper <: Mesh
+public class PointLightHelper <: Mesh & IReleasable
 ```
 Point light helper visualizing point light position with a spherical wireframe mesh
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ Parameter:
 |light|Light||
 |sphereSize|Float64||
 |color|Option<Color>||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func update\(\)
 ```cj

@@ -1,7 +1,7 @@
 # 类
 ## class ArrowHelper
 ```cj
-public class ArrowHelper <: Object3D
+public class ArrowHelper <: Object3D & IReleasable
 ```
 三维箭头辅助对象，用于可视化方向
 
@@ -22,12 +22,6 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 
 - 自身引用
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
-
 ### func init\(Vector3,Vector3,Float64,UInt32,Float64,Float64\)
 ```cj
 public init(dir!: Vector3 = Vector3(0.0, 0.0, 1.0), origin!: Vector3 = Vector3(0.0, 0.0, 0.0), length!: Float64 = 1.0, color!: UInt32 = 0xffff00, headLength!: Float64 = 0.0, headWidth!: Float64 = 0.0)
@@ -44,6 +38,12 @@ public init(dir!: Vector3 = Vector3(0.0, 0.0, 1.0), origin!: Vector3 = Vector3(0
 |color|UInt32||
 |headLength|Float64||
 |headWidth|Float64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func setColor\(Color\)
 ```cj

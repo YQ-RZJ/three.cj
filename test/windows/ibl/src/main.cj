@@ -138,10 +138,10 @@ public class TestWindow <: WindowEngine {
     public override func onClose(): Unit {
         @LogInfo(["ibl", "【5/5】清理资源..."])
         match (this.composer) {
-            case Some(composer) => composer.dispose()
+            case Some(composer) => composer.release()
             case None => ()
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         @LogInfo(["ibl", "ThreeRenderer 已关闭"])
         @LogInfo(["ibl", "=== 测试完成 ==="])
     }

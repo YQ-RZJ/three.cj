@@ -1,15 +1,9 @@
 # Class
 ## class BgfxProperties
 ```cj
-public class BgfxProperties
+public class BgfxProperties <: IReleasable
 ```
 bgfx properties storage
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes all data
 
 ### func get\(Object3D\)
 ```cj
@@ -48,6 +42,12 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all data
 
 ### func remove\(Object3D\)
 ```cj

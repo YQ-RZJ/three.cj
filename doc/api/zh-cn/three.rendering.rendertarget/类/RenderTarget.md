@@ -1,7 +1,7 @@
 # 类
 ## class RenderTarget
 ```cj
-public open class RenderTarget <: EventDispatcher
+public open class RenderTarget <: EventDispatcher & IReleasable
 ```
 渲染目标类，存储离屏渲染缓冲描述
 
@@ -30,12 +30,6 @@ public func copy(source: RenderTarget): RenderTarget
 返回: 
 
 - 当前实例的引用
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放此实例分配的 GPU 相关资源
 
 ### func getDepthTexture\(\)
 ```cj
@@ -83,6 +77,12 @@ public init(width: Int64, height: Int64)
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放此实例分配的 GPU 相关资源
 
 ### func setDepthTexture\(?IRenderTargetTexture\)
 ```cj

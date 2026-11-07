@@ -1,7 +1,7 @@
 # 类
 ## class UiTextFilter
 ```cj
-public class UiTextFilter
+public class UiTextFilter <: IReleasable
 ```
 文本过滤器，支持按过滤条件筛选文本列表
 
@@ -10,12 +10,6 @@ public class UiTextFilter
 public func clear(): Unit
 ```
 清除过滤条件
-
-### func destroy\(\)
-```cj
-public func destroy(): Unit
-```
-销毁过滤器并释放底层资源
 
 ### func draw\(String\)
 ```cj
@@ -70,4 +64,10 @@ public func passFilter(text: String): Bool
 返回: 
 
 - 文本是否通过过滤条件
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁过滤器并释放底层资源
 

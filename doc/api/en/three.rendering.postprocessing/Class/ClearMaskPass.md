@@ -1,7 +1,7 @@
 # Class
 ## class ClearMaskPass
 ```cj
-public class ClearMaskPass <: Pass
+public class ClearMaskPass <: Pass & IReleasable
 ```
 Clear-mask pass
 

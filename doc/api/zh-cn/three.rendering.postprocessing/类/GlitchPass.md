@@ -1,17 +1,9 @@
 # 类
 ## class GlitchPass
 ```cj
-public class GlitchPass <: Pass
+public class GlitchPass <: Pass & IReleasable
 ```
 数字故障后处理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 glitch pass 占用的所有 GPU 资源。
-释放位移贴图纹理；glitch shader program 由 PostProcessingShaders 全局管理，不在此 dispose；
-全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func init\(Int64\)
 ```cj
@@ -37,6 +29,14 @@ public override func onAttach(composer: EffectComposer): Unit
 |名称|类型|描述|
 |---|---|---|
 |composer|EffectComposer|挂载的 EffectComposer|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 glitch pass 占用的所有 GPU 资源。
+释放位移贴图纹理；glitch shader program 由 PostProcessingShaders 全局管理，不在此 dispose；
+全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -83,6 +83,12 @@ GlitchPass 无内部 RT，尺寸仅用于视口记录。
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+位移贴图纹理是否已创建且未被释放
 
 ### let GLITCH\_VIEW\_ID\_BASE
 ```cj

@@ -29,6 +29,9 @@
  * 使用 std.sync.Mutex + synchronized 保证线程安全
  * - ScopeGuard    : RAII 作用域守卫，离开作用域时自动执行清理回调
  * - AutoFreePtr<T>: 自动释放包装，专用于 LibC.malloc 分配的内存
+ * @note[zh-cn] 所有类均提供 ~init 终结器，GC 回收时会自动释放遗漏的指针资源，
+ * 作为 dispose() 手动调用的安全兜底。数学运算相关工具函数已移入
+ * three.core.math.utils，日志相关已移入 Logger（logger.cj）。
  *
  * @file[en] utils  Smart-pointer and scope-guard utilities
  * @brief[en] Provides smart-pointer wrappers for the bgfx4cj CFFI project to prevent
@@ -39,13 +42,10 @@
  * thread-safe via std.sync.Mutex + synchronized
  * - ScopeGuard    : RAII scope guard that runs a cleanup callback on scope exit
  * - AutoFreePtr<T>: auto-free wrapper for memory allocated by LibC.malloc
- *
- * @note[zh-cn] 所有类均提供 ~init 终结器，GC 回收时会自动释放遗漏的指针资源，
- * 作为 dispose() 手动调用的安全兜底。数学运算相关工具函数已移入
- * three.core.math.utils，日志相关已移入 Logger（logger.cj）。
  * @note[en] All classes provide a ~init finalizer that frees missed pointer resources on
  * GC collection, as a safety net for manual dispose() calls. Math utilities moved
  * to three.core.math.utils and logging to Logger (logger.cj).
+ *
  * @package three.utils.memory
  */
 package three.utils.memory

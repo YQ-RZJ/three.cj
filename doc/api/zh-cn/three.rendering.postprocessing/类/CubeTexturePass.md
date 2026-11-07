@@ -1,15 +1,9 @@
 # 类
 ## class CubeTexturePass
 ```cj
-public class CubeTexturePass <: Pass
+public class CubeTexturePass <: Pass & IReleasable
 ```
 立方体贴图背景 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 CubeTexturePass 占用的 GPU 资源（cube mesh + shader 缓存）。
 
 ### func init\(Camera,CubeTexture,Float64\)
 ```cj
@@ -24,6 +18,12 @@ public init(camera: Camera, cubeTex: CubeTexture, opacity!: Float64 = 1.0)
 |camera|Camera|相机|
 |cubeTex|CubeTexture|立方体贴图|
 |opacity|Float64|不透明度（默认 1.0）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 CubeTexturePass 占用的 GPU 资源（cube mesh + cube 纹理 + uniform 缓存）。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

@@ -1,15 +1,9 @@
 # Class
 ## class BgfxMorphtargets
 ```cj
-public class BgfxMorphtargets
+public class BgfxMorphtargets <: IReleasable
 ```
 bgfx morph target management
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-Disposes all morph targets
 
 ### func dispose\(Int64\)
 ```cj
@@ -45,6 +39,12 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all morph targets
 
 ### func update\(Int64,Array<Float32>\)
 ```cj

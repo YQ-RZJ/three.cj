@@ -166,13 +166,13 @@ public class SceneCullIndex {
      * @explain[zh-cn] 只收录"自身及所有祖先 visible"且 frustumCulled=true 且有世界包围球的
      *               可渲染对象（Mesh/Line/Points/Sprite）。其余对象进入恒可见列表，
      *               每帧照常提交，不做空间剔除。
+     * @param[zh-cn] scene 场景根节点
      *
      * @brief[en] Rebuild the index: walk the scene collecting cullable objects and build the BVH
      * @explain[en] Only renderable objects (Mesh/Line/Points/Sprite) that are themselves and
      *               ancestrally visible, have frustumCulled=true, and have a world bounding
      *               sphere are collected. The rest go to the always-visible list and are
      *               submitted every frame without spatial culling.
-     * @param[zh-cn] scene 场景根节点
      * @param[en] scene Scene root
      */
     public func rebuild(scene: Object3D): Unit {
@@ -257,6 +257,7 @@ public class SceneCullIndex {
      *               一次，最后做视锥查询。静态场景下没有任何包围盒需要重算。
      *               查询前先把所有索引对象标记为不可见，命中者再置回可见；
      *               恒可见对象（frustumCulled=false / 无包围球）无条件置为可见。
+     * @param[zh-cn] frustum 视锥
      *
      * @brief[en] Refresh bounds and run a frustum query, writing the result into each
      *            object's cullVisible flag
@@ -266,7 +267,6 @@ public class SceneCullIndex {
      *               invisible, hits are marked visible again, and always-visible objects
      *               (frustumCulled=false / no bounding sphere) are marked visible
      *               unconditionally.
-     * @param[zh-cn] frustum 视锥
      * @param[en] frustum Frustum
      */
     public func query(frustum: Frustum): Unit {
@@ -293,11 +293,11 @@ public class SceneCullIndex {
      * @brief[zh-cn] 刷新包围盒并做多眼视锥查询（任一眼可见即不剔除）
      * @explain[zh-cn] 对每只眼的视锥各做一次 BVH 查询，命中结果取并集，
      *               与 FrustumArray.intersectsObject 的"任一眼可见"语义一致。
+     * @param[zh-cn] frustumArray 多眼视锥
      *
      * @brief[en] Refresh bounds and run a multi-eye frustum query (visible in any eye)
      * @explain[en] Runs one BVH query per eye and unions the hits, matching the
      *               "visible in any eye" semantics of FrustumArray.intersectsObject.
-     * @param[zh-cn] frustumArray 多眼视锥
      * @param[en] frustumArray Multi-eye frustum
      */
     public func queryArrayFrustum(frustumArray: FrustumArray): Unit {

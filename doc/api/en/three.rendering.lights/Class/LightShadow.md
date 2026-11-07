@@ -1,7 +1,7 @@
 # Class
 ## class LightShadow
 ```cj
-public open class LightShadow
+public open class LightShadow <: IReleasable
 ```
 Abstract base class for light shadow configuration, subclassed by concrete shadow types
 
@@ -49,12 +49,6 @@ Parameter:
 Return: 
 
 - This instance
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU-related resources allocated by this instance, should be called when the instance is no longer used
 
 ### func getFrameExtents\(\)
 ```cj
@@ -125,6 +119,12 @@ Parameter:
 public init()
 ```
 No-argument constructor, used by fastjson deserialization
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU-related resources allocated by this instance
 
 ### func updateCascadeMatrices\(Light,Camera,Int64\)
 ```cj

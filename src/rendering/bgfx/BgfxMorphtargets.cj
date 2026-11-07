@@ -32,6 +32,7 @@
 package three.rendering.bgfx
 
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 变形目标信息
@@ -67,7 +68,7 @@ public class MorphTargetInfo {
  * @brief[en] bgfx morph target management
  * @explain[en] Corresponds to WebGLMorphtargets, manages morph target weight updates
  */
-public class BgfxMorphtargets {
+public class BgfxMorphtargets <: IReleasable {
     /**
      * @brief[zh-cn] 变形目标缓存（几何体 ID -> MorphTargetInfo）
      *
@@ -134,9 +135,10 @@ public class BgfxMorphtargets {
     /**
      * @brief[zh-cn] 释放所有变形目标
      *
-     * @brief[en] Disposes all morph targets
+     * @brief[en] dispose all morph targets
      */
-    public func disposeAll(): Unit {
+    public func release(): Bool {
         morphTargets = HashMap<Int64, MorphTargetInfo>()
+        return true
     }
 }

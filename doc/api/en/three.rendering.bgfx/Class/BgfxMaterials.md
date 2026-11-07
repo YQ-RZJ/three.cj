@@ -1,15 +1,9 @@
 # Class
 ## class BgfxMaterials
 ```cj
-public class BgfxMaterials
+public class BgfxMaterials <: IReleasable
 ```
 bgfx material management
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-Disposes all material states
 
 ### func dispose\(Int64\)
 ```cj
@@ -90,4 +84,10 @@ Parameter:
 Return: 
 
 - Whether update is needed
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all material states
 

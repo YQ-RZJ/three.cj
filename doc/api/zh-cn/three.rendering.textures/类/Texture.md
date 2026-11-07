@@ -1,7 +1,7 @@
 # 类
 ## class Texture
 ```cj
-public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackground & ILoadResult
+public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackground & ILoadResult & IReleasable
 ```
 纹理资源基类
 
@@ -31,12 +31,6 @@ public open func copy(source: Texture): Texture
 
 - 当前实例
 
-### func dispose\(\)
-```cj
-public open func dispose(): Unit
-```
-释放本实例分配的 GPU 相关资源，并派发 dispose 事件
-
 ### func getIsData3DTexture\(\)
 ```cj
 public open func getIsData3DTexture(): Bool
@@ -65,6 +59,12 @@ public init(image!: Array < UInt8 >= Array < UInt8 >(), width!: Int64 = 0, heigh
 |`type`|Int64||
 |anisotropy|Int64||
 |colorSpace|String||
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+释放本实例分配的 GPU 相关资源，并派发 dispose 事件
 
 ### func rtClone\(\)
 ```cj

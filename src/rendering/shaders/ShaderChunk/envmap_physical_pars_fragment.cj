@@ -27,7 +27,7 @@
  *         getIBLIrradiance 提供漫反射辐照度（roughness=1 采样最模糊层级 ×PI），
  *         getIBLRadiance 提供镜面反射辐射度（按材质 roughness 选择 CubeUV 层级）。
  *         sampler 名 u_envMap 与强度 u_envMapIntensity 由 envmap_common_pars_fragment 声明。
-
+ *
  * @file[en] envmap_physical_pars_fragment  ShaderChunk GLSL fragment
  * @brief[en] ShaderChunk GLSL fragment: envmap_physical_pars_fragment
  * @explain[en] PMREM (CubeUV) environment-map based IBL:
@@ -39,7 +39,7 @@ package three.rendering.shaders.ShaderChunk
 
 /**
  * envmap_physical_pars_fragment GLSL 片段字符串
- * 
+ *
  * 使用仓颉三引号多行字符串语法 `"""..."""`。
  */
 public const envmap_physical_pars_fragment: String = #"

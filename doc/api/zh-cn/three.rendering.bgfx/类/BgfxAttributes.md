@@ -1,7 +1,7 @@
 # 类
 ## class BgfxAttributes
 ```cj
-public class BgfxAttributes
+public class BgfxAttributes <: IReleasable
 ```
 bgfx 顶点属性缓冲管理
 
@@ -32,12 +32,6 @@ public func destroyVertexLayout(layout: VertexLayoutHandle): Unit
 |名称|类型|描述|
 |---|---|---|
 |layout|VertexLayoutHandle|待销毁的顶点布局句柄|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有缓冲
 
 ### func getIndexBuffer\(Int64\)
 ```cj
@@ -82,6 +76,12 @@ public init(info!: BgfxInfo = BgfxInfo())
 |名称|类型|描述|
 |---|---|---|
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有缓冲
 
 ### func removeIndexBuffer\(Int64\)
 ```cj

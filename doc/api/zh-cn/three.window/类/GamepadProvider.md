@@ -1,7 +1,7 @@
 # 类
 ## class GamepadProvider
 ```cj
-public class GamepadProvider <: InputProvider
+public class GamepadProvider <: InputProvider & IReleasable
 ```
 手柄输入提供者
 
@@ -117,9 +117,9 @@ public func openGamepad(): Bool
 
 - 是否成功
 
-### func shutdown\(\)
+### func release\(\)
 ```cj
-public override func shutdown(): Unit
+public override func release(): Bool
 ```
-清理资源
+关闭手柄并释放资源
 

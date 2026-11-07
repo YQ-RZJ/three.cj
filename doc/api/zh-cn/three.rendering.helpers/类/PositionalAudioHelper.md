@@ -1,15 +1,9 @@
 # 类
 ## class PositionalAudioHelper
 ```cj
-public class PositionalAudioHelper <: Object3D
+public class PositionalAudioHelper <: Object3D & IReleasable
 ```
 3D 位置音频辅助对象
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -29,6 +23,12 @@ public init(audio: PositionalAudio, color!: UInt32 = 0xffff00)
 |---|---|---|
 |audio|PositionalAudio||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func update\(\)
 ```cj

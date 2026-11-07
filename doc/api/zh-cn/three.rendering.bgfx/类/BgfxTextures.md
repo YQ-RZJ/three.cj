@@ -1,7 +1,7 @@
 # 类
 ## class BgfxTextures
 ```cj
-public class BgfxTextures
+public class BgfxTextures <: IReleasable
 ```
 bgfx 纹理管理
 
@@ -56,12 +56,6 @@ public func destroyTexture(textureId: Int64): Unit
 |---|---|---|
 |textureId|Int64|纹理 ID|
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有纹理
-
 ### func get\(Int64\)
 ```cj
 public func get(textureId: Int64): Option < TextureInfo >
@@ -92,6 +86,12 @@ public init(capabilities!: BgfxCapabilities, utils!: BgfxUtils, info!: BgfxInfo,
 |utils|BgfxUtils||
 |info|BgfxInfo||
 |properties|BgfxProperties||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有纹理
 
 ### func updateTexture2D\(Int64,UInt16,UInt16,UInt16,UInt16,BgfxMemory,UInt16\)
 ```cj

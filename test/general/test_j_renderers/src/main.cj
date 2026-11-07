@@ -49,7 +49,7 @@ main(): Int64 {
     let rc = entryMain(testPackage)
 
     // 清理
-    renderer.shutdown()
+    renderer.release()
     println("  ThreeRenderer 已关闭")
     return rc
 }

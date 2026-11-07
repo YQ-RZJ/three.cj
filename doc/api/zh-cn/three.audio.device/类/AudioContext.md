@@ -1,7 +1,7 @@
 # 类
 ## class AudioContext
 ```cj
-public class AudioContext
+public class AudioContext <: IReleasable
 ```
 音频上下文单例，管理 OpenAL 设备和上下文 + 专用音频线程
 
@@ -137,6 +137,15 @@ public func registerTransformSlot(slot: AudioTransformSlot): Unit
 |---|---|---|
 |slot|AudioTransformSlot|变换槽（调用方持有，生命周期内不得释放）|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭音频上下文并释放资源
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>清理在音频线程执行，确保 OpenAL 调用在 context 所属线程上发出；
+未初始化时为幂等空操作。</p>
+
 ### func selectHrtf\(Int32\)
 ```cj
 public func selectHrtf(id: Int32): Unit
@@ -205,14 +214,6 @@ public func setSpeedOfSound(speed: Float32): Unit
 |---|---|---|
 |speed|Float32|声速（米/秒，默认 343.3），多普勒计算的参考值；越大 → 多普勒效应越弱|
 
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-关闭音频上下文并释放资源
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>清理在音频线程执行，确保 OpenAL 调用在 context 所属线程上发出。</p>
-
 ### func unregisterTransformSlot\(AudioTransformSlot\)
 ```cj
 public func unregisterTransformSlot(slot: AudioTransformSlot): Unit
@@ -248,4 +249,10 @@ public prop device: CPointer < Unit >
 public prop initialized: Bool
 ```
 是否已初始化
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+资源是否有效（已初始化且设备句柄可用）
 

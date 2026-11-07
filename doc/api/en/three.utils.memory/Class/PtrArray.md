@@ -1,7 +1,7 @@
 # Class
 ## class PtrArray < T > where T <: CType
 ```cj
-public class PtrArray < T > where T <: CType
+public class PtrArray < T > <: IReleasable where T <: CType
 ```
 Pointer-backed array
 
@@ -14,12 +14,6 @@ Returns the underlying contiguous memory pointer (for bgfx FFI; caller does not 
 Return: 
 
 - CPointer<T>
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Manually frees the underlying memory (GC will also free it; use this for timely release)
 
 ### func get\(Int64\)
 ```cj
@@ -74,6 +68,12 @@ Parameter:
 |---|---|---|
 |size|Int64|Number of elements|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+manually frees the underlying memory (GC will also free it; use this for timely release)
+
 ### func set\(Int64,T\)
 ```cj
 public func set(index: Int64, value: T): Unit
@@ -106,4 +106,10 @@ Reads the C-memory data back into a Cangjie Array
 Return: 
 
 - The copied Array<T>
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the underlying memory is still valid (not freed)
 

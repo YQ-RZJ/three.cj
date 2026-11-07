@@ -64,6 +64,7 @@ import bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
 import std.runtime.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] bgfx 渲染后端
@@ -144,7 +145,7 @@ private class FastProg {
     init() {}
 }
 
-public class BgfxBackend <: Backend {
+public class BgfxBackend <: Backend & IReleasable {
     /**
      * @brief[zh-cn] 扩展兼容层
      *
@@ -1340,15 +1341,14 @@ public class BgfxBackend <: Backend {
      *               bgfx 默认 0 矩阵 → UV=(0,0) → 所有表面采样贴图同一像素
      *               → 金属度/粗糙度贴图完全失去渐变效果（对照 WebGLUniforms：
      *               uvTransform 默认单位矩阵）。
+     * @param[zh-cn] samplerName shader 中声明的 sampler 名
+     * @param[zh-cn] texOpt 材质贴图（None 表示该材质无此贴图）
+     * @param[zh-cn] stage bgfx 纹理阶段
      *
      * @brief[en] Binds a single material texture to the given texture stage
      * @explain[en] Uploads (cached by texture.uuid, avoiding per-frame re-upload),
      *               binds the sampler and sets the matching mat3 uv transform
      *               (identity by default).
-     *
-     * @param[zh-cn] samplerName shader 中声明的 sampler 名
-     * @param[zh-cn] texOpt 材质贴图（None 表示该材质无此贴图）
-     * @param[zh-cn] stage bgfx 纹理阶段
      */
     private func _bindMatTexture(samplerName: String, texOpt: Option<Texture>, stage: UInt8): Unit {
         let tex = if (let Some(t) <- texOpt) { t } else { return }
@@ -1751,13 +1751,14 @@ public class BgfxBackend <: Backend {
         // 例外：ReflectorMaterial 的 useDepthTexture / distanceAttenuation / fresnel
         // 是随实例变化的编译期 define，保留 uuid 隔离以维持既有行为。
         var matPrefix = ""
+        var texFlagsPart = ""
         if (let Some(p) <- this._matVariantPrefixCache.get(mat.id)) {
             matPrefix = p
         } else {
             // ShaderVariant.getVariantKey 返回 kind 或 kind_FLAG1_FLAG2...（FLAG 为大写 USE_XXX 前缀名）
             let texVariant = ShaderVariant.getVariantKey(mat)
             // 提取变体中的纹理标志部分（去掉前导 kind），拼到 variantKey 中
-            let texFlagsPart = if (texVariant.size > mat.kind.size + 1) {
+            texFlagsPart = if (texVariant.size > mat.kind.size + 1) {
                 texVariant[mat.kind.size + 1..]
             } else {
                 ""
@@ -2387,28 +2388,20 @@ public class BgfxBackend <: Backend {
     // ===== 2.8 dispose =====
 
     /**
-     * 销毁后端
-     *
-     * 执行 bgfx_shutdown_cj。
+     * 销毁后端并执行 bgfx_shutdown_cj。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         // 销毁辅助 pass 持久的 GPU 资源
         this.shadowPass.dispose()
         this.blitQuad.dispose()
-        textures.dispose()
-        uniforms.dispose()
-        programs.dispose()
-        shadowMap.dispose()
-        environments.disposeAll()
+        textures.release()
+        uniforms.release()
+        programs.release()
+        shadowMap.release()
+        environments.release()
         bgfx_shutdown_cj()
-        super.dispose()
-    }
-
-    /**
-     * destroy：dispose 别名
-     */
-    public override func destroy(): Unit {
-        this.dispose()
+        super.release()
+        return true
     }
 
     // ===== 2.9 coordinateSystem =====

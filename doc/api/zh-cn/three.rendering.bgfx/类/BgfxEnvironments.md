@@ -1,15 +1,9 @@
 # 类
 ## class BgfxEnvironments
 ```cj
-public class BgfxEnvironments
+public class BgfxEnvironments <: IReleasable
 ```
 bgfx 环境贴图管理
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-释放所有环境贴图
 
 ### func dispose\(Int64\)
 ```cj
@@ -45,4 +39,10 @@ public func get(textureId: Int64, usePMREM: Bool): EnvironmentInfo
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有环境贴图
 

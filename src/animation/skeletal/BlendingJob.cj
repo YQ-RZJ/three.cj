@@ -38,7 +38,6 @@
  *              Additive layers composite deltas on top of the blended result
  *              (t += w·dt, r = nlerp(r, dr·r, w), s *= lerp(1, ds, w)).
  *              Supports per-joint weights.
- *
  * @brief[en] Blend layer
  * @explain[en] A blending input: weight + transform array + optional per-joint weights
  */

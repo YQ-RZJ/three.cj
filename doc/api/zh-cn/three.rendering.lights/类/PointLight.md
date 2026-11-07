@@ -22,12 +22,6 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 
 - 本实例
 
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放本实例分配的GPU相关资源，当实例不再使用时应调用
-
 ### func init\(Color,Float64,Float64,Float64\)
 ```cj
 public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0, distance!: Float64 = 0.0, decay!: Float64 = 2.0)
@@ -42,6 +36,12 @@ public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0, distance
 |intensity|Float64||
 |distance|Float64||
 |decay|Float64||
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放本实例分配的GPU相关资源
 
 ### prop power: Float64
 ```cj

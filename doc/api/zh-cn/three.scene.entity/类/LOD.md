@@ -1,7 +1,7 @@
 # 类
 ## class LOD
 ```cj
-public class LOD <: Object3D
+public class LOD <: Object3D & IReleasable
 ```
 LOD 细节层级节点，根据相机距离切换不同精度层级
 
@@ -37,12 +37,6 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 |source|Object3D||
 |recursive|Bool||
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-注意：JS LOD 没有 dispose() 方法，此为仓颉侧补充的清理功能
-
 ### func getCurrentLevel\(\)
 ```cj
 public func getCurrentLevel(): Int64
@@ -66,6 +60,12 @@ distance - 相机距离。
 public init()
 ```
 构造一个新的 LOD。
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放本实例及其各层级子对象的 GPU 资源。
 
 ### func removeLevel\(Float64\)
 ```cj

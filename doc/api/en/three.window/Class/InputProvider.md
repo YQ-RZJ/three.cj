@@ -1,7 +1,7 @@
 # Class
 ## class InputProvider
 ```cj
-public open class InputProvider
+public open class InputProvider <: IReleasable
 ```
 Abstract base class for input providers
 
@@ -51,9 +51,9 @@ Parameter:
 |---|---|---|
 |evt|DispatchEvent|The lightweight event dispatched by the dispatcher|
 
-### func shutdown\(\)
+### func release\(\)
 ```cj
-public open func shutdown(): Unit
+public open func release(): Bool
 ```
-Cleans up resources (called when window closes)
+cleans up resources (called on window close)
 

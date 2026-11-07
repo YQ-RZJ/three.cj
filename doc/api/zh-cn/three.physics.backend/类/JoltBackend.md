@@ -1,7 +1,7 @@
 # 类
 ## class JoltBackend
 ```cj
-public class JoltBackend <: IPhysicsBackend
+public class JoltBackend <: IPhysicsBackend & IReleasable
 ```
 IPhysicsBackend 的 JoltPhysics 后端实现
 
@@ -525,6 +525,12 @@ public func raycast(origin: Vector3, direction: Vector3, hit: PhysicsRayHit): Bo
 
 - 是否命中
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭物理系统并释放全部资源（形状句柄、物理系统、监听器）
+
 ### func setAngularVelocity\(PhysicsBodyHandle,Vector3\)
 ```cj
 public func setAngularVelocity(handle: PhysicsBodyHandle, angularVelocity: Vector3): Unit
@@ -843,12 +849,6 @@ public func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: F
 |---|---|---|
 |handle|PhysicsConstraintHandle|约束句柄velocity 目标速度（米/秒）|
 |velocity|Float64||
-
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-关闭物理系统并释放全部资源（形状句柄、物理系统、监听器）
 
 ### func update\(Float32,Int32\)
 ```cj

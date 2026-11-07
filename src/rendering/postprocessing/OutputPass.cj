@@ -43,6 +43,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.utils.constants.*
@@ -54,25 +55,29 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 输出 pass
- * @brief[en] Output pass
  * @explain[zh-cn] 色调映射 + sRGB 色彩空间转换，通常放 pass 链尾部。
+ *
+ * @brief[en] Output pass
  * @explain[en] Tone mapping + sRGB color space conversion, usually placed at the end of the pass chain.
  */
-public class OutputPass <: Pass {
+public class OutputPass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 色调映射模式（对照 constants.cj：NoToneMapping=0 ... NeutralToneMapping=7），默认 ACESFilmicToneMapping（=4）
+     *
      * @brief[en] Tone mapping mode (see constants.cj: NoToneMapping=0 ... NeutralToneMapping=7), default ACESFilmicToneMapping (=4)
      */
     public var toneMapping: Int64 = ACESFilmicToneMapping
 
     /**
      * @brief[zh-cn] 色调映射曝光，默认 1.0
+     *
      * @brief[en] Tone mapping exposure, default 1.0
      */
     public var exposure: Float64 = 1.0
 
     /**
      * @brief[zh-cn] 是否做 sRGB OETF 转换（线性 → sRGB），默认 true（上屏前转 sRGB）
+     *
      * @brief[en] Whether to perform sRGB OETF conversion (linear → sRGB), default true (convert to sRGB before presenting)
      */
     public var sRGB: Bool = true
@@ -95,14 +100,15 @@ public class OutputPass <: Pass {
 
     /**
      * @brief[zh-cn] 构造 OutputPass
-     * @brief[en] Constructs OutputPass
      * @param[zh-cn] toneMapping 色调映射模式（默认 ACESFilmicToneMapping=4）
      * @param[zh-cn] exposure 曝光（默认 1.0）
      * @param[zh-cn] sRGB 是否做 sRGB 转换（默认 true）
+     * @explain[zh-cn] 全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
+     *
+     * @brief[en] Constructs OutputPass
      * @param[en] toneMapping Tone mapping mode (default ACESFilmicToneMapping=4)
      * @param[en] exposure Exposure (default 1.0)
      * @param[en] sRGB Whether to perform sRGB conversion (default true)
-     * @explain[zh-cn] 全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
      * @explain[en] The full-screen quad is held as a singleton by EffectComposer and injected via setQuad (base class quad field).
      */
     public init(toneMapping!: Int64 = ACESFilmicToneMapping, exposure!: Float64 = 1.0, sRGB!: Bool = true) {
@@ -112,6 +118,8 @@ public class OutputPass <: Pass {
         this.sRGB = sRGB
         // OutputPass 默认 needsSwap=true（作为链尾 pass 时 composer 设 renderToScreen=true）
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -205,12 +213,14 @@ public class OutputPass <: Pass {
 
     /**
      * @brief[zh-cn] 释放 OutputPass 占用的 GPU 资源
-     * @brief[en] Releases the GPU resources held by OutputPass
      * @explain[zh-cn] shader 为全局缓存不 dispose；quad 由 caller 管理。
+     *
+     * @brief[en] Releases the GPU resources held by OutputPass
      * @explain[en] Shaders are globally cached and not disposed; the quad is managed by the caller.
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._prog = None
         this._disposePassUniforms()
+        return true
     }
 }

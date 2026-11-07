@@ -1,15 +1,9 @@
 # 类
 ## class OutputPass
 ```cj
-public class OutputPass <: Pass
+public class OutputPass <: Pass & IReleasable
 ```
 输出 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 OutputPass 占用的 GPU 资源
 
 ### func init\(Int64,Float64,Bool\)
 ```cj
@@ -24,6 +18,12 @@ public init(toneMapping!: Int64 = ACESFilmicToneMapping, exposure!: Float64 = 1.
 |toneMapping|Int64|色调映射模式（默认 ACESFilmicToneMapping=4）|
 |exposure|Float64|曝光（默认 1.0）|
 |sRGB|Bool|是否做 sRGB 转换（默认 true）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 OutputPass 占用的 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

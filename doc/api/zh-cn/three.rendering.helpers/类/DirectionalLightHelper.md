@@ -1,15 +1,9 @@
 # 类
 ## class DirectionalLightHelper
 ```cj
-public class DirectionalLightHelper <: Object3D
+public class DirectionalLightHelper <: Object3D & IReleasable
 ```
 方向光辅助对象，用于可视化方向光的效果
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ public init(light: Light, size!: Float64 = 1.0, color!: Option < Color >= None <
 |light|Light||
 |size|Float64||
 |color|Option<Color>||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func update\(\)
 ```cj

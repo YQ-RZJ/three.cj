@@ -19,7 +19,7 @@ public const alphahash_pars_fragment: String = #"
 #ifdef USE_ALPHAHASH
 
 	/**
-	 * See: https://casual-effects.com/research/Wyman2017Hashed/index.html
+  * See: https://casual-effects.com/research/Wyman2017Hashed/index.html
 	 */
 
 	const float ALPHA_HASH_SCALE = 0.05; // Derived from trials only, and may be changed.

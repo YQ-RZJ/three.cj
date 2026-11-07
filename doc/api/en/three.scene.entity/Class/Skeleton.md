@@ -1,7 +1,7 @@
 # Class
 ## class Skeleton
 ```cj
-public class Skeleton <: IPropertyBindingRoot
+public class Skeleton <: IPropertyBindingRoot & IReleasable
 ```
 Skeleton class, manages a set of Bones and their inverse matrices
 
@@ -32,12 +32,6 @@ Return:
 public func computeBoneTexture(): Unit
 ```
 Generate boneTexture (pack boneMatrices into DataTexture), for large skeletons to save upload cost
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Release GPU-related resources allocated by this instance (boneTexture)
 
 ### func fromJSON\(HashMap<String,Any>,HashMap<String,Bone>\)
 ```cj
@@ -100,6 +94,12 @@ Parameter:
 public func pose(): Unit
 ```
 Pose each bone to its initial pose, then recalculate each bone's matrix/position/quaternion/scale
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+frees GPU-related resources allocated by this instance (boneTexture)
 
 ### func syncFromSkeletonData\(SkeletonData\)
 ```cj

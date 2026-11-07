@@ -34,6 +34,7 @@ package three.rendering.bgfx
 import std.collection.*
 import bgfx4cj.bgfx.*
 import three.utils.memory.BgfxMemory
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] bgfx 着色器缓存
@@ -42,7 +43,7 @@ import three.utils.memory.BgfxMemory
  * @brief[en] bgfx shader cache
  * @explain[en] Corresponds to WebGLShaderCache, manages shader reuse and reference counting. Shaders with the same code are compiled only once, tracked via usedTimes
  */
-public class BgfxShaderCache {
+public class BgfxShaderCache <: IReleasable {
     /**
      * @brief[zh-cn] 着色器代码到 ShaderStage 的映射
      *
@@ -192,10 +193,11 @@ public class BgfxShaderCache {
     /**
      * @brief[zh-cn] 释放所有缓存
      *
-     * @brief[en] Dispose all caches
+     * @brief[en] dispose all caches
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         shaderCache = HashMap<String, ShaderStage>()
         materialCache = HashMap<Int64, HashSet<String>>()
+        return true
     }
 }

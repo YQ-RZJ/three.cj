@@ -1,15 +1,9 @@
 # 类
 ## class PMREMGenerator
 ```cj
-public class PMREMGenerator
+public class PMREMGenerator <: IReleasable
 ```
 PMREM 生成器类
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放生成器占用的资源
 
 ### func fromColor\(Color\)
 ```cj
@@ -85,6 +79,12 @@ public func fromScene(scene: IScene, sigma: Float64, near: Float64, far: Float64
 public init()
 ```
 构造 PMREM 生成器
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放生成器占用的资源
 
 ### let LEVEL\_FACE\_SIZES
 ```cj

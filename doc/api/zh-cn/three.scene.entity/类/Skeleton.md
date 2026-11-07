@@ -1,7 +1,7 @@
 # 类
 ## class Skeleton
 ```cj
-public class Skeleton <: IPropertyBindingRoot
+public class Skeleton <: IPropertyBindingRoot & IReleasable
 ```
 骨骼类，管理一组 Bone 及其逆矩阵
 
@@ -32,12 +32,6 @@ public func clone(): Skeleton
 public func computeBoneTexture(): Unit
 ```
 生成 boneTexture（将 boneMatrices 打包为 DataTexture），大骨骼用以省上传开销
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放本实例分配的 GPU 相关资源（boneTexture 贴图）
 
 ### func fromJSON\(HashMap<String,Any>,HashMap<String,Bone>\)
 ```cj
@@ -100,6 +94,12 @@ public init(bones!: ArrayList < Bone >= ArrayList < Bone >(), boneInverses!: Arr
 public func pose(): Unit
 ```
 将各髀骨 pose 到初始姿势，随后重算各髀骨的 matrix/position/quaternion/scale
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放本实例分配的 GPU 相关资源（boneTexture 贴图）
 
 ### func syncFromSkeletonData\(SkeletonData\)
 ```cj

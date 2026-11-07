@@ -374,9 +374,9 @@ public class ThreeWindow <: WindowEngine {
             this.sound.stop()
             this.sound.disconnect()
             let audioCtx = this.listener.context
-            audioCtx.shutdown()
+            audioCtx.release()
         }
-        this.renderer.shutdown()
+        this.renderer.release()
     }
 }
 
@@ -425,7 +425,7 @@ public func resizeThreeRender(w: Int32, h: Int32): Unit {
 public func stopThreeRender(): Unit {
     g_renderRunning.store(false)
     match (g_windowEngine) {
-        case Some(engine) => engine.shutdown()
+        case Some(engine) => engine.release()
         case None => ()
     }
     g_windowEngine = None

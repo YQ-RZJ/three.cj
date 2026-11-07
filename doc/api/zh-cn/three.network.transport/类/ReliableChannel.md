@@ -1,7 +1,7 @@
 # 类
 ## class ReliableChannel
 ```cj
-public class ReliableChannel
+public class ReliableChannel <: IReleasable
 ```
 可靠 UDP 通道
 
@@ -14,12 +14,6 @@ public func bind(): Bool
 返回: 
 
 - 绑定成功返回 true
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-关闭通道并停止收包线程
 
 ### func init\(String,UInt16,UInt16\)
 ```cj
@@ -34,6 +28,14 @@ public init(remoteHost: String, remotePort: UInt16, bindPort!: UInt16 = 0)
 |remoteHost|String|远端主机remotePort 远端端口bindPort 本地绑定端口（0 = 自动分配）|
 |remotePort|UInt16||
 |bindPort|UInt16||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭通道并停止收包线程
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>未绑定时为幂等空操作并返回 false。</p>
 
 ### func send\(Array<UInt8>\)
 ```cj

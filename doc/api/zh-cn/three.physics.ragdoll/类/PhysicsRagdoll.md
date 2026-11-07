@@ -1,7 +1,7 @@
 # 类
 ## class PhysicsRagdoll
 ```cj
-public class PhysicsRagdoll
+public class PhysicsRagdoll <: IReleasable
 ```
 运行时布娃娃：加入物理世界后进行关节刚体模拟
 
@@ -22,12 +22,6 @@ public func addToWorld(activation!: PhysicsActivation = PhysicsActivation.Activa
 |名称|类型|描述|
 |---|---|---|
 |activation|PhysicsActivation|激活策略（默认立即激活）|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁布娃娃（会自动从物理世界移除并释放全部刚体/约束）
 
 ### func driveToPoseUsingKinematics\(PhysicsSkeletonPose,Float32\)
 ```cj
@@ -98,6 +92,12 @@ public func isActive(): Bool
 ```
 布娃娃是否处于活动（未休眠）状态
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁布娃娃（会自动从物理世界移除并释放全部刚体/约束）
+
 ### func removeFromWorld\(\)
 ```cj
 public func removeFromWorld(): Unit
@@ -128,9 +128,9 @@ public prop constraintCount: Int64
 ```
 关节约束数量
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 布娃娃是否有效（创建成功且未销毁）
 

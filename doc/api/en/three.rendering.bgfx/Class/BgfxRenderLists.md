@@ -1,15 +1,9 @@
 # Class
 ## class BgfxRenderLists
 ```cj
-public class BgfxRenderLists
+public class BgfxRenderLists <: IReleasable
 ```
 bgfx render list management
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes all render lists
 
 ### func get\(Int64\)
 ```cj
@@ -32,4 +26,10 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all render lists
 

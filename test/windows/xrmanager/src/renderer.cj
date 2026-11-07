@@ -149,7 +149,7 @@ public func createScene(width: Int32, height: Int32, renderer: ThreeRenderer): S
     println("  [xr] DepthSensing: getMesh=${match (depthMesh) { case Some(m) => "Some" case None => "None" }}")
     depthSensing.update(0.1, 100.0, 64, 64)
     depthSensing.reset()
-    depthSensing.dispose()
+    depthSensing.release()
     println("  [xr] DepthSensing: update/reset/dispose OK")
 
     println("  场景创建成功: ${scene.name}")

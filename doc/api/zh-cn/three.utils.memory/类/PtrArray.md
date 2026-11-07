@@ -1,7 +1,7 @@
 # 类
 ## class PtrArray < T > where T <: CType
 ```cj
-public class PtrArray < T > where T <: CType
+public class PtrArray < T > <: IReleasable where T <: CType
 ```
 指针底层数组
 
@@ -14,12 +14,6 @@ public func data(): CPointer < T >
 返回: 
 
 - CPointer<T>
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-手动释放底层内存（GC 回收时也会自动释放，此方法用于及时回收）
 
 ### func get\(Int64\)
 ```cj
@@ -74,6 +68,12 @@ public init(size: Int64)
 |---|---|---|
 |size|Int64|元素个数|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+手动释放底层内存（GC 回收时也会自动释放，此方法用于及时回收）
+
 ### func set\(Int64,T\)
 ```cj
 public func set(index: Int64, value: T): Unit
@@ -106,4 +106,10 @@ public func toArray(): Array < T >
 返回: 
 
 - 拷贝出的 Array<T>
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+底层内存是否仍然有效（未释放）
 

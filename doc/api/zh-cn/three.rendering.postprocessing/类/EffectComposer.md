@@ -1,7 +1,7 @@
 # 类
 ## class EffectComposer
 ```cj
-public class EffectComposer
+public class EffectComposer <: IReleasable
 ```
 后处理 pass 链调度器
 
@@ -27,12 +27,6 @@ public func allocViewId(): UInt16
 
 - 新分配的 view id
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 EffectComposer 占用的所有 GPU 资源（内部双 RT + 所有 pass）
-
 ### func init\(ThreeRenderer\)
 ```cj
 public init(renderer: ThreeRenderer)
@@ -57,6 +51,12 @@ public func insertPass(pass: Pass, index: Int64): Unit
 |---|---|---|
 |pass|Pass|待插入的 pass|
 |index|Int64|插入位置|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 EffectComposer 占用的所有 GPU 资源（内部双 RT + 所有 pass）
 
 ### func removePass\(Pass\)
 ```cj
@@ -104,6 +104,12 @@ public func writeBuffer(): FrameBufferHandle
 返回: 
 
 - 当前写 buffer 的 FrameBufferHandle
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+内部双 RT 是否已创建且未被释放
 
 ### var passes
 ```cj

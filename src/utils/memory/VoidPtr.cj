@@ -36,6 +36,7 @@
  *         the Box reference and never unwraps or frees it. Upper modules
  *         (e.g. three.window.ui) use this type in public APIs to pass opaque
  *         pointers without exposing raw CPointer.
+ *
  * @package three.utils.memory
  */
 package three.utils.memory

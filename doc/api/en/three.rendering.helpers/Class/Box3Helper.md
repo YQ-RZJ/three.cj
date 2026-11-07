@@ -1,15 +1,9 @@
 # Class
 ## class Box3Helper
 ```cj
-public class Box3Helper <: LineSegments
+public class Box3Helper <: LineSegments & IReleasable
 ```
 Box3 axis-aligned bounding box helper
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(\)
 ```cj
@@ -29,6 +23,12 @@ Parameter:
 |---|---|---|
 |box|Box3||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func updateMatrixWorld\(Bool\)
 ```cj

@@ -70,6 +70,13 @@ Parameter:
 |---|---|---|
 |listener|AudioListener|The associated audio listener|
 
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases the positional audio: base release logic + unregister from the audio
+context transform-slot registry
+
 ### func setDirectionalCone\(Float64,Float64,Float64\)
 ```cj
 public func setDirectionalCone(coneInnerAngle!: Float64, coneOuterAngle!: Float64, coneOuterGain!: Float64): PositionalAudio

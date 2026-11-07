@@ -1,7 +1,7 @@
 # 类
 ## class GroundReflector
 ```cj
-public class GroundReflector <: Mesh
+public class GroundReflector <: Mesh & IReleasable
 ```
 地面反射器（SSRPass 专用平面反射组件）
 
@@ -20,12 +20,6 @@ public func computeVirtualCamera(camera: Camera): Bool
 返回: 
 
 - true=可渲染（朝向正确），false=反射面背向相机（跳过）镜像相机数学核心。
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放反射器 GPU 资源。
 
 ### func ensureRTs\(\)
 ```cj
@@ -90,6 +84,12 @@ public init(geometry: BufferGeometry, textureWidth!: Int64 = 512, textureHeight!
 |color|Color||
 |clipBias|Float64||
 |useDepthTexture|Bool||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放反射器 GPU 资源。
 
 ### let REFLECTOR\_VIEW\_ID\_BASE
 ```cj

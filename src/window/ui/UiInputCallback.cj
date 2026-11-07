@@ -36,11 +36,6 @@
  *   let cb = UiInputTextCallback(callbackDataPtr)
  *   cb.selectAll()
  *   cb.insertChars(0, "prefix_")
- * @explain[en] Usage example:
- *   // In a custom UiInputText callback:
- *   let cb = UiInputTextCallback(callbackDataPtr)
- *   cb.selectAll()
- *   cb.insertChars(0, "prefix_")
  */
 package three.window.ui
 

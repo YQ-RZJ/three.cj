@@ -30,7 +30,6 @@
  * @brief[en] Two-joint IK job
  * @explain[en] Solves two connected joints (e.g., upper arm + forearm, thigh + shin)
  *              to reach a target position. Typical for character arm/leg IK.
- *
  * @brief[en] Two-joint IK job
  */
 package three.animation.skeletal

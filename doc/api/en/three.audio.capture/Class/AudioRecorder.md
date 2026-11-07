@@ -1,17 +1,9 @@
 # Class
 ## class AudioRecorder
 ```cj
-public class AudioRecorder
+public class AudioRecorder <: IReleasable
 ```
 Microphone audio recorder wrapping the ALC capture extension
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-Closes the capture device and releases resources
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Maps to alcCaptureCloseDevice(device).</p>
 
 ### func getAvailableSamples\(\)
 ```cj
@@ -81,6 +73,14 @@ Return:
 
 - Number of bytes actually read (samples × channels × 2)
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Closes the capture device and releases resources
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Maps to alcCaptureCloseDevice(device); idempotent no-op when the device is not opened.</p>
+
 ### func start\(\)
 ```cj
 public func start(): Bool
@@ -130,4 +130,10 @@ Whether the capture device is opened
 public prop recording: Bool
 ```
 Whether capturing is in progress
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the resource is valid (capture device opened and not released)
 

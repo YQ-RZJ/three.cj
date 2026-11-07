@@ -1,15 +1,9 @@
 # 类
 ## class CameraHelper
 ```cj
-public class CameraHelper <: LineSegments
+public class CameraHelper <: LineSegments & IReleasable
 ```
 相机视锥体辅助对象，用于可视化相机的视锥体
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -28,6 +22,12 @@ public init(camera: Camera)
 |名称|类型|描述|
 |---|---|---|
 |camera|Camera||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func setColors\(Color,Color,Color,Color,Color\)
 ```cj

@@ -1,0 +1,121 @@
+name: three-ios
+
+on:
+  workflow_dispatch:
+    inputs:
+      product-type:
+        description: "产物类型，留空=全量（动态+静态都编译）；可填 dynamic（仅动态）或 static（仅静态）"
+        required: false
+        default: ""
+      cangjie-url:
+        description: "仓颉 SDK（mac-aarch64-ios tar.gz）下载链接，如 cangjie-sdk-mac-aarch64-ios-1.2.0.tar.gz"
+        required: true
+        default: "https://cangjie-lang.cn/v1/files/auth/downLoad?nsId=142267&fileName=cangjie-sdk-mac-aarch64-ios-1.2.0.tar.gz&objectKey=6ab1ea52e4bd101f57762f5a"
+      native-libs-url-arm64-v8a:
+        description: "cxx 静态库包（ios/arm64 真机 release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-ios-arm64-v8a-release-static.tar.gz"
+      native-libs-url-simulator-arm64:
+        description: "cxx 静态库包（ios/arm64-sim 模拟器 arm64 release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-ios-arm64-sim-release-static.tar.gz"
+      native-libs-url-simulator-x86_64:
+        description: "cxx 静态库包（ios/x86_64-sim 模拟器 x86_64 release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-ios-x86_64-sim-release-static.tar.gz"
+      native-libs-url-host:
+        description: "宏包宿主链接用的静态库包（macos/arm64-v8a release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-macos-arm64-v8a-release-static.tar.gz"
+      variants:
+        description: "产物类型，逗号分隔：arm64-v8a,simulator-arm64,simulator-x86_64（留空=全部）"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      variants: ${{ steps.set.outputs.variants }}
+    steps:
+      - id: set
+        run: |
+          V="${{ inputs.variants }}"
+          if [ -z "$V" ]; then V="arm64-v8a,simulator-arm64,simulator-x86_64"; fi
+          echo "variants=[$(echo "$V" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/ /,"",$i); printf "%s\"%s\"", (i>1?",":""), $i}}')]" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: config
+    name: ${{ matrix.variant }}
+    runs-on: macos-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ fromJSON(needs.config.outputs.variants) }}
+        include:
+          - variant: arm64-v8a
+            libs-input: native-libs-url-arm64-v8a
+            sdk-platform: iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
+          - variant: simulator-arm64
+            libs-input: native-libs-url-simulator-arm64
+            sdk-platform: iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk
+          - variant: simulator-x86_64
+            libs-input: native-libs-url-simulator-x86_64
+            sdk-platform: iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk
+    steps:
+      - uses: actions/checkout@v4
+
+      # cjpm.toml [target.*] ios 段的 compile-option 引用这两个变量；
+      # 真机与模拟器分别指向各自的 Xcode SDK
+      - name: Resolve Xcode sysroot (${{ matrix.variant }})
+        run: |
+          XCODE_ROOT=$(xcode-select -p)
+          echo "IOS_SYSROOT=$XCODE_ROOT/Platforms/${{ matrix.sdk-platform }}" >> "$GITHUB_ENV"
+          echo "IOS_XCODE_TOOLCHAIN=$XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin" >> "$GITHUB_ENV"
+
+      - name: Install Cangjie SDK
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 -o "$RUNNER_TEMP/cangjie-sdk.tar.gz" "${{ inputs.cangjie-url }}"
+          CJ_ROOT="$RUNNER_TEMP/cangjie-sdk"
+          mkdir -p "$CJ_ROOT" && tar -xzf "$RUNNER_TEMP/cangjie-sdk.tar.gz" -C "$CJ_ROOT"
+          CJ_SH=$(find "$CJ_ROOT" -type f -name envsetup.sh 2>/dev/null | head -1)
+          if [ -z "$CJ_SH" ] || [ ! -f "$CJ_SH" ]; then
+            echo "[ERROR] 未找到 envsetup.sh，解压内容："
+            find "$CJ_ROOT" -maxdepth 3 | head -40
+            exit 1
+          fi
+          CJ_DIR=$(dirname "$CJ_SH")
+          echo "CANGJIE_HOME=$CJ_DIR" >> "$GITHUB_ENV"
+          echo "$CJ_DIR/bin" >> "$GITHUB_PATH"
+
+      # 同 macos：仓颉 ld64.lld（LLVM 15.0.4）不支持 Xcode 14+ 的
+      # _objc_msgSend$ selector stubs，软链到 Xcode 自带 ld
+      - name: Patch darwin linker (selector stubs support)
+        run: |
+          LLD="$CANGJIE_HOME/third_party/llvm/bin/ld64.lld"
+          if [ -f "$LLD" ] && [ ! -f "$LLD.orig" ]; then
+            mv "$LLD" "$LLD.orig"
+            ln -s "$(xcrun -f ld)" "$LLD"
+            echo "patched: $LLD -> $(xcrun -f ld)"
+          fi
+
+      - name: Build three (${{ matrix.variant }})
+        run: |
+          source "$CANGJIE_HOME/envsetup.sh"
+          cjc -v
+          python3 .github/scripts/build_three.py \
+            --product-type "${{ inputs.product-type }}" \
+            --platform ios --arch ${{ matrix.variant }} \
+            --native-url "${{ inputs[matrix.libs-input] }}" \
+            --host-url "${{ inputs.native-libs-url-host }}" --host-tag MACOS_ARM64
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: three-ios-${{ matrix.variant }}
+          path: dist/*
+          retention-days: 30

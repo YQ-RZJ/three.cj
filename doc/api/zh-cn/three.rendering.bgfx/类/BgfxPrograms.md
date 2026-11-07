@@ -1,15 +1,9 @@
 # 类
 ## class BgfxPrograms
 ```cj
-public class BgfxPrograms
+public class BgfxPrograms <: IReleasable
 ```
 bgfx 着色器程序管理
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有着色器程序
 
 ### func getProgram\(String,ShaderHandle,ShaderHandle,String\)
 ```cj
@@ -55,6 +49,12 @@ public func releaseProgram(data: BgfxProgramData): Unit
 |名称|类型|描述|
 |---|---|---|
 |data|BgfxProgramData|程序数据|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有着色器程序
 
 ### func size\(\)
 ```cj

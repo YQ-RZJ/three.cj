@@ -1,7 +1,7 @@
 # Class
 ## class IdAllocator
 ```cj
-public class IdAllocator
+public class IdAllocator <: IReleasable
 ```
 ID allocator
 
@@ -52,9 +52,10 @@ Parameter:
 |---|---|---|
 |id|Int64|The ID to recycle|
 
-### func reset\(\)
+### func release\(\)
 ```cj
-public func reset(): Unit
+public func release(): Bool
 ```
-Resets the allocator (clears the free pool and resets the counter)
+resets the allocator (clears the free
+pool and resets the counter)
 

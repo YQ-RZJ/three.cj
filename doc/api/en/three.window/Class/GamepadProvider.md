@@ -1,7 +1,7 @@
 # Class
 ## class GamepadProvider
 ```cj
-public class GamepadProvider <: InputProvider
+public class GamepadProvider <: InputProvider & IReleasable
 ```
 Gamepad input provider
 
@@ -117,9 +117,9 @@ Return:
 
 - Whether the gamepad was opened successfully
 
-### func shutdown\(\)
+### func release\(\)
 ```cj
-public override func shutdown(): Unit
+public override func release(): Bool
 ```
-Cleans up resources
+closes the gamepad and cleans up
 

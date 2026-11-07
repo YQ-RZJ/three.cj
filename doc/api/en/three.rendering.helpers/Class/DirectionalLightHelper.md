@@ -1,15 +1,9 @@
 # Class
 ## class DirectionalLightHelper
 ```cj
-public class DirectionalLightHelper <: Object3D
+public class DirectionalLightHelper <: Object3D & IReleasable
 ```
 Directional light helper for visualizing directional light effects
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ Parameter:
 |light|Light||
 |size|Float64||
 |color|Option<Color>||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func update\(\)
 ```cj

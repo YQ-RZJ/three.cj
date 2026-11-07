@@ -1,15 +1,9 @@
 # Class
 ## class TexturePass
 ```cj
-public class TexturePass <: Pass
+public class TexturePass <: Pass & IReleasable
 ```
 Texture overlay pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases the GPU resources held by TexturePass
 
 ### func init\(TextureHandle,Float64\)
 ```cj
@@ -23,6 +17,12 @@ Parameter:
 |---|---|---|
 |map|TextureHandle|Texture to render (bgfx TextureHandle)|
 |opacity|Float64|Opacity (default 1.0)|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases the GPU resources held by TexturePass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

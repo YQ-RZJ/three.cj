@@ -1,15 +1,9 @@
 # 类
 ## class BgfxBindingStates
 ```cj
-public class BgfxBindingStates
+public class BgfxBindingStates <: IReleasable
 ```
 bgfx 顶点绑定状态管理
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有绑定状态
 
 ### func init\(\)
 ```cj
@@ -40,6 +34,12 @@ public func releaseStatesOfProgram(programId: Int64): Unit
 |名称|类型|描述|
 |---|---|---|
 |programId|Int64|程序 ID|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有绑定状态
 
 ### func reset\(\)
 ```cj

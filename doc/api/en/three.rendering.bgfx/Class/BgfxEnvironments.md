@@ -1,15 +1,9 @@
 # Class
 ## class BgfxEnvironments
 ```cj
-public class BgfxEnvironments
+public class BgfxEnvironments <: IReleasable
 ```
 bgfx environment map management
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-Disposes all environment maps
 
 ### func dispose\(Int64\)
 ```cj
@@ -45,4 +39,10 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all environment maps
 

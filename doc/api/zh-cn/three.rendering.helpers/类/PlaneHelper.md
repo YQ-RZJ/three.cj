@@ -1,15 +1,9 @@
 # 类
 ## class PlaneHelper
 ```cj
-public class PlaneHelper <: Line
+public class PlaneHelper <: Line & IReleasable
 ```
 平面辅助对象，用于可视化 Plane 平面
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ public init(plane: Plane, size!: Float64 = 1.0, hex!: UInt32 = 0xffff00)
 |plane|Plane||
 |size|Float64||
 |hex|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func updateMatrixWorld\(Bool\)
 ```cj

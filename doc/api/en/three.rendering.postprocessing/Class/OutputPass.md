@@ -1,15 +1,9 @@
 # Class
 ## class OutputPass
 ```cj
-public class OutputPass <: Pass
+public class OutputPass <: Pass & IReleasable
 ```
 Output pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases the GPU resources held by OutputPass
 
 ### func init\(Int64,Float64,Bool\)
 ```cj
@@ -24,6 +18,12 @@ Parameter:
 |toneMapping|Int64|Tone mapping mode (default ACESFilmicToneMapping=4)|
 |exposure|Float64|Exposure (default 1.0)|
 |sRGB|Bool|Whether to perform sRGB conversion (default true)|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases the GPU resources held by OutputPass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

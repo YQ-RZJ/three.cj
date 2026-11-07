@@ -1,7 +1,7 @@
 # Class
 ## class SSRPass
 ```cj
-public class SSRPass <: Pass
+public class SSRPass <: Pass & IReleasable
 ```
 
 
@@ -16,12 +16,6 @@ public func blur2Texture(): TextureHandle
 public func depthTexture(): TextureHandle
 ```
 深度 RT color 纹理（capture.cj 调试回读用）
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-销毁全部 GPU 资源（composer.dispose 或 renderer.shutdown 调用）
 
 ### func init\(Scene,Camera\)
 ```cj
@@ -42,6 +36,12 @@ Parameter:
 public func normalTexture(): TextureHandle
 ```
 法线 RT color 纹理（capture.cj 调试回读用）
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+销毁全部 GPU 资源（composer.dispose 或 renderer.shutdown 调用）
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

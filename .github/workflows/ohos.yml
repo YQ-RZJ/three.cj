@@ -1,0 +1,141 @@
+name: three-ohos
+
+on:
+  workflow_dispatch:
+    inputs:
+      product-type:
+        description: "产物类型，留空=全量（动态+静态都编译）；可填 dynamic（仅动态）或 static（仅静态）"
+        required: false
+        default: ""
+      cangjie-url:
+        description: "仓颉 SDK（linux-x64-ohos tar.gz）下载链接，如 cangjie-sdk-linux-x64-ohos-1.2.0.tar.gz"
+        required: true
+        default: "https://cangjie-lang.cn/v1/files/auth/downLoad?nsId=142267&fileName=cangjie-sdk-linux-x64-ohos-1.2.0.tar.gz&objectKey=6ab1e9f0e4bd101f57762f58"
+      ohos-sdk-url:
+        description: "OHOS SDK（含 native 组件的 windows_linux 大包）下载地址，如华为云 6.1-LTS ohos-sdk-windows_linux-public.tar.gz"
+        required: true
+        default: "https://repo.huaweicloud.com/harmonyos/os/6.1-LTS/ohos-sdk-windows_linux-public.tar.gz"
+      native-libs-url-x86_64:
+        description: "cxx 静态库包（ohos/x86_64 release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-ohos-x86_64-release-static.tar.gz"
+      native-libs-url-arm64-v8a:
+        description: "cxx 静态库包（ohos/arm64-v8a release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-ohos-arm64-v8a-release-static.tar.gz"
+      native-libs-url-host:
+        description: "宏包宿主链接用的静态库包（linux/x86_64 release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-linux-x86_64-release-static.tar.gz"
+      native-libs-shared-url-x86_64:
+        description: "ohos/x86_64 动态库包（release shared tar.gz，从中提取 libSDL3.so）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-ohos-x86_64-release-shared.tar.gz"
+      native-libs-shared-url-arm64-v8a:
+        description: "ohos/arm64-v8a 动态库包（release shared tar.gz，从中提取 libSDL3.so）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-ohos-arm64-v8a-release-shared.tar.gz"
+      arches:
+        description: "架构，逗号分隔：arm64-v8a,x86_64（留空=全部）"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      arches: ${{ steps.set.outputs.arches }}
+    steps:
+      - id: set
+        run: |
+          V="${{ inputs.arches }}"
+          if [ -z "$V" ]; then V="arm64-v8a,x86_64"; fi
+          echo "arches=[$(echo "$V" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/ /,"",$i); printf "%s\"%s\"", (i>1?",":""), $i}}')]" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: config
+    name: ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(needs.config.outputs.arches) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # 宏包在宿主（linux x64）平台编译链接，套用 LINUX 链接项（-lX11
+      # 等），需先装宿主系统库（ohos job 实测报 cannot find -lX11）
+      - name: Install host system deps (X11/OpenGL for macro linking)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxfixes-dev \
+            libxcursor-dev libxi-dev libxrandr-dev libxrender-dev \
+            libxss-dev libxtst-dev libgl1-mesa-dev libasound2-dev
+
+      # cjpm.toml [target.*-linux-ohos] 的 compile-option 引用
+      # DEVECO_CANGJIE_HOME / DEVECO_OH_NATIVE_HOME（与 DevEco 环境同名）
+      - name: Download & extract OHOS native SDK
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSL -C - --retry 3 --retry-delay 5 \
+            "${{ inputs.ohos-sdk-url }}" -o ohos-sdk.tar.gz
+          tar -xzf ohos-sdk.tar.gz
+          NATIVE_ZIP=$(find . -type f -name "native*linux*.zip" | head -1)
+          if [ -z "$NATIVE_ZIP" ]; then
+            echo "[ERROR] 未找到 linux native 组件 zip，实际结构："
+            find . -maxdepth 4 -name "*.zip" -o -maxdepth 4 -type d | head -30
+            exit 1
+          fi
+          unzip -q "$NATIVE_ZIP" -d ohos-native
+          NATIVE_DIR=$(dirname "$(find ohos-native -maxdepth 3 -name sysroot -type d | head -1)")
+          test -n "$NATIVE_DIR" || { echo "[ERROR] native 组件内未找到 sysroot"; exit 1; }
+          echo "DEVECO_OH_NATIVE_HOME=$(cd "$NATIVE_DIR" && pwd)" >> "$GITHUB_ENV"
+
+      - name: Install Cangjie SDK (ohos variant)
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 -o /tmp/cangjie-sdk.tar.gz "${{ inputs.cangjie-url }}"
+          mkdir -p /opt/cangjie-sdk && tar -xzf /tmp/cangjie-sdk.tar.gz -C /opt/cangjie-sdk
+          CJ_DIR=$(dirname "$(find /opt/cangjie-sdk -maxdepth 3 -name envsetup.sh | head -1)")
+          test -n "$CJ_DIR" || { echo "[ERROR] 未找到 envsetup.sh"; exit 1; }
+          echo "DEVECO_CANGJIE_HOME=$CJ_DIR" >> "$GITHUB_ENV"
+          echo "CANGJIE_HOME=$CJ_DIR" >> "$GITHUB_ENV"
+          echo "$CJ_DIR/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve native libs URL
+        run: |
+          case "${{ matrix.arch }}" in
+            x86_64)    URL="${{ inputs.native-libs-url-x86_64 }}" ;;
+            arm64-v8a) URL="${{ inputs.native-libs-url-arm64-v8a }}" ;;
+          esac
+          if [ -z "$URL" ]; then echo "[ERROR] 架构 ${{ matrix.arch }} 未提供 native-libs-url"; exit 1; fi
+          echo "NATIVE_URL=$URL" >> "$GITHUB_ENV"
+          # 宏包在宿主（linux x64）平台编译链接，需要宿主平台静态库
+          echo "HOST_URL=${{ inputs.native-libs-url-host }}" >> "$GITHUB_ENV"
+          # ohos SDL3 走动态库，从按架构提供的 shared 库包中提取 libSDL3.so
+          case "${{ matrix.arch }}" in
+            x86_64)    SDL3_URL="${{ inputs.native-libs-shared-url-x86_64 }}" ;;
+            arm64-v8a) SDL3_URL="${{ inputs.native-libs-shared-url-arm64-v8a }}" ;;
+          esac
+          echo "SDL3_URL=$SDL3_URL" >> "$GITHUB_ENV"
+
+      - name: Build three
+        run: |
+          source "$CANGJIE_HOME/envsetup.sh"
+          cjc -v
+          python3 .github/scripts/build_three.py \
+            --product-type "${{ inputs.product-type }}" \
+            --platform ohos --arch ${{ matrix.arch }} \
+            --native-url "$NATIVE_URL" \
+            --sdl3-url "$SDL3_URL" \
+            --host-url "$HOST_URL" --host-tag LINUX_X64
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: three-ohos-${{ matrix.arch }}
+          path: dist/*
+          retention-days: 30

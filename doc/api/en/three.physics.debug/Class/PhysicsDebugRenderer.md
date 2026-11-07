@@ -1,7 +1,7 @@
 # Class
 ## class PhysicsDebugRenderer
 ```cj
-public class PhysicsDebugRenderer
+public class PhysicsDebugRenderer <: IReleasable
 ```
 Jolt debug-renderer bridge
 
@@ -10,12 +10,6 @@ Jolt debug-renderer bridge
 public func clear(): Unit
 ```
 Clears the collected primitive cache
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes the renderer (releases the procs table and the Jolt instance)
 
 ### func drawBodies\(PhysicsWorld,Bool\)
 ```cj
@@ -55,15 +49,21 @@ public func nextFrame(): Unit
 ```
 Ends this capture pass (triggers Jolt NextFrame, clears internal state)
 
-### prop isValid: Bool
+### func release\(\)
 ```cj
-public prop isValid: Bool
+public func release(): Bool
 ```
-Whether the renderer is valid
+disposes the renderer (releases the procs table and the Jolt instance)
 
 ### prop lineCount: Int64
 ```cj
 public prop lineCount: Int64
 ```
 Number of line segments collected this frame
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the renderer is valid
 

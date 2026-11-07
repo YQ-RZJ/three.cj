@@ -1,7 +1,7 @@
 # 类
 ## class AudioListener
 ```cj
-public open class AudioListener <: Object3D
+public open class AudioListener <: Object3D & IReleasable
 ```
 音频监听器，代表场景中的"耳朵"
 
@@ -26,6 +26,12 @@ public init(context!: AudioContext = AudioContext.context)
 |名称|类型|描述|
 |---|---|---|
 |context|AudioContext|音频上下文（默认使用 AudioContext.context 单例）|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放监听器：从音频上下文的变换槽注册表注销
 
 ### func setMasterVolume\(Float64\)
 ```cj

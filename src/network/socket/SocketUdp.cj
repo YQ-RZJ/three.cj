@@ -54,6 +54,7 @@ package three.network.socket
 
 import std.net.*
 import std.core.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] UDP 套接字
@@ -63,7 +64,7 @@ import std.core.*
  * @explain[en] A game-development-friendly wrapper around std.net.UdpSocket with port
  * binding, remote sending and blocking receive.
  */
-public class SocketUdp {
+public class SocketUdp <: IReleasable {
     /**
      * @brief[zh-cn] 底层 std.net 套接字
      *
@@ -192,11 +193,10 @@ public class SocketUdp {
     /**
      * @brief[zh-cn] 阻塞接收数据
      * @return[zh-cn] 返回 (远端地址字符串, 数据字节)；失败时返回 ("", [])
+     * @note[zh-cn] 远端地址以 "host:port" 形式表达。
      *
      * @brief[en] Receives data (blocking)
      * @return[en] Returns (remote address string, data bytes); on failure returns ("", [])
-     *
-     * @note[zh-cn] 远端地址以 "host:port" 形式表达。
      * @note[en] The remote address is expressed as "host:port".
      */
     public func receive(): (String, Array<UInt8>) {
@@ -222,10 +222,12 @@ public class SocketUdp {
 
     /**
      * @brief[zh-cn] 关闭套接字
+     * @note[zh-cn] 未绑定时为幂等空操作并返回 false。
      *
      * @brief[en] Closes the socket
+     * @note[en] Idempotent no-op returning false when not bound.
      */
-    public func close(): Unit {
+    public func release(): Bool {
         if (let Some(s) <- this._socket) {
             try {
                 s.close()
@@ -234,6 +236,8 @@ public class SocketUdp {
             }
             this._socket = None
             this._bound = false
+            return true
         }
+        return false
     }
 }

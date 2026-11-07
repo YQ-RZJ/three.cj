@@ -1,7 +1,7 @@
 # 类
 ## class Backend
 ```cj
-public open class Backend
+public open class Backend <: IReleasable
 ```
 渲染后端抽象基类
 
@@ -210,18 +210,6 @@ public open func destroyTexture(texture: Texture): Unit
 |---|---|---|
 |texture|Texture|纹理|
 
-### func destroy\(\)
-```cj
-public open func destroy(): Unit
-```
-destroy 是 dispose 的别名（旧版兼容）
-
-### func dispose\(\)
-```cj
-public open func dispose(): Unit
-```
-销毁后端，释放资源
-
 ### func draw\(IRenderObject\)
 ```cj
 public open func draw(renderObject: IRenderObject): Unit
@@ -360,6 +348,12 @@ public open func prepareShadowMap(scene: Scene): Unit
 |名称|类型|描述|
 |---|---|---|
 |scene|Scene|渲染场景（含光源与 caster 几何体）|
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+销毁后端，释放资源
 
 ### func resolveRenderTarget\(RenderTarget\)
 ```cj

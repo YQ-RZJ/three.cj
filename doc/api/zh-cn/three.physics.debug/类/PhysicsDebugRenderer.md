@@ -1,7 +1,7 @@
 # 类
 ## class PhysicsDebugRenderer
 ```cj
-public class PhysicsDebugRenderer
+public class PhysicsDebugRenderer <: IReleasable
 ```
 Jolt 调试渲染器桥接
 
@@ -10,12 +10,6 @@ Jolt 调试渲染器桥接
 public func clear(): Unit
 ```
 清空已收集的图元缓存
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁渲染器（释放回调表与 Jolt 实例）
 
 ### func drawBodies\(PhysicsWorld,Bool\)
 ```cj
@@ -54,15 +48,21 @@ public func nextFrame(): Unit
 ```
 结束本帧采集（触发 Jolt NextFrame，清空内部状态）
 
-### prop isValid: Bool
+### func release\(\)
 ```cj
-public prop isValid: Bool
+public func release(): Bool
 ```
-渲染器是否有效
+销毁渲染器（释放回调表与 Jolt 实例）
 
 ### prop lineCount: Int64
 ```cj
 public prop lineCount: Int64
 ```
 本帧收集的线段数量
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+渲染器是否有效
 

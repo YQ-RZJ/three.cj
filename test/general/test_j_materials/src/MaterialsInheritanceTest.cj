@@ -25,7 +25,7 @@ public class MaterialsInheritanceTest <: TestClass {
     }
 
     func test_all_extend_material() {
-        // 对照 JS QUnit: obj instanceof Material 断言（Material 基类 isMaterial=true，子类继承）
+        // obj instanceof Material 断言（Material 基类 isMaterial=true，子类继承）
         let mats = [
             MeshBasicMaterial(), MeshLambertMaterial(), MeshPhongMaterial(),
             MeshStandardMaterial(), MeshPhysicalMaterial(), MeshToonMaterial(),

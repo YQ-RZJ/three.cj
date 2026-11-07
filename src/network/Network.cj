@@ -56,6 +56,5 @@
  * Underlying dependencies:
  * - httpclient4cj (OkHttp-style full HTTP client)
  * - std.net (TCP/UDP primitives) + std.binary (network byte order codec)
- *
  */
 package three.network

@@ -1,17 +1,9 @@
 # 类
 ## class AudioRecorder
 ```cj
-public class AudioRecorder
+public class AudioRecorder <: IReleasable
 ```
 麦克风音频捕获器，封装 ALC capture 扩展
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-关闭捕获设备并释放资源
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>对应 alcCaptureCloseDevice(device)。</p>
 
 ### func getAvailableSamples\(\)
 ```cj
@@ -80,6 +72,14 @@ public func readSamples(buffer: CPointer < UInt8 >, samples: Int32): Int32
 
 - 实际读取的字节数（samples × 声道数 × 2）
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭捕获设备并释放资源
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>对应 alcCaptureCloseDevice(device)；设备未打开时为幂等空操作。</p>
+
 ### func start\(\)
 ```cj
 public func start(): Bool
@@ -129,4 +129,10 @@ public prop opened: Bool
 public prop recording: Bool
 ```
 是否捕获中
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+资源是否有效（捕获设备已打开且未被释放）
 

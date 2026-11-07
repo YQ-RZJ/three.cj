@@ -1,15 +1,9 @@
 # Class
 ## class Connection
 ```cj
-public class Connection
+public class Connection <: IReleasable
 ```
 Game-grade TCP connection
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-Closes the connection (user-initiated; no onDisconnected, no auto reconnect)
 
 ### func connect\(\)
 ```cj
@@ -33,6 +27,13 @@ Parameter:
 |---|---|---|
 |host|String|Target host (IP or domain)port Target port|
 |port|UInt16||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Closes the connection (user-initiated; no
+onDisconnected, no auto reconnect)
 
 ### func sendString\(String\)
 ```cj

@@ -1,7 +1,7 @@
 # Class
 ## class AudioListener
 ```cj
-public open class AudioListener <: Object3D
+public open class AudioListener <: Object3D & IReleasable
 ```
 Audio listener representing the "ears" in the scene
 
@@ -26,6 +26,13 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |context|AudioContext|The audio context (defaults to the AudioContext.context singleton)|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Releases the listener: unregisters it from the
+audio context transform-slot registry
 
 ### func setMasterVolume\(Float64\)
 ```cj

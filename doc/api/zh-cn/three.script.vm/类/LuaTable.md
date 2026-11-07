@@ -1,7 +1,7 @@
 # 类
 ## class LuaTable
 ```cj
-public class LuaTable
+public class LuaTable <: IReleasable
 ```
 Lua 表引用
 
@@ -22,12 +22,6 @@ public static func create(vm: LuaVM, narr!: Int32 = 0, nrec!: Int32 = 0): LuaTab
 返回: 
 
 - 新建表的引用
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放注册表引用
 
 ### func fromGlobal\(LuaVM,String\)
 ```cj
@@ -101,6 +95,12 @@ public func len(): Int64
 
 - 表数组部分的长度
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放注册表引用。
+
 ### func setIndex\(Int32,LuaValue\)
 ```cj
 public func setIndex(i: Int32, value: LuaValue): Unit
@@ -133,15 +133,15 @@ public prop isArray: Bool
 ```
 表是否为数组（连续整数键）
 
-### prop isValid: Bool
-```cj
-public prop isValid: Bool
-```
-是否有效（未被释放）
-
 ### prop ref: Int32
 ```cj
 public prop ref: Int32
 ```
 注册表引用 id
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+是否有效（未被释放）
 

@@ -133,7 +133,7 @@ public class TestWindow <: WindowEngine {
 
     // ===== 生命周期：关闭前（清理渲染器） =====
     public override func onClose(): Unit {
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
     }
 }

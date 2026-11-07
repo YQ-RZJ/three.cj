@@ -1,7 +1,7 @@
 # Class
 ## class AudioContext
 ```cj
-public class AudioContext
+public class AudioContext <: IReleasable
 ```
 Audio context singleton managing the OpenAL device/context and a dedicated audio thread
 
@@ -141,6 +141,15 @@ Parameter:
 |---|---|---|
 |slot|AudioTransformSlot|The transform slot (owned by the caller, must outlive the registration)|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Shuts down the audio context and releases resources
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Cleanup runs on the audio thread to ensure OpenAL calls are issued on the
+thread that owns the context; idempotent no-op when not initialized.</p>
+
 ### func selectHrtf\(Int32\)
 ```cj
 public func selectHrtf(id: Int32): Unit
@@ -209,15 +218,6 @@ Parameter:
 |---|---|---|
 |speed|Float32|Speed of sound in m/s (default 343.3), used as the Doppler reference;larger values weaken the Doppler effect|
 
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-Shuts down the audio context and releases resources
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Cleanup runs on the audio thread to ensure OpenAL calls are issued on the
-thread that owns the context.</p>
-
 ### func unregisterTransformSlot\(AudioTransformSlot\)
 ```cj
 public func unregisterTransformSlot(slot: AudioTransformSlot): Unit
@@ -253,4 +253,10 @@ Returns the OpenAL device handle
 public prop initialized: Bool
 ```
 Whether the context has been initialized
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the resource is valid (initialized with a usable device handle)
 

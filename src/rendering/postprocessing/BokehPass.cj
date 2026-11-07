@@ -96,6 +96,7 @@
 
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -118,34 +119,38 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 景深（DOF）后处理 pass
- * @brief[en] Depth of Field (DOF) post-processing pass
  * @explain[zh-cn] 内部 2 遍：深度 pass（bokeh_depth）+ bokeh 合成 pass（bokeh，41 抽头 lens blur）。
  *         focus/aperture/maxblur 以 public 字段暴露，运行时修改字段 → render() 内每帧同步到 bgfx uniform。
+ *
+ * @brief[en] Depth of Field (DOF) post-processing pass
  * @explain[en] Internally 2 passes: a depth pass (bokeh_depth) + a bokeh composite pass
  *         (bokeh, 41-tap lens blur). focus/aperture/maxblur are exposed as public fields; modifying
  *         them at runtime syncs to bgfx uniforms inside render() every frame.
  */
-public class BokehPass <: Pass {
+public class BokehPass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 焦点距离（世界单位，沿相机朝向）
-     * @brief[en] Focal distance (world units, along the camera direction)
      * @explain[zh-cn] 默认 1.0。
+     *
+     * @brief[en] Focal distance (world units, along the camera direction)
      * @explain[en] Default 1.0.
      */
     public var focus: Float64
 
     /**
      * @brief[zh-cn] 光圈（越大景深越浅）
-     * @brief[en] Aperture (larger = shallower depth of field)
      * @explain[zh-cn] 默认 0.025。
+     *
+     * @brief[en] Aperture (larger = shallower depth of field)
      * @explain[en] Default 0.025.
      */
     public var aperture: Float64
 
     /**
      * @brief[zh-cn] 最大模糊量（控制散景半径上限）
-     * @brief[en] Maximum blur (caps the bokeh radius)
      * @explain[zh-cn] 默认 1.0。
+     *
+     * @brief[en] Maximum blur (caps the bokeh radius)
      * @explain[en] Default 1.0.
      */
     public var maxblur: Float64
@@ -315,6 +320,8 @@ public class BokehPass <: Pass {
                       " cameraNear=" + camera.near.toString() +
                       " cameraFar=" + camera.far.toString() +
                       " (aspect synced from width/height in render)"])
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -755,13 +762,16 @@ public class BokehPass <: Pass {
      * bokeh/bokeh_depth shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
      * 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         // 释放场景几何体共享 layout handle
         if (let Some(renderer) <- this._renderer && let Some(lh) <- this._layoutHandleCache) {
             renderer.destroyVertexLayout(lh)
             this._layoutHandleCache = None
         }
-        @LogTrace(["bokeh", "disposed"])
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        @LogTrace(["bokeh", "released"])
+        return true
     }
 }

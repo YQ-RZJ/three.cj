@@ -1,18 +1,9 @@
 # Class
 ## class HttpClient
 ```cj
-public class HttpClient
+public class HttpClient <: IReleasable
 ```
 Configurable HTTP client
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-Closes the client (releases resources such as the connection pool)
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>httpclient4cj does not expose an explicit close; the connection pool
-is reclaimed by GC.</p>
 
 ### func enqueue\(HttpRequest,\(HttpResponse\)\->Unit,\(String\)\->Unit\)
 ```cj
@@ -57,6 +48,15 @@ Parameter:
 |connectTimeoutMs|Int64|Connect timeout in milliseconds (default 10000)readTimeoutMs Read timeout in milliseconds (default 10000)writeTimeoutMs Write timeout in milliseconds (default 10000)|
 |readTimeoutMs|Int64||
 |writeTimeoutMs|Int64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Releases resources
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>httpclient4cj does not expose an explicit close; the connection pool
+is reclaimed by GC. Currently an idempotent no-op.</p>
 
 ### let connectTimeoutMs
 ```cj

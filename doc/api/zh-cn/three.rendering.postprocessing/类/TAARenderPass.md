@@ -1,15 +1,9 @@
 # 类
 ## class TAARenderPass
 ```cj
-public class TAARenderPass <: SSAARenderPass
+public class TAARenderPass <: SSAARenderPass & IReleasable
 ```
 时间抗锯齿渲染 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 TAARenderPass 占用的所有 GPU 资源（holdRT + copy shader）。
 
 ### func init\(Scene,Camera,UInt32,Float64\)
 ```cj
@@ -25,6 +19,12 @@ public init(scene: Scene, camera: Camera, clearColor!: UInt32 = 0x00000000u32, c
 |camera|Camera|待渲染相机|
 |clearColor|UInt32|clear 颜色（默认透明黑）|
 |clearAlpha|Float64|clear alpha（默认 0）差异：全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 TAARenderPass 占用的所有 GPU 资源（holdRT + copy shader）。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

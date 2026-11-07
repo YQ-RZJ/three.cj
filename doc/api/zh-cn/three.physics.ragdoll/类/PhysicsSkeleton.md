@@ -1,7 +1,7 @@
 # 类
 ## class PhysicsSkeleton
 ```cj
-public class PhysicsSkeleton
+public class PhysicsSkeleton <: IReleasable
 ```
 布娃娃骨骼：关节层级（名称 + 父关节索引）
 
@@ -21,12 +21,6 @@ public func addJoint(name: String, parentIndex!: Int64 = - 1): Int64
 返回: 
 
 - 新关节的索引
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放底层骨骼句柄
 
 ### func init\(\)
 ```cj
@@ -66,9 +60,21 @@ public func jointParentIndex(index: Int64): Int64
 
 - 父关节索引；根关节或无效索引返回 -1
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放底层骨骼句柄
+
 ### prop jointCount: Int64
 ```cj
 public prop jointCount: Int64
 ```
 关节数量
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+骨骼是否有效（创建成功且未销毁）
 

@@ -1,15 +1,9 @@
 # 类
 ## class AfterimagePass
 ```cj
-public class AfterimagePass <: Pass
+public class AfterimagePass <: Pass & IReleasable
 ```
 残影后处理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 afterimage pass 占用的所有 GPU 资源
 
 ### func init\(Float64\)
 ```cj
@@ -22,6 +16,12 @@ public init(damp!: Float64 = 0.96)
 |名称|类型|描述|
 |---|---|---|
 |damp|Float64|阻尼系数（默认 0.96）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 afterimage pass 占用的所有 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -50,6 +50,12 @@ public override func setSize(width: Int64, height: Int64): Unit
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+内部 RT 是否已创建且未被释放
 
 ### let AFTERIMAGE\_VIEW\_ID\_BASE
 ```cj

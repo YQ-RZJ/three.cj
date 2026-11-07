@@ -1,7 +1,7 @@
 # Class
 ## class AssetCache
 ```cj
-public class AssetCache
+public class AssetCache <: IReleasable
 ```
 Ref-counted asset cache
 
@@ -39,12 +39,6 @@ Parameter:
 public func advanceFrame(): Unit
 ```
 Advances the logical frame per frame (called by AssetManager.update, or manually)
-
-### func clear\(\)
-```cj
-public func clear(): Unit
-```
-Clears the whole cache (ignores ref counts)
 
 ### func collectIfNeeded\(Int64\)
 ```cj
@@ -125,6 +119,12 @@ Parameter:
 Return: 
 
 - True when the entry exists and the count was decremented
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+clears the whole cache (ignores ref counts)
 
 ### func remove\(String\)
 ```cj

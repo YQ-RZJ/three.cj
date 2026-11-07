@@ -1,7 +1,7 @@
 # Class
 ## class RenderPipeline
 ```cj
-public open class RenderPipeline
+public open class RenderPipeline <: IReleasable
 ```
 TSL render pipeline
 
@@ -10,12 +10,6 @@ TSL render pipeline
 public func _update(): Unit
 ```
 Detects config changes and updates contextData
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes render pipeline resources
 
 ### func init\(Renderer,Option<Any>\)
 ```cj
@@ -35,6 +29,12 @@ Parameter:
 public init()
 ```
 No-argument constructor (backward compatible)
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+dispose render pipeline resources
 
 ### func renderAsync\(\)
 ```cj

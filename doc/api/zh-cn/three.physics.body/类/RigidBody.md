@@ -1,7 +1,7 @@
 # 类
 ## class RigidBody
 ```cj
-public class RigidBody
+public class RigidBody <: IReleasable
 ```
 物理刚体便捷封装
 
@@ -127,12 +127,6 @@ public func attach(object3d: Object3D, syncToObj!: Bool = true): RigidBody
 
 - 返回自身（可链式）
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁刚体并解除绑定
-
 ### func getAngularVelocity\(\)
 ```cj
 public func getAngularVelocity(): Vector3
@@ -230,6 +224,12 @@ public func moveKinematic(position: Vector3, rotation: Quaternion, deltaTime: Fl
 |position|Vector3|目标位置rotation 目标旋转deltaTime 距上一帧的时间差（秒）|
 |rotation|Quaternion||
 |deltaTime|Float32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁刚体并解除绑定
 
 ### func setActivation\(PhysicsActivation\)
 ```cj

@@ -229,7 +229,6 @@ public class Frustum {
      *             法线分量 > 0 时取该轴的最大值，< 0 时取最小值。
      *             （此前取反了：用 n-vertex 规则会让 n·p 偏大，误判为"在平面外侧"，
      *               导致位于视锥边缘的包围盒被过度剔除。）
-     *
      * @param[zh-cn] minX 包围盒最小 X
      * minY 包围盒最小 Y
      * minZ 包围盒最小 Z

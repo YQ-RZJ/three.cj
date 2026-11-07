@@ -1,15 +1,9 @@
 # 类
 ## class PhysicsHeightField
 ```cj
-public class PhysicsHeightField
+public class PhysicsHeightField <: IReleasable
 ```
 高度场运行时对象
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁高度场地形（从世界移除并释放刚体）
 
 ### func projectOntoSurface\(Float64,Float64\)
 ```cj
@@ -28,15 +22,21 @@ public func projectOntoSurface(x: Float64, z: Float64): Vector3
 
 - 表面点（three 左手系）；地形外或无效时返回 y = -3.4e38 的点
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁高度场地形（从世界移除并释放刚体）
+
 ### prop bodyID: UInt32
 ```cj
 public prop bodyID: UInt32
 ```
 地形刚体 ID（可配合碰撞查询使用）
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 高度场是否有效（创建成功且未销毁）
 

@@ -1,7 +1,7 @@
 # Class
 ## class BoxHelper
 ```cj
-public class BoxHelper <: LineSegments
+public class BoxHelper <: LineSegments & IReleasable
 ```
 Box helper for visualizing the axis-aligned bounding box of an Object3D
 
@@ -22,12 +22,6 @@ Return:
 
 - Self reference
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
-
 ### func init\(\)
 ```cj
 public init()
@@ -46,6 +40,12 @@ Parameter:
 |---|---|---|
 |object|Object3D||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func setFromObject\(Object3D\)
 ```cj

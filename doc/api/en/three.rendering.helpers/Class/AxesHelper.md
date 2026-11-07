@@ -1,15 +1,9 @@
 # Class
 ## class AxesHelper
 ```cj
-public class AxesHelper <: LineSegments
+public class AxesHelper <: LineSegments & IReleasable
 ```
 Axes helper for visualizing X/Y/Z axes
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(Float64\)
 ```cj
@@ -22,6 +16,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |size|Float64|Axis line length, default 1|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func setColors\(Color,Color,Color\)
 ```cj

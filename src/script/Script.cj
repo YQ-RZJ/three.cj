@@ -28,6 +28,7 @@
  * - three.script.binding：仓颉与 Lua 双向绑定（LuaBinder 将仓颉函数注册为 Lua 全局函数/表方法）；
  * - three.script.hotreload：脚本热更新（LuaHotReload 检测文件变更并自动重新加载）。
  * 底层依赖 luajit4cj（LuaJIT 2.1 CFFI，覆盖 lua.h/lauxlib.h/lualib.h/luajit.h 全部 API）。
+ * @intro[zh-cn] three.script 提供基于 LuaJIT 的脚本子系统：VM 封装、仓颉与 Lua 双向绑定与脚本热更新。
  *
  * @file[en] Script  Script module root package (three.script)
  * @brief[en] Script module root package (declares only the three.script package
@@ -39,8 +40,6 @@
  * functions as Lua globals or table methods);
  * - three.script.hotreload: script hot reload (LuaHotReload detects file changes and reloads automatically).
  * It is built on luajit4cj (LuaJIT 2.1 CFFI, covering the full lua.h/lauxlib.h/lualib.h/luajit.h API).
- *
- * @intro[zh-cn] three.script 提供基于 LuaJIT 的脚本子系统：VM 封装、仓颉与 Lua 双向绑定与脚本热更新。
  * @intro[en] three.script provides a LuaJIT-based scripting subsystem: VM wrapper,
  * Cangjie-Lua bidirectional binding and script hot reload.
  */

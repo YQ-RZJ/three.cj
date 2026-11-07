@@ -70,6 +70,12 @@ public init(listener!: AudioListener = AudioListener())
 |---|---|---|
 |listener|AudioListener|关联的音频监听器|
 
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放位置音频：基类释放逻辑 + 从音频上下文注销变换槽
+
 ### func setDirectionalCone\(Float64,Float64,Float64\)
 ```cj
 public func setDirectionalCone(coneInnerAngle!: Float64, coneOuterAngle!: Float64, coneOuterGain!: Float64): PositionalAudio

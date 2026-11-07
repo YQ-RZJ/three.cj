@@ -1,15 +1,9 @@
 # 类
 ## class BgfxMorphtargets
 ```cj
-public class BgfxMorphtargets
+public class BgfxMorphtargets <: IReleasable
 ```
 bgfx 变形目标管理
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-释放所有变形目标
 
 ### func dispose\(Int64\)
 ```cj
@@ -45,6 +39,12 @@ public func get(geometryId: Int64, count: Int64): MorphTargetInfo
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有变形目标
 
 ### func update\(Int64,Array<Float32>\)
 ```cj

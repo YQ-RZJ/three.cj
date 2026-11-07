@@ -24,7 +24,7 @@
  * @file[zh-cn] 纹理工具函数
  * @brief[zh-cn] 提供纹理裁剪适配与字节长度估算
  * @explain[zh-cn] 提供 CSS object-fit 风格的纹理变换（contain/cover/fill）以及给定尺寸、格式、类型下的纹理字节数估算方法。
-
+ *
  * @file[en] Texture Utilities
  * @brief[en] Provides texture fit/sizing and byte length estimation
  * @explain[en] Provides CSS object-fit style texture transforms (contain/cover/fill) and texture byte length estimation methods for given dimensions, format, and type. 
@@ -37,19 +37,19 @@ import three.core.math.*
 
 /**
  * @brief[zh-cn] 纹理类型字节描述：每个像素的字节数与该类型一次写入的分量数
-
+ *
  * @brief[en] Texture type byte description: bytes per pixel and components per write for each type
  */
 public struct TypeByteLength {
     /**
      * @brief[zh-cn] 每像素（或每分量组）的字节数
-
+     *
      * @brief[en] Bytes per pixel (or per component group)
      */
     public let byteLength: Int64
     /**
      * @brief[zh-cn] 每像素的分量数
-
+     *
      * @brief[en] Components per pixel
      */
     public let components: Int64
@@ -63,7 +63,7 @@ public struct TypeByteLength {
  * @brief[zh-cn] 查表获取给定纹理类型对应的字节数与分量数
  * @param[zh-cn] type 纹理类型常量
  * @return[zh-cn] TypeByteLength 结构
-
+ *
  * @brief[en] Look up bytes per pixel and components for the given texture type
  * @param[en] type Texture type constant
  * @return[en] TypeByteLength structure
@@ -88,7 +88,7 @@ public func getTextureTypeByteLength(`type`: Int64): TypeByteLength {
  * @param[zh-cn] texture 目标纹理
  * aspect 目标表面宽高比
  * @return[zh-cn] 被修改的纹理
-
+ *
  * @brief[en] Scale texture in contain mode (package-level convenience function, forwards to TextureUtils.contain)
  * @param[en] texture Target texture
  * aspect Target surface aspect ratio
@@ -103,7 +103,7 @@ public func contain(texture: Texture, aspect: Float64): Texture {
  * @param[zh-cn] texture 目标纹理
  * aspect 目标表面宽高比
  * @return[zh-cn] 被修改的纹理
-
+ *
  * @brief[en] Scale texture in cover mode (package-level convenience function, forwards to TextureUtils.cover)
  * @param[en] texture Target texture
  * aspect Target surface aspect ratio
@@ -117,7 +117,7 @@ public func cover(texture: Texture, aspect: Float64): Texture {
  * @brief[zh-cn] 将纹理重置为默认变换（包级便捷函数，转发到 TextureUtils.fill）
  * @param[zh-cn] texture 目标纹理
  * @return[zh-cn] 被修改的纹理
-
+ *
  * @brief[en] Reset texture to default transform (package-level convenience function, forwards to TextureUtils.fill)
  * @param[en] texture Target texture
  * @return[en] Modified texture
@@ -129,7 +129,7 @@ public func fill(texture: Texture): Texture {
 /**
  * @brief[zh-cn] 纹理工具类
  * @explain[zh-cn] 提供 CSS object-fit 风格的纹理变换（contain/cover/fill）以及给定尺寸、格式、类型下的纹理字节数估算方法。
-
+ *
  * @brief[en] Texture utilities class
  * @explain[en] Provides CSS object-fit style texture transforms (contain/cover/fill) and texture byte length estimation methods for given dimensions, format, and type.
  */
@@ -139,7 +139,7 @@ public class TextureUtils {
      * @param[zh-cn] texture 目标纹理
      * aspect 目标表面的宽高比
      * @return[zh-cn] 被修改的纹理
-
+     *
      * @brief[en] Scale texture in contain mode: fill surface as large as possible without cropping/stretching
      * @param[en] texture Target texture
      * aspect Target surface aspect ratio
@@ -166,7 +166,7 @@ public class TextureUtils {
      * @param[zh-cn] texture 目标纹理
      * aspect 目标表面的宽高比
      * @return[zh-cn] 被修改的纹理
-
+     *
      * @brief[en] Scale texture in cover mode
      * @param[en] texture Target texture
      * aspect Target surface aspect ratio
@@ -192,7 +192,7 @@ public class TextureUtils {
      * @brief[zh-cn] 将纹理重置为默认变换
      * @param[zh-cn] texture 目标纹理
      * @return[zh-cn] 被修改的纹理
-
+     *
      * @brief[en] Reset texture to default transform
      * @param[en] texture Target texture
      * @return[en] Modified texture
@@ -210,7 +210,7 @@ public class TextureUtils {
      * format 纹理格式
      * type 纹理类型
      * @return[zh-cn] 字节长度
-
+     *
      * @brief[en] Estimate texture byte length for given dimensions, format, and type
      * @param[en] width Texture width
      * height Texture height

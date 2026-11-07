@@ -1,7 +1,7 @@
 # 类
 ## class IdAllocator
 ```cj
-public class IdAllocator
+public class IdAllocator <: IReleasable
 ```
 ID 分配器
 
@@ -51,9 +51,9 @@ public func release(id: Int64): Unit
 |---|---|---|
 |id|Int64|待回收的 ID|
 
-### func reset\(\)
+### func release\(\)
 ```cj
-public func reset(): Unit
+public func release(): Bool
 ```
 重置分配器（清空空闲池，重置起始计数）
 

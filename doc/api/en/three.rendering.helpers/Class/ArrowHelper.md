@@ -1,7 +1,7 @@
 # Class
 ## class ArrowHelper
 ```cj
-public class ArrowHelper <: Object3D
+public class ArrowHelper <: Object3D & IReleasable
 ```
 3D arrow helper for visualizing directions
 
@@ -22,12 +22,6 @@ Return:
 
 - Self reference
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
-
 ### func init\(Vector3,Vector3,Float64,UInt32,Float64,Float64\)
 ```cj
 public init(dir!: Vector3 = Vector3(0.0, 0.0, 1.0), origin!: Vector3 = Vector3(0.0, 0.0, 0.0), length!: Float64 = 1.0, color!: UInt32 = 0xffff00, headLength!: Float64 = 0.0, headWidth!: Float64 = 0.0)
@@ -44,6 +38,12 @@ Parameter:
 |color|UInt32||
 |headLength|Float64||
 |headWidth|Float64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func setColor\(Color\)
 ```cj

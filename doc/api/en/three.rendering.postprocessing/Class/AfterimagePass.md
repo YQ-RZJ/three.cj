@@ -1,15 +1,9 @@
 # Class
 ## class AfterimagePass
 ```cj
-public class AfterimagePass <: Pass
+public class AfterimagePass <: Pass & IReleasable
 ```
 Afterimage post-processing pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases all GPU resources held by the afterimage pass
 
 ### func init\(Float64\)
 ```cj
@@ -22,6 +16,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |damp|Float64|Damping factor (default 0.96)|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases all GPU resources held by the afterimage pass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -50,6 +50,12 @@ Parameter:
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+whether the internal RTs exist and have not been released
 
 ### let AFTERIMAGE\_VIEW\_ID\_BASE
 ```cj

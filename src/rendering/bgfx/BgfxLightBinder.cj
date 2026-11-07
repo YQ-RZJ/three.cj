@@ -257,7 +257,6 @@ internal class BgfxLightBinder {
      * @param[zh-cn] y Y 分量
      * @param[zh-cn] z Z 分量
      * @param[zh-cn] w W 分量
-     *
      * @explain[zh-cn] 光照 uniform 每帧按 maxLights 个槽位逐个写入，若用数组字面量
      *               传值，每次写入都会产生一次堆分配（每帧数十次）。直接逐分量写入
      *               可省掉这些分配。
@@ -269,7 +268,6 @@ internal class BgfxLightBinder {
      * @param[en] y Y component
      * @param[en] z Z component
      * @param[en] w W component
-     *
      * @explain[en] Light uniforms are written slot by slot (maxLights slots) every
      *               frame; passing array literals would heap-allocate once per write
      *               (dozens per frame). Writing component by component avoids that.

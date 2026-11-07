@@ -1,7 +1,7 @@
 # Class
 ## class PhysicsSkeleton
 ```cj
-public class PhysicsSkeleton
+public class PhysicsSkeleton <: IReleasable
 ```
 Ragdoll skeleton: joint hierarchy (name + parent joint index)
 
@@ -21,12 +21,6 @@ Parameter:
 Return: 
 
 - The index of the new joint
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases the underlying skeleton handle
 
 ### func init\(\)
 ```cj
@@ -66,9 +60,21 @@ Return:
 
 - The parent joint index; -1 for a root joint or invalid index
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+releases the underlying skeleton handle
+
 ### prop jointCount: Int64
 ```cj
 public prop jointCount: Int64
 ```
 The number of joints
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the skeleton is valid (created successfully and not disposed)
 

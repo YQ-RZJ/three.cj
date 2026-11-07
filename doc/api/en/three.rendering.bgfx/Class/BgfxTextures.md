@@ -1,7 +1,7 @@
 # Class
 ## class BgfxTextures
 ```cj
-public class BgfxTextures
+public class BgfxTextures <: IReleasable
 ```
 bgfx texture management
 
@@ -56,12 +56,6 @@ Parameter:
 |---|---|---|
 |textureId|Int64|Texture ID|
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose all textures
-
 ### func get\(Int64\)
 ```cj
 public func get(textureId: Int64): Option < TextureInfo >
@@ -92,6 +86,12 @@ Parameter:
 |utils|BgfxUtils||
 |info|BgfxInfo||
 |properties|BgfxProperties||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all textures
 
 ### func updateTexture2D\(Int64,UInt16,UInt16,UInt16,UInt16,BgfxMemory,UInt16\)
 ```cj

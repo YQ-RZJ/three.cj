@@ -1,15 +1,9 @@
 # 类
 ## class SkeletonHelper
 ```cj
-public class SkeletonHelper <: LineSegments
+public class SkeletonHelper <: LineSegments & IReleasable
 ```
 骨骼辅助对象，用于可视化 Skeleton 骨骼层级
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -28,6 +22,12 @@ public init(object: Object3D)
 |名称|类型|描述|
 |---|---|---|
 |object|Object3D||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func setColors\(Color,Color\)
 ```cj

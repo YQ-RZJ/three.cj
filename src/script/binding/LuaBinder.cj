@@ -24,13 +24,16 @@
  * @file[zh-cn] LuaBinder 仓颉 ↔ Lua 双向绑定（three.script.binding 子包）
  * @brief[zh-cn] 仓颉与 Lua 双向绑定，将仓颉函数注册为 Lua 全局函数或表方法
  * @explain[zh-cn] 将仓颉函数注册为 Lua 全局函数/表方法，实现"仓颉方法绑定"：
+ * @example[zh-cn] 注册仓颉函数并在 Lua 中调用
+ * @note[zh-cn] 绑定机制（CFFI 关键约束）：lua_CFunction 是 CFunc<(CPointer<Unit>) -> Int32>，
+ * 仓颉侧定义的 CFunc Lambda 不能捕获变量，因此无法在闭包中直接持有仓颉回调对象。
+ * 解法：全局注册表 _handlers（id → 回调），注册时把 id 作为闭包 upvalue（lightuserdata）
+ * 传给 C 闭包；C 分发函数从 upvalue 取回 id 查表调用仓颉回调，再把返回值压回 Lua 栈。
  *
  * @file[en] LuaBinder  Bidirectional Cangjie-Lua binding (three.script.binding sub-package)
  * @brief[en] Bidirectional Cangjie-Lua binding; registers Cangjie functions as Lua globals or table methods
  * @explain[en] Registers Cangjie functions as Lua globals/table methods, implementing
  * "Cangjie method binding":
- *
- * @example[zh-cn] 注册仓颉函数并在 Lua 中调用
  * @example[en] Registering a Cangjie function and calling it from Lua
  * LuaBinder.registerFunction(vm, "cj_add") { args ->
  * let a = args[0].numberValue()
@@ -38,10 +41,6 @@
  * [LuaValue.of(a + b)]
  * }
  * vm.doString("result = cj_add(2, 3)")   // Lua 侧直接调用仓颉函数
- * @note[zh-cn] 绑定机制（CFFI 关键约束）：lua_CFunction 是 CFunc<(CPointer<Unit>) -> Int32>，
- * 仓颉侧定义的 CFunc Lambda 不能捕获变量，因此无法在闭包中直接持有仓颉回调对象。
- * 解法：全局注册表 _handlers（id → 回调），注册时把 id 作为闭包 upvalue（lightuserdata）
- * 传给 C 闭包；C 分发函数从 upvalue 取回 id 查表调用仓颉回调，再把返回值压回 Lua 栈。
  * @note[en] Binding mechanism (CFFI constraint): lua_CFunction is CFunc<(CPointer<Unit>) -> Int32>,
  * and Cangjie CFunc lambdas cannot capture variables, so the Cangjie callback cannot be
  * held directly in a closure. Solution: a global registry _handlers (id → callback); the id
@@ -92,14 +91,13 @@ public class LuaBinder {
      * name Lua 侧全局函数名
      * fn   仓颉回调：(LuaValue 参数数组) -> 返回值数组
      * @return[zh-cn] 注册的 id（供 unregister 使用；-1 表示失败）
+     * @note[zh-cn] 用法示例：
      *
      * @brief[en] Registers a Cangjie function as a Lua global function
      * @param[en] vm   The target virtual machine
      * name The Lua-side global function name
      * fn   The Cangjie callback: (LuaValue argument array) -> result array
      * @return[en] The registered id (for unregister; -1 on failure)
-     *
-     * @note[zh-cn] 用法示例：
      * @note[en] Example usage:
      * LuaBinder.registerFunction(vm, "add") { args ->
      * [LuaValue.of(args[0].numberValue() + args[1].numberValue())]

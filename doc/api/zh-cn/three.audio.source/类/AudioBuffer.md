@@ -1,7 +1,7 @@
 # 类
 ## class AudioBuffer
 ```cj
-public class AudioBuffer <: ILoadResult
+public class AudioBuffer <: ILoadResult & IReleasable
 ```
 音频缓冲区，存储解码后的 PCM 数据
 
@@ -45,19 +45,25 @@ public static func create(pcmData: CPointer < Unit >, frameCount: UInt64, channe
 
 - 创建的 AudioBuffer 实例
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 OpenAL 缓冲区资源
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>OpenAL 调用经 context.execAudio 在音频线程执行。</p>
-
 ### func init\(\)
 ```cj
 public init()
 ```
 创建空的音频缓冲区（随后由 create / createChunk 填充）
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 OpenAL 缓冲区资源
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>OpenAL 调用经 context.execAudio 在音频线程执行；重复调用幂等返回 false。</p>
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+资源是否有效（未释放）
 
 ### var bufferId
 ```cj

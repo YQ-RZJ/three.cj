@@ -35,6 +35,7 @@ import std.collection.*
 import three.utils.constants.*
 import bgfx4cj.bgfx.*
 import three.utils.memory.BgfxMemory
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 纹理信息缓存
@@ -91,7 +92,7 @@ public class TextureInfo {
  * @brief[en] bgfx texture management
  * @explain[en] Corresponds to WebGLTextures, manages texture creation, update and destruction. Uses bgfx TextureHandle instead of WebGL texture objects. bgfx texture sampling modes are set via sampler uniforms, not texture flags
  */
-public class BgfxTextures {
+public class BgfxTextures <: IReleasable {
     /**
      * @brief[zh-cn] 纹理映射（纹理 ID -> 纹理信息）
      *
@@ -273,9 +274,9 @@ public class BgfxTextures {
     /**
      * @brief[zh-cn] 释放所有纹理
      *
-     * @brief[en] Dispose all textures
+     * @brief[en] dispose all textures
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         for ((_, texInfo) in textures) {
             if (texInfo.handle.idx != 0xFFFFu16) {
                 bgfx_destroy_texture_cj(texInfo.handle)
@@ -283,5 +284,6 @@ public class BgfxTextures {
         }
         textures = HashMap<Int64, TextureInfo>()
         info.memory.textures = 0
+        return true
     }
 }

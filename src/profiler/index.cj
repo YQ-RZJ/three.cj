@@ -25,8 +25,6 @@
 /**
  * @file[zh-cn] index.cj — three.profiler 子包入口
  * @brief[zh-cn] 性能剖析（Tracy）统一门面 + 宏自动化侵入
- * @package three.profiler
- *
  * @explain[zh-cn] ## 两层设计
  * 1. **运行时门面**（本包 `three.profiler`，无环境变量门控）：
  *    `Zone` / `Frame` / `Plot` / `Message` / `Memory` / `Gpu` / `Lock` /
@@ -48,10 +46,13 @@
  *
  * @file[en] index.cj — three.profiler package entry
  * @brief[en] Tracy profiling facade + compile-time prunable macros
- * @package three.profiler
  * @explain[en] Two layers: (1) unconditional runtime facade in this package —
  * direct API use is always instrumented; (2) macro auto instrumentation in
  * three.profiler.macros — gated at expansion time by the THREE_PROFILER env
  * var with segment-level link-prefix matching; misses pass through untouched.
+ *
+ * @package three.profiler
+ *
+ * @package three.profiler
  */
 package three.profiler

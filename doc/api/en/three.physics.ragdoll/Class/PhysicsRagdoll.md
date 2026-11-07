@@ -1,7 +1,7 @@
 # Class
 ## class PhysicsRagdoll
 ```cj
-public class PhysicsRagdoll
+public class PhysicsRagdoll <: IReleasable
 ```
 Runtime ragdoll: jointed rigid-body simulation once added to the world
 
@@ -22,12 +22,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |activation|PhysicsActivation|The activation mode (default: activate immediately)|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Destroys the ragdoll (automatically removes it from the world and releases all bodies/constraints)
 
 ### func driveToPoseUsingKinematics\(PhysicsSkeletonPose,Float32\)
 ```cj
@@ -98,6 +92,12 @@ public func isActive(): Bool
 ```
 Whether the ragdoll is active (not sleeping)
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+destroys the ragdoll (automatically removes it from the world and releases all bodies/constraints)
+
 ### func removeFromWorld\(\)
 ```cj
 public func removeFromWorld(): Unit
@@ -128,9 +128,9 @@ public prop constraintCount: Int64
 ```
 The number of joint constraints
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 Whether the ragdoll is valid (created successfully and not disposed)
 

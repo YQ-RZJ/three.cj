@@ -1,7 +1,7 @@
 # Class
 ## class WindowEngine
 ```cj
-public open class WindowEngine
+public open class WindowEngine <: IReleasable
 ```
 Window engine v2 (aligned with the RGF window model)
 
@@ -430,6 +430,12 @@ Return:
 
 - Whether the operation succeeded
 
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+shuts down the window engine
+
 ### func removeInputProvider\(InputProvider\)
 ```cj
 public func removeInputProvider(provider: InputProvider): Bool
@@ -773,12 +779,6 @@ Return:
 
 - Whether the operation succeeded
 
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-Shuts down the window engine
-
 ### func start\(String,Int32,Int32,WindowConfig\)
 ```cj
 public func start(title!: String, width!: Int32, height!: Int32, config!: WindowConfig = WindowConfig()): Bool
@@ -826,7 +826,7 @@ Blocks until the window is closed (returns after the window pump
 thread ends)
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Ways to close: user clicks the title bar X / Alt+F4, calling
-requestClose() inside onFrame, or an external shutdown() call.</p>
+requestClose() inside onFrame, or an external release() call.</p>
 
 ### func warpMouseInWindow\(Float32,Float32\)
 ```cj

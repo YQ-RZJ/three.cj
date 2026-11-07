@@ -65,41 +65,42 @@
  *         2. Depth pass: scene NDC depth rendered to a depth RT (aodepth, gl_FragCoord.z → RGBA32F)
  *         3. Normal pass: scene view-space normals rendered to a normal RT (normal shader, 0.5+0.5 encoding)
  *         4. Composite pass: full-screen quad upscales beauty, depth/normal edge detection generates Strength:
-*             - dei = depthEdgeIndicator (4-neighbor depth diff → smoothstep threshold → floor/2 discretization)
-*             - nei = normalEdgeIndicator (4-neighbor normal diff × depth indicator × normal deviation bias)
-*             - Strength = dei>0 ? (1 - depthEdgeStrength*dei) : (1 + normalEdgeStrength*nei)
-*             - gl_FragColor = texel * Strength (edges darkened, center preserved)
-*          Flow:
-*          - All intermediate RTs are rendered at low resolution (width/pixelSize × height/pixelSize)
-*          - On composite the low-res beauty is upscaled back to full screen → pixelated (mosaic) effect
-*          - setSize computes the low-res size from pixelSize; setPixelSize adjusts dynamically
-*          Rendering differences:
-*          - beauty/normal reuse the PostProcessingShaders/ShaderLibs geometry shaders (aodepth/normal) with
-*            self-built geometry submitted directly (the "self-built geometry + shader override" path, avoiding
-*            render-thread concurrent mutation of mesh.material, following the SSRPass/GTAOPass pattern).
-*          - Depth attachments cannot be sampled directly, so a separate aodepth pass renders NDC depth to an
-*            RGBA32F depth RT (following the GTAO/SSR pattern).
-*          - Uniforms are float (normalEdgeStrength/depthEdgeStrength) and vec4 (resolution);
-*            bgfx minimum unit is vec4: u_normalEdgeStrength/u_depthEdgeStrength (vec4.x=value),
-*            u_resolution (xy=low-res size, zw=1/size).
-*          - tDiffuse/tDepth/tNormal are sampler2D; bgfx binds stages 0/1/2.
-*          - Low-res RTs use NearestFilter; bgfx uses MIN_POINT|MAG_POINT.
-*          - bgfx view ids are globally scarce; this pass uses PIXELATED_VIEW_ID_BASE=230 (avoiding existing hardcoded ranges:
-*            SSAO 160 / SSR 176 / Bloom 200~212 / ShaderPass 200~209 / SavePass 210 /
-*            TexturePass 211 / OutputPass 212 / FXAA 213 / SMAA 214~216 / SSAA 217 /
-*            TAA 219~220 / Afterimage 221~223 / FilmPass 224 / GlitchPass 225 /
-*            DotScreenPass 226 / HalftonePass 227 / BokehPass 228~229).
-*            +0=beauty, +1=depth, +2=normal, +3=composite.
-*          Usage:
-*          let pixelatedPass = RenderPixelatedPass(6, scene, camera)
-*          composer.addPass(pixelatedPass)
-*          Runtime tuning: pixelatedPass.pixelSize / normalEdgeStrength / depthEdgeStrength
-*
+ *             - dei = depthEdgeIndicator (4-neighbor depth diff → smoothstep threshold → floor/2 discretization)
+ *             - nei = normalEdgeIndicator (4-neighbor normal diff × depth indicator × normal deviation bias)
+ *             - Strength = dei>0 ? (1 - depthEdgeStrength*dei) : (1 + normalEdgeStrength*nei)
+ *             - gl_FragColor = texel * Strength (edges darkened, center preserved)
+ *          Flow:
+ *          - All intermediate RTs are rendered at low resolution (width/pixelSize × height/pixelSize)
+ *          - On composite the low-res beauty is upscaled back to full screen → pixelated (mosaic) effect
+ *          - setSize computes the low-res size from pixelSize; setPixelSize adjusts dynamically
+ *          Rendering differences:
+ *          - beauty/normal reuse the PostProcessingShaders/ShaderLibs geometry shaders (aodepth/normal) with
+ *            self-built geometry submitted directly (the "self-built geometry + shader override" path, avoiding
+ *            render-thread concurrent mutation of mesh.material, following the SSRPass/GTAOPass pattern).
+ *          - Depth attachments cannot be sampled directly, so a separate aodepth pass renders NDC depth to an
+ *            RGBA32F depth RT (following the GTAO/SSR pattern).
+ *          - Uniforms are float (normalEdgeStrength/depthEdgeStrength) and vec4 (resolution);
+ *            bgfx minimum unit is vec4: u_normalEdgeStrength/u_depthEdgeStrength (vec4.x=value),
+ *            u_resolution (xy=low-res size, zw=1/size).
+ *          - tDiffuse/tDepth/tNormal are sampler2D; bgfx binds stages 0/1/2.
+ *          - Low-res RTs use NearestFilter; bgfx uses MIN_POINT|MAG_POINT.
+ *          - bgfx view ids are globally scarce; this pass uses PIXELATED_VIEW_ID_BASE=230 (avoiding existing hardcoded ranges:
+ *            SSAO 160 / SSR 176 / Bloom 200~212 / ShaderPass 200~209 / SavePass 210 /
+ *            TexturePass 211 / OutputPass 212 / FXAA 213 / SMAA 214~216 / SSAA 217 /
+ *            TAA 219~220 / Afterimage 221~223 / FilmPass 224 / GlitchPass 225 /
+ *            DotScreenPass 226 / HalftonePass 227 / BokehPass 228~229).
+ *            +0=beauty, +1=depth, +2=normal, +3=composite.
+ *          Usage:
+ *          let pixelatedPass = RenderPixelatedPass(6, scene, camera)
+ *          composer.addPass(pixelatedPass)
+ *          Runtime tuning: pixelatedPass.pixelSize / normalEdgeStrength / depthEdgeStrength
+ *
  * @package three.rendering.postprocessing
  */
 
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -122,14 +123,15 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 像素化渲染 pass
- * @brief[en] Pixelated render pass
  * @explain[zh-cn] 内部 4 遍：beauty（低分辨率场景渲染）→ 深度（aodepth）→ 法线（normal）→
  *         合成（pixelated，边缘检测 + 放大采样）。
+ *
+ * @brief[en] Pixelated render pass
  * @explain[en] Four internal passes: beauty (low-res scene render) → depth (aodepth) → normal (normal) →
  *         composite (pixelated, edge detection + upscale sampling).
  * pixelSize/normalEdgeStrength/depthEdgeStrength 以 public 字段暴露，运行时修改字段 → render() 内每帧同步到 bgfx uniform。
  */
-public class RenderPixelatedPass <: Pass {
+public class RenderPixelatedPass <: Pass & IReleasable {
     /**
      * 像素尺寸（每个输出像素对应的低分辨率像素数，如 6 → 1/6 分辨率）。
      */
@@ -250,6 +252,8 @@ public class RenderPixelatedPass <: Pass {
         @LogTrace(["pixelated", "RenderPixelatedPass constructed: pixelSize=" + pixelSize.toString() +
                       " normalEdgeStrength=" + normalEdgeStrength.toString() +
                       " depthEdgeStrength=" + depthEdgeStrength.toString()])
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -857,13 +861,16 @@ public class RenderPixelatedPass <: Pass {
      * shader program 由 PostProcessingShaders/ShaderLibs 全局管理，不在此 dispose。
      * 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         // 释放共享顶点布局句柄（_getOrCreateLayout 经 renderer.createVertexLayout 创建）
         if (let Some(renderer) <- this._renderer && let Some(lh) <- this._layoutHandleCache) {
             renderer.destroyVertexLayout(lh)
             this._layoutHandleCache = None
         }
-        @LogTrace(["pixelated", "disposed"])
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        @LogTrace(["pixelated", "released"])
+        return true
     }
 }

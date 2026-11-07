@@ -1,17 +1,9 @@
 # Class
 ## class RenderTransitionPass
 ```cj
-public class RenderTransitionPass <: Pass
+public class RenderTransitionPass <: Pass & IReleasable
 ```
 Scene transition render pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 RenderTransitionPass 占用的所有 GPU 资源。
-transition shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
-全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func init\(Scene,Camera,Scene,Camera\)
 ```cj
@@ -27,6 +19,14 @@ Parameter:
 |cameraA|Camera|场景 A 的相机|
 |sceneB|Scene|场景 B（过渡终点）|
 |cameraB|Camera|场景 B 的相机|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 RenderTransitionPass 占用的所有 GPU 资源。
+transition shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
+全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

@@ -1,15 +1,9 @@
 # Class
 ## class FilmPass
 ```cj
-public class FilmPass <: Pass
+public class FilmPass <: Pass & IReleasable
 ```
 Film grain post-processing pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases all GPU resources held by the film pass
 
 ### func init\(Float64,Bool\)
 ```cj
@@ -23,6 +17,12 @@ Parameter:
 |---|---|---|
 |intensity|Float64|Grain intensity (default 0.5)|
 |grayscale|Bool|Whether to use grayscale (default false)|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases all GPU resources held by the film pass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

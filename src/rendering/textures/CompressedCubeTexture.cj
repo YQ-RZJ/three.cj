@@ -24,7 +24,7 @@
  * @file[zh-cn] 压缩立方体纹理
  * @brief[zh-cn] 立方体贴图的压缩格式版本，6 面对应 ±X/±Y/±Z 六面
  * @explain[zh-cn] 压缩立方体纹理：立方体贴图的压缩格式版本，6 面对应 ±X/±Y/±Z 六面。继承 CompressedTexture。默认 mapping=CubeReflectionMapping、flipY=false。
-
+ *
  * @file[en] Compressed Cube Texture
  * @brief[en] Compressed format version of cube map texture, 6 faces correspond to ±X/±Y/±Z
  * @explain[en] Compressed cube texture: compressed format version of cube map texture, 6 faces correspond to ±X/±Y/±Z. Extends CompressedTexture. Defaults mapping=CubeReflectionMapping, flipY=false. 
@@ -35,7 +35,7 @@ import three.utils.constants.*
 /**
  * @brief[zh-cn] 压缩立方体纹理类
  * @explain[zh-cn] 立方体贴图的压缩格式版本，6 面对应 ±X/±Y/±Z 六面。默认 mapping=CubeReflectionMapping、flipY=false。
-
+ *
  * @brief[en] Compressed cube texture class
  * @explain[en] Compressed format version of cube map texture, 6 faces correspond to ±X/±Y/±Z. Defaults mapping=CubeReflectionMapping, flipY=false.
  */
@@ -47,7 +47,7 @@ public open class CompressedCubeTexture <: CompressedTexture {
      * width 单面宽度（像素）
      * height 单面高度（像素）
      * format 像素格式（压缩格式枚举），默认 RGBAFormat
-
+     *
      * @brief[en] Construct a new compressed cube texture
      * @param[en] images 6-face compressed pixel arrays, in ±X/±Y/±Z order
      * width Single face width in pixels

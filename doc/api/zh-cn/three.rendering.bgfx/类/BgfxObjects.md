@@ -1,15 +1,9 @@
 # 类
 ## class BgfxObjects
 ```cj
-public class BgfxObjects
+public class BgfxObjects <: IReleasable
 ```
 bgfx 场景对象管理
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有更新映射
 
 ### func init\(BgfxGeometries,BgfxAttributes,BgfxInfo\)
 ```cj
@@ -24,6 +18,12 @@ public init(geometries!: BgfxGeometries, attributes!: BgfxAttributes, info!: Bgf
 |geometries|BgfxGeometries||
 |attributes|BgfxAttributes||
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有更新映射
 
 ### func update\(Int64,Int64,Bool,Bool\)
 ```cj

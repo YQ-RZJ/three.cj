@@ -33,6 +33,7 @@ package three.rendering.bgfx
 
 import std.collection.*
 import bgfx4cj.bgfx.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] Uniform 组信息
@@ -83,7 +84,7 @@ public class UniformGroupInfo {
  * @brief[en] bgfx uniform group management
  * @explain[en] Corresponds to WebGLUniformsGroups, manages Uniform Buffer Objects. bgfx uses uniform buffers instead of WebGL UBOs
  */
-public class BgfxUniformsGroups {
+public class BgfxUniformsGroups <: IReleasable {
     /**
      * @brief[zh-cn] uniform 组映射
      *
@@ -170,10 +171,11 @@ public class BgfxUniformsGroups {
     /**
      * @brief[zh-cn] 释放所有 uniform 组
      *
-     * @brief[en] Dispose all uniform groups
+     * @brief[en] dispose all uniform groups
      */
-    public func disposeAll(): Unit {
+    public func release(): Bool {
         buffers = HashMap<Int64, UniformGroupInfo>()
         updateList = HashMap<Int64, Int64>()
+        return true
     }
 }

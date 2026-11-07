@@ -1,7 +1,7 @@
 # Class
 ## class PhysicsSkeletonPose
 ```cj
-public class PhysicsSkeletonPose
+public class PhysicsSkeletonPose <: IReleasable
 ```
 Skeleton pose: per-joint local translation/rotation (or joint matrices)
 
@@ -16,12 +16,6 @@ Calculates all joint matrices from the joint states (translation/rotation)
 public func calculateJointStates(): Unit
 ```
 Calculates all joint states (translation/rotation) from the joint matrices
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases the underlying pose handle
 
 ### func getJointMatrix\(Int64\)
 ```cj
@@ -67,6 +61,12 @@ Parameter:
 |---|---|---|
 |skeleton|PhysicsSkeleton|The target skeleton|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+releases the underlying pose handle
+
 ### func setJointMatrix\(Int64,Matrix4\)
 ```cj
 public func setJointMatrix(index: Int64, matrix: Matrix4): Unit
@@ -99,6 +99,12 @@ Parameter:
 public prop jointCount: Int64
 ```
 The number of joints in the pose
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the pose is valid (created successfully and not disposed)
 
 ### prop rootOffset: Vector3
 ```cj

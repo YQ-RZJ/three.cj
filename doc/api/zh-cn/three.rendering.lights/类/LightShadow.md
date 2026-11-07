@@ -1,7 +1,7 @@
 # 类
 ## class LightShadow
 ```cj
-public open class LightShadow
+public open class LightShadow <: IReleasable
 ```
 光源阴影配置的抽象基类，各具体光源阴影类型继承本类
 
@@ -49,12 +49,6 @@ public open func copy(source: LightShadow): LightShadow
 返回: 
 
 - 本实例
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放本实例分配的GPU相关资源，当实例不再使用时应调用
 
 ### func getFrameExtents\(\)
 ```cj
@@ -125,6 +119,12 @@ public init(camera: Camera)
 public init()
 ```
 无参构造，供fastjson反序列化使用
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放本实例分配的GPU相关资源
 
 ### func updateCascadeMatrices\(Light,Camera,Int64\)
 ```cj

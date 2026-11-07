@@ -1,15 +1,9 @@
 # Class
 ## class BgfxObjects
 ```cj
-public class BgfxObjects
+public class BgfxObjects <: IReleasable
 ```
 bgfx scene object management
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes all update mappings
 
 ### func init\(BgfxGeometries,BgfxAttributes,BgfxInfo\)
 ```cj
@@ -24,6 +18,12 @@ Parameter:
 |geometries|BgfxGeometries||
 |attributes|BgfxAttributes||
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all update mappings
 
 ### func update\(Int64,Int64,Bool,Bool\)
 ```cj

@@ -1,15 +1,15 @@
 # Class
 ## class HemisphereLightHelper
 ```cj
-public class HemisphereLightHelper <: Object3D
+public class HemisphereLightHelper <: Object3D & IReleasable
 ```
 Hemisphere light helper visualized with an octahedron mesh
 
-### func dispose\(\)
+### func init\(\)
 ```cj
-public func dispose(): Unit
+public init()
 ```
-Dispose GPU resources
+Construct a hemisphere light helper
 
 ### func init\(Light,Float64,Option<Color>\)
 ```cj
@@ -25,11 +25,11 @@ Parameter:
 |size|Float64||
 |color|Option<Color>||
 
-### func init\(\)
+### func release\(\)
 ```cj
-public init()
+public func release(): Bool
 ```
-Construct a hemisphere light helper
+Release GPU resources
 
 ### func update\(\)
 ```cj

@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -60,7 +61,7 @@ import three.rendering.materials.*
  * based on Box3 center and size.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = LineSegments]
-public class Box3Helper <: LineSegments {
+public class Box3Helper <: LineSegments & IReleasable {
     /**
      * @brief[zh-cn] 被可视化的包围盒
      *
@@ -120,10 +121,11 @@ public class Box3Helper <: LineSegments {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.geometry.dispose()
         this.material.dispose()
+        return true
     }
 }

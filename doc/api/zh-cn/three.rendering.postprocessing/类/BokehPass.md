@@ -1,17 +1,9 @@
 # 类
 ## class BokehPass
 ```cj
-public class BokehPass <: Pass
+public class BokehPass <: Pass & IReleasable
 ```
 景深（DOF）后处理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 BokehPass 占用的所有 GPU 资源。
-bokeh/bokeh_depth shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
-全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func init\(Scene,Camera,Float64,Float64,Float64\)
 ```cj
@@ -28,6 +20,14 @@ public init(scene: Scene, camera: Camera, focus!: Float64 = 1.0, aperture!: Floa
 |focus|Float64|焦点距离（默认 1.0）|
 |aperture|Float64|光圈（默认 0.025）|
 |maxblur|Float64|最大模糊量（默认 1.0）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 BokehPass 占用的所有 GPU 资源。
+bokeh/bokeh_depth shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
+全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

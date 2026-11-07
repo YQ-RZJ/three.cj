@@ -1,15 +1,9 @@
 # Class
 ## class PhysicsCharacterVirtual
 ```cj
-public class PhysicsCharacterVirtual
+public class PhysicsCharacterVirtual <: IReleasable
 ```
 Virtual character (corresponds to JPH_CharacterVirtual)
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes the virtual character and frees the underlying handle
 
 ### func getGroundState\(\)
 ```cj
@@ -44,6 +38,12 @@ public func isOnGround(): Bool
 Whether the virtual character is on the ground (GroundState == OnGround)
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>The ground state is valid for this frame after update</p>
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+disposes the virtual character and frees the underlying handle
 
 ### func setLinearVelocity\(Vector3\)
 ```cj
@@ -82,9 +82,9 @@ Parameter:
 |deltaTime|Float32|The time step (seconds)gravity The gravity vector (default (0,-9.81,0), matching the physics world; sethorizontal movement with setLinearVelocity beforehand — the vertical component ispreserved and gravity is added on top)|
 |gravity|Vector3||
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 Whether the virtual character is valid (created successfully and not disposed)
 

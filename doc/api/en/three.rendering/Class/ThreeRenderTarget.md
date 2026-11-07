@@ -1,15 +1,9 @@
 # Class
 ## class ThreeRenderTarget
 ```cj
-public class ThreeRenderTarget <: IRenderTarget
+public class ThreeRenderTarget <: IRenderTarget & IReleasable
 ```
 Standard 2D render target based on bgfx framebuffer
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Destroys the framebuffer and releases GPU resources
 
 ### func init\(Int64,Int64\)
 ```cj
@@ -23,6 +17,12 @@ Parameter:
 |---|---|---|
 |width|Int64|Width in pixelsheight Height in pixels|
 |height|Int64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+destroy the framebuffer and release GPU resources
 
 ### func setSize\(Int64,Int64\)
 ```cj

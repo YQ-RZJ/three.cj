@@ -1,7 +1,7 @@
 # 类
 ## class BgfxBackend
 ```cj
-public class BgfxBackend <: Backend
+public class BgfxBackend <: Backend & IReleasable
 ```
 
 
@@ -100,20 +100,6 @@ public override func clear(renderContext: IRenderContext, color: Bool, depth: Bo
 public override func clear(): Unit
 ```
 clear：无参数版本
-
-### func destroy\(\)
-```cj
-public override func destroy(): Unit
-```
-destroy：dispose 别名
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-销毁后端
-
-执行 bgfx_shutdown_cj。
 
 ### func draw\(IRenderObject\)
 ```cj
@@ -257,6 +243,12 @@ public override func prepareShadowMap(scene: Scene): Unit
 |名称|类型|描述|
 |---|---|---|
 |scene|Scene||
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+销毁后端并执行 bgfx_shutdown_cj。
 
 ### func setClearColor\(UInt32\)
 ```cj

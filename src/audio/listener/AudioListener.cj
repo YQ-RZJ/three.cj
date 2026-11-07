@@ -58,6 +58,7 @@ import std.sync.*
 import three.audio.device.*
 import three.profiler.*
 import three.profiler.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 音频监听器，代表场景中的"耳朵"
@@ -72,7 +73,7 @@ import three.profiler.macros.*
  * system (negate Z).
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
-public open class AudioListener <: Object3D {
+public open class AudioListener <: Object3D & IReleasable {
     /**
      * @brief[zh-cn] 音频上下文引用
      *
@@ -138,13 +139,28 @@ public open class AudioListener <: Object3D {
     }
 
     /**
+     * @brief[zh-cn] 释放监听器：从音频上下文的变换槽注册表注销
+     * @explain[zh-cn] 注册表是单例上的强引用表，若不注销，监听器（及其所在子树）
+     *               会一直存活，且音频线程每帧仍会遍历该槽。释放后本对象不应再使用。
+     *
+     * @brief[en] Releases the listener: unregisters it from the
+     * audio context transform-slot registry
+     * @explain[en] The registry is a strong-reference table on the singleton. Without
+     *               unregistering, the listener (and its subtree) stays alive and the audio
+     *               thread keeps iterating its slot every frame. Do not use the object afterwards.
+     */
+    public func release(): Bool {
+        this.context.unregisterTransformSlot(this._slot)
+        return true
+    }
+
+    /**
      * @brief[zh-cn] 设置主音量
      * @param[zh-cn] value 目标音量（0.0 = 静音，1.0 = 原始音量）
+     * @note[zh-cn] 上下文已初始化时通过 postAudio 异步下发 AL_GAIN 到 OpenAL 监听器（不阻塞调用方）。
      *
      * @brief[en] Sets the master volume
      * @param[en] value Target volume (0.0 = mute, 1.0 = unity)
-     *
-     * @note[zh-cn] 上下文已初始化时通过 postAudio 异步下发 AL_GAIN 到 OpenAL 监听器（不阻塞调用方）。
      * @note[en] When the context is initialized, the AL_GAIN is pushed to the OpenAL
      * listener asynchronously via postAudio (never blocks the caller).
      */
@@ -159,16 +175,15 @@ public open class AudioListener <: Object3D {
     /**
      * @brief[zh-cn] 重写 updateMatrixWorld，将世界变换同步到 OpenAL 监听器
      * @param[zh-cn] force 是否强制更新世界矩阵
-     *
-     * @brief[en] Overrides updateMatrixWorld to sync the world transform to the OpenAL listener
-     * @param[en] force Whether to force updating the world matrix
-     *
      * @note[zh-cn] 从 matrixWorld 分解位置和朝向，转换到 OpenAL 右手坐标系后写入变换槽；
      * 音频线程在下一轮循环中把脏槽下发到监听器，渲染线程不产生任何阻塞等待。
      * 左手系 → 右手系转换：
      * - 位置: (x, y, z) → (x, y, -z)
      * - 前方向(at): (x, y, z) → (x, y, -z)
      * - 上方向(up): (upX, upY, upZ) → (upX, upY, -upZ)
+     *
+     * @brief[en] Overrides updateMatrixWorld to sync the world transform to the OpenAL listener
+     * @param[en] force Whether to force updating the world matrix
      * @note[en] Decomposes the position and orientation from matrixWorld, converts them to
      * the OpenAL right-handed system and writes them into the transform slot; the audio
      * thread submits dirty slots to the listener in its next loop iteration, so the

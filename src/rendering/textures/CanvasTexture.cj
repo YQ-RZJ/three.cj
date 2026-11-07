@@ -24,7 +24,7 @@
  * @file[zh-cn] Canvas 纹理
  * @brief[zh-cn] 由像素内存缓冲区构造的纹理，支持通过 update() 持续更新内容
  * @explain[zh-cn] Canvas 纹理：由像素内存缓冲区构造的纹理，支持通过 update() 持续更新内容。调用方可直接修改 this.image 数组内容后调用 update()，渲染器自动重传 GPU。无 DOM Canvas 时，由原生侧写入像素数据到 image 实现帧更新。
-
+ *
  * @file[en] Canvas Texture
  * @brief[en] Texture constructed from pixel memory buffer, supports continuous content update via update()
  * @explain[en] Canvas texture: texture constructed from pixel memory buffer, supports continuous content update via update(). Callers can directly modify this.image array content and call update(), the renderer automatically re-uploads to GPU. Without DOM Canvas, native side writes pixel data to image for frame updates. 
@@ -35,7 +35,7 @@ import three.utils.constants.*
 /**
  * @brief[zh-cn] Canvas 纹理类
  * @explain[zh-cn] 由像素内存缓冲区构造的纹理，继承自 Texture，默认 needsUpdate=true。
-
+ *
  * @brief[en] Canvas texture class
  * @explain[en] Texture constructed from pixel memory buffer, extends Texture, defaults needsUpdate=true.
  */
@@ -54,7 +54,7 @@ public open class CanvasTexture <: Texture {
      * format 像素格式，默认 RGBAFormat
      * type 像素数据类型，默认 UnsignedByteType
      * anisotropy 各向异性等级，默认 1
-
+     *
      * @brief[en] Construct a new Canvas texture
      * @param[en] canvas Pixel memory data
      * width Texture width in pixels
@@ -76,7 +76,7 @@ public open class CanvasTexture <: Texture {
 
     /**
      * @brief[zh-cn] 更新纹理内容，渲染器下一帧重传 GPU
-
+     *
      * @brief[en] Update texture content, renderer re-uploads to GPU on next frame
      */
     public func update(): Unit {

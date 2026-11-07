@@ -59,6 +59,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.common.*
 import three.rendering.bgfx.*
 import three.rendering.shaders.ShaderLibs
@@ -85,7 +86,7 @@ import std.random.*
 import three.profiler.*
 import three.profiler.macros.*
 
-public class SSAOPass <: Pass {
+public class SSAOPass <: Pass & IReleasable {
     /** SSAO pass 用的 view ID 段约定：主渲染 view 0，阴影 view 64+，SSAO 从 160 起 */
     public static let SSAO_VIEW_ID_BASE: UInt16 = 160u16
 
@@ -152,6 +153,8 @@ public class SSAOPass <: Pass {
         // 输出到 writeBuffer 后由 composer 交换，供后续 pass / 屏幕使用。
         this.needsSwap = true
         this._generateKernel()
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /** 设置 RT 尺寸（与渲染目标一致；composer.setSize 转发调用） */
@@ -780,7 +783,7 @@ public class SSAOPass <: Pass {
     }
 
     /** 销毁全部 GPU 资源（composer.dispose 或 renderer.shutdown 调用） */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
         // 释放场景几何体缓存
@@ -798,5 +801,8 @@ public class SSAOPass <: Pass {
         }
         this._vbCache.clear()
         this._ibCache.clear()
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
+        return true
     }
 }

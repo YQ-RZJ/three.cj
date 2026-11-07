@@ -1,7 +1,7 @@
 # 类
 ## class AssetCache
 ```cj
-public class AssetCache
+public class AssetCache <: IReleasable
 ```
 引用计数资源缓存
 
@@ -39,12 +39,6 @@ public func add(key: String, resource: ILoadResult): Unit
 public func advanceFrame(): Unit
 ```
 每帧推进逻辑帧号（由 AssetManager.update 调用，也可手动调用）
-
-### func clear\(\)
-```cj
-public func clear(): Unit
-```
-清空全部缓存（无视引用计数）
 
 ### func collectIfNeeded\(Int64\)
 ```cj
@@ -125,6 +119,12 @@ public func release(key: String): Bool
 返回: 
 
 - 资源存在并成功 -1 返回 true
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+清空全部缓存（无视引用计数）
 
 ### func remove\(String\)
 ```cj

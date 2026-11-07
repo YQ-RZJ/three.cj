@@ -1,18 +1,9 @@
 # 类
 ## class PhysicsVehicle
 ```cj
-public class PhysicsVehicle
+public class PhysicsVehicle <: IReleasable
 ```
 轮式载具运行时对象
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁载具（移除并释放车辆约束；底盘刚体由调用方管理）
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>底盘刚体不在此销毁——载具常复用底盘，请按需调用
-world.destroyBody(chassis)</p>
 
 ### func getWheelWorldTransform\(Int64\)
 ```cj
@@ -29,6 +20,15 @@ public func getWheelWorldTransform(index: Int64): Matrix4
 返回: 
 
 - 车轮世界矩阵（three 左手系）；无效索引返回单位矩阵
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁载具（移除并释放车辆约束；底盘刚体由调用方管理）
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>底盘刚体不在此销毁——载具常复用底盘，请按需调用
+world.destroyBody(chassis)</p>
 
 ### func setDriverInput\(Float64,Float64,Float64,Float64\)
 ```cj
@@ -51,9 +51,9 @@ public prop chassis: PhysicsBodyHandle
 ```
 底盘刚体句柄（可进一步控制底盘）
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 载具是否有效（创建成功且未销毁）
 

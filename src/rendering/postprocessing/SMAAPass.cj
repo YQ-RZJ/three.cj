@@ -76,6 +76,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -91,11 +92,12 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] SMAA 后处理 pass
- * @brief[en] SMAA post-processing pass
  * @explain[zh-cn] 3 pass：Edges → Weights → Blend。
+ *
+ * @brief[en] SMAA post-processing pass
  * @explain[en] 3 passes: Edges → Weights → Blend.
  */
-public class SMAAPass <: Pass {
+public class SMAAPass <: Pass & IReleasable {
     /**
      * SMAA pass 用的 view ID 段约定（避开 SSAO 160/Bloom/shadow 50~127/ShaderPass 200~209/
      * SavePass 210/TexturePass 211/OutputPass 212/FXAAPass 213）。
@@ -117,6 +119,15 @@ public class SMAAPass <: Pass {
      * RT 是否已创建（避免重复创建）。
      */
     private var _rtsCreated: Bool = false
+
+    /**
+     * @brief[zh-cn] 内部 RT 是否已创建且未被释放
+     *
+     * @brief[en] whether the internal RTs exist and have not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._rtsCreated }
+    }
 
     /** 最近一次 render 注入的渲染器（setSize/dispose 创建/销毁 GPU 资源时经其高阶 API 序列化） */
     private var _renderer: Option<ThreeRenderer> = None
@@ -167,6 +178,8 @@ public class SMAAPass <: Pass {
         super()
         // SMAAPass 默认 needsSwap=true（pass 后 composer 交换 buffer，下一 pass 从此读）
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -401,7 +414,7 @@ public class SMAAPass <: Pass {
     /**
      * 释放 SMAAPass 占用的所有 GPU 资源（edges/weights RT + area/search LUT + 3 个 shader）。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
         // 销毁 LUT 纹理
         if (let Some(renderer) <- this._renderer) {
@@ -419,6 +432,9 @@ public class SMAAPass <: Pass {
         this._edgesProg = None
         this._weightsProg = None
         this._blendProg = None
+        // 释放本 pass 私有 uniform 句柄缓存（防 uniform 句柄泄漏）
+        this._disposePassUniforms()
+        return true
     }
 
     // ===== 内部辅助 =====

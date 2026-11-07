@@ -31,9 +31,9 @@
  * let client = server.accept()     // 阻塞等待客户端连接
  * let data = client.readString()
  * client.writeString("echo: " + data)
- * client.close()
+ * client.release()
  * }
- * server.close()
+ * server.release()
  *
  * @file[en] SocketServer  High-level TCP server wrapper (three.network.socket sub-package)
  * @brief[en] A game-development-friendly TCP server built on std.net.TcpServerSocket
@@ -45,14 +45,15 @@
  * let client = server.accept()     // block until a client connects
  * let data = client.readString()
  * client.writeString("echo: " + data)
- * client.close()
+ * client.release()
  * }
- * server.close()
+ * server.release()
  */
 package three.network.socket
 
 import std.net.*
 import std.core.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] TCP 服务端
@@ -62,7 +63,7 @@ import std.core.*
  * @explain[en] A game-development-friendly wrapper around std.net.TcpServerSocket with
  * port binding and blocking client acceptance.
  */
-public class SocketServer {
+public class SocketServer <: IReleasable {
     /**
      * @brief[zh-cn] 绑定端口
      *
@@ -149,10 +150,12 @@ public class SocketServer {
 
     /**
      * @brief[zh-cn] 关闭服务端
+     * @note[zh-cn] 未绑定时为幂等空操作并返回 false。
      *
      * @brief[en] Closes the server
+     * @note[en] Idempotent no-op returning false when not bound.
      */
-    public func close(): Unit {
+    public func release(): Bool {
         if (let Some(s) <- this._socket) {
             try {
                 s.close()
@@ -161,6 +164,8 @@ public class SocketServer {
             }
             this._socket = None
             this._bound = false
+            return true
         }
+        return false
     }
 }

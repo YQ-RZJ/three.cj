@@ -44,6 +44,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -63,7 +64,7 @@ import std.collection.*
  *         avoiding one quad per pass; bgfx view ids are a scarce global resource, allocated uniformly by
  *         EffectComposer.allocViewId(), with passes requesting one via the onAttach hook.
  */
-public open class Pass {
+public open class Pass <: IReleasable {
     /**
      * @brief[zh-cn] 类型标志，用于运行期判断是否为 Pass
      *
@@ -202,8 +203,6 @@ public open class Pass {
 
     /**
      * @brief[zh-cn] 把四个标量写入槽位 slot 的 vec4 缓冲并提交（x/y/z/w 全写）
-     *
-     * @brief[en] Writes four scalars into the vec4 buffer of slot `slot` and submits it
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] handle uniform 句柄
      * @param[zh-cn] slot 槽位编号
@@ -211,6 +210,8 @@ public open class Pass {
      * @param[zh-cn] y 写入 y 分量的值
      * @param[zh-cn] z 写入 z 分量的值
      * @param[zh-cn] w 写入 w 分量的值
+     *
+     * @brief[en] Writes four scalars into the vec4 buffer of slot `slot` and submits it
      * @param[en] renderer Renderer
      * @param[en] handle Uniform handle
      * @param[en] slot Slot index
@@ -230,6 +231,23 @@ public open class Pass {
         mem.writeFloats(scratch, 4)
         this.setUniform(renderer, handle, mem, num: 1u16)
     }
+
+    /**
+     * @brief[zh-cn] GC 回收兜底释放回调（终结器专用）
+     * @explain[zh-cn] 仓颉终结器内不能调用实例方法，故把释放动作包成函数值字段，
+     *                 由子类终结器读取并执行（终结器调用函数值是允许的，见 utils.memory 先例）。
+     *                 dispose() 已幂等，用户主动调用后终结器再执行也安全。
+     *                 终结器只允许定义在非 open 类上，本基类为 open 不可直接定义终结器。
+     *
+     * @brief[en] GC-collection fallback release callback (for finalizers only)
+     * @explain[en] Instance methods cannot be called inside a Cangjie finalizer, so the release
+     *               action is wrapped as a function-valued field executed by the subclass finalizer
+     *               (calling a function value from a finalizer is allowed, cf. utils.memory).
+     *               dispose() is idempotent, so re-execution after an explicit call is safe.
+     *               Finalizers are only allowed on non-open classes; this open base class cannot
+     *               define one directly.
+     */
+    protected var _finalizerFallback: Option<() -> Unit> = None
 
     public init() {}
 
@@ -555,13 +573,13 @@ public open class Pass {
     ): Unit {}
 
     /**
-     * @brief[zh-cn] 释放 pass 占用的 GPU 资源
-     * @explain[zh-cn] 基类默认 no-op。
+     * @brief[zh-cn] 基类默认 no-op，子类覆写释放自身 GPU 资源
      *
-     * @brief[en] Releases the GPU resources held by the pass
-     * @explain[en] Base class defaults to no-op.
+     * @brief[en] base default no-op; subclasses override to release their own GPU resources
      */
-    public open func dispose(): Unit {}
+    public open func release(): Bool {
+        return true
+    }
 
     /**
      * @brief[zh-cn] 本 pass 私有的 uniform 缓存（按 pass 实例隔离）
@@ -640,7 +658,7 @@ public open class Pass {
      *               restarted render would fetch destroyed handles.
      */
     protected func _disposePassUniforms(): Unit {
-        if (let Some(u) <- this._uniformsCache) { u.dispose() }
+        if (let Some(u) <- this._uniformsCache) { u.release() }
         this._uniformsCache = None
         this._uniformHandleCache.clear()
     }

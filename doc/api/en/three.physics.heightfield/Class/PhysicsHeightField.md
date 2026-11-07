@@ -1,15 +1,9 @@
 # Class
 ## class PhysicsHeightField
 ```cj
-public class PhysicsHeightField
+public class PhysicsHeightField <: IReleasable
 ```
 Runtime height field
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes the height-field terrain (removes from the world and releases the body)
 
 ### func projectOntoSurface\(Float64,Float64\)
 ```cj
@@ -28,15 +22,21 @@ Return:
 
 - The surface point (three left-handed); a point with y = -3.4e38 whenoutside the terrain or invalid
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+disposes the height-field terrain (removes from the world and releases the body)
+
 ### prop bodyID: UInt32
 ```cj
 public prop bodyID: UInt32
 ```
 The terrain body ID (usable with collision queries)
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 Whether the height field is valid (created successfully and not disposed)
 

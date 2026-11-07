@@ -30,6 +30,7 @@
  * - 全局变量读写、栈操作、表创建、函数调用
  * - GC 控制（lua_gc）、JIT 控制（luaJIT_setmode）
  * - 错误处理：统一抛 LuaError（携带错误码 + 消息）
+ * @example[zh-cn] 创建虚拟机、执行脚本并释放
  *
  * @file[en] LuaVM  High-level LuaJIT scripting VM wrapper (three.script.vm sub-package)
  * @brief[en] High-level LuaJIT scripting VM wrapper providing a safe, easy-to-use Lua engine
@@ -41,8 +42,6 @@
  * - Global read/write, stack operations, table creation, function calls
  * - GC control (lua_gc), JIT control (luaJIT_setmode)
  * - Error handling: unified LuaError (carrying the error code + message)
- *
- * @example[zh-cn] 创建虚拟机、执行脚本并释放
  * @example[en] Creating a VM, executing a script and releasing it
  * let vm = LuaVM()                       // 创建状态机 + 打开标准库
  * let r = vm.doString("return 1 + 2")    // 动态解析 + 执行，返回多值
@@ -55,6 +54,7 @@ package three.script.vm
 import std.collection.*
 import three.core.math.*
 import luajit4cj.luajit.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // Option<String> 空值（避免与 luajit4cj.LuaType.None 枚举构造器歧义）
@@ -74,17 +74,16 @@ private let _NO_STR: Option<String> = None
 /**
  * @brief[zh-cn] Lua 脚本虚拟机
  * @explain[zh-cn] 持有 lua_State 句柄，封装 Lua 状态机的创建、执行、全局读写与资源释放。
+ * @note[zh-cn] 线程安全说明：Lua 状态机不是线程安全的，同一 LuaVM 实例应仅在
+ * 单线程内使用；如跨线程需要各自创建独立 LuaVM。
  *
  * @brief[en] Lua scripting virtual machine
  * @explain[en] Holds a lua_State handle and wraps Lua state creation, execution,
  * global access and resource release.
- *
- * @note[zh-cn] 线程安全说明：Lua 状态机不是线程安全的，同一 LuaVM 实例应仅在
- * 单线程内使用；如跨线程需要各自创建独立 LuaVM。
  * @note[en] Thread-safety: Lua states are not thread-safe. A LuaVM instance should only
  * be used within a single thread; create separate LuaVM instances across threads.
  */
-public class LuaVM {
+public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] lua_State 句柄（null 表示已关闭）
      *
@@ -102,11 +101,10 @@ public class LuaVM {
     /**
      * @brief[zh-cn] 创建 Lua 状态机
      * @param[zh-cn] openLibs 是否打开标准库（base/string/table/math/io/os 等）
+     * @throws[zh-cn] LuaError 创建失败时抛出
      *
      * @brief[en] Creates a Lua state
      * @param[en] openLibs Whether to open the standard libraries (base/string/table/math/io/os etc.)
-     *
-     * @throws[zh-cn] LuaError 创建失败时抛出
      * @throws[en] LuaError Thrown when the state cannot be created
      */
     public init(openLibs!: Bool = true) {
@@ -156,7 +154,7 @@ public class LuaVM {
      *
      * @brief[en] Whether the state is still valid (not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() { !this._L.isNull() }
     }
 
@@ -165,12 +163,18 @@ public class LuaVM {
      *
      * @brief[en] Closes the state and releases resources (handle() becomes invalid afterwards)
      */
-    public func dispose(): Unit {
+    /**
+     * @brief[zh-cn] 关闭状态机并释放资源（之后 handle() 失效）
+     *
+     * @brief[en] closes the state and releases resources (handle() becomes invalid afterwards)
+     */
+    public func release(): Bool {
         if (!this._L.isNull()) {
             lua_close_cj(this._L)
             this._L = CPointer<Unit>()
         }
         this._libsOpened = false
+        return true
     }
 
     // =========================================================================
@@ -181,14 +185,13 @@ public class LuaVM {
      * @brief[zh-cn] 从字符串加载并执行 Lua 代码（动态解析）
      * @param[zh-cn] chunk Lua 源码字符串
      * @return[zh-cn] 返回值数组（可能为空）
+     * @throws[zh-cn] LuaError 语法错误或运行时错误
+     * @note[zh-cn] 用法示例：
      *
      * @brief[en] Loads and executes Lua code from a string (dynamic parsing)
      * @param[en] chunk The Lua source string
      * @return[en] The result array (may be empty)
-     *
-     * @throws[zh-cn] LuaError 语法错误或运行时错误
      * @throws[en] LuaError On a syntax or runtime error
-     * @note[zh-cn] 用法示例：
      * @note[en] Example usage:
      * let r = vm.doString("return 1 + 2, 'hi'")
      * r[0].numberValue() == 3.0; r[1].stringValue() == "hi"
@@ -202,13 +205,12 @@ public class LuaVM {
      * @param[zh-cn] code 源码或预编译字节码字符串
      * name chunk 名（用于错误消息，默认 "=(buffer)"）
      * @return[zh-cn] 返回值数组
+     * @throws[zh-cn] LuaError 语法错误或运行时错误
      *
      * @brief[en] Loads and executes Lua code from a byte buffer (binary chunk or source)
      * @param[en] code The source or precompiled bytecode string
      * name The chunk name (used in error messages, default "=(buffer)")
      * @return[en] The result array
-     *
-     * @throws[zh-cn] LuaError 语法错误或运行时错误
      * @throws[en] LuaError On a syntax or runtime error
      */
     public func doBuffer(code: String, name!: String = "=(buffer)"): Array<LuaValue> {
@@ -219,12 +221,11 @@ public class LuaVM {
      * @brief[zh-cn] 从文件加载并执行 Lua 脚本
      * @param[zh-cn] path Lua 脚本文件路径
      * @return[zh-cn] 返回值数组
+     * @throws[zh-cn] LuaError 文件不存在 / 语法错误 / 运行时错误
      *
      * @brief[en] Loads and executes a Lua script from a file
      * @param[en] path The Lua script file path
      * @return[en] The result array
-     *
-     * @throws[zh-cn] LuaError 文件不存在 / 语法错误 / 运行时错误
      * @throws[en] LuaError When the file is missing, or on a syntax/runtime error
      */
     public func doFile(path: String): Array<LuaValue> {
@@ -297,14 +298,13 @@ public class LuaVM {
      * @brief[zh-cn] 从字符串编译 Lua 代码但不执行，返回可重复调用的 LuaFunction
      * @param[zh-cn] chunk Lua 源码
      * @return[zh-cn] 编译后的函数
+     * @throws[zh-cn] LuaError 语法错误
+     * @note[zh-cn] 用法示例：
      *
      * @brief[en] Compiles Lua code from a string without executing it, returning a reusable LuaFunction
      * @param[en] chunk The Lua source
      * @return[en] The compiled function
-     *
-     * @throws[zh-cn] LuaError 语法错误
      * @throws[en] LuaError On a syntax error
-     * @note[zh-cn] 用法示例：
      * @note[en] Example usage:
      * let f = vm.loadString("function(a,b) return a+b end")
      * let r = f.call([LuaValue.of(3.0), LuaValue.of(4.0)])
@@ -317,12 +317,11 @@ public class LuaVM {
      * @brief[zh-cn] 从文件编译 Lua 代码但不执行，返回可重复调用的 LuaFunction
      * @param[zh-cn] path Lua 脚本文件路径
      * @return[zh-cn] 编译后的函数
+     * @throws[zh-cn] LuaError 文件不存在 / 语法错误
      *
      * @brief[en] Compiles Lua code from a file without executing it, returning a reusable LuaFunction
      * @param[en] path The Lua script file path
      * @return[en] The compiled function
-     *
-     * @throws[zh-cn] LuaError 文件不存在 / 语法错误
      * @throws[en] LuaError When the file is missing or on a syntax error
      */
     public func loadFile(path: String): LuaFunction {
@@ -479,13 +478,12 @@ public class LuaVM {
      * @param[zh-cn] nargs 参数个数
      * nresults 期望返回值个数（LUA_MULTRET=-1 表示取全部）
      * @return[zh-cn] 返回值数组
+     * @throws[zh-cn] LuaError 运行时错误
      *
      * @brief[en] Calls the function on top of the stack (arguments must already be pushed)
      * @param[en] nargs The number of arguments
      * nresults The expected number of results (LUA_MULTRET=-1 means all)
      * @return[en] The result array
-     *
-     * @throws[zh-cn] LuaError 运行时错误
      * @throws[en] LuaError On a runtime error
      */
     public func callFunction(nargs: Int32, nresults!: Int32 = LUA_MULTRET): Array<LuaValue> {
@@ -685,12 +683,10 @@ public class LuaVM {
     /**
      * @brief[zh-cn] 校验状态机有效，返回底层句柄
      * @return[zh-cn] 有效的 lua_State 句柄
-     *
      * @throws[zh-cn] LuaError 状态机已关闭时抛出
      *
      * @brief[en] Validates that the state is valid and returns the underlying handle
      * @return[en] A valid lua_State handle
-     *
      * @throws[en] LuaError Thrown when the state is closed
      */
     private func _requireState(): CPointer<Unit> {

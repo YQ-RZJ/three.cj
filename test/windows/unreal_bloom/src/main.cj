@@ -174,7 +174,7 @@ public class TestWindow <: WindowEngine {
         println("")
         println("[5/5] 清理资源...")
         match (this.composer) {
-            case Some(composer) => composer.dispose()
+            case Some(composer) => composer.release()
             case None => ()
         }
         let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
@@ -183,7 +183,7 @@ public class TestWindow <: WindowEngine {
         if (elapsed > 0.0) {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")

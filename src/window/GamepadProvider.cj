@@ -44,6 +44,7 @@ package three.window
 
 import std.core.*
 import sdl4cj.sdl.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 手柄输入提供者
@@ -52,7 +53,7 @@ import sdl4cj.sdl.*
  * @brief[en] Gamepad input provider
  * @explain[en] Manages gamepad devices, polls gamepad state, provides query APIs.
  */
-public class GamepadProvider <: InputProvider {
+public class GamepadProvider <: InputProvider & IReleasable {
     /// 手柄句柄
     private var _gamepad: SDL_Gamepad = CPointer<Unit>()
     /// 手柄实例 ID（-1 表示未打开）
@@ -88,12 +89,13 @@ public class GamepadProvider <: InputProvider {
     }
 
     /**
-     * @brief[zh-cn] 清理资源
+     * @brief[zh-cn] 关闭手柄并释放资源
      *
-     * @brief[en] Cleans up resources
+     * @brief[en] closes the gamepad and cleans up
      */
-    public override func shutdown(): Unit {
+    public override func release(): Bool {
         this.closeGamepad()
+        return true
     }
 
     /**
@@ -128,8 +130,14 @@ public class GamepadProvider <: InputProvider {
         let ids = SDL_GetGamepads_cj(countPtr)
         let count = unsafe { countPtr.read() }
         unsafe { LibC.free(countPtr) }
-        if (count <= 0 || index >= count) { return false }
+        // SDL_GetGamepads 返回的数组由 SDL 分配（SDL_malloc），必须显式释放，
+        // 否则每次枚举手柄都会泄漏该数组
+        if (count <= 0 || index >= count) {
+            if (!ids.isNull()) { unsafe { LibC.free(ids) } }
+            return false
+        }
         let id = unsafe { (ids + Int64(index)).read() }
+        unsafe { LibC.free(ids) }
         let gp = SDL_OpenGamepad_cj(id)
         if (gp.isNull()) { return false }
         this._gamepad = gp

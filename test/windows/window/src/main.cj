@@ -166,7 +166,7 @@ public class TestWindow <: WindowEngine {
         println("[6/6] 清理资源...")
         let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
         println("  运行时间: ${elapsed}s, 总帧数: ${this.frame}")
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  渲染引擎已关闭")
     }
 }

@@ -1,15 +1,9 @@
 # 类
 ## class BgfxMaterials
 ```cj
-public class BgfxMaterials
+public class BgfxMaterials <: IReleasable
 ```
 bgfx 材质管理
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-释放所有材质状态
 
 ### func dispose\(Int64\)
 ```cj
@@ -90,4 +84,10 @@ public func needsUpdate(materialId: Int64): Bool
 返回: 
 
 - 是否需要更新
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有材质状态
 

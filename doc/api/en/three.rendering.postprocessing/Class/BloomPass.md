@@ -1,15 +1,9 @@
 # Class
 ## class BloomPass
 ```cj
-public class BloomPass <: Pass
+public class BloomPass <: Pass & IReleasable
 ```
 Bloom post-processing pass (simple version)
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 bloom pass 占用的所有 GPU 资源。
 
 ### func init\(Float64,Int64,Float64\)
 ```cj
@@ -24,6 +18,12 @@ Parameter:
 |strength|Float64|Bloom 强度（默认 1.0）|
 |kernelSize|Int64|卷积核大小（默认 25，shader 循环次数）|
 |sigma|Float64|高斯 sigma（默认 4，决定核实际展宽）needsSwap=false（结果直接合成回 readBuffer，不依赖 composer swap）。|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 bloom pass 占用的所有 GPU 资源。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -57,6 +57,12 @@ Parameter:
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+whether the internal RTs exist and have not been released
 
 ### let BLOOM\_VIEW\_ID\_BASE
 ```cj

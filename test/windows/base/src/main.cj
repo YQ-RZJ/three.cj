@@ -97,7 +97,7 @@ public class TestWindow <: WindowEngine {
         println("[5/5] 清理资源...")
         let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
         println("  运行时间: ${elapsed}s")
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")

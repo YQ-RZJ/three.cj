@@ -5,12 +5,6 @@ public open class StreamingAudio <: Audio
 ```
 流式音频，继承 Audio
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放流式音频资源（解码器 + 流式缓冲 + 源）
-
 ### func init\(\)
 ```cj
 public init()
@@ -60,6 +54,12 @@ public override func play(offset: Float64): Audio
 返回: 
 
 - this（Audio 类型）
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放流式音频资源（解码器 + 流式缓冲 + 源）
 
 ### func stop\(\)
 ```cj

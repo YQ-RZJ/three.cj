@@ -35,6 +35,7 @@
  */
 package three.rendering.lights
 
+import three.utils.safe.IReleasable
 import three.core.math.*
 import three.rendering.buffer.*
 import three.rendering.geometry.*
@@ -59,7 +60,7 @@ import fastjson.stream.*
  * Defines common properties like color and intensity.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
-public open class Light <: Object3D {
+public open class Light <: Object3D & IReleasable {
 
     /**
      * @brief[zh-cn] 光源颜色
@@ -108,10 +109,11 @@ public open class Light <: Object3D {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public open func dispose(): Unit {
-        this.dispatchEvent(Event("dispose"))
+    public open func release(): Bool {
+        this.dispatchEvent(Event("release"))
+        return true
     }
 
     /**

@@ -67,8 +67,6 @@
  * 统一改用 `Handle.isValid(handle)` / `INVALID_XXX_HANDLE` 常量，
  * 或 `Handle.idx(handle)`（仅用于日志调试输出）。
  *
- *
- *
  * @package three.rendering.types
  */
 package three.rendering.types
@@ -852,6 +850,7 @@ public class Handle {
     // ------------------------------------------------------------------
     /**
      * @brief[zh-cn] 以 idx 构造纹理句柄
+     *
      * @brief[en] Construct a texture handle from idx (Box-wrapped)
      */
     public static func texture(idx: UInt16): TextureHandle {
@@ -860,6 +859,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造帧缓冲句柄
+     *
      * @brief[en] Construct a frame buffer handle from idx (Box-wrapped)
      */
     public static func framebuffer(idx: UInt16): FrameBufferHandle {
@@ -868,6 +868,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造程序句柄
+     *
      * @brief[en] Construct a program handle from idx (Box-wrapped)
      */
     public static func program(idx: UInt16): ProgramHandle {
@@ -876,6 +877,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造 uniform 句柄
+     *
      * @brief[en] Construct a uniform handle from idx (Box-wrapped)
      */
     public static func uniform(idx: UInt16): UniformHandle {
@@ -884,6 +886,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造静态顶点缓冲句柄
+     *
      * @brief[en] Construct a vertex buffer handle from idx (Box-wrapped)
      */
     public static func vertexBuffer(idx: UInt16): VertexBufferHandle {
@@ -892,6 +895,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造静态索引缓冲句柄
+     *
      * @brief[en] Construct an index buffer handle from idx (Box-wrapped)
      */
     public static func indexBuffer(idx: UInt16): IndexBufferHandle {
@@ -900,6 +904,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造顶点布局句柄
+     *
      * @brief[en] Construct a vertex layout handle from idx (Box-wrapped)
      */
     public static func vertexLayout(idx: UInt16): VertexLayoutHandle {
@@ -908,6 +913,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造动态顶点缓冲句柄
+     *
      * @brief[en] Construct a dynamic vertex buffer handle from idx (Box-wrapped)
      */
     public static func dynamicVertexBuffer(idx: UInt16): DynamicVertexBufferHandle {
@@ -916,6 +922,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造动态索引缓冲句柄
+     *
      * @brief[en] Construct a dynamic index buffer handle from idx (Box-wrapped)
      */
     public static func dynamicIndexBuffer(idx: UInt16): DynamicIndexBufferHandle {
@@ -924,6 +931,7 @@ public class Handle {
 
     /**
      * @brief[zh-cn] 以 idx 构造着色器句柄
+     *
      * @brief[en] Construct a shader handle from idx (Box-wrapped)
      */
     public static func shader(idx: UInt16): ShaderHandle {

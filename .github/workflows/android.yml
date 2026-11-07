@@ -1,0 +1,112 @@
+name: three-android
+
+on:
+  workflow_dispatch:
+    inputs:
+      product-type:
+        description: "产物类型，留空=全量（动态+静态都编译）；可填 dynamic（仅动态）或 static（仅静态）"
+        required: false
+        default: ""
+      cangjie-url:
+        description: "仓颉 SDK（linux-x64-android tar.gz）下载链接，如 cangjie-sdk-linux-x64-android-1.2.0.tar.gz"
+        required: true
+        default: "https://cangjie-lang.cn/v1/files/auth/downLoad?nsId=142267&fileName=cangjie-sdk-linux-x64-android-1.2.0.tar.gz&objectKey=6ab1e336ece1f87ff5befa74"
+      native-libs-url-arm64-v8a:
+        description: "cxx 静态库包（android/arm64-v8a release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-android-arm64-v8a-release-static.tar.gz"
+      native-libs-url-host:
+        description: "宏包宿主链接用的静态库包（linux/x86_64 release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-linux-x86_64-release-static.tar.gz"
+      ndk-version:
+        description: "Android NDK 固定版本（runner 上安装该版本）"
+        required: false
+        default: "r23c"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: arm64-v8a
+    # 仅 arm64：SDK 无 linux_android_x86_64_cjnative 模块，不支持 android x86_64
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      # 宏包在宿主（linux x64）平台编译链接，套用 LINUX 链接项（-lX11
+      # 等），需先装宿主系统库（与 ohos job 同理）
+      - name: Install host system deps (X11/OpenGL for macro linking)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxfixes-dev \
+            libxcursor-dev libxi-dev libxrandr-dev libxrender-dev \
+            libxss-dev libxtst-dev libgl1-mesa-dev libasound2-dev
+
+      # cjpm.toml [target.*-linux-android] 的 compile-option 引用 ANDROID_NDK_HOME
+      - name: Install pinned NDK (${{ inputs.ndk-version }})
+        run: |
+          cd $RUNNER_TEMP
+          wget -q https://dl.google.com/android/repository/android-ndk-${{ inputs.ndk-version }}-linux.zip
+          unzip -q android-ndk-${{ inputs.ndk-version }}-linux.zip
+          echo "ANDROID_NDK_HOME=$RUNNER_TEMP/android-ndk-${{ inputs.ndk-version }}" >> "$GITHUB_ENV"
+
+      - name: Install Cangjie SDK
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 -o "$RUNNER_TEMP/cangjie-sdk.tar.gz" "${{ inputs.cangjie-url }}"
+          CJ_ROOT="$RUNNER_TEMP/cangjie-sdk"
+          mkdir -p "$CJ_ROOT" && tar -xzf "$RUNNER_TEMP/cangjie-sdk.tar.gz" -C "$CJ_ROOT"
+          # CI-PATCH: android 变体 SDK 内二进制权限为 root:root 740（如
+          # third_party/llvm/bin/llvm-ar），runner 用户解压后无执行权，
+          # cjc 报 not found `llvm-ar` —— 统一按属主补回 rwx
+          chmod -R u+rwX "$CJ_ROOT"
+          CJ_SH=$(find "$CJ_ROOT" -type f -name envsetup.sh 2>/dev/null | head -1)
+          if [ -z "$CJ_SH" ] || [ ! -f "$CJ_SH" ]; then
+            echo "[ERROR] 未找到 envsetup.sh，解压内容："
+            find "$CJ_ROOT" -maxdepth 3 | head -40
+            exit 1
+          fi
+          CJ_DIR=$(dirname "$CJ_SH")
+          echo "CANGJIE_HOME=$CJ_DIR" >> "$GITHUB_ENV"
+          echo "$CJ_DIR/bin" >> "$GITHUB_PATH"
+
+      - name: Build three
+        run: |
+          source "$CANGJIE_HOME/envsetup.sh"
+          # CI-PATCH: cjpm 编译 git 依赖包时不套用项目 [target.*]
+          # compile-option（-V 日志实测：three.* 带上了 -B/--sysroot，
+          # 而 bgfx4cj/tracy4cj 等依赖包没有），依赖包的 cjc 找不到
+          # llvm-ar。用 PATH 前置的 cjc 包装脚本拦截所有 cjc 调用，
+          # 检测到 android 目标即追加 -B/--sysroot。
+          WRAP_DIR="$RUNNER_TEMP/cjc-wrap"
+          mkdir -p "$WRAP_DIR"
+          cat > "$WRAP_DIR/cjc" <<'EOF'
+          #!/bin/bash
+          for a in "$@"; do
+            if [[ "$a" == --target=aarch64-linux-android* ]]; then
+              exec "$CANGJIE_HOME/bin/cjc" "$@" \
+                -B "$CANGJIE_HOME/third_party/llvm/bin" \
+                -B "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin" \
+                --sysroot "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+            fi
+          done
+          exec "$CANGJIE_HOME/bin/cjc" "$@"
+          EOF
+          chmod +x "$WRAP_DIR/cjc"
+          # wrapper 必须排在 envsetup 前置的 $CANGJIE_HOME/bin 之前
+          export PATH="$WRAP_DIR:$PATH"
+          cjc -v
+          python3 .github/scripts/build_three.py \
+            --product-type "${{ inputs.product-type }}" \
+            --platform android --arch arm64-v8a \
+            --native-url "${{ inputs.native-libs-url-arm64-v8a }}" \
+            --host-url "${{ inputs.native-libs-url-host }}" --host-tag LINUX_X64
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: three-android-arm64-v8a
+          path: dist/*
+          retention-days: 30

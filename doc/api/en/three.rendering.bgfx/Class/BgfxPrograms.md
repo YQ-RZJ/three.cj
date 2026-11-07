@@ -1,15 +1,9 @@
 # Class
 ## class BgfxPrograms
 ```cj
-public class BgfxPrograms
+public class BgfxPrograms <: IReleasable
 ```
 bgfx shader program management
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes all shader programs
 
 ### func getProgram\(String,ShaderHandle,ShaderHandle,String\)
 ```cj
@@ -55,6 +49,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |data|BgfxProgramData|Program data|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all shader programs
 
 ### func size\(\)
 ```cj

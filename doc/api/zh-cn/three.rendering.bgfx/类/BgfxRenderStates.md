@@ -1,15 +1,9 @@
 # 类
 ## class BgfxRenderStates
 ```cj
-public class BgfxRenderStates
+public class BgfxRenderStates <: IReleasable
 ```
 bgfx 渲染状态管理
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有渲染状态
 
 ### func get\(Int64\)
 ```cj
@@ -32,4 +26,10 @@ public func get(sceneId: Int64): BgfxRenderState
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有渲染状态
 

@@ -1,15 +1,9 @@
 # 类
 ## class Connection
 ```cj
-public class Connection
+public class Connection <: IReleasable
 ```
 TCP 游戏连接
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-关闭连接（用户主动；不触发 onDisconnected、不自动重连）
 
 ### func connect\(\)
 ```cj
@@ -33,6 +27,12 @@ public init(host: String, port: UInt16)
 |---|---|---|
 |host|String|目标主机（IP 或域名）port 目标端口|
 |port|UInt16||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭连接（用户主动；不触发 onDisconnected、不自动重连）
 
 ### func sendString\(String\)
 ```cj

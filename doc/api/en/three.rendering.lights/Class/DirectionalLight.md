@@ -22,12 +22,6 @@ Return:
 
 - Self reference
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
-
 ### func init\(Color,Float64\)
 ```cj
 public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0)
@@ -40,6 +34,12 @@ Parameter:
 |---|---|---|
 |color|Color|Light color, default 0xffffffintensity Light intensity, default 1|
 |intensity|Float64||
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Release GPU resources
 
 ### var shadow
 ```cj

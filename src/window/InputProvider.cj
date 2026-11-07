@@ -63,6 +63,7 @@
 package three.window
 
 import std.core.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 输入提供者抽象基类
@@ -74,7 +75,7 @@ import std.core.*
  * and implement the corresponding methods. WindowEngine calls these methods in each frame's lifecycle:
  * init → (beginFrame → onEvent* → endFrame)* → shutdown
  */
-public open class InputProvider {
+public open class InputProvider <: IReleasable {
     /// 绑定的窗口引擎
     private var _window: Option<WindowEngine> = None
 
@@ -110,10 +111,16 @@ public open class InputProvider {
 
     /**
      * @brief[zh-cn] 清理资源（窗口关闭时调用）
+     * @explain[zh-cn] 子类需自定义清理时
+     *         直接 override release() 并在末尾调用 super.release()。
      *
-     * @brief[en] Cleans up resources (called when window closes)
+     * @brief[en] cleans up resources (called on window close)
+     * @explain[en] subclasses customizing
+     *              cleanup should override release() and call super.release() at the end
      */
-    public open func shutdown(): Unit {}
+    public open func release(): Bool {
+        return true
+    }
 
     /**
      * @brief[zh-cn] 绑定到窗口引擎

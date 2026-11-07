@@ -103,7 +103,7 @@ public func tickCapture(
             g_capState = 0
             if (g_capAuto) {
                 println("[capture] 自动模式落盘完成，退出渲染循环")
-                // 诊断模式直接退进程：renderer.shutdown() 的 bgfx 渲染线程同步存在死锁风险
+                // 诊断模式直接退进程：renderer.release() 的 bgfx 渲染线程同步存在死锁风险
                 // （进程退出由 OS 回收全部资源；落盘文件已写完关闭，数据完整）。
                 // flush 保证管道重定向下尾部日志不丢失。
                 getStdOut().flush()
@@ -206,7 +206,7 @@ func _dumpAndCleanup(renderer: ThreeRenderer): Unit {
     for (e in g_capEntries) {
         if (e.data.size() == 0) { continue }
         _dumpRawBinf(e, w, h)
-        e.data.dispose()
+        e.data.release()
         e.data = PtrArray<UInt8>(0)
         getStdOut().flush()
     }

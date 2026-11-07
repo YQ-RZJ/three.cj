@@ -1,7 +1,7 @@
 # 类
 ## class LuaFunction
 ```cj
-public class LuaFunction
+public class LuaFunction <: IReleasable
 ```
 Lua 函数引用
 
@@ -24,12 +24,6 @@ public func call(args!: Array < LuaValue >=[]): Array < LuaValue >
 异常: 
 
 - LuaError 运行时错误
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放注册表引用
 
 ### func fromGlobal\(LuaVM,String\)
 ```cj
@@ -61,15 +55,21 @@ public init(vm!: LuaVM, ref!: Int32)
 |vm|LuaVM|所属虚拟机ref 注册表引用（由 luaL_ref 产生）|
 |ref|Int32||
 
-### prop isValid: Bool
+### func release\(\)
 ```cj
-public prop isValid: Bool
+public func release(): Bool
 ```
-是否有效（未被释放）
+释放注册表引用。
 
 ### prop ref: Int32
 ```cj
 public prop ref: Int32
 ```
 注册表引用 id
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+是否有效（未被释放）
 

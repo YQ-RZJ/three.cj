@@ -1,17 +1,9 @@
 # Class
 ## class SocketClient
 ```cj
-public class SocketClient
+public class SocketClient <: IReleasable
 ```
 TCP client
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-Closes the connection
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Fires onClose after closing.</p>
 
 ### func connect\(\)
 ```cj
@@ -68,6 +60,14 @@ Parameter:
 Return: 
 
 - Returns the actual number of bytes read, or -1 when the connectionis closed or an error occurs
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Closes the connection
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Fires onClose after closing; idempotent no-op returning false when not connected.</p>
 
 ### func writeString\(String\)
 ```cj

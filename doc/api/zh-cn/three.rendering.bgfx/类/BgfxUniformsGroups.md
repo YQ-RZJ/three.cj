@@ -1,7 +1,7 @@
 # 类
 ## class BgfxUniformsGroups
 ```cj
-public class BgfxUniformsGroups
+public class BgfxUniformsGroups <: IReleasable
 ```
 bgfx Uniform 组管理
 
@@ -17,12 +17,6 @@ public func bind(groupId: Int64, programId: Int64): Unit
 |---|---|---|
 |groupId|Int64|uniform 组 IDprogramId 着色器程序 ID|
 |programId|Int64||
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-释放所有 uniform 组
 
 ### func dispose\(Int64\)
 ```cj
@@ -47,6 +41,12 @@ public init(info!: BgfxInfo = BgfxInfo())
 |名称|类型|描述|
 |---|---|---|
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有 uniform 组
 
 ### func update\(Int64,Int64\)
 ```cj

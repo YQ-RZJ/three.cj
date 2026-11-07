@@ -1,15 +1,9 @@
 # Class
 ## class DotScreenPass
 ```cj
-public class DotScreenPass <: Pass
+public class DotScreenPass <: Pass & IReleasable
 ```
 Dot screen post-processing pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases all GPU resources held by the dot screen pass
 
 ### func init\(Vector2,Float64,Float64\)
 ```cj
@@ -24,6 +18,12 @@ Parameter:
 |center|Vector2|Dot grid center (default (0.5, 0.5))|
 |angle|Float64|Dot grid rotation angle (default 1.57 ≈ π/2)|
 |scale|Float64|Dot grid density (default 1.0)|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases all GPU resources held by the dot screen pass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

@@ -40,6 +40,7 @@ import three.rendering.types.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.core.thread.bgfxCallMtx
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] Uniform 信息
@@ -82,7 +83,7 @@ public class UniformInfo {
  * @brief[en] bgfx uniform variable management
  * @explain[en] Corresponds to WebGLUniforms, manages shader uniform variable creation and setting. bgfx uses UniformHandle instead of WebGL uniform location
  */
-public class BgfxUniforms {
+public class BgfxUniforms <: IReleasable {
     /**
      * @brief[zh-cn] uniform 缓存（名称 -> UniformInfo）
      *
@@ -256,9 +257,9 @@ public class BgfxUniforms {
     /**
      * @brief[zh-cn] 销毁所有 uniform
      *
-     * @brief[en] Dispose all uniforms
+     * @brief[en] dispose all uniforms
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         bgfxCallMtx.lock()
         try {
             for ((_, info) in uniforms) {
@@ -270,5 +271,6 @@ public class BgfxUniforms {
         } finally {
             bgfxCallMtx.unlock()
         }
+        return true
     }
 }

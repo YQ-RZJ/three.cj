@@ -1,7 +1,7 @@
 # 类
 ## class LUTPass
 ```cj
-public class LUTPass <: ShaderPass
+public class LUTPass <: ShaderPass & IReleasable
 ```
 颜色分级（LUT）后处理 pass
 
@@ -18,12 +18,6 @@ public override func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUn
 |renderer|ThreeRenderer|渲染器|
 |uniforms|BgfxUniforms|已创建 tDiffuse sampler 的 uniform 注册表（继续创建 LUT uniforms）|
 
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 LUTPass 占用的 GPU 资源
-
 ### func init\(TextureHandle,Int64,Float64\)
 ```cj
 public init(lut!: TextureHandle = INVALID_TEXTURE_HANDLE, lutSize!: Int64 = 0, intensity!: Float64 = 1.0)
@@ -37,6 +31,12 @@ public init(lut!: TextureHandle = INVALID_TEXTURE_HANDLE, lutSize!: Int64 = 0, i
 |lut|TextureHandle|3D LUT 纹理句柄（默认无效 → pass 跳过）|
 |lutSize|Int64|LUT 边长（默认 0，与无效纹理配套；有效纹理时必须 > 0）|
 |intensity|Float64|混合强度（默认 1.0）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 LUTPass 占用的 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

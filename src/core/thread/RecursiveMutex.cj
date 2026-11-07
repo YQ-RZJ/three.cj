@@ -32,7 +32,6 @@
  * 释放时深度递减，归零后才真正释放底层 SDL 锁。
  * 典型用途：渲染线程在执行多步 bgfx 调用序列期间，内部辅助函数（如 BgfxUniforms）
  * 仍需再次加锁的场景（避免自我死锁）。
- *
  * @note[zh-cn] 线程身份用 SDL 系统线程 ID 标识，适用于系统线程环境（本工程场景）。
  * 若在仓颉 N:M 用户态线程上复用：同一 OS 线程上被调度的不同用户线程共享同一系统线程 ID，
  * 会把「非重入的两次进入」误判为「同线程重入」。本类面向系统线程互斥用途，
@@ -51,7 +50,6 @@
  * unlock() decrements depth and releases the underlying lock only at depth zero.
  * Typical use: while the render thread holds a lock for a multi-step bgfx call sequence,
  * inner helpers (e.g. BgfxUniforms) still need to lock again without self-deadlocking.
- *
  * @note[en] Thread identity uses the SDL system thread ID, suitable for system-thread
  * environments (this project). If reused on Cangjie N:M user-mode threads, different
  * user threads scheduled on the same OS thread share one system thread ID, so two

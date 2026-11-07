@@ -1,7 +1,7 @@
 # Class
 ## class ReliableChannel
 ```cj
-public class ReliableChannel
+public class ReliableChannel <: IReleasable
 ```
 Reliable UDP channel
 
@@ -14,12 +14,6 @@ Binds the local port and starts the receive thread (synchronous)
 Return: 
 
 - True on successful bind
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-Closes the channel and stops the receive thread
 
 ### func init\(String,UInt16,UInt16\)
 ```cj
@@ -34,6 +28,14 @@ Parameter:
 |remoteHost|String|Remote hostremotePort Remote portbindPort Local bind port (0 = auto-assigned)|
 |remotePort|UInt16||
 |bindPort|UInt16||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Closes the channel and stops the receive thread
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Idempotent no-op returning false when not bound.</p>
 
 ### func send\(Array<UInt8>\)
 ```cj

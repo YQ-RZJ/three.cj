@@ -1,15 +1,9 @@
 # 类
 ## class TexturePass
 ```cj
-public class TexturePass <: Pass
+public class TexturePass <: Pass & IReleasable
 ```
 贴纹理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 TexturePass 占用的 GPU 资源
 
 ### func init\(TextureHandle,Float64\)
 ```cj
@@ -23,6 +17,12 @@ public init(map: TextureHandle, opacity!: Float64 = 1.0)
 |---|---|---|
 |map|TextureHandle|待渲纹理（bgfx TextureHandle）|
 |opacity|Float64|不透明度（默认 1.0）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 TexturePass 占用的 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

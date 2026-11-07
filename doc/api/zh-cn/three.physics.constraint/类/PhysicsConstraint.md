@@ -1,7 +1,7 @@
 # 类
 ## class PhysicsConstraint
 ```cj
-public class PhysicsConstraint
+public class PhysicsConstraint <: IReleasable
 ```
 约束运行时句柄封装
 
@@ -25,12 +25,6 @@ public static func cone(world: PhysicsWorld, bodyA: PhysicsBodyHandle, bodyB: Ph
 返回: 
 
 - 新建的约束封装
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁约束并从世界移除
 
 ### func distance\(PhysicsWorld,PhysicsBodyHandle,PhysicsBodyHandle,Vector3,Vector3,Float64,Float64\)
 ```cj
@@ -138,16 +132,6 @@ public func isEnabled(): Bool
 
 - 启用返回 true
 
-### func isValid\(\)
-```cj
-public func isValid(): Bool
-```
-约束是否有效（已创建且未销毁）
-
-返回: 
-
-- 有效返回 true
-
 ### func point\(PhysicsWorld,PhysicsBodyHandle,PhysicsBodyHandle,Vector3\)
 ```cj
 public static func point(world: PhysicsWorld, bodyA: PhysicsBodyHandle, bodyB: PhysicsBodyHandle, anchor: Vector3): PhysicsConstraint
@@ -166,6 +150,12 @@ public static func point(world: PhysicsWorld, bodyA: PhysicsBodyHandle, bodyB: P
 返回: 
 
 - 新建的约束封装
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁约束并从世界移除
 
 ### func setEnabled\(Bool\)
 ```cj
@@ -253,4 +243,10 @@ public static func swingTwist(world: PhysicsWorld, bodyA: PhysicsBodyHandle, bod
 public prop handle: PhysicsConstraintHandle
 ```
 获取约束句柄（销毁后为 INVALID）
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+约束是否有效（已创建且未销毁）
 

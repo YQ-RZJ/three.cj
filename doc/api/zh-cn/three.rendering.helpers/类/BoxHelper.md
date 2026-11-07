@@ -1,7 +1,7 @@
 # 类
 ## class BoxHelper
 ```cj
-public class BoxHelper <: LineSegments
+public class BoxHelper <: LineSegments & IReleasable
 ```
 包围盒辅助对象，用于可视化 Object3D 的轴对齐包围盒
 
@@ -22,12 +22,6 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 
 - 自身引用
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
-
 ### func init\(\)
 ```cj
 public init()
@@ -46,6 +40,12 @@ public init(object: Object3D, color!: UInt32 = 0xffff00)
 |---|---|---|
 |object|Object3D||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func setFromObject\(Object3D\)
 ```cj

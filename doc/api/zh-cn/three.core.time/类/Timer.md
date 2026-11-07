@@ -1,15 +1,9 @@
 # 类
 ## class Timer
 ```cj
-public class Timer
+public class Timer <: IReleasable
 ```
 高性能计时器类
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放资源
 
 ### func getDelta\(\)
 ```cj
@@ -46,6 +40,12 @@ public func getTimescale(): Float64
 public init()
 ```
 构造一个新的计时器
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放资源
 
 ### func reset\(\)
 ```cj

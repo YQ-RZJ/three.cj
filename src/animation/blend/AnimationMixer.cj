@@ -191,10 +191,9 @@ public class AnimationMixer <: EventDispatcher {
 
     /**
      * @brief[zh-cn] 全局时间缩放因子
+     * @note[zh-cn] 设置为 0 再恢复为 1 可暂停/恢复所有动作，默认值为 1
      *
      * @brief[en] Global time scale factor
-     *
-     * @note[zh-cn] 设置为 0 再恢复为 1 可暂停/恢复所有动作，默认值为 1
      * @note[en] Setting it to 0 and back to 1 pauses/resumes all actions; defaults to 1
      */
     public var timeScale: Float64
@@ -757,15 +756,14 @@ public class AnimationMixer <: EventDispatcher {
      * optionalRoot 可选的替代根对象，默认为混合器根对象
      * blendMode 混合模式，默认使用剪辑的混合模式
      * @return[zh-cn] 动画动作
+     * @note[zh-cn] 如果适合 clip 和 root 参数的动作尚不存在，此方法将创建它；
+     * 使用相同的 clip 和 root 参数多次调用此方法始终返回相同的动作
      *
      * @brief[en] Returns an AnimationAction for the given clip
      * @param[en] clip The animation clip
      * optionalRoot An optional alternate root object, defaults to the mixer's root
      * blendMode Blend mode, defaults to the clip's blend mode
      * @return[en] The animation action
-     *
-     * @note[zh-cn] 如果适合 clip 和 root 参数的动作尚不存在，此方法将创建它；
-     * 使用相同的 clip 和 root 参数多次调用此方法始终返回相同的动作
      * @note[en] If an action matching the clip and root parameters does not yet exist,
      * it is created; calling repeatedly with the same clip and root always returns
      * the same action
@@ -880,12 +878,11 @@ public class AnimationMixer <: EventDispatcher {
      * @brief[zh-cn] 推进全局混合器时间并更新动画
      * @param[zh-cn] deltaTime 增量时间（秒）
      * @return[zh-cn] 返回自身以支持链式调用
+     * @note[zh-cn] 通常在渲染循环中通过传递 Clock 或 Timer 的增量时间来调用
      *
      * @brief[en] Advances the global mixer time and updates the animations
      * @param[en] deltaTime The delta time in seconds
      * @return[en] Returns itself for chaining
-     *
-     * @note[zh-cn] 通常在渲染循环中通过传递 Clock 或 Timer 的增量时间来调用
      * @note[en] Usually called in the render loop with the delta time of a Clock or Timer
      */
     @Zone[three.animation.blend.AnimationMixer.update, name=mixerUpdate]
@@ -923,12 +920,11 @@ public class AnimationMixer <: EventDispatcher {
      * @brief[zh-cn] 将全局混合器设置为特定时间并相应更新动画
      * @param[zh-cn] time 要设置的时间（秒）
      * @return[zh-cn] 返回自身以支持链式调用
+     * @note[zh-cn] 当需要跳转到动画中的精确时间时很有用；输入参数将被 AnimationMixer#timeScale 缩放
      *
      * @brief[en] Sets the global mixer to a specific time and updates the animations accordingly
      * @param[en] time The time to set in seconds
      * @return[en] Returns itself for chaining
-     *
-     * @note[zh-cn] 当需要跳转到动画中的精确时间时很有用；输入参数将被 AnimationMixer#timeScale 缩放
      * @note[en] Useful when jumping to an exact time in the animation; the input is scaled by AnimationMixer#timeScale
      */
     public func setTime(time: Float64): AnimationMixer {
@@ -955,11 +951,10 @@ public class AnimationMixer <: EventDispatcher {
     /**
      * @brief[zh-cn] 释放剪辑的所有内存资源
      * @param[zh-cn] clip 要取消缓存的剪辑
+     * @note[zh-cn] 使用此方法前，确保对所有相关动作调用了 AnimationAction#stop
      *
      * @brief[en] Releases all memory resources of a clip
      * @param[en] clip The clip to uncache
-     *
-     * @note[zh-cn] 使用此方法前，确保对所有相关动作调用了 AnimationAction#stop
      * @note[en] Make sure to call AnimationAction#stop on all related actions before using this method
      */
     public func uncacheClip(clip: IAnimationClip): Unit {
@@ -1004,11 +999,10 @@ public class AnimationMixer <: EventDispatcher {
     /**
      * @brief[zh-cn] 释放根对象的所有内存资源
      * @param[zh-cn] root 要取消缓存的根对象
+     * @note[zh-cn] 使用此方法前，确保对所有相关动作调用了 AnimationAction#stop
      *
      * @brief[en] Releases all memory resources of a root object
      * @param[en] root The root object to uncache
-     *
-     * @note[zh-cn] 使用此方法前，确保对所有相关动作调用了 AnimationAction#stop
      * @note[en] Make sure to call AnimationAction#stop on all related actions before using this method
      */
     public func uncacheRoot(root: Object3D): Unit {
@@ -1051,12 +1045,11 @@ public class AnimationMixer <: EventDispatcher {
      * @brief[zh-cn] 释放动作的所有内存资源
      * @param[zh-cn] clip 动画剪辑
      * optionalRoot 可选的替代根对象，默认为混合器根对象
+     * @note[zh-cn] 使用此方法前，确保调用了 AnimationAction#stop 停用动作
      *
      * @brief[en] Releases all memory resources of an action
      * @param[en] clip The animation clip
      * optionalRoot An optional alternate root object, defaults to the mixer's root
-     *
-     * @note[zh-cn] 使用此方法前，确保调用了 AnimationAction#stop 停用动作
      * @note[en] Make sure to call AnimationAction#stop to deactivate the action before using this method
      */
     public func uncacheAction(clip: IAnimationClip, optionalRoot!: Option<Object3D> = None): Unit {
@@ -1114,6 +1107,8 @@ public class AnimationMixer <: EventDispatcher {
      *                  2. 使用 BlendingJob 归一化混合多层动画（无活跃层时回退 rest pose）
      *                  3. 使用 LocalToModelJob 将局部姿态转换为模型空间矩阵
      *                  4. 若已绑定场景骨骼，将模型矩阵分解为局部 TRS 写回 Bone 节点
+     * @param[zh-cn] skeletonData 运行时骨骼数据
+     * @param[zh-cn] deltaTime 帧间隔时间（秒），与 update 的入参保持一致
      *
      * @brief[en] Updates skeletal animation with the sampling/blending job pipeline
      * @explain[en] Ozz-style job pipeline entry. Action time is advanced by
@@ -1122,10 +1117,6 @@ public class AnimationMixer <: EventDispatcher {
      *                  rest pose when no layer is active), converts local poses to
      *                  model-space matrices via LocalToModelJob, and optionally writes
      *                  parent-relative local TRS back to the bound scene skeleton.
-     *
-     * @param[zh-cn] skeletonData 运行时骨骼数据
-     * @param[zh-cn] deltaTime 帧间隔时间（秒），与 update 的入参保持一致
-     *
      * @param[en] skeletonData Runtime skeleton data
      * @param[en] deltaTime Frame interval in seconds, same as the update argument
      */

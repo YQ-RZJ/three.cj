@@ -1,15 +1,9 @@
 # Class
 ## class BgfxGeometries
 ```cj
-public class BgfxGeometries
+public class BgfxGeometries <: IReleasable
 ```
 bgfx geometry management
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-Disposes all geometries
 
 ### func dispose\(Int64,Option<Int64>,ArrayList<Int64>\)
 ```cj
@@ -118,6 +112,12 @@ Parameter:
 |attributes|BgfxAttributes||
 |info|BgfxInfo||
 |bindingStates|BgfxBindingStates||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all geometries
 
 ### func updateWireframeAttribute\(Int64,Int64\)
 ```cj

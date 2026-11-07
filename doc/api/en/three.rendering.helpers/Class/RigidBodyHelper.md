@@ -1,15 +1,9 @@
 # Class
 ## class RigidBodyHelper
 ```cj
-public class RigidBodyHelper <: Object3D
+public class RigidBodyHelper <: Object3D & IReleasable
 ```
 Physics rigid body helper object
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases GPU resources
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ Parameter:
 |body|RigidBody||
 |shape|PhysicsShape||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func setShape\(PhysicsShape\)
 ```cj

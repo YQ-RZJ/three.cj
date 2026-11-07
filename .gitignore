@@ -5,6 +5,7 @@ Thumbs.db
 *.iml
 *.ipr
 .*/
+!.github/
 __pycache__/
 *.pyc
 target/

@@ -60,6 +60,7 @@ package three.resource.pipeline
 import std.collection.*
 import std.sync.*
 import three.core.interfaces.ILoadResult
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 缓存条目：资源 + 引用计数
@@ -91,7 +92,7 @@ internal class CacheEntry {
  * retain/release adjust the count and collect evicts zero-count entries. A global
  * shared instance is provided; per-domain instances (e.g. scene-isolated) are also fine.
  */
-public class AssetCache {
+public class AssetCache <: IReleasable {
     /** 全局共享实例（多数游戏直接使用） */
     public static let shared: AssetCache = AssetCache()
 
@@ -330,12 +331,16 @@ public class AssetCache {
 
     /**
      * @brief[zh-cn] 清空全部缓存（无视引用计数）
+     * @explain[zh-cn] 与带参 release(key) 重载区分。
      *
-     * @brief[en] Clears the whole cache (ignores ref counts)
+     * @brief[en] clears the whole cache (ignores ref counts)
+     * @explain[en] distinct from the keyed
+     *              release(key) overload
      */
-    public func clear(): Unit {
+    public func release(): Bool {
         synchronized(_mutex) {
             _entries.clear()
         }
+        return true
     }
 }

@@ -1,15 +1,9 @@
 # 类
 ## class Box3Helper
 ```cj
-public class Box3Helper <: LineSegments
+public class Box3Helper <: LineSegments & IReleasable
 ```
 Box3 轴对齐包围盒辅助对象
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -29,6 +23,12 @@ public init(box: Box3, color!: UInt32 = 0xffff00)
 |---|---|---|
 |box|Box3||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func updateMatrixWorld\(Bool\)
 ```cj

@@ -1,7 +1,7 @@
 # Class
 ## class BgfxUniforms
 ```cj
-public class BgfxUniforms
+public class BgfxUniforms <: IReleasable
 ```
 bgfx uniform variable management
 
@@ -40,12 +40,6 @@ Return:
 
 - Uniform handle
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose all uniforms
-
 ### func getHandle\(String\)
 ```cj
 public func getHandle(name: String): Option < UniformHandle >
@@ -67,6 +61,12 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all uniforms
 
 ### func setMat3\(String,BgfxMemory\)
 ```cj

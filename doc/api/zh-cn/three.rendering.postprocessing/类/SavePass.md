@@ -1,21 +1,21 @@
 # 类
 ## class SavePass
 ```cj
-public class SavePass <: Pass
+public class SavePass <: Pass & IReleasable
 ```
 保存 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 SavePass 占用的 GPU 资源（内部 RT）
 
 ### func init\(\)
 ```cj
 public init()
 ```
 构造 SavePass
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 SavePass 占用的 GPU 资源（内部 RT）
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -44,6 +44,12 @@ public override func setSize(width: Int64, height: Int64): Unit
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+内部 RT 是否已创建且未被释放
 
 ### var renderTarget
 ```cj

@@ -33,6 +33,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -59,7 +60,7 @@ import three.rendering.geometry.*
  * Displays as wireframe grid with a semi-transparent fill face.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Line]
-public class PlaneHelper <: Line {
+public class PlaneHelper <: Line & IReleasable {
     /**
      * @brief[zh-cn] 被可视化的平面
      *
@@ -135,9 +136,9 @@ public class PlaneHelper <: Line {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.geometry.dispose()
         this.material.dispose()
         if (this.children.size > 0) {
@@ -147,5 +148,6 @@ public class PlaneHelper <: Line {
                 fill.material.dispose()
             }
         }
+        return true
     }
 }

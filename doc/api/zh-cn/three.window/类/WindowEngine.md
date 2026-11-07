@@ -1,7 +1,7 @@
 # 类
 ## class WindowEngine
 ```cj
-public open class WindowEngine
+public open class WindowEngine <: IReleasable
 ```
 窗口引擎 v2（对齐 RGF 窗口模式）
 
@@ -426,6 +426,12 @@ public func raise(): Bool
 
 - 是否成功
 
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+关闭窗口引擎
+
 ### func removeInputProvider\(InputProvider\)
 ```cj
 public func removeInputProvider(provider: InputProvider): Bool
@@ -769,12 +775,6 @@ public func show(): Bool
 
 - 是否成功
 
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-关闭窗口引擎
-
 ### func start\(String,Int32,Int32,WindowConfig\)
 ```cj
 public func start(title!: String, width!: Int32, height!: Int32, config!: WindowConfig = WindowConfig()): Bool
@@ -820,7 +820,7 @@ public func wait(): Unit
 阻塞等待窗口关闭（窗口泵线程结束后返回）
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>窗口关闭途径：用户点标题栏 X / Alt+F4、onFrame 内调 requestClose()、
-外部调 shutdown()。</p>
+外部调 release()。</p>
 
 ### func warpMouseInWindow\(Float32,Float32\)
 ```cj

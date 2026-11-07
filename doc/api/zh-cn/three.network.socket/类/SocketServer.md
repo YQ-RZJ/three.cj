@@ -1,7 +1,7 @@
 # 类
 ## class SocketServer
 ```cj
-public class SocketServer
+public class SocketServer <: IReleasable
 ```
 TCP 服务端
 
@@ -25,12 +25,6 @@ public func bind(): Bool
 
 - 绑定成功返回 true；失败返回 false
 
-### func close\(\)
-```cj
-public func close(): Unit
-```
-关闭服务端
-
 ### func init\(UInt16\)
 ```cj
 public init(port: UInt16)
@@ -42,6 +36,14 @@ public init(port: UInt16)
 |名称|类型|描述|
 |---|---|---|
 |port|UInt16|绑定端口|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭服务端
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>未绑定时为幂等空操作并返回 false。</p>
 
 ### prop isBound: Bool
 ```cj

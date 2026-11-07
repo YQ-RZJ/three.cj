@@ -1,7 +1,7 @@
 # 类
 ## class BgfxUniforms
 ```cj
-public class BgfxUniforms
+public class BgfxUniforms <: IReleasable
 ```
 bgfx Uniform 变量管理
 
@@ -40,12 +40,6 @@ public func createUniform(name: String, uniformType: UInt32, num: UInt16): Unifo
 
 - uniform 句柄
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁所有 uniform
-
 ### func getHandle\(String\)
 ```cj
 public func getHandle(name: String): Option < UniformHandle >
@@ -67,6 +61,12 @@ public func getHandle(name: String): Option < UniformHandle >
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁所有 uniform
 
 ### func setMat3\(String,BgfxMemory\)
 ```cj

@@ -1,7 +1,7 @@
 # Class
 ## class DataMap
 ```cj
-public open class DataMap
+public open class DataMap <: IReleasable
 ```
 Generic key-value data mapping base class
 
@@ -16,12 +16,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |key|String|Key to delete|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes all data
 
 ### func get\(String\)
 ```cj
@@ -60,4 +54,10 @@ Return:
 public init()
 ```
 Constructs an empty data map
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+dispose all data
 

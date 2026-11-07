@@ -1,7 +1,7 @@
 # Class
 ## class SocketUdp
 ```cj
-public class SocketUdp
+public class SocketUdp <: IReleasable
 ```
 UDP socket
 
@@ -31,12 +31,6 @@ Return:
 
 - Returns true on success, false on failure
 
-### func close\(\)
-```cj
-public func close(): Unit
-```
-Closes the socket
-
 ### func init\(UInt16\)
 ```cj
 public init(bindPort!: UInt16 = 0)
@@ -60,6 +54,14 @@ Receives data (blocking)
 Return: 
 
 - Returns (remote address string, data bytes); on failure returns ("", [])
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Closes the socket
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Idempotent no-op returning false when not bound.</p>
 
 ### func sendString\(String,UInt16,String\)
 ```cj

@@ -1,15 +1,9 @@
 # 类
 ## class PhysicsCharacterVirtual
 ```cj
-public class PhysicsCharacterVirtual
+public class PhysicsCharacterVirtual <: IReleasable
 ```
 虚拟角色（对应 JPH_CharacterVirtual）
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁虚拟角色并释放底层句柄
 
 ### func getGroundState\(\)
 ```cj
@@ -44,6 +38,12 @@ public func isOnGround(): Bool
 虚拟角色是否在地面上（GroundState == OnGround）
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>update 之后本帧地面状态即有效</p>
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁虚拟角色并释放底层句柄
 
 ### func setLinearVelocity\(Vector3\)
 ```cj
@@ -82,9 +82,9 @@ public func update(deltaTime: Float32, gravity!: Vector3 = Vector3(0.0, - 9.81, 
 |deltaTime|Float32|时间步长（秒）gravity 重力向量（默认 (0,-9.81,0)，与物理世界一致；水平移动请在调用前用 setLinearVelocity 设置，竖直分量会被本方法保留并叠加重力）|
 |gravity|Vector3||
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 虚拟角色是否有效（创建成功且未销毁）
 

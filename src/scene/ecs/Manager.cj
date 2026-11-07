@@ -217,12 +217,11 @@ public class ComponentManager {
      * @brief[zh-cn] 回收组件
      * @explain[zh-cn] ObjectPool.recycle 会自动调用 destruct（无感清理）
      * @param[zh-cn] c 组件实例
+     * @throws[zh-cn] EcsException 组件仍挂在实体上
      *
      * @brief[en] Recycle a component
      * @explain[en] ObjectPool.recycle automatically calls destruct (seamless cleanup)
      * @param[en] c Component instance
-     *
-     * @throws[zh-cn] EcsException 组件仍挂在实体上
      * @throws[en] EcsException Component is still attached to an entity
      */
     public func recycle(c: Component): Unit {
@@ -629,12 +628,11 @@ public class SystemManager {
      * @brief[zh-cn] 添加系统到管理器中
      * @param[zh-cn] sys 系统
      * @return[zh-cn] 系统 ID
+     * @throws[zh-cn] EcsException 同 ID 系统已存在
      *
      * @brief[en] Add a system to the manager
      * @param[en] sys System
      * @return[en] System ID
-     *
-     * @throws[zh-cn] EcsException 同 ID 系统已存在
      * @throws[en] EcsException System with same ID already exists
      */
     public func addSystem(sys: System): SystemId {

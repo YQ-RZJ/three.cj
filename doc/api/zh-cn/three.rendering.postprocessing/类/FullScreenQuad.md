@@ -1,15 +1,9 @@
 # 类
 ## class FullScreenQuad
 ```cj
-public class FullScreenQuad
+public class FullScreenQuad <: IReleasable
 ```
 全屏四边形共享资源
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放全屏四边形占用的 GPU 资源
 
 ### func ensureResources\(ThreeRenderer\)
 ```cj
@@ -28,6 +22,12 @@ public func ensureResources(renderer: ThreeRenderer): Unit
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放全屏四边形占用的 GPU 资源
 
 ### func setRenderer\(ThreeRenderer\)
 ```cj

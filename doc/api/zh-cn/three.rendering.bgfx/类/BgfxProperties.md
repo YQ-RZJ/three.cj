@@ -1,15 +1,9 @@
 # 类
 ## class BgfxProperties
 ```cj
-public class BgfxProperties
+public class BgfxProperties <: IReleasable
 ```
 bgfx 属性存储
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有数据
 
 ### func get\(Object3D\)
 ```cj
@@ -48,6 +42,12 @@ public func has(obj: Object3D): Bool
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有数据
 
 ### func remove\(Object3D\)
 ```cj

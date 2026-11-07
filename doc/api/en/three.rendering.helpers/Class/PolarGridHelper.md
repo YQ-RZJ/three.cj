@@ -1,15 +1,9 @@
 # Class
 ## class PolarGridHelper
 ```cj
-public class PolarGridHelper <: LineSegments
+public class PolarGridHelper <: LineSegments & IReleasable
 ```
 Polar grid helper displaying a polar coordinate grid on the XZ plane
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(Float64,Int64,Int64,Int64,Color,Color\)
 ```cj
@@ -27,4 +21,10 @@ Parameter:
 |divisions|Int64||
 |color1|Color||
 |color2|Color||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 

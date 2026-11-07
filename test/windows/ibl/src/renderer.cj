@@ -131,7 +131,7 @@ public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera,
     // fromScene 读取 scene.background（CubeTexture）→ 逐面预过滤 → CubeUV 图集
     let pmrem = PMREMGenerator()
     let envMap = pmrem.fromScene(scene, 0.0, 0.1, 200.0)
-    pmrem.dispose()
+    pmrem.release()
     // scene.environment 作为所有 PBR 材质 envMap 的兜底（材质自身 envMap 优先）
     scene.environment = Some(envMap)
     @LogInfo(["ibl", "PMREM 环境贴图生成完成: ${envMap.width}x${envMap.height} mapping=${envMap.mapping}"])

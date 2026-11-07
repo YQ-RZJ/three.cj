@@ -25,8 +25,6 @@
 /**
  * @file[zh-cn] LogMacros.cj 日志级别条件编译宏（纯宏包，零包依赖）
  * @brief[zh-cn] 表达式宏：编译期按 cfg 档位（@When[logLevel == "..."]）决定日志调用是否生成代码
- * @package three.utils.log
- *
  * @explain[zh-cn] 设计目标：release 构建零日志开销。本包是**纯宏包**（macro package），
  * 不含任何运行时代码。日志档位由**编译进程的环境变量 THREE_LOG_LEVEL** 决定——宏 DLL 在
  * cjc 展开宏时（即业务代码编译期）加载执行，包级初始化读取 THREE_LOG_LEVEL 定档：
@@ -61,6 +59,9 @@
  * import three.utils.log.*
  * \@LogInfo("Renderer", "initialized")
  * ```
+ *
+ * @package three.utils.log
+ *
  */
 macro package three.utils.log.macros
 

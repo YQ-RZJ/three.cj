@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -63,7 +64,7 @@ import three.rendering.lights.*
  * Call update() when the light or its target changes.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
-public class DirectionalLightHelper <: Object3D {
+public class DirectionalLightHelper <: Object3D & IReleasable {
     /**
      * @brief[zh-cn] 被可视化的光源
      *
@@ -140,13 +141,14 @@ public class DirectionalLightHelper <: Object3D {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.lightPlane.geometry.dispose()
         this.lightPlane.material.dispose()
         this.targetLine.geometry.dispose()
         this.targetLine.material.dispose()
+        return true
     }
 
     /**

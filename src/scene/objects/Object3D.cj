@@ -370,7 +370,6 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
      *               绝大多数对象的 position/quaternion/scale 没有任何变化——原实现
      *               每帧每对象都重算一次 compose（并把世界矩阵标脏，迫使剔除阶段
      *               每帧重算世界包围球）。此处先比较局部变换分量，未变则直接返回。
-     * @return 是否实际执行了 compose
      *
      * @brief[en] Change-detecting matrix update: skips the compose when the local transform is unchanged
      * @explain[en] The render loop calls updateMatrixWorld on the whole scene tree every
@@ -379,6 +378,9 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
      *               every object every frame (and dirtied the world matrix, forcing the
      *               culling stage to recompute world bounding spheres). This compares the
      *               local transform components first and returns early when unchanged.
+     *
+     * @return 是否实际执行了 compose
+     *
      * @return Whether a compose actually happened
      */
     private func updateMatrixIfChanged(): Bool {
@@ -435,6 +437,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
      *               可跳过 4×4 矩阵乘法（16 元素比较 vs 64 乘 48 加）。
      *               直接读取父级 matrixWorld 元素判定，不缓存标志，
      *               外部直接改写 matrixWorld 也不会导致误判。
+     * @return[zh-cn] 父级世界矩阵是否为单位阵（无父级时为 true）
      *
      * @brief[en] Whether the parent's world matrix is the identity
      * @explain[en] When the parent's world matrix is the identity, this node's world
@@ -442,8 +445,6 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
      *               48 adds) can be replaced by a 16-element comparison. The check reads
      *               the parent's matrixWorld elements directly instead of caching a
      *               flag, so external writes to matrixWorld cannot cause a wrong answer.
-     * @return[zh-cn] 父级世界矩阵是否为单位阵（无父级时为 true）
-     *
      * @brief[en] Whether the parent's world matrix is the identity (true when there is no parent)
      */
     private func _parentWorldIsIdentity(): Bool {
@@ -473,6 +474,9 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
      *               结果先写入临时矩阵，与旧值逐分量比较，真正变化才写回并失效
      *               世界包围球缓存。静态场景下整棵子树每帧仅做浮点比较，
      *               既省掉矩阵乘法，也不再迫使剔除阶段每帧重算包围球。
+     * @param[zh-cn] force 是否强制向下传播更新
+     * @param[zh-cn] parentChanged 父级世界矩阵是否已变化
+     * @param[zh-cn] parentIsIdentity 父级世界矩阵是否为单位阵（单位阵时世界矩阵 = 局部矩阵，可跳过 4×4 乘法）
      *
      * @brief[en] Recursive world-matrix update (internal, change-aware)
      * @explain[en] parentChanged tells whether the parent's world matrix actually
@@ -483,10 +487,6 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
      *               invalidates the world bounding sphere cache. In a static scene the
      *               whole subtree costs only float comparisons per frame, saving both
      *               the matrix multiplication and the per-frame bounding sphere rebuild.
-     *
-     * @param[zh-cn] force 是否强制向下传播更新
-     * @param[zh-cn] parentChanged 父级世界矩阵是否已变化
-     * @param[zh-cn] parentIsIdentity 父级世界矩阵是否为单位阵（单位阵时世界矩阵 = 局部矩阵，可跳过 4×4 乘法）
      */
     private func _updateMatrixWorld(force: Bool, parentChanged: Bool, parentIsIdentity: Bool): Unit {
         // 外部置脏（helper/physics 直接改 matrix 后标记）也算本地矩阵可能已变
@@ -870,6 +870,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
 
     /**
      * @return[zh-cn] Some([cx, cy, cz, radius]) 或 None（无几何体）
+     *
      * @return[en] Some([cx, cy, cz, radius]) or None (no geometry)
      *
      * 计算对象的世界空间包围球（带缓存：脏时重算，否则直接返回缓存值。
@@ -922,6 +923,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
 
     /**
      * @return[zh-cn] Some(([minX,minY,minZ], [maxX,maxY,maxZ])) 或 None（无几何体）
+     *
      * @return[en] Some(([minX,minY,minZ], [maxX,maxY,maxZ])) or None (no geometry)
      *
      * 计算对象自身（不含子对象）的世界空间包围盒
@@ -945,6 +947,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
 
     /**
      * @return[zh-cn] 子对象数量
+     *
      * @return[en] Number of child objects
      *
      * 子对象数量
@@ -956,6 +959,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
     /**
      * @param[zh-cn] i 子对象索引
      * @return[zh-cn] 子对象（Object3D 实现了 IBox3Expandable）
+     *
      * @param[en] i Child object index
      * @return[en] Child object (Object3D implements IBox3Expandable)
      *
@@ -967,6 +971,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
 
     /**
      * @return[zh-cn] 顶点数（0 表示不支持精确遍历）
+     *
      * @return[en] Vertex count (0 means precise traversal is not supported)
      *
      * 精确模式逐顶点遍历的顶点数
@@ -988,6 +993,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
     /**
      * @param[zh-cn] i 顶点索引
      * @return[zh-cn] 世界空间坐标 [x, y, z]
+     *
      * @param[en] i Vertex index
      * @return[en] World-space coordinates [x, y, z]
      *
@@ -1011,6 +1017,7 @@ public open class Object3D <: EventDispatcher & IFrustumCullable & IBox3Expandab
 /**
  * @param[zh-cn] source 源 userData
  * @return[zh-cn] 深拷贝后的新 HashMap
+ *
  * @param[en] source Source userData
  * @return[en] Deep-copied new HashMap
  *

@@ -1,15 +1,9 @@
 # 类
 ## class SSAOPass
 ```cj
-public class SSAOPass <: Pass
+public class SSAOPass <: Pass & IReleasable
 ```
 
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-销毁全部 GPU 资源（composer.dispose 或 renderer.shutdown 调用）
 
 ### func init\(Scene,Camera\)
 ```cj
@@ -23,6 +17,12 @@ public init(scene: Scene, camera: Camera)
 |---|---|---|
 |scene|Scene||
 |camera|Camera||
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+销毁全部 GPU 资源（composer.dispose 或 renderer.shutdown 调用）
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

@@ -1,7 +1,7 @@
 # Class
 ## class BgfxAttributes
 ```cj
-public class BgfxAttributes
+public class BgfxAttributes <: IReleasable
 ```
 bgfx vertex attribute buffer management
 
@@ -32,12 +32,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |layout|VertexLayoutHandle|Vertex layout handle to destroy|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose all buffers
 
 ### func getIndexBuffer\(Int64\)
 ```cj
@@ -82,6 +76,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all buffers
 
 ### func removeIndexBuffer\(Int64\)
 ```cj

@@ -49,6 +49,10 @@ import three.core.interfaces.*
  * FrameTaskMode.CONSUME,
  * 1,
  * { ctx =>
+ *
+ * @brief[en] Frame dispatcher
+ * @explain[en] Frame dispatcher that manages a forced queue and a priority queue, trimming priority queue tasks based on time budget.
+ *
  * @LogInfo(["FrameDispatch", "execute idx=${ctx.idx}, args=${ctx.args}"])
  * return true
  * },
@@ -59,9 +63,6 @@ import three.core.interfaces.*
  * // 取消注册
  * dispatch.unregister(id)
  * ```
- *
- * @brief[en] Frame dispatcher
- * @explain[en] Frame dispatcher that manages a forced queue and a priority queue, trimming priority queue tasks based on time budget.
  */
 public class FrameDispatch {
     /**

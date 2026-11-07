@@ -1,15 +1,9 @@
 # 类
 ## class RigidBodyHelper
 ```cj
-public class RigidBodyHelper <: Object3D
+public class RigidBodyHelper <: Object3D & IReleasable
 ```
 物理刚体辅助对象
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ public init(body: RigidBody, shape!: PhysicsShape = PhysicsShape.box(1.0, 1.0, 1
 |body|RigidBody||
 |shape|PhysicsShape||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func setShape\(PhysicsShape\)
 ```cj

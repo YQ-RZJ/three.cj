@@ -1,15 +1,9 @@
 # 类
 ## class PolarGridHelper
 ```cj
-public class PolarGridHelper <: LineSegments
+public class PolarGridHelper <: LineSegments & IReleasable
 ```
 极坐标网格辅助对象，在 XZ 平面显示极坐标网格
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(Float64,Int64,Int64,Int64,Color,Color\)
 ```cj
@@ -27,4 +21,10 @@ public init(radius!: Float64 = 10.0, sectors!: Int64 = 16, rings!: Int64 = 8, di
 |divisions|Int64||
 |color1|Color||
 |color2|Color||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 

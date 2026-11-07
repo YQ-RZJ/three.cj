@@ -1,15 +1,9 @@
 # Class
 ## class Pass
 ```cj
-public open class Pass
+public open class Pass <: IReleasable
 ```
 Post-processing pass abstract base class
-
-### func dispose\(\)
-```cj
-public open func dispose(): Unit
-```
-Releases the GPU resources held by the pass
 
 ### func init\(\)
 ```cj
@@ -28,6 +22,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |composer|EffectComposer|The EffectComposer being attached to|
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+base default no-op; subclasses override to release their own GPU resources
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

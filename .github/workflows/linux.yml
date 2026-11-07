@@ -1,0 +1,117 @@
+name: three-linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      product-type:
+        description: "产物类型，留空=全量（动态+静态都编译）；可填 dynamic（仅动态）或 static（仅静态）"
+        required: false
+        default: ""
+      cangjie-url:
+        description: "仓颉 SDK（linux-x64 tar.gz，x86_64 job 用）"
+        required: true
+        default: "https://cangjie-lang.cn/v1/files/auth/downLoad?nsId=142267&fileName=cangjie-sdk-linux-x64-1.2.0.tar.gz&objectKey=6ab1e26eece1f87ff5befa73"
+      cangjie-url-arm64:
+        description: "仓颉 SDK（linux-aarch64 tar.gz，arm64 job 在原生 arm64 runner 上用）"
+        required: true
+        default: "https://cangjie-lang.cn/v1/files/auth/downLoad?nsId=142267&fileName=cangjie-sdk-linux-aarch64-1.2.0.tar.gz&objectKey=6ab1e26eece1f87ff5befa72"
+      native-libs-url-x86_64:
+        description: "cxx 静态库包（linux/x86_64 release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-linux-x86_64-release-static.tar.gz"
+      native-libs-url-arm64-v8a:
+        description: "cxx 静态库包（linux/arm64-v8a release static tar.gz）"
+        required: true
+        default: "https://github.com/YQ-RZJ/three.cj/releases/download/v0.1.0/native-libs-linux-arm64-v8a-release-static.tar.gz"
+      arches:
+        description: "架构，逗号分隔：x86_64,arm64-v8a（留空=全部）"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      arches: ${{ steps.set.outputs.arches }}
+    steps:
+      - id: set
+        run: |
+          V="${{ inputs.arches }}"
+          if [ -z "$V" ]; then V="x86_64,arm64-v8a"; fi
+          echo "arches=[$(echo "$V" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/ /,"",$i); printf "%s\"%s\"", (i>1?",":""), $i}}')]" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: config
+    name: ${{ matrix.arch }}
+    # x86_64 与 arm64 均为 native 构建：官方交叉编译支持表不含
+    # linux-x64 → linux-arm64，且 linux-x64 SDK 不带 linux_aarch64_cjnative
+    # 模块（实测报 "target library path is not exist"），因此 arm64 在
+    # GitHub 原生 arm64 runner 上用 linux-aarch64 SDK 构建
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(needs.config.outputs.arches) }}
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+            sdk-input: cangjie-url
+          - arch: arm64-v8a
+            runner: ubuntu-24.04-arm
+            sdk-input: cangjie-url-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      # three 链接期需要 X11/GL/ALSA 等系统库（cjpm.toml linux 段 -lX11 等）
+      - name: Install system deps (X11/OpenGL for SDL/bgfx)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxfixes-dev \
+            libxcursor-dev libxi-dev libxrandr-dev libxrender-dev \
+            libxss-dev libxtst-dev libgl1-mesa-dev libasound2-dev
+
+      - name: Resolve native libs URL
+        run: |
+          case "${{ matrix.arch }}" in
+            x86_64)    URL="${{ inputs.native-libs-url-x86_64 }}" ;;
+            arm64-v8a) URL="${{ inputs.native-libs-url-arm64-v8a }}" ;;
+          esac
+          if [ -z "$URL" ]; then echo "[ERROR] 架构 ${{ matrix.arch }} 未提供 native-libs-url"; exit 1; fi
+          echo "NATIVE_URL=$URL" >> "$GITHUB_ENV"
+
+      - name: Install Cangjie SDK
+        run: |
+          SDK_URL="${{ inputs[matrix.sdk-input] }}"
+          curl -fsSL --retry 3 --retry-delay 5 -o "$RUNNER_TEMP/cangjie-sdk.tar.gz" "$SDK_URL"
+          CJ_ROOT="$RUNNER_TEMP/cangjie-sdk"
+          mkdir -p "$CJ_ROOT" && tar -xzf "$RUNNER_TEMP/cangjie-sdk.tar.gz" -C "$CJ_ROOT"
+          CJ_SH=$(find "$CJ_ROOT" -type f -name envsetup.sh 2>/dev/null | head -1)
+          if [ -z "$CJ_SH" ] || [ ! -f "$CJ_SH" ]; then
+            echo "[ERROR] 未找到 envsetup.sh，解压内容："
+            find "$CJ_ROOT" -maxdepth 3 | head -40
+            exit 1
+          fi
+          CJ_DIR=$(dirname "$CJ_SH")
+          echo "CANGJIE_HOME=$CJ_DIR" >> "$GITHUB_ENV"
+          echo "$CJ_DIR/bin" >> "$GITHUB_PATH"
+
+      - name: Build three
+        run: |
+          source "$CANGJIE_HOME/envsetup.sh"
+          cjc -v
+          # native 构建：host 与 target 相同，宏包链接与目标共用同一套静态库
+          python3 .github/scripts/build_three.py \
+            --product-type "${{ inputs.product-type }}" \
+            --platform linux --arch ${{ matrix.arch }} \
+            --native-url "$NATIVE_URL"
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: three-linux-${{ matrix.arch }}
+          path: dist/*
+          retention-days: 30

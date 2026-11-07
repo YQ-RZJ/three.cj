@@ -1,7 +1,7 @@
 # Class
 ## class PhysicsCharacter
 ```cj
-public class PhysicsCharacter
+public class PhysicsCharacter <: IReleasable
 ```
 Rigid-body based character (corresponds to JPH_Character)
 
@@ -16,12 +16,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |activation|PhysicsActivation|Whether to activate immediately (default Activate)|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes the character (auto-removes it from the physics system and frees the handle)
 
 ### func getGroundState\(\)
 ```cj
@@ -69,6 +63,12 @@ Parameter:
 |---|---|---|
 |maxSeparationDistance|Float32|Maximum separation distance (meters; default 0.05)|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+disposes the character (auto-removes it from the physics system and frees the handle)
+
 ### func removeFromPhysicsSystem\(\)
 ```cj
 public func removeFromPhysicsSystem(): Unit
@@ -100,9 +100,9 @@ Parameter:
 |position|Vector3|The target position (world space, three left-handed)activation Whether to activate immediately (default Activate)|
 |activation|PhysicsActivation||
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 Whether the character is valid (created successfully and not disposed)
 

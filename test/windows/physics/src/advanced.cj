@@ -700,13 +700,13 @@ public class AdvancedTestDriver {
                         this._soft = Some(soft)
                         // 可视化：紫色薄板跟随软体总体位姿（jolt4cj 暂无顶点回读 FFI，
                         // 不表现形变，仅表现整体下落/翻转）
-                        if (soft.isValid) {
+                        if (soft.releasable) {
                             let softMesh = this._buildSoftBoardMesh()
                             this._scene.add(softMesh)
                             world.bindObject(softMesh, PhysicsBodyHandle(bodyID: soft.bodyID))
                             this._softMesh = Some(softMesh)
                         }
-                        this.log.append("[S] soft board created at y=${y0} (valid=${soft.isValid})\n")
+                        this.log.append("[S] soft board created at y=${y0} (valid=${soft.releasable})\n")
                         this._nextPhase()
                     }
                 case None =>
@@ -719,7 +719,7 @@ public class AdvancedTestDriver {
             if (f >= 90) {
                 match (this._soft) {
                     case Some(s) =>
-                        _advcheck("S soft body valid after creation", s.isValid, this.log)
+                        _advcheck("S soft body valid after creation", s.releasable, this.log)
                         _advcheck("S soft body bodyID assigned", s.bodyID != 0, this.log)
                         // 先解绑并移除渲染网格，再销毁物理体（避免同步到已释放 bodyID）
                         match (this._softMesh) {
@@ -727,20 +727,20 @@ public class AdvancedTestDriver {
                             case None => ()
                         }
                         this._softMesh = None
-                        s.dispose()
-                        _advcheck("S soft body disposed (isValid=false)", !s.isValid, this.log)
+                        s.release()
+                        _advcheck("S soft body disposed (releasable=false)", !s.releasable, this.log)
                     case None =>
                         _advcheck("S soft body created", false, this.log)
                 }
                 // V：载具（放在空旷区 x=10）
                 let veh = createTestVehicle(world)
                 this._vehicle = Some(veh)
-                _advcheck("V vehicle valid", veh.isValid, this.log)
+                _advcheck("V vehicle valid", veh.releasable, this.log)
                 _advcheck("V vehicle wheelCount == 4", veh.wheelCount == 4, this.log)
                 let p0 = world.getPosition(veh.chassis)
                 this._vehX0 = p0.x
                 // 可视化：黄色底盘盒（绑定底盘刚体自动同步）+ 4 个灰色车轮圆柱
-                if (veh.isValid) {
+                if (veh.releasable) {
                     let chassisMesh = this._spawnBox(world, veh.chassis,
                         1.0, 0.3, 2.0, p0, COMPOUND_VS, COMPOUND_FS)
                     this._vehChassisMesh = Some(chassisMesh)
@@ -802,8 +802,8 @@ public class AdvancedTestDriver {
                             this._scene.remove(wm)
                         }
                         this._wheelMeshes.clear()
-                        veh.dispose()
-                        _advcheck("V vehicle disposed", !veh.isValid, this.log)
+                        veh.release()
+                        _advcheck("V vehicle disposed", !veh.releasable, this.log)
                         this._vehicle = None
                         this._nextPhase()
                     }
@@ -818,12 +818,12 @@ public class AdvancedTestDriver {
                 this._terrain = Some(terrain)
                 this._terrainDesc = Some(tdesc)
                 // 可视化：青绿起伏地形（顶点直接用世界坐标，静态无需同步）
-                if (terrain.isValid) {
+                if (terrain.releasable) {
                     let terrainMesh = this._buildTerrainMesh(tdesc)
                     this._scene.add(terrainMesh)
                     this._terrainMesh = Some(terrainMesh)
                 }
-                this.log.append("[H] sine terrain created (17x17, valid=${terrain.isValid})\n")
+                this.log.append("[H] sine terrain created (17x17, valid=${terrain.releasable})\n")
                 this._nextPhase()
             }
         } else if (this._phase == 6) {
@@ -831,7 +831,7 @@ public class AdvancedTestDriver {
             if (f >= 300) { // TEMP-SHOT 原为 5，截图验证后还原
                 match (this._terrain) {
                     case Some(t) =>
-                        _advcheck("H terrain valid", t.isValid, this.log)
+                        _advcheck("H terrain valid", t.releasable, this.log)
                         // 地形中心附近网格点，直接用真值函数对比
                         let c = Vector3(-25.0, 0.0, 5.0)
                         let p1 = t.projectOntoSurface(c.x, c.z)
@@ -850,8 +850,8 @@ public class AdvancedTestDriver {
                         let p4 = t.projectOntoSurface(500.0, 500.0)
                         _advcheck("H project outside returns invalid sentinel",
                             p4.y < -1.0e30, this.log)
-                        t.dispose()
-                        _advcheck("H terrain disposed", !t.isValid, this.log)
+                        t.release()
+                        _advcheck("H terrain disposed", !t.releasable, this.log)
                     case None =>
                         _advcheck("H terrain created", false, this.log)
                 }
@@ -879,13 +879,13 @@ public class AdvancedTestDriver {
                         d.drawConstraints(world)
                         this.log.append("[D] drawConstraints captured ${d.lineCount} lines\n")
                     } else if (f == 3) {
-                        _advcheck("D debug renderer valid", d.isValid, this.log)
+                        _advcheck("D debug renderer valid", d.releasable, this.log)
                         _advcheck("D drawBodies produced geometry (${this._bodyLines} lines)",
                             this._bodyLines > 0, this.log)
                         _advcheck("D drawConstraints produced geometry (${d.lineCount} lines)",
                             d.lineCount > 0, this.log)
-                        d.dispose()
-                        _advcheck("D renderer disposed", !d.isValid, this.log)
+                        d.release()
+                        _advcheck("D renderer disposed", !d.releasable, this.log)
                     }
                 case None =>
                     _advcheck("D debug renderer created", false, this.log)
@@ -913,10 +913,10 @@ public class AdvancedTestDriver {
                 case Some(sl) =>
                     if (f >= _ADV_PHASE_FRAMES) {
                         let pos = world.getSliderCurrentPosition(sl.handle)
-                        _advcheck("SL slider created valid", sl.isValid(), this.log)
+                        _advcheck("SL slider created valid", sl.releasable, this.log)
                         _advcheck("SL position motor lifts slider (pos0=${_fmt3(this._sliderPos0)}, end=${_fmt3(pos)})",
                             pos > 0.6, this.log)
-                        sl.dispose()
+                        sl.release()
                         this._slider = None
                         this._nextPhase()
                     }
@@ -947,10 +947,10 @@ public class AdvancedTestDriver {
                     case Some(zoo) =>
                         for (i in 0..zoo.size) {
                             _advcheck("CZ ${zooConstraintName(i)} constraint valid",
-                                zoo[i].isValid(), this.log)
+                                zoo[i].releasable, this.log)
                         }
                         for (i in 0..zoo.size) {
-                            zoo[i].dispose()
+                            zoo[i].release()
                         }
                         this.log.append("[CZ] 6 constraint types created and disposed\n")
                     case None =>
@@ -967,7 +967,7 @@ public class AdvancedTestDriver {
                         let (rag, y0) = createTestRagdoll(world)
                         this._rag = Some(rag)
                         this._ragY0 = y0
-                        _advcheck("R ragdoll valid", rag.isValid, this.log)
+                        _advcheck("R ragdoll valid", rag.releasable, this.log)
                         _advcheck("R ragdoll bodyCount == 3 (got ${rag.bodyCount})",
                             rag.bodyCount == 3, this.log)
                         _advcheck("R ragdoll constraintCount == 2 (got ${rag.constraintCount})",
@@ -1004,8 +1004,8 @@ public class AdvancedTestDriver {
                             this._despawn(world, rm)
                         }
                         this._ragMeshes.clear()
-                        rag.dispose()
-                        _advcheck("R ragdoll disposed", !rag.isValid, this.log)
+                        rag.release()
+                        _advcheck("R ragdoll disposed", !rag.releasable, this.log)
                         this._rag = None
                         this._nextPhase()
                     }
@@ -1035,8 +1035,8 @@ public class AdvancedTestDriver {
                             vch.getPosition(), COMPOUND_VS, COMPOUND_FS))
                         this._rcharMesh = Some(this._spawnCapsuleVisual(0.3, 0.4,
                             rch.getPosition(), CONVEX_VS, CONVEX_FS))
-                        _advcheck("C virtual character valid", vch.isValid, this.log)
-                        _advcheck("C rigid character valid", rch.isValid, this.log)
+                        _advcheck("C virtual character valid", vch.releasable, this.log)
+                        _advcheck("C rigid character valid", rch.releasable, this.log)
                         this.log.append("[C] characters created at (-16,2,9) virtual / (-18,2,9) rigid\n")
                     }
                 case Some(vch) =>
@@ -1083,13 +1083,13 @@ public class AdvancedTestDriver {
                                     rp.y < this._charRY0 - 0.5, this.log)
                                 _advcheck("C rigid character on ground (state=${rch.getGroundState()}, y=${_fmt3(rp.y)})",
                                     rch.isOnGround(), this.log)
-                                rch.dispose()
-                                _advcheck("C rigid character disposed", !rch.isValid, this.log)
+                                rch.release()
+                                _advcheck("C rigid character disposed", !rch.releasable, this.log)
                             case None =>
                                 _advcheck("C rigid character created", false, this.log)
                         }
-                        vch.dispose()
-                        _advcheck("C virtual character disposed", !vch.isValid, this.log)
+                        vch.release()
+                        _advcheck("C virtual character disposed", !vch.releasable, this.log)
                         // 移除两个角色胶囊网格
                         match (this._vcharMesh) {
                             case Some(vm) => this._scene.remove(vm)

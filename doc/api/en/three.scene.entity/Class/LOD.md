@@ -1,7 +1,7 @@
 # Class
 ## class LOD
 ```cj
-public class LOD <: Object3D
+public class LOD <: Object3D & IReleasable
 ```
 LOD (Level of Detail) node that switches between detail levels based on camera distance
 
@@ -37,12 +37,6 @@ Parameter:
 |source|Object3D||
 |recursive|Bool||
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-注意：JS LOD 没有 dispose() 方法，此为仓颉侧补充的清理功能
-
 ### func getCurrentLevel\(\)
 ```cj
 public func getCurrentLevel(): Int64
@@ -66,6 +60,12 @@ Parameter:
 public init()
 ```
 构造一个新的 LOD。
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+frees GPU resources of this instance and its level children.
 
 ### func removeLevel\(Float64\)
 ```cj

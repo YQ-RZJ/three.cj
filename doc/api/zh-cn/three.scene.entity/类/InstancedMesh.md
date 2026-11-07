@@ -1,7 +1,7 @@
 # 类
 ## class InstancedMesh
 ```cj
-public class InstancedMesh <: Mesh
+public class InstancedMesh <: Mesh & IReleasable
 ```
 实例化网格，将同一几何/材质渲染多次，每次带独立变换矩阵/颜色
 
@@ -35,12 +35,6 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 |---|---|---|
 |source|Object3D||
 |recursive|Bool||
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放本实例分配的 GPU 相关资源。
 
 ### func getColorAt\(Int64,Color\)
 ```cj
@@ -113,6 +107,12 @@ intersects - 命中结果累加数组。
 |---|---|---|
 |raycaster|Raycaster||
 |intersects|ArrayList<Intersection>||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放本实例分配的 GPU 相关资源。
 
 ### func setColorAt\(Int64,Color\)
 ```cj

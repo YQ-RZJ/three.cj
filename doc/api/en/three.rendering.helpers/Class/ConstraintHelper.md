@@ -1,15 +1,9 @@
 # Class
 ## class ConstraintHelper
 ```cj
-public class ConstraintHelper <: Object3D
+public class ConstraintHelper <: Object3D & IReleasable
 ```
 Physics constraint helper object
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases GPU resources
 
 ### func init\(\)
 ```cj
@@ -32,6 +26,12 @@ Parameter:
 |bodyA|RigidBody||
 |bodyB|RigidBody||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func update\(\)
 ```cj

@@ -145,8 +145,8 @@ func test_reliable_channel(): Unit {
     ck("A 收到回包", stateA.messages == 1)
     ck("A 收包内容正确", stateA.last.size == 1 && stateA.last[0] == 0xBBu8)
 
-    chanA.close()
-    chanB.close()
+    chanA.release()
+    chanB.release()
     println("")
 }
 

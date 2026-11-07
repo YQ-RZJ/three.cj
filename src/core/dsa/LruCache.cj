@@ -84,6 +84,8 @@ private class LruNode<K, V> {
  *     case None => cache.put(7, "seven")
  * }
  * ```
+ * @param[zh-cn] K 键类型（须满足 Hashable & Equatable<K>）
+ * V 值类型
  *
  * @brief[en] Fixed-capacity LRU cache
  * @explain[en] A hash map provides O(1) lookup while an intrusive doubly linked list
@@ -96,10 +98,6 @@ private class LruNode<K, V> {
  *     case None => cache.put(7, "seven")
  * }
  * ```
- *
- * @param[zh-cn] K 键类型（须满足 Hashable & Equatable<K>）
- * V 值类型
- *
  * @brief[en] K Key type (must satisfy Hashable & Equatable<K>)
  * V Value type
  */

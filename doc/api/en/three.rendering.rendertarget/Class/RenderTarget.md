@@ -1,7 +1,7 @@
 # Class
 ## class RenderTarget
 ```cj
-public open class RenderTarget <: EventDispatcher
+public open class RenderTarget <: EventDispatcher & IReleasable
 ```
 Render target class, storing off-screen render buffer description
 
@@ -30,12 +30,6 @@ Parameter:
 Return: 
 
 - Reference to this instance
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Release GPU-related resources allocated by this instance
 
 ### func getDepthTexture\(\)
 ```cj
@@ -83,6 +77,12 @@ Parameter:
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU-related resources allocated by this instance
 
 ### func setDepthTexture\(?IRenderTargetTexture\)
 ```cj

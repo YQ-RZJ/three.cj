@@ -113,7 +113,7 @@ public class AssetCacheTest <: TestClass {
         // clear 无视计数
         cache.add("x", StringLoadResult("x"))
         cache.retain("x")
-        cache.clear()
+        cache.release()
         assertEqual("clear 清空全部", "true", cache.count == 0, true)
     }
 }

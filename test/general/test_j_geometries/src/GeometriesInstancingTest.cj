@@ -28,7 +28,7 @@ public class GeometriesInstancingTest <: TestClass {
     }
 
     func test_is_flags() {
-        // 对照 JS QUnit: object.isXxx 断言（仓颉几何体无 isXxx 标志，改用 kind 断言）
+        // object.isXxx 断言（仓颉几何体无 isXxx 标志，改用 kind 断言）
         assertEqual("Box kind", "BoxGeometry", BoxGeometry(width: 1.0, height: 1.0, depth: 1.0).kind, "BoxGeometry")
         assertEqual("Circle kind", "CircleGeometry", CircleGeometry(radius: 1.0, segments: 8).kind, "CircleGeometry")
         assertEqual("Cone kind", "ConeGeometry", ConeGeometry(radius: 1.0, height: 2.0, radialSegments: 8).kind, "ConeGeometry")

@@ -1,7 +1,7 @@
 # 类
 ## class InputProvider
 ```cj
-public open class InputProvider
+public open class InputProvider <: IReleasable
 ```
 输入提供者抽象基类
 
@@ -51,9 +51,9 @@ public open func onEvent(evt: DispatchEvent): Unit
 |---|---|---|
 |evt|DispatchEvent|分发器投递的轻量事件|
 
-### func shutdown\(\)
+### func release\(\)
 ```cj
-public open func shutdown(): Unit
+public open func release(): Bool
 ```
 清理资源（窗口关闭时调用）
 

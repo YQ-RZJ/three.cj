@@ -63,6 +63,7 @@ import three.audio.mixer.*
 import three.audio.interfaces.*
 import three.profiler.*
 import three.profiler.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 非位置音频基类，继承 Object3D
@@ -74,7 +75,7 @@ import three.profiler.macros.*
  * use PositionalAudio for 3D spatial audio.
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
-public open class Audio <: Object3D {
+public open class Audio <: Object3D & IReleasable {
     /**
      * @brief[zh-cn] 关联的监听器
      *
@@ -82,6 +83,15 @@ public open class Audio <: Object3D {
      */
     @JsonIgnore
     public var listener: AudioListener
+
+    /**
+     * @brief[zh-cn] 监听器是否由本对象隐式创建（无参构造时创建，释放时一并注销）
+     *
+     * @brief[en] Whether the listener was implicitly created by this object
+     * (created by the no-arg constructor and released together with this object)
+     */
+    @JsonIgnore
+    private var _ownsListener: Bool = false
 
     /**
      * @brief[zh-cn] 音频上下文
@@ -186,6 +196,7 @@ public open class Audio <: Object3D {
      */
     public init() {
         this(listener: AudioListener())
+        this._ownsListener = true
     }
     public init(listener!: AudioListener) {
         // 仓颉：super 必须为构造器首条语句
@@ -366,6 +377,31 @@ public open class Audio <: Object3D {
     }
 
     /**
+     * @brief[zh-cn] 释放音频对象（停止 + 删除 OpenAL 源 + 注销隐式创建的监听器）
+     * @explain[zh-cn] 无参构造的 Audio 会隐式创建一个 AudioListener，而监听器会注册到
+     *               AudioContext 的强引用变换槽表；此类对象的生命周期结束时必须走
+     *               release()，否则监听器与槽永久驻留（每帧仍被音频线程遍历）。
+     *               由外部传入 listener 时不会注销该监听器（所有权在调用方）。
+     *
+     * @brief[en] Releases the audio object (stop + delete the OpenAL
+     * source + unregister an implicitly created listener)
+     * @explain[en] A no-arg Audio implicitly creates an AudioListener, and listeners register
+     * themselves in the AudioContext strong-reference transform-slot table. Such objects must
+     * be released through release(), otherwise the listener and its slot stay resident forever
+     * (still walked by the audio thread every frame). A listener passed in by the caller is not
+     * unregistered (the caller owns it).
+     */
+    public open func release(): Bool {
+        this.stop()
+        this.disconnect()
+        if (this._ownsListener) {
+            this.listener.release()
+            this._ownsListener = false
+        }
+        return true
+    }
+
+    /**
      * @brief[zh-cn] OpenAL 源被释放后的钩子（子类可重写以清理自身状态）
      * @explain[zh-cn] 在 disconnect() 的音频线程闭包内、源删除之后调用。子类若持有
      *               与该源绑定的异步下发数据（如变换槽），应在此失效，避免向已删除
@@ -468,13 +504,12 @@ public open class Audio <: Object3D {
      * @brief[zh-cn] 设置音调偏移
      * @param[zh-cn] value 音调偏移（cent，±100 为半音）
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] OpenAL 没有 detune 属性，通过 pitch 近似实现：
+     * pitch = playbackRate * 2^(detune/1200)。
      *
      * @brief[en] Sets the detune
      * @param[en] value Detune in cents (100 cents = one semitone)
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] OpenAL 没有 detune 属性，通过 pitch 近似实现：
-     * pitch = playbackRate * 2^(detune/1200)。
      * @note[en] OpenAL has no detune attribute; approximated via pitch:
      * pitch = playbackRate * 2^(detune/1200).
      */
@@ -562,12 +597,11 @@ public open class Audio <: Object3D {
      * @brief[zh-cn] 设置直接滤波器（作用于源直通路径的滤波）
      * @param[zh-cn] filter 滤波器对象（AudioFilter），传 filterId=0 的 AudioFilter 等效移除
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX: alSourcei(source, AL_DIRECT_FILTER, filterId)。
      *
      * @brief[en] Sets the direct filter (filters the source's direct path)
      * @param[en] filter The filter object (AudioFilter); an AudioFilter with filterId=0 removes it
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX: alSourcei(source, AL_DIRECT_FILTER, filterId)。
      * @note[en] Maps to EFX: alSourcei(source, AL_DIRECT_FILTER, filterId).
      */
     public func setDirectFilter(filter: AudioFilter): Audio {
@@ -600,6 +634,7 @@ public open class Audio <: Object3D {
      * send 发送编号（通常为 0）
      * filter 发送路径上的可选滤波器，默认无滤波
      * @return[zh-cn] this（便于链式调用）
+     * @note[zh-cn] 对应 EFX: alSource3i(source, AL_AUXILIARY_SEND_FILTER, slotId, send, filterId)。
      *
      * @brief[en] Connects the source to an auxiliary effect slot (send path; the source's
      * output is processed by the slot and mixed back)
@@ -607,8 +642,6 @@ public open class Audio <: Object3D {
      * send The send index (usually 0)
      * filter Optional filter on the send path; no filtering by default
      * @return[en] this (for chaining)
-     *
-     * @note[zh-cn] 对应 EFX: alSource3i(source, AL_AUXILIARY_SEND_FILTER, slotId, send, filterId)。
      * @note[en] Maps to EFX: alSource3i(source, AL_AUXILIARY_SEND_FILTER, slotId, send, filterId).
      */
     public func connectEffectSlot(slot: IAudioEffectSlot, send: Int32, filter!: Option<IAudioFilter> = None): Audio {

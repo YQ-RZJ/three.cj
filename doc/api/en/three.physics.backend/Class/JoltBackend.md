@@ -1,7 +1,7 @@
 # Class
 ## class JoltBackend
 ```cj
-public class JoltBackend <: IPhysicsBackend
+public class JoltBackend <: IPhysicsBackend & IReleasable
 ```
 JoltPhysics backend implementation of IPhysicsBackend
 
@@ -525,6 +525,12 @@ Return:
 
 - Whether the ray hit anything
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+shuts down the physics system and releases all resources (shape handles, physics system, listeners)
+
 ### func setAngularVelocity\(PhysicsBodyHandle,Vector3\)
 ```cj
 public func setAngularVelocity(handle: PhysicsBodyHandle, angularVelocity: Vector3): Unit
@@ -843,12 +849,6 @@ Parameter:
 |---|---|---|
 |handle|PhysicsConstraintHandle|The constraint handlevelocity The target velocity (m/s)|
 |velocity|Float64||
-
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-Shuts down the physics system and releases all resources (shape handles, physics system, listeners)
 
 ### func update\(Float32,Int32\)
 ```cj

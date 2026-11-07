@@ -1,7 +1,7 @@
 # Class
 ## class Texture
 ```cj
-public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackground & ILoadResult
+public open class Texture <: EventDispatcher & IRenderTargetTexture & IBackground & ILoadResult & IReleasable
 ```
 Texture resource base class
 
@@ -31,12 +31,6 @@ Return:
 
 - This instance
 
-### func dispose\(\)
-```cj
-public open func dispose(): Unit
-```
-Release GPU-related resources allocated by this instance and dispatch dispose event
-
 ### func getIsData3DTexture\(\)
 ```cj
 public open func getIsData3DTexture(): Bool
@@ -65,6 +59,12 @@ Parameter:
 |`type`|Int64||
 |anisotropy|Int64||
 |colorSpace|String||
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+Release GPU-related resources allocated by this instance and dispatch dispose event
 
 ### func rtClone\(\)
 ```cj

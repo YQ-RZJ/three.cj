@@ -35,6 +35,7 @@
  */
 package three.rendering.helpers
 
+import three.utils.safe.IReleasable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -62,7 +63,7 @@ import std.math.*
  * Composed of radial rays and concentric rings for polar coordinate visualization.
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = LineSegments]
-public class PolarGridHelper <: LineSegments {
+public class PolarGridHelper <: LineSegments & IReleasable {
     /**
      * @brief[zh-cn] 构造极坐标网格辅助对象
      * @param[zh-cn] radius 半径，默认 10
@@ -129,10 +130,11 @@ public class PolarGridHelper <: LineSegments {
     /**
      * @brief[zh-cn] 释放 GPU 资源
      *
-     * @brief[en] Dispose GPU resources
+     * @brief[en] Release GPU resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         this.geometry.dispose()
         this.material.dispose()
+        return true
     }
 }

@@ -1196,12 +1196,11 @@ public interface IPhysicsSensorListener {
  * @brief[zh-cn] 物理刚体句柄（后端无关）
  * @explain[zh-cn] 后端创建刚体后返回此句柄，上层通过句柄操作刚体。
  * bodyID 为 0 表示无效句柄。
+ * @note[zh-cn] bodyID 选用 UInt32 与 Jolt BodyID 兼容；其他后端可自行映射内部 ID 到 UInt32。
  *
  * @brief[en] Physics body handle (backend-agnostic)
  * @explain[en] Returned by the backend after creating a body; upper layers operate
  * on the body through this handle. A bodyID of 0 means invalid.
- *
- * @note[zh-cn] bodyID 选用 UInt32 与 Jolt BodyID 兼容；其他后端可自行映射内部 ID 到 UInt32。
  * @note[en] bodyID uses UInt32 for compatibility with the Jolt BodyID; other backends
  * may map their internal IDs to UInt32.
  */
@@ -1289,14 +1288,14 @@ public interface IPhysicsBackend {
     func initialize(maxBodies: UInt32, gravity: Vector3): Bool
 
     /**
-     * @brief[zh-cn] 关闭后端（销毁物理系统 + 全局卸载）
+     * @brief[zh-cn] 释放后端
+     * @return[zh-cn] 本次调用真正执行了释放返回 true；重复调用返回 false
      *
-     * @brief[en] Shuts down the backend (destroys the physics system + global teardown)
-     *
-     * @note[zh-cn] 调用后本实例不可再用。
-     * @note[en] The instance must not be used again after this call.
+     * @brief[en] Releases the backend
+     *            and de-initializes the library)
+     * @return[en] true if this call actually released; false on repeated calls
      */
-    func shutdown(): Unit
+    func release(): Bool
 
     /**
      * @brief[zh-cn] 是否已初始化
@@ -1320,10 +1319,9 @@ public interface IPhysicsBackend {
 
     /**
      * @brief[zh-cn] 优化 BroadPhase 包围盒树
+     * @note[zh-cn] 在批量插入刚体后、正式模拟前调用一次。
      *
      * @brief[en] Optimizes the BroadPhase bounding-volume tree
-     *
-     * @note[zh-cn] 在批量插入刚体后、正式模拟前调用一次。
      * @note[en] Call once after bulk-inserting bodies and before the main simulation.
      */
     func optimizeBroadPhase(): Unit
@@ -1689,14 +1687,13 @@ public interface IPhysicsBackend {
      * position 目标位置（世界坐标）
      * rotation 目标旋转
      * deltaTime 时间步长（秒）
+     * @note[zh-cn] 每帧调用，由 deltaTime 步长驱动。
      *
      * @brief[en] Moves a kinematic body to the given position/rotation
      * @param[en] handle The body handle
      * position The target position (world coordinates)
      * rotation The target rotation
      * deltaTime The time step (seconds)
-     *
-     * @note[zh-cn] 每帧调用，由 deltaTime 步长驱动。
      * @note[en] Call every frame; driven by the deltaTime step.
      */
     func moveKinematic(handle: PhysicsBodyHandle, position: Vector3,

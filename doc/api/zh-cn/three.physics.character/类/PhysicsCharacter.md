@@ -1,7 +1,7 @@
 # 类
 ## class PhysicsCharacter
 ```cj
-public class PhysicsCharacter
+public class PhysicsCharacter <: IReleasable
 ```
 基于刚体的角色（对应 JPH_Character）
 
@@ -16,12 +16,6 @@ public func addToPhysicsSystem(activation!: PhysicsActivation = PhysicsActivatio
 |名称|类型|描述|
 |---|---|---|
 |activation|PhysicsActivation|是否立即激活（默认 Activate）|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁角色（自动从物理系统移除并释放底层句柄）
 
 ### func getGroundState\(\)
 ```cj
@@ -69,6 +63,12 @@ public func postSimulation(maxSeparationDistance!: Float32 = 0.05f32): Unit
 |---|---|---|
 |maxSeparationDistance|Float32|最大分离距离（米），默认 0.05|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁角色（自动从物理系统移除并释放底层句柄）
+
 ### func removeFromPhysicsSystem\(\)
 ```cj
 public func removeFromPhysicsSystem(): Unit
@@ -100,9 +100,9 @@ public func setPosition(position: Vector3, activation!: PhysicsActivation = Phys
 |position|Vector3|目标位置（世界坐标，three 左手系）activation 是否立即激活（默认 Activate）|
 |activation|PhysicsActivation||
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 角色是否有效（创建成功且未销毁）
 

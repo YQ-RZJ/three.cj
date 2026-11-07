@@ -103,7 +103,7 @@ public class NoImGuiWindow <: WindowEngine {
     }
 
     public override func onClose(): Unit {
-        this.renderer.shutdown()
+        this.renderer.release()
     }
 }
 
@@ -208,7 +208,7 @@ public class ImGuiWindow <: WindowEngine {
     }
 
     public override func onClose(): Unit {
-        this.renderer.shutdown()
+        this.renderer.release()
     }
 }
 

@@ -461,6 +461,7 @@ public class PropertyBinding {
      * "scene:helium_balloon_model:helium_balloon_model.position"
      * @param[zh-cn] trackName 轨道名称
      * @return[zh-cn] 返回包含 nodeName/objectName/objectIndex/propertyName/propertyIndex 的映射
+     * @throws[zh-cn] Exception 当轨道名称无法解析或缺少属性名时
      *
      * @brief[en] Parses a track name
      * @explain[en] Supports formats such as:
@@ -471,8 +472,6 @@ public class PropertyBinding {
      * "scene:helium_balloon_model:helium_balloon_model.position"
      * @param[en] trackName The track name
      * @return[en] Returns a map containing nodeName/objectName/objectIndex/propertyName/propertyIndex
-     *
-     * @throws[zh-cn] Exception 当轨道名称无法解析或缺少属性名时
      * @throws[en] Exception When the track name cannot be parsed or the property name is missing
      */
     public static func parseTrackName(trackName: String): HashMap<String, Any> {
@@ -861,10 +860,9 @@ public class PropertyBinding {
 
     /**
      * @brief[zh-cn] 创建 getter/setter 对，绑定此绑定跟踪的属性
+     * @note[zh-cn] 绑定后 getValue/setValue 会被替换为绑定状态的版本；属性未找到时变为空操作。
      *
      * @brief[en] Creates getter/setter pairs and binds the property tracked by this binding
-     *
-     * @note[zh-cn] 绑定后 getValue/setValue 会被替换为绑定状态的版本；属性未找到时变为空操作。
      * @note[en] After binding, getValue/setValue are swapped to their bound versions; they
      * become no-ops when the property is not found.
      */

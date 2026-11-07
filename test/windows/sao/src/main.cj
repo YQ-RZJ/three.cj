@@ -144,14 +144,14 @@ public class TestWindow <: WindowEngine {
     public override func onClose(): Unit {
         println("")
         println("[5/5] 清理资源...")
-        this.composer.dispose()
+        this.composer.release()
         let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
         println("  运行时间: ${elapsed}s")
         println("  总帧数: ${this.totalFrames}")
         if (elapsed > 0.0) {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")

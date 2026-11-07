@@ -137,10 +137,10 @@ public class TestWindow <: WindowEngine {
     public override func onClose(): Unit {
         println("")
         println("[5/5] 清理资源...")
-        this.composer.dispose()
+        this.composer.release()
         // stripeTex 不主动销毁（bgfx4cj 显式依赖声明会冲突；经 EffectComposer dispose 间接管，
         // 或进程退出统一回收。若需显式销毁可加 bgfx4cj 依赖声明。）
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }

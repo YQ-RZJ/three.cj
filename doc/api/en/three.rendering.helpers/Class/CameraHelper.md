@@ -1,15 +1,9 @@
 # Class
 ## class CameraHelper
 ```cj
-public class CameraHelper <: LineSegments
+public class CameraHelper <: LineSegments & IReleasable
 ```
 Camera frustum helper for visualizing camera frustums
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(\)
 ```cj
@@ -28,6 +22,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |camera|Camera||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func setColors\(Color,Color,Color,Color,Color\)
 ```cj

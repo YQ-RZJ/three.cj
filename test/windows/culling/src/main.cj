@@ -293,7 +293,7 @@ public class CullingTestWindow <: WindowEngine {
         println("[cleanup] 关闭渲染器...")
         let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
         println("  运行时间: ${elapsed}s")
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 剔除可视化测试完成 ===")
     }

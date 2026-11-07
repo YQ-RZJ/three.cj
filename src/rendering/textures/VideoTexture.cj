@@ -24,7 +24,7 @@
  * @file[zh-cn] Video 纹理
  * @brief[zh-cn] 由 HTMLVideoElement 构造的纹理，每次 requestVideoFrameCallback 回调时重传 GPU
  * @explain[zh-cn] Video 纹理：由 HTMLVideoElement 构造的纹理，每次 requestVideoFrameCallback 回调时重传 GPU。bgfx4cj 跨平台后端无 DOM video API，本类保留接口签名以对齐 JS side，实际像素数据由调用方通过 image 字段直接传入。默认 generateMipmaps=false、flipY=false、minFilter=LinearFilter。
-
+ *
  * @file[en] Video Texture
  * @brief[en] Texture constructed from HTMLVideoElement, re-uploaded to GPU on each requestVideoFrameCallback
  * @explain[en] Video texture: texture constructed from HTMLVideoElement, re-uploaded to GPU on each requestVideoFrameCallback. bgfx4cj cross-platform backend has no DOM video API, this class preserves interface signature to align with JS side, actual pixel data is passed directly by callers via image field. Defaults generateMipmaps=false, flipY=false, minFilter=LinearFilter. 
@@ -35,7 +35,7 @@ import three.utils.constants.*
 /**
  * @brief[zh-cn] Video 纹理类
  * @explain[zh-cn] 由 HTMLVideoElement 构造的纹理，默认 generateMipmaps=false、flipY=false、minFilter=LinearFilter。bgfx4cj 后端无 DOM video API，像素数据由调用方通过 image 字段直接传入。
-
+ *
  * @brief[en] Video texture class
  * @explain[en] Texture constructed from HTMLVideoElement, defaults generateMipmaps=false, flipY=false, minFilter=LinearFilter. bgfx4cj backend has no DOM video API, pixel data is passed directly by callers via image field.
  */
@@ -52,7 +52,7 @@ public open class VideoTexture <: Texture {
      * format 像素格式，默认 RGBAFormat
      * type 像素数据类型，默认 UnsignedByteType
      * anisotropy 各向异性等级，默认 1
-
+     *
      * @brief[en] Construct a new Video texture
      * @param[en] video Video pixel data
      * mapping UV mapping mode, defaults to UVMapping
@@ -74,7 +74,7 @@ public open class VideoTexture <: Texture {
 
     /**
      * @brief[zh-cn] 更新纹理内容，bgfx4cj 下为 stub（像素数据由调用方通过 image 字段直接传入）
-
+     *
      * @brief[en] Update texture content, stub under bgfx4cj (pixel data passed directly by callers via image field)
      */
     public func update(): Unit {
@@ -83,18 +83,9 @@ public open class VideoTexture <: Texture {
     }
 
     /**
-     * @brief[zh-cn] 释放本实例分配的 GPU 相关资源
-
-     * @brief[en] Release GPU-related resources allocated by this instance
-     */
-    public override func dispose(): Unit {
-        super.dispose()
-    }
-
-    /**
      * @brief[zh-cn] 返回一个与本实例值相同的新 Video 纹理实例
      * @return[zh-cn] 克隆的 Video 纹理实例
-
+     *
      * @brief[en] Return a new Video texture instance with the same values as this instance
      * @return[en] Cloned Video texture instance
      */

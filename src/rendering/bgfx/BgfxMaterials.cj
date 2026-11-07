@@ -32,6 +32,7 @@
 package three.rendering.bgfx
 
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 材质状态信息
@@ -84,7 +85,7 @@ public class MaterialState {
  * @brief[en] bgfx material management
  * @explain[en] Corresponds to WebGLMaterials, tracks material compilation and update state. Manages material uniform refresh logic.
  */
-public class BgfxMaterials {
+public class BgfxMaterials <: IReleasable {
     /**
      * @brief[zh-cn] 材质状态映射
      *
@@ -183,9 +184,10 @@ public class BgfxMaterials {
     /**
      * @brief[zh-cn] 释放所有材质状态
      *
-     * @brief[en] Disposes all material states
+     * @brief[en] dispose all material states
      */
-    public func disposeAll(): Unit {
+    public func release(): Bool {
         materialStates = HashMap<Int64, MaterialState>()
+        return true
     }
 }

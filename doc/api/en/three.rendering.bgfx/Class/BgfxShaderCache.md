@@ -1,15 +1,9 @@
 # Class
 ## class BgfxShaderCache
 ```cj
-public class BgfxShaderCache
+public class BgfxShaderCache <: IReleasable
 ```
 bgfx shader cache
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose all caches
 
 ### func getFragmentShaderStage\(Int64,String,BgfxShader,BgfxMemory\)
 ```cj
@@ -73,6 +67,12 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all caches
 
 ### func remove\(Int64\)
 ```cj

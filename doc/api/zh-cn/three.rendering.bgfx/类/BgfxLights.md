@@ -1,15 +1,9 @@
 # 类
 ## class BgfxLights
 ```cj
-public class BgfxLights
+public class BgfxLights <: IReleasable
 ```
 bgfx 光照管理
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有光照缓存
 
 ### func getCache\(\)
 ```cj
@@ -42,6 +36,12 @@ public init(info!: BgfxInfo = BgfxInfo())
 |名称|类型|描述|
 |---|---|---|
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有光照缓存
 
 ### func reset\(\)
 ```cj

@@ -28,7 +28,7 @@ public class HelpersInstancingTest <: TestClass {
     }
 
     func test_is_flags() {
-        // 对照 JS QUnit: object.isXxx 断言（仓颉部分 helper 无 is 标志，用 kind 兜底）
+        // object.isXxx 断言（仓颉部分 helper 无 is 标志，用 kind 兜底）
         let arrow = ArrowHelper(dir: Vector3(1.0, 0.0, 0.0))
         assertEqual("ArrowHelper kind", "ArrowHelper", arrow.kind, "ArrowHelper")
 

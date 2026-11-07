@@ -1,15 +1,9 @@
 # Class
 ## class BgfxBindingStates
 ```cj
-public class BgfxBindingStates
+public class BgfxBindingStates <: IReleasable
 ```
 bgfx vertex binding states management
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose all binding states
 
 ### func init\(\)
 ```cj
@@ -40,6 +34,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |programId|Int64|Program ID|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all binding states
 
 ### func reset\(\)
 ```cj

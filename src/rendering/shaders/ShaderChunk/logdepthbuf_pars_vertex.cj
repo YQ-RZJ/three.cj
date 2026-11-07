@@ -34,7 +34,7 @@ package three.rendering.shaders.ShaderChunk
 
 /**
  * logdepthbuf_pars_vertex GLSL 片段字符串
- * 
+ *
  * 使用仓颉三引号多行字符串语法 `"""..."""`。
  */
 public const logdepthbuf_pars_vertex: String = #""#

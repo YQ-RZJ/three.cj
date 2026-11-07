@@ -1,15 +1,9 @@
 # 类
 ## class XRDepthSensing
 ```cj
-public class XRDepthSensing
+public class XRDepthSensing <: IReleasable
 ```
 XR 深度感知
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放资源
 
 ### func getMesh\(\)
 ```cj
@@ -47,6 +41,12 @@ public func isAvailable(): Bool
 
 - 是否可用
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放资源
+
 ### func reset\(\)
 ```cj
 public func reset(): Unit
@@ -79,4 +79,10 @@ public func update(depthNear: Float64, depthFar: Float64, width: Int64, height: 
 |depthFar|Float64||
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+资源有效性：句柄有效且标记可用时为 true
 

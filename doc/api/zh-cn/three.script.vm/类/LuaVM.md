@@ -1,7 +1,7 @@
 # 类
 ## class LuaVM
 ```cj
-public class LuaVM
+public class LuaVM <: IReleasable
 ```
 Lua 脚本虚拟机
 
@@ -57,12 +57,6 @@ public func createTable(narr!: Int32 = 0, nrec!: Int32 = 0): Unit
 |---|---|---|
 |narr|Int32|预分配的数组部分容量（默认 0）nrec 预分配的哈希部分容量（默认 0）|
 |nrec|Int32||
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-关闭状态机并释放资源（之后 handle() 失效）
 
 ### func doBuffer\(String,String\)
 ```cj
@@ -368,6 +362,12 @@ public static func readValue(L: CPointer < Unit >, idx: Int32): LuaValue
 
 - 对应的 LuaValue（表/函数等返回 nil 占位）
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭状态机并释放资源（之后 handle() 失效）
+
 ### func setField\(Int32,String\)
 ```cj
 public func setField(idx: Int32, name: String): Unit
@@ -406,12 +406,6 @@ public func setTop(idx: Int32): Unit
 |---|---|---|
 |idx|Int32|目标栈顶索引（负数表示相对栈顶）|
 
-### prop isValid: Bool
-```cj
-public prop isValid: Bool
-```
-状态机是否有效（未被 dispose）
-
 ### prop jitVersion: String
 ```cj
 public static prop jitVersion: String
@@ -423,6 +417,12 @@ LuaJIT 版本字符串（如 "LuaJIT 2.1.x"）
 public prop libsOpened: Bool
 ```
 是否已打开标准库
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+状态机是否有效（未被 dispose）
 
 ### prop version: String
 ```cj

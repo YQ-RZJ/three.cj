@@ -49,6 +49,7 @@ import three.physics.world.*
 import jolt4cj.jolt.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // PhysicsVehicleWheelDesc 车轮描述
@@ -345,7 +346,7 @@ public class PhysicsVehicleDesc {
  * driving APIs (throttle/steer/brake), wheel world-matrix queries and disposal are all
  * serialized onto the physics thread via PhysicsWorld.
  */
-public class PhysicsVehicle {
+public class PhysicsVehicle <: IReleasable {
     private let _world: PhysicsWorld
     private let _chassis: PhysicsBodyHandle
     private var _constraint: CPointer<Unit> = CPointer<Unit>()
@@ -367,7 +368,7 @@ public class PhysicsVehicle {
      *
      * @brief[en] Whether the vehicle is valid (created successfully and not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() {
             !this._disposed && !this._constraint.isNull()
         }
@@ -410,7 +411,7 @@ public class PhysicsVehicle {
      */
     public func setDriverInput(forward: Float64, steer: Float64,
         brake!: Float64 = 0.0, handBrake!: Float64 = 0.0): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let c = this._controller
@@ -430,7 +431,7 @@ public class PhysicsVehicle {
      * @return[en] The wheel world matrix (three left-handed); identity for an invalid index
      */
     public func getWheelWorldTransform(index: Int64): Matrix4 {
-        if (!this.isValid || index < 0 || index >= this._wheelCount) {
+        if (!this.releasable || index < 0 || index >= this._wheelCount) {
             return Matrix4()
         }
         let c = this._constraint
@@ -457,14 +458,14 @@ public class PhysicsVehicle {
      * @note[zh-cn] 底盘刚体不在此销毁——载具常复用底盘，请按需调用
      * world.destroyBody(chassis)
      *
-     * @brief[en] Disposes the vehicle (removes and releases the vehicle constraint;
+     * @brief[en] disposes the vehicle (removes and releases the vehicle constraint;
      * the chassis body is managed by the caller)
      * @note[en] The chassis body is NOT destroyed here — vehicles often reuse the
      * chassis; call world.destroyBody(chassis) as needed
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return true
         }
         this._disposed = true
         let c = this._constraint
@@ -492,6 +493,7 @@ public class PhysicsVehicle {
             this._constraint = CPointer<Unit>()
             this._controller = CPointer<Unit>()
         }
+        return true
     }
 }
 
@@ -503,13 +505,13 @@ public class PhysicsVehicle {
  * @brief[zh-cn] 轮式载具工厂
  * @explain[zh-cn] 在指定物理世界内创建载具：底盘刚体 + 车辆约束（车轮/引擎/变速箱/
  * 差速器）+ 射线碰撞测试器，并把车辆约束注册为 PhysicsStepListener 以驱动每个物理步。
- * 失败（非 Jolt 后端、创建失败）时返回 isValid=false 的对象。
+ * 失败（非 Jolt 后端、创建失败）时返回 releasable=false 的对象。
  *
  * @brief[en] Wheeled vehicle factory
  * @explain[en] Creates a vehicle in the given physics world: chassis body + vehicle
  * constraint (wheels/engine/transmission/differentials) + ray collision tester, and
  * registers the constraint as a PhysicsStepListener driving every physics step. On
- * failure (non-Jolt backend or creation failure) returns an object with isValid=false.
+ * failure (non-Jolt backend or creation failure) returns an object with releasable=false.
  */
 public class PhysicsVehicleFactory {
     private let _desc: PhysicsVehicleDesc

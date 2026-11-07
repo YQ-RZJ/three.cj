@@ -1,7 +1,7 @@
 # Class
 ## class InstancedMesh
 ```cj
-public class InstancedMesh <: Mesh
+public class InstancedMesh <: Mesh & IReleasable
 ```
 Instanced mesh that renders the same geometry/material multiple times with independent transform/color
 
@@ -35,12 +35,6 @@ Parameter:
 |---|---|---|
 |source|Object3D||
 |recursive|Bool||
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放本实例分配的 GPU 相关资源。
 
 ### func getColorAt\(Int64,Color\)
 ```cj
@@ -113,6 +107,12 @@ Parameter:
 |---|---|---|
 |raycaster|Raycaster||
 |intersects|ArrayList<Intersection>||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+frees GPU-related resources allocated by this instance.
 
 ### func setColorAt\(Int64,Color\)
 ```cj

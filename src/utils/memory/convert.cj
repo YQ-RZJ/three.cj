@@ -41,13 +41,12 @@ package three.utils.memory
  * @brief[zh-cn] 将整数类型转换为指针
  * @param[zh-cn] int 整数数值（一般取自指针的整数表示）
  * @return[zh-cn] 转换得到的 CPointer<Unit>
+ * @note[zh-cn] 内部通过 AutoFreePtr 临时分配内存并拷贝整数值，随后立即释放，
+ * 仅返回读取出的指针值本身。
  *
  * @brief[en] Converts an integer type into a pointer
  * @param[en] int The integer value (usually the integer representation of a pointer)
  * @return[en] The resulting CPointer<Unit>
- *
- * @note[zh-cn] 内部通过 AutoFreePtr 临时分配内存并拷贝整数值，随后立即释放，
- * 仅返回读取出的指针值本身。
  * @note[en] A temporary AutoFreePtr buffer holds and copies the integer value and is
  * released immediately; only the read-back pointer value is returned.
  */

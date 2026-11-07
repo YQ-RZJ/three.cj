@@ -1,15 +1,9 @@
 # Class
 ## class AudioListenerHelper
 ```cj
-public class AudioListenerHelper <: Object3D
+public class AudioListenerHelper <: Object3D & IReleasable
 ```
 Audio listener helper object
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases GPU resources
 
 ### func init\(\)
 ```cj
@@ -29,6 +23,12 @@ Parameter:
 |---|---|---|
 |listener|AudioListener||
 |size|Float64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func update\(\)
 ```cj

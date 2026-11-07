@@ -89,6 +89,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.buffer.*
 import three.rendering.geometry.*
 import three.scene.objects.*
@@ -144,25 +145,29 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 遮罩 pass
- * @brief[en] Mask pass
  * @explain[zh-cn] 用 stencil buffer 标记 scene 的可渲染区域。
+ *
+ * @brief[en] Mask pass
  * @explain[en] Marks the renderable region of the scene using the stencil buffer.
  */
-public open class MaskPass <: Pass {
+public open class MaskPass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 待渲染场景（定义遮罩几何）
+     *
      * @brief[en] The scene to render (defines the mask geometry)
      */
     public let scene: Scene
 
     /**
      * @brief[zh-cn] 待渲染相机
+     *
      * @brief[en] The camera to render with
      */
     public let camera: Camera
 
     /**
      * @brief[zh-cn] 是否反转遮罩
+     *
      * @brief[en] Whether to invert the mask
      */
     public var inverse: Bool = false
@@ -480,7 +485,7 @@ public open class MaskPass <: Pass {
     /**
      * 释放 MaskPass 占用的 GPU 资源（几何缓存 + shader 缓存）。
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         if (let Some(renderer) <- this._renderer) {
             for ((_, vb) in this._vbCache) {
                 renderer.destroyVertexBuffer(vb)
@@ -496,24 +501,26 @@ public open class MaskPass <: Pass {
         this._vbCache.clear()
         this._ibCache.clear()
         this._prog = None
+        return true
     }
 }
 
 /**
  * @brief[zh-cn] 清遮罩 pass
- * @brief[en] Clear-mask pass
  * @explain[zh-cn] 清除 MaskPass 设置的 stencil 状态（后续 pass 不再受 mask 约束）。
- * @explain[en] Clears the stencil state set by MaskPass (later passes are no longer constrained by the mask).
  * @explain[zh-cn] bgfx 差异：bgfx 的 stencil 状态是 per-draw-call 的瞬态设置（bgfx_set_stencil_cj），
- * @explain[en] bgfx difference: bgfx stencil state is a per-draw-call transient setting (bgfx_set_stencil_cj),
  * @explain[zh-cn] 不像持久全局状态。故 ClearMaskPass 在 bgfx 里实际只需"重置 stencil 状态到 disabled"
- * @explain[en] not persistent global state. So in bgfx, ClearMaskPass only needs to "reset stencil state to disabled"
  * @explain[zh-cn] ——通过 bgfx_set_stencil_cj(0, 0) 实现。
- * @explain[en] - implemented via bgfx_set_stencil_cj(0, 0).
  * @explain[zh-cn] bgfx_set_stencil_cj(0, 0)：FUNC_ALWAYS（默认）+ op KEEP，等价于 stencil disabled。
+ *
+ * @brief[en] Clear-mask pass
+ * @explain[en] Clears the stencil state set by MaskPass (later passes are no longer constrained by the mask).
+ * @explain[en] bgfx difference: bgfx stencil state is a per-draw-call transient setting (bgfx_set_stencil_cj),
+ * @explain[en] not persistent global state. So in bgfx, ClearMaskPass only needs to "reset stencil state to disabled"
+ * @explain[en] - implemented via bgfx_set_stencil_cj(0, 0).
  * @explain[en] bgfx_set_stencil_cj(0, 0): FUNC_ALWAYS (default) + op KEEP, equivalent to stencil disabled.
  */
-public class ClearMaskPass <: Pass {
+public class ClearMaskPass <: Pass & IReleasable {
     /**
      * 构造 ClearMaskPass。
      */
@@ -521,6 +528,8 @@ public class ClearMaskPass <: Pass {
         super()
         // 本 pass 是"清标记"，不参与双 RT ping-pong
         this.needsSwap = false
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**

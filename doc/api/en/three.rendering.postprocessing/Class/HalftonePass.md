@@ -1,15 +1,9 @@
 # Class
 ## class HalftonePass
 ```cj
-public class HalftonePass <: Pass
+public class HalftonePass <: Pass & IReleasable
 ```
 RGB halftone post-processing pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases all GPU resources held by the halftone pass
 
 ### func init\(Int64,Float64,Float64,Float64,Float64,Float64,Float64,Int64,Bool,Bool\)
 ```cj
@@ -31,6 +25,12 @@ Parameter:
 |blendingMode|Int64|Blending mode (default 1=Linear)|
 |greyscale|Bool|Grayscale (default false)|
 |disable|Bool|Disabled pass-through (default false)|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases all GPU resources held by the halftone pass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

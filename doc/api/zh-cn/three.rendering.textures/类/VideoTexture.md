@@ -15,12 +15,6 @@ public open override func clone(): Texture
 
 - 克隆的 Video 纹理实例
 
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放本实例分配的 GPU 相关资源
-
 ### func init\(Array<UInt8>,Int64,Int64,Int64,Int64,Int64,Int64,Int64,Int64\)
 ```cj
 public init(video: Array < UInt8 >, mapping!: Int64 = UVMapping, wrapS!: Int64 = ClampToEdgeWrapping, wrapT!: Int64 = ClampToEdgeWrapping, magFilter!: Int64 = LinearFilter, minFilter!: Int64 = LinearFilter, format!: Int64 = RGBAFormat, `type`!: Int64 = UnsignedByteType, anisotropy!: Int64 = 1)

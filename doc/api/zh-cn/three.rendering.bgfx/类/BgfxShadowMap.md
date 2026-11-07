@@ -1,7 +1,7 @@
 # 类
 ## class BgfxShadowMap
 ```cj
-public class BgfxShadowMap
+public class BgfxShadowMap <: IReleasable
 ```
 bgfx 阴影贴图管理
 
@@ -16,12 +16,6 @@ public func destroyShadowMap(lightId: Int64): Unit
 |名称|类型|描述|
 |---|---|---|
 |lightId|Int64|光源 ID|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有阴影贴图
 
 ### func getShadowMap\(Int64,Int64,Int64,Bool\)
 ```cj
@@ -83,6 +77,12 @@ public func isEnabled(): Bool
 返回: 
 
 - 是否启用
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有阴影贴图
 
 ### func setEnabled\(Bool\)
 ```cj

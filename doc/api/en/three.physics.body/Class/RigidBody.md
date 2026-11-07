@@ -1,7 +1,7 @@
 # Class
 ## class RigidBody
 ```cj
-public class RigidBody
+public class RigidBody <: IReleasable
 ```
 Convenience wrapper for a physics rigid body
 
@@ -127,12 +127,6 @@ Return:
 
 - Returns itself (chainable)
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Destroys the body and unbinds it
-
 ### func getAngularVelocity\(\)
 ```cj
 public func getAngularVelocity(): Vector3
@@ -230,6 +224,12 @@ Parameter:
 |position|Vector3|The target positionrotation The target rotationdeltaTime Time since the previous frame (seconds)|
 |rotation|Quaternion||
 |deltaTime|Float32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+destroys the body and unbinds it
 
 ### func setActivation\(PhysicsActivation\)
 ```cj

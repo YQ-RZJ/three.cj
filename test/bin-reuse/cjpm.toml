@@ -1,0 +1,105 @@
+[package]
+  cjc-version = "1.2.0"
+  compile-option = "-Woff unused"
+  description = "three 静态产物（bin-dependencies.path-option + three-deps.a）最小引入验证"
+  name = "binReuseTest"
+  output-type = "executable"
+  src-dir = ""
+  target-dir = ""
+  version = "1.0.0"
+  link-option = ""
+  package-configuration = {}
+
+# 说明：
+# - 引擎以二进制产物复用（bin-dependencies + three-deps.a），不引入引擎源码；
+# - libs/ 目录由 release 静态产物包（three-<os>-<arch>-static.zip）解压得到：
+#     libs/three-deps.a        —— 全部 native 依赖 + 工具链 C++ 运行时的合并归档
+#     libs/<模块>/             —— 各模块 .cjo + lib<包名>.a + 宏插件动态库
+# - 各 target 的 link-option 尾部是**该平台系统库/框架清单**（与引擎仓库
+#   cjpm.toml 对应 target 的尾部一致）；依赖库与工具链库已全部并入
+#   three-deps.a，无需再逐个 -l:。
+# - ohos / ios / android 需要先配置对应 SDK 环境变量（见各 target 注释）。
+
+[target]
+  # ---- Windows (MinGW) ----
+  [target.x86_64-w64-mingw32]
+    # 链接：合并归档（含 three 全部包 + 依赖 + native + 工具链 C++ 运行时）+ 系统库清单
+    link-option = "-L libs -l:three-deps.a -lhid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -lsetupapi -lshell32 -ldinput8 -ld3d11 -ldxgi -ld3dcompiler -lavrt -ldsound -lws2_32 -lcrypt32 -ladvapi32 -lz -ldbghelp -lsecur32"
+    [target.x86_64-w64-mingw32.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  [target.aarch64-w64-mingw32]
+    link-option = "-L libs -l:three-deps.a -lhid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -lsetupapi -lshell32 -ldinput8 -ld3d11 -ldxgi -ld3dcompiler -lavrt -ldsound -lws2_32 -lcrypt32 -ladvapi32 -lz -ldbghelp -lsecur32"
+    [target.aarch64-w64-mingw32.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  # ---- Linux ----
+  [target.x86_64-unknown-linux-gnu]
+    link-option = "-L libs -l:three-deps.a -lX11 -lXext -lXcursor -lXi -lXfixes -lXrandr -lXrender -lGL -lasound -lstdc++ -lpthread -ldl -lrt -lm"
+    [target.x86_64-unknown-linux-gnu.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  [target.aarch64-unknown-linux-gnu]
+    link-option = "-L libs -l:three-deps.a -lX11 -lXext -lXcursor -lXi -lXfixes -lXrandr -lXrender -lGL -lasound -lstdc++ -lpthread -ldl -lrt -lm"
+    [target.aarch64-unknown-linux-gnu.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  # ---- macOS ----
+  [target.x86_64-apple-darwin]
+    link-option = "-L libs -l:three-deps.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreHaptics -framework GameController -framework CoreMedia -framework QuartzCore -framework VideoToolbox -framework ForceFeedback -framework Carbon -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -lz"
+    [target.x86_64-apple-darwin.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  [target.aarch64-apple-darwin]
+    link-option = "-L libs -l:three-deps.a -lc++ -framework Cocoa -framework IOKit -framework CoreVideo -framework CoreFoundation -framework OpenGL -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework CoreHaptics -framework GameController -framework CoreMedia -framework QuartzCore -framework VideoToolbox -framework ForceFeedback -framework Carbon -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -lz"
+    [target.aarch64-apple-darwin.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  # ---- OpenHarmony (OHOS) ----
+  # 需环境变量：DEVECO_CANGJIE_HOME（仓颉 SDK）、DEVECO_OH_NATIVE_HOME（OHOS NDK native 目录）
+  [target.aarch64-linux-ohos]
+    compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/aarch64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
+    link-option = "-L libs -l:three-deps.a -lSDL3 -lEGL -lGLESv3 -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -lpthread -ldl -lOpenSLES -l:libnative_window.so"
+    [target.aarch64-linux-ohos.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  [target.x86_64-linux-ohos]
+    compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/x86_64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
+    link-option = "-L libs -l:three-deps.a -lSDL3 -lEGL -lGLESv3 -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -lpthread -ldl -lOpenSLES -l:libnative_window.so"
+    [target.x86_64-linux-ohos.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  # ---- iOS ----
+  # 需环境变量：IOS_SYSROOT（iPhoneOS / iPhoneSimulator SDK）、IOS_XCODE_TOOLCHAIN（Xcode 工具链 bin）
+  [target.arm64-apple-ios11]
+    compile-option = "-B \"${IOS_XCODE_TOOLCHAIN}\" --sysroot \"${IOS_SYSROOT}\""
+    link-option = "-L libs -l:three-deps.a -lc++ -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore -framework Metal -framework MetalKit -framework GameController -framework CoreHaptics -framework CoreMotion -framework CoreBluetooth -framework AVFAudio -framework CoreAudio -framework VideoToolbox -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -framework AudioToolbox -framework OpenGLES -framework CoreVideo -framework CoreMedia -lz"
+    [target.arm64-apple-ios11.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  # 模拟器：IOS_SYSROOT 指向 iPhoneSimulator SDK
+  [target.arm64-apple-ios11-simulator]
+    compile-option = "-B \"${IOS_XCODE_TOOLCHAIN}\" --sysroot \"${IOS_SYSROOT}\""
+    link-option = "-L libs -l:three-deps.a -lc++ -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore -framework Metal -framework MetalKit -framework GameController -framework CoreHaptics -framework CoreMotion -framework CoreBluetooth -framework AVFAudio -framework CoreAudio -framework VideoToolbox -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -framework AudioToolbox -framework OpenGLES -framework CoreVideo -framework CoreMedia -lz"
+    [target.arm64-apple-ios11-simulator.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  [target.x86_64-apple-ios11-simulator]
+    compile-option = "-B \"${IOS_XCODE_TOOLCHAIN}\" --sysroot \"${IOS_SYSROOT}\""
+    link-option = "-L libs -l:three-deps.a -lc++ -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore -framework Metal -framework MetalKit -framework GameController -framework CoreHaptics -framework CoreMotion -framework CoreBluetooth -framework AVFAudio -framework CoreAudio -framework VideoToolbox -framework Security -framework UserNotifications -framework UniformTypeIdentifiers -framework AudioToolbox -framework OpenGLES -framework CoreVideo -framework CoreMedia -lz"
+    [target.x86_64-apple-ios11-simulator.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  # ---- Android ----
+  # 需环境变量：CANGJIE_HOME（仓颉 SDK）、ANDROID_NDK_HOME（NDK 根目录）
+  [target.aarch64-linux-android]
+    compile-option = "-B \"${CANGJIE_HOME}/third_party/llvm/bin\" -B \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin\" --sysroot \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot\""
+    link-option = "-L libs -l:three-deps.a -ldl -lm -llog -landroid -lEGL -lGLESv3 -lOpenSLES"
+    [target.aarch64-linux-android.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
+
+  [target.x86_64-linux-android]
+    compile-option = "-B \"${CANGJIE_HOME}/third_party/llvm/bin\" -B \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin\" --sysroot \"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot\""
+    link-option = "-L libs -l:three-deps.a -ldl -lm -llog -landroid -lEGL -lGLESv3 -lOpenSLES"
+    [target.x86_64-linux-android.bin-dependencies]
+      path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]

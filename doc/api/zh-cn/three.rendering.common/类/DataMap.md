@@ -1,7 +1,7 @@
 # 类
 ## class DataMap
 ```cj
-public open class DataMap
+public open class DataMap <: IReleasable
 ```
 通用键值数据映射基类
 
@@ -16,12 +16,6 @@ public func delete(key: String): Unit
 |名称|类型|描述|
 |---|---|---|
 |key|String|要删除的键|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有数据
 
 ### func get\(String\)
 ```cj
@@ -60,4 +54,10 @@ public func has(key: String): Bool
 public init()
 ```
 构造空数据映射
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+释放所有数据
 

@@ -22,12 +22,6 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 
 - 自身引用
 
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 GPU 资源
-
 ### func init\(Color,Color,Float64\)
 ```cj
 public init(skyColor!: Color = Color(0xffffff), groundColor!: Color = Color(0x000000), intensity!: Float64 = 1.0)

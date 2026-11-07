@@ -32,6 +32,7 @@
 package three.rendering.bgfx
 
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] bgfx 场景对象管理
@@ -40,7 +41,7 @@ import std.collection.*
  * @brief[en] bgfx scene object management
  * @explain[en] Corresponds to WebGLObjects, manages Object3D render data updates. Tracks per-frame updated objects to avoid redundant updates.
  */
-public class BgfxObjects {
+public class BgfxObjects <: IReleasable {
     /**
      * @brief[zh-cn] 更新映射（对象 ID -> 上次更新的帧号）
      *
@@ -123,10 +124,11 @@ public class BgfxObjects {
      * @brief[zh-cn] 释放所有更新映射
      * @explain[zh-cn] 对照 WebGLObjects.dispose()
      *
-     * @brief[en] Disposes all update mappings
+     * @brief[en] dispose all update mappings
      * @explain[en] Corresponds to WebGLObjects.dispose()
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         updateMap = HashMap<Int64, Int64>()
+        return true
     }
 }

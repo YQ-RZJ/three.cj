@@ -85,6 +85,7 @@ import three.core.math.Matrix4
 import three.core.math.Vector3
 import three.rendering.types.*
 import bgfx4cj.bgfx as bgfx
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 地面反射器（SSRPass 专用平面反射组件）
@@ -98,7 +99,7 @@ import bgfx4cj.bgfx as bgfx
  * is orchestrated by SSRPass (Three.cj package dependency constraint, see file header comments).
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
-public class GroundReflector <: Mesh {
+public class GroundReflector <: Mesh & IReleasable {
     /**
      * 分配给本组件的 bgfx view ID 段。
      *   +0: 反射场景渲染（用 view 0 语义 + renderer.render，见 SSRPass._renderGroundReflector）
@@ -459,9 +460,11 @@ public class GroundReflector <: Mesh {
     }
 
     /**
-     * 释放反射器 GPU 资源。
+     * @brief[zh-cn] 释放反射器 GPU 资源。
+     *
+     * @brief[en] frees the reflector GPU resources.
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         // 经 ResourceOps 封装销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
         let resOps = ResourceOps()
         if (Handle.isValid(this._reflectFB)) { resOps.destroyFrameBuffer(this._reflectFB) }
@@ -477,6 +480,7 @@ public class GroundReflector <: Mesh {
         this._reflectDepthRT = INVALID_TEXTURE_HANDLE
         this._reflectDepthRTDepth = INVALID_TEXTURE_HANDLE
         this._rtCreated = false
-        @LogDebug(["reflector", "disposed"])
+        @LogDebug(["reflector", "released"])
+        return true
     }
 }

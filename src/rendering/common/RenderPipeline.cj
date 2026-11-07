@@ -46,6 +46,7 @@ import three.scene.scenegraph.*
 import std.collection.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] TSL 渲染管线
@@ -64,7 +65,7 @@ import three.utils.log.macros.*
  * 3. _quadMesh.render(renderer) fullscreen triangle drive
  * 4. dispose() releases resources
  */
-public open class RenderPipeline {
+public open class RenderPipeline <: IReleasable {
     /**
      * @brief[zh-cn] 类型测试标志
      *
@@ -235,10 +236,11 @@ public open class RenderPipeline {
     /**
      * @brief[zh-cn] 释放渲染管线资源
      *
-     * @brief[en] Disposes render pipeline resources
+     * @brief[en] dispose render pipeline resources
      */
-    public func dispose(): Unit {
+    public open func release(): Bool {
         this._quadMesh.material.dispose()
+        return true
     }
 
     /**

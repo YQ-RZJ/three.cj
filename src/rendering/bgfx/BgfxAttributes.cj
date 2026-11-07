@@ -35,6 +35,7 @@ import std.collection.*
 import bgfx4cj.bgfx.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.BgfxMemory
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 顶点缓冲信息
@@ -121,7 +122,7 @@ public class IndexBufferInfo {
  * @brief[en] bgfx vertex attribute buffer management
  * @explain[en] Mirrors WebGLAttributes, managing creation, update, and destruction of vertex and index buffers. Uses HashMap instead of WeakMap for attribute-to-buffer mapping.
  */
-public class BgfxAttributes {
+public class BgfxAttributes <: IReleasable {
     /**
      * @brief[zh-cn] 顶点缓冲映射（属性 ID -> 缓冲信息）
      *
@@ -348,9 +349,9 @@ public class BgfxAttributes {
     /**
      * @brief[zh-cn] 释放所有缓冲
      *
-     * @brief[en] Dispose all buffers
+     * @brief[en] dispose all buffers
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         for ((_, data) in vertexBuffers) {
             if (data.handle.idx != 0xFFFFu16) {
                 bgfx_destroy_vertex_buffer_cj(data.handle)
@@ -363,5 +364,6 @@ public class BgfxAttributes {
         }
         vertexBuffers = HashMap<Int64, VertexBufferInfo>()
         indexBuffers = HashMap<Int64, IndexBufferInfo>()
+        return true
     }
 }

@@ -1,13 +1,13 @@
 # 类
 ## class PhysicsSoftBody
 ```cj
-public class PhysicsSoftBody
+public class PhysicsSoftBody <: IReleasable
 ```
 软体运行时对象
 
-### func dispose\(\)
+### func release\(\)
 ```cj
-public func dispose(): Unit
+public func release(): Bool
 ```
 销毁软体（从世界移除并释放刚体）
 
@@ -17,9 +17,9 @@ public prop bodyID: UInt32
 ```
 软体刚体 ID
 
-### prop isValid: Bool
+### prop releasable: Bool
 ```cj
-public prop isValid: Bool
+public prop releasable: Bool
 ```
 软体是否有效（创建成功且未销毁）
 

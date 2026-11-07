@@ -1,7 +1,7 @@
 # Class
 ## class Audio
 ```cj
-public open class Audio <: Object3D
+public open class Audio <: Object3D & IReleasable
 ```
 Non-positional audio base class extending Object3D
 
@@ -165,6 +165,13 @@ Parameter:
 Return: 
 
 - this (for chaining)
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+Releases the audio object (stop + delete the OpenAL
+source + unregister an implicitly created listener)
 
 ### func removeDirectFilter\(\)
 ```cj

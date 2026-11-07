@@ -1,15 +1,9 @@
 # 类
 ## class SSAARenderPass
 ```cj
-public open class SSAARenderPass <: Pass
+public open class SSAARenderPass <: Pass & IReleasable
 ```
 超采样抗锯齿渲染 pass
-
-### func dispose\(\)
-```cj
-public open override func dispose(): Unit
-```
-释放 SSAARenderPass 占用的所有 GPU 资源（sampleRT + copy shader）。
 
 ### func init\(Scene,Camera,UInt32,Float64\)
 ```cj
@@ -25,6 +19,12 @@ public init(scene: Scene, camera: Camera, clearColor!: UInt32 = 0x00000000u32, c
 |camera|Camera|待渲染相机|
 |clearColor|UInt32|clear 颜色（默认透明黑）|
 |clearAlpha|Float64|clear alpha（默认 0）差异：全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。|
+
+### func release\(\)
+```cj
+public open override func release(): Bool
+```
+释放 SSAARenderPass 占用的所有 GPU 资源（sampleRT + copy shader）。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -56,6 +56,12 @@ public open override func setSize(width: Int64, height: Int64): Unit
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+内部 sampleRT 是否已创建且未被释放
 
 ### let SSAA\_VIEW\_ACCUM
 ```cj

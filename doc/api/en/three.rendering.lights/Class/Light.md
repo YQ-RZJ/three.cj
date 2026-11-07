@@ -1,7 +1,7 @@
 # Class
 ## class Light
 ```cj
-public open class Light <: Object3D
+public open class Light <: Object3D & IReleasable
 ```
 Abstract base class for all light types
 
@@ -21,12 +21,6 @@ Parameter:
 Return: 
 
 - Self reference
-
-### func dispose\(\)
-```cj
-public open func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(UInt32,Float64\)
 ```cj
@@ -53,6 +47,12 @@ Parameter:
 |---|---|---|
 |color|Color|Light color, default 0xffffffintensity Light intensity, default 1|
 |intensity|Float64||
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+Release GPU resources
 
 ### var color
 ```cj

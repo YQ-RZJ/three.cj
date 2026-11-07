@@ -127,6 +127,10 @@ public class FrameTaskContext {
  * mode = FrameTaskMode.CONSUME,
  * priority = 1,
  * callback = { ctx =>
+ *
+ * @brief[en] Frame task
+ * @explain[en] Frame task, the smallest execution unit for frame-based scheduling.
+ *
  * @LogInfo(["FrameTask", "execute idx=${ctx.idx}, args=${ctx.args}"])
  * return true  // 继续执行
  * },
@@ -134,9 +138,6 @@ public class FrameTaskContext {
  * )
  * task.params.add([1])  // 添加参数组
  * ```
- *
- * @brief[en] Frame task
- * @explain[en] Frame task, the smallest execution unit for frame-based scheduling.
  */
 public class FrameTask <: HeapNode {
     /**

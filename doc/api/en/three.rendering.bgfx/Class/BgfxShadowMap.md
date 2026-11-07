@@ -1,7 +1,7 @@
 # Class
 ## class BgfxShadowMap
 ```cj
-public class BgfxShadowMap
+public class BgfxShadowMap <: IReleasable
 ```
 bgfx shadow map management
 
@@ -16,12 +16,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |lightId|Int64|Light ID|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose all shadow maps
 
 ### func getShadowMap\(Int64,Int64,Int64,Bool\)
 ```cj
@@ -83,6 +77,12 @@ Whether shadow is enabled
 Return: 
 
 - Whether enabled
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all shadow maps
 
 ### func setEnabled\(Bool\)
 ```cj

@@ -38,6 +38,14 @@
  * - attach() 调用 world.createBody + world.bindObject，并缓存 handle。
  * - 后续 setVelocity/setPosition 等直接转发到 world（经 _execPhysics）。
  * - dispose() 调用 world.destroyBody 并解除绑定。
+ * @note[zh-cn] PhysicsShape 工厂（类内静态方法）：
+ * - box(width, height, depth) → PhysicsShape.Box(halfExtent)
+ * - sphere(radius) → PhysicsShape.Sphere
+ * - capsule(halfHeight, r) → PhysicsShape.Capsule
+ * - cylinder(halfHeight, r) → PhysicsShape.Cylinder
+ * - plane() → PhysicsShape.Plane
+ * 这些工厂与 three.rendering.geometry 的 BoxGeometry/SphereGeometry/...
+ * 参数对齐，方便"几何体形状"一键生成物理碰撞体。
  *
  * @file[en] RigidBody Rigid-body convenience wrapper + PhysicsShape factory functions
  * @brief[en] Provides the RigidBody convenience wrapper and documents the PhysicsShape factory functions
@@ -57,15 +65,6 @@
  * - attach() calls world.createBody + world.bindObject and caches the handle.
  * - Later setVelocity/setPosition etc. are forwarded to the world (via _execPhysics).
  * - dispose() calls world.destroyBody and unbinds the object.
- *
- * @note[zh-cn] PhysicsShape 工厂（类内静态方法）：
- * - box(width, height, depth) → PhysicsShape.Box(halfExtent)
- * - sphere(radius) → PhysicsShape.Sphere
- * - capsule(halfHeight, r) → PhysicsShape.Capsule
- * - cylinder(halfHeight, r) → PhysicsShape.Cylinder
- * - plane() → PhysicsShape.Plane
- * 这些工厂与 three.rendering.geometry 的 BoxGeometry/SphereGeometry/...
- * 参数对齐，方便"几何体形状"一键生成物理碰撞体。
  * @note[en] PhysicsShape factory (static methods):
  * - box(width, height, depth) → PhysicsShape.Box(halfExtent)
  * - sphere(radius) → PhysicsShape.Sphere
@@ -85,6 +84,7 @@ import three.scene.objects.*
 import std.collection.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 物理刚体便捷封装
@@ -94,7 +94,7 @@ import three.utils.log.macros.*
  * 典型流程：
  * let body = RigidBody(world).setShape(...).setDynamic().attach(mesh)
  * world.update(dt)  // mesh 自动跟随物理
- * body.dispose()    // 销毁刚体并解除绑定
+ * body.release()   // 销毁刚体并解除绑定
  *
  * @brief[en] Convenience wrapper for a physics rigid body
  * @explain[en] Uses a fluent builder pattern: while not attached, setters accumulate
@@ -104,9 +104,9 @@ import three.utils.log.macros.*
  * Typical flow:
  * let body = RigidBody(world).setShape(...).setDynamic().attach(mesh)
  * world.update(dt)  // mesh follows physics automatically
- * body.dispose()    // destroy body and unbind
+ * body.release()   // destroy body and unbind
  */
-public class RigidBody {
+public class RigidBody <: IReleasable {
     /// 所属物理世界
     private var _world: PhysicsWorld
 
@@ -413,10 +413,10 @@ public class RigidBody {
     /**
      * @brief[zh-cn] 销毁刚体并解除绑定
      *
-     * @brief[en] Destroys the body and unbinds it
+     * @brief[en] destroys the body and unbinds it
      */
-    public func dispose(): Unit {
-        if (!this._attached) { return }
+    public func release(): Bool {
+        if (!this._attached) { return true }
         // 解除绑定（destroyBody 内部也会清映射，但显式清更安全）
         if (let Some(obj) <- this._boundObj) {
             this._world.unbindObject(obj)
@@ -425,6 +425,7 @@ public class RigidBody {
         this._handle = PhysicsBodyHandle.INVALID
         this._boundObj = None
         this._attached = false
+        return true
     }
 
     // =========================================================================

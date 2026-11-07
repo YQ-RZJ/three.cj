@@ -1,7 +1,7 @@
 # Class
 ## class XRController
 ```cj
-public class XRController
+public class XRController <: IReleasable
 ```
 XR controller
 
@@ -40,12 +40,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |event|HashMap<String,Any>|Event data|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose resources
 
 ### func getGripSpace\(\)
 ```cj
@@ -92,6 +86,12 @@ Return:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release resources
 
 ### func setInputSource\(Any\)
 ```cj

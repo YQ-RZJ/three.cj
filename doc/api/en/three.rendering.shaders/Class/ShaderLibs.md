@@ -27,9 +27,9 @@ public static func initialize(): Unit
 ```
 Initialize all shader programs, register ShaderChunks and material shaders
 
-### func shutdown\(\)
+### func release\(\)
 ```cj
-public static func shutdown(): Unit
+public static func release(): Bool
 ```
-Destroy the shader library, release all resources, stop the compiler thread
+destroy the shader library, release all resources, stop the compiler thread
 

@@ -48,6 +48,8 @@
  */
 package three.utils.memory
 
+import three.utils.safe.IReleasable
+
 // =============================================================================
 // PtrArray — 指针底层数组
 // =============================================================================
@@ -71,7 +73,7 @@ package three.utils.memory
  * contiguous memory can be borrowed via the borrow constructor (not freed).
  * @param[en] T Element type, must satisfy the CType constraint
  */
-public class PtrArray<T> where T <: CType {
+public class PtrArray<T> <: IReleasable where T <: CType {
     private var ptr: CPointer<T>
     private var length: Int64
     /// 是否由本对象 malloc（借用构造为 false，不释放）
@@ -198,11 +200,26 @@ public class PtrArray<T> where T <: CType {
      *
      * @brief[en] Manually frees the underlying memory (GC will also free it; use this for timely release)
      */
-    public func dispose(): Unit {
+    /**
+     * @brief[zh-cn] 手动释放底层内存（GC 回收时也会自动释放，此方法用于及时回收）
+     *
+     * @brief[en] manually frees the underlying memory (GC will also free it; use this for timely release)
+     */
+    public func release(): Bool {
         if (this.owned && !this.ptr.isNull()) {
             unsafe { LibC.free(this.ptr) }
             this.ptr = CPointer<T>()
         }
         this.length = 0
+        return true
+    }
+
+    /**
+     * @brief[zh-cn] 底层内存是否仍然有效（未释放）
+     *
+     * @brief[en] Whether the underlying memory is still valid (not freed)
+     */
+    public prop releasable: Bool {
+        get() { !this.ptr.isNull() }
     }
 }

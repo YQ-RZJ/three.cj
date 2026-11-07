@@ -1,15 +1,9 @@
 # Class
 ## class Timer
 ```cj
-public class Timer
+public class Timer <: IReleasable
 ```
 High-performance timer class
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Release resources
 
 ### func getDelta\(\)
 ```cj
@@ -46,6 +40,12 @@ Return:
 public init()
 ```
 Construct a new timer
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release resources
 
 ### func reset\(\)
 ```cj

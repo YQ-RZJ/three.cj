@@ -164,7 +164,7 @@ public class TestWindow <: WindowEngine {
 
         // 释放 ToonOutlinePass 资源
         match (this.outlinePass) {
-            case Some(outlinePass) => outlinePass.dispose()
+            case Some(outlinePass) => outlinePass.release()
             case None => ()
         }
 
@@ -175,7 +175,7 @@ public class TestWindow <: WindowEngine {
         if (elapsed > 0.0) {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")

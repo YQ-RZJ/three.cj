@@ -173,10 +173,10 @@ public class TestWindow <: WindowEngine {
         println("")
         println("[5/5] 清理资源...")
         match (this.composer) {
-            case Some(composer) => composer.dispose()
+            case Some(composer) => composer.release()
             case None => ()
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }

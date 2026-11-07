@@ -145,7 +145,7 @@ public class TestWindow <: WindowEngine {
         if (elapsed > 0.0) {
             println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("")
         println("=== 测试完成 ===")

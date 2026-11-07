@@ -1,15 +1,9 @@
 # 类
 ## class BgfxGeometries
 ```cj
-public class BgfxGeometries
+public class BgfxGeometries <: IReleasable
 ```
 bgfx 几何体管理
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-释放所有几何体
 
 ### func dispose\(Int64,Option<Int64>,ArrayList<Int64>\)
 ```cj
@@ -118,6 +112,12 @@ public init(attributes!: BgfxAttributes, info!: BgfxInfo, bindingStates!: BgfxBi
 |attributes|BgfxAttributes||
 |info|BgfxInfo||
 |bindingStates|BgfxBindingStates||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有几何体
 
 ### func updateWireframeAttribute\(Int64,Int64\)
 ```cj

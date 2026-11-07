@@ -1,15 +1,9 @@
 # 类
 ## class ConstraintHelper
 ```cj
-public class ConstraintHelper <: Object3D
+public class ConstraintHelper <: Object3D & IReleasable
 ```
 物理约束辅助对象
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -32,6 +26,12 @@ public init(world: PhysicsWorld, desc: PhysicsConstraintDesc, bodyA: RigidBody, 
 |bodyA|RigidBody||
 |bodyB|RigidBody||
 |color|UInt32||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func update\(\)
 ```cj

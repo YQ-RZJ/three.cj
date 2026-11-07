@@ -48,6 +48,7 @@ import three.physics.world.*
 import jolt4cj.jolt.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // PhysicsDebugLine / PhysicsDebugTriangle 调试图元
@@ -135,7 +136,7 @@ public struct PhysicsDebugTriangle {
  * one capture pass = beginFrame → drawBodies/drawConstraints → nextFrame, then read
  * lines/triangles. Must call dispose() before PhysicsWorld.stop() while alive.
  */
-public class PhysicsDebugRenderer {
+public class PhysicsDebugRenderer <: IReleasable {
     /// 活动收集器（CFunc 无捕获，经静态字段中转；仅物理线程内访问）
     internal static var _active: Option<PhysicsDebugRenderer> = None
 
@@ -186,7 +187,7 @@ public class PhysicsDebugRenderer {
      *
      * @brief[en] Whether the renderer is valid
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() {
             !this._disposed && !this._renderer.isNull()
         }
@@ -214,7 +215,7 @@ public class PhysicsDebugRenderer {
      * wireframe Wireframe or not (default true)
      */
     public func drawBodies(world: PhysicsWorld, wireframe!: Bool = true): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let r = this._renderer
@@ -250,7 +251,7 @@ public class PhysicsDebugRenderer {
      * @param[en] world The physics world
      */
     public func drawConstraints(world: PhysicsWorld): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let r = this._renderer
@@ -275,7 +276,7 @@ public class PhysicsDebugRenderer {
      * @brief[en] Ends this capture pass (triggers Jolt NextFrame, clears internal state)
      */
     public func nextFrame(): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         JPH_DebugRenderer_NextFrame_cj(this._renderer)
@@ -294,11 +295,11 @@ public class PhysicsDebugRenderer {
     /**
      * @brief[zh-cn] 销毁渲染器（释放回调表与 Jolt 实例）
      *
-     * @brief[en] Disposes the renderer (releases the procs table and the Jolt instance)
+     * @brief[en] disposes the renderer (releases the procs table and the Jolt instance)
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return true
         }
         this._disposed = true
         if (!this._renderer.isNull()) {
@@ -309,6 +310,7 @@ public class PhysicsDebugRenderer {
             unsafe { LibC.free(this._procs) }
             this._procs = CPointer<JPHDebugRendererProcs>()
         }
+        return true
     }
 
     // =========================================================================

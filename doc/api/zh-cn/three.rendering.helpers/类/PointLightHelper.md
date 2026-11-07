@@ -1,15 +1,9 @@
 # 类
 ## class PointLightHelper
 ```cj
-public class PointLightHelper <: Mesh
+public class PointLightHelper <: Mesh & IReleasable
 ```
 点光源辅助对象，用球形线框网格可视化点光源的位置
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -30,6 +24,12 @@ public init(light: Light, sphereSize!: Float64 = 1.0, color!: Option < Color >= 
 |light|Light||
 |sphereSize|Float64||
 |color|Option<Color>||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func update\(\)
 ```cj

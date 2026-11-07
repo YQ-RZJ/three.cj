@@ -1,7 +1,7 @@
 # 类
 ## class RenderPipeline
 ```cj
-public open class RenderPipeline
+public open class RenderPipeline <: IReleasable
 ```
 TSL 渲染管线
 
@@ -10,12 +10,6 @@ TSL 渲染管线
 public func _update(): Unit
 ```
 检测配置变更并更新 contextData
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放渲染管线资源
 
 ### func init\(Renderer,Option<Any>\)
 ```cj
@@ -35,6 +29,12 @@ public init(renderer: Renderer, outputNode: Option < Any >)
 public init()
 ```
 无参构造器（向后兼容）
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+释放渲染管线资源
 
 ### func renderAsync\(\)
 ```cj

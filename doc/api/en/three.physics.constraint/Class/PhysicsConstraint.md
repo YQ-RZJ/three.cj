@@ -1,7 +1,7 @@
 # Class
 ## class PhysicsConstraint
 ```cj
-public class PhysicsConstraint
+public class PhysicsConstraint <: IReleasable
 ```
 Runtime handle wrapper for a constraint
 
@@ -25,12 +25,6 @@ Parameter:
 Return: 
 
 - The newly created constraint wrapper
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes the constraint and removes it from the world
 
 ### func distance\(PhysicsWorld,PhysicsBodyHandle,PhysicsBodyHandle,Vector3,Vector3,Float64,Float64\)
 ```cj
@@ -138,16 +132,6 @@ Return:
 
 - true if enabled
 
-### func isValid\(\)
-```cj
-public func isValid(): Bool
-```
-Whether the constraint is valid (created and not disposed)
-
-Return: 
-
-- true if valid
-
 ### func point\(PhysicsWorld,PhysicsBodyHandle,PhysicsBodyHandle,Vector3\)
 ```cj
 public static func point(world: PhysicsWorld, bodyA: PhysicsBodyHandle, bodyB: PhysicsBodyHandle, anchor: Vector3): PhysicsConstraint
@@ -166,6 +150,12 @@ Parameter:
 Return: 
 
 - The newly created constraint wrapper
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+disposes the constraint and removes it from the world
 
 ### func setEnabled\(Bool\)
 ```cj
@@ -253,4 +243,10 @@ Return:
 public prop handle: PhysicsConstraintHandle
 ```
 Gets the constraint handle (INVALID after disposal)
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the constraint is valid (created and not disposed)
 

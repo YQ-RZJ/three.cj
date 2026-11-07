@@ -1,15 +1,9 @@
 # Class
 ## class GridHelper
 ```cj
-public class GridHelper <: LineSegments
+public class GridHelper <: LineSegments & IReleasable
 ```
 Grid helper that displays a 2D grid in the scene
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(Float64,Int64,Color,Color\)
 ```cj
@@ -25,4 +19,10 @@ Parameter:
 |divisions|Int64||
 |color1|Color||
 |color2|Color||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 

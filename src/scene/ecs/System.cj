@@ -67,12 +67,6 @@ public type SystemId = Int64
  * while (let Some(e) <- entities.next()) { ... }
  * }
  * }
- * @System[PositionCpt, VelocityCpt]
- * public class MoveSystem <: System {
- * public override func onUpdate(entities: Iterator<Entity>, dt: Float64): Unit {
- * while (let Some(e) <- entities.next()) { ... }
- * }
- * }
  */
 public open class System <: EcsObject {
     /**

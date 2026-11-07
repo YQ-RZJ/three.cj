@@ -447,17 +447,17 @@ public class TestWindow <: WindowEngine {
         println("[5/6] 清理物理世界...")
         // 先销毁约束（须在刚体销毁之前，避免悬空引用）
         for (c in this.constraints) {
-            c.dispose()
+            c.release()
         }
         for (b in this.bodies) {
-            b.dispose()
+            b.release()
         }
-        this.physicsWorld.shutdown()
+        this.physicsWorld.release()
         println("  物理世界已关闭")
 
         // ---- 步骤 6: 关闭渲染器 ----
         println("")
-        this.renderer.shutdown()
+        this.renderer.release()
         println("[6/6] ThreeRenderer + WindowEngine 已关闭")
     }
 }
@@ -648,7 +648,7 @@ public func createPhysicsScene(width: Int32, height: Int32, world: PhysicsWorld,
         Vector3(3.0, 4.0, -4.0), Vector3(0.0, 0.0, 1.0),
         limitMin: -1.2, limitMax: 1.2)
     constraints.add(hinge)
-    println("  创建铰链约束（钟摆）: ${if (hinge.isValid()) { "成功" } else { "失败" }}")
+    println("  创建铰链约束（钟摆）: ${if (hinge.releasable) { "成功" } else { "失败" }}")
 
     // ===== 距离约束演示（两个小球用距离约束连接） =====
     let ballAGeom = SphereGeometry(radius: 0.35, widthSegments: 12, heightSegments: 10)
@@ -676,7 +676,7 @@ public func createPhysicsScene(width: Int32, height: Int32, world: PhysicsWorld,
         Vector3(5.0, 5.0, -2.0), Vector3(5.0, 4.0, -2.0),
         0.5, 1.2)
     constraints.add(chain)
-    println("  创建距离约束（双球链）: ${if (chain.isValid()) { "成功" } else { "失败" }}")
+    println("  创建距离约束（双球链）: ${if (chain.releasable) { "成功" } else { "失败" }}")
 
     // ===== 扩展形状演示 1：Mesh 三角网格坡道（Static，青绿色） =====
     // 用顶点 + 索引三角形构造一个楔形三棱柱（坡道），Static 刚体；

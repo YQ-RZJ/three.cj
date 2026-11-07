@@ -35,6 +35,7 @@
  */
 package three.rendering.xr
 
+import three.utils.safe.IReleasable
 import three.rendering.types.{ TextureHandle, Handle }
 import bgfx4cj.bgfx as bgfx
 import three.rendering.buffer.*
@@ -93,7 +94,7 @@ void main() {
  * @explain[en] Corresponding to WebXRDepthSensing, manages XR depth textures and depth meshes.
  * bgfx version uses TextureHandle instead of WebGL textures.
  */
-public class XRDepthSensing {
+public class XRDepthSensing <: IReleasable {
     /**
      * @brief[zh-cn] 深度纹理句柄
      *
@@ -245,9 +246,9 @@ public class XRDepthSensing {
     /**
      * @brief[zh-cn] 释放资源
      *
-     * @brief[en] Dispose resources
+     * @brief[en] Release resources
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (Handle.isValid(_texture)) {
             bgfxCallMtx.lock()
             try {
@@ -259,5 +260,15 @@ public class XRDepthSensing {
         }
         _mesh = None
         _available = false
+        return true
+    }
+
+    /**
+     * @brief[zh-cn] 资源有效性：句柄有效且标记可用时为 true
+     *
+     * @brief[en] Resource validity: true when the handle is valid and marked available
+     */
+    public prop releasable: Bool {
+        get() { Handle.isValid(_texture) && _available }
     }
 }

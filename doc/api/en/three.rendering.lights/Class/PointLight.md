@@ -22,12 +22,6 @@ Return:
 
 - This instance
 
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Dispose GPU-related resources allocated by this instance, should be called when the instance is no longer used
-
 ### func init\(Color,Float64,Float64,Float64\)
 ```cj
 public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0, distance!: Float64 = 0.0, decay!: Float64 = 2.0)
@@ -42,6 +36,12 @@ Parameter:
 |intensity|Float64||
 |distance|Float64||
 |decay|Float64||
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Release GPU-related resources allocated by this instance
 
 ### prop power: Float64
 ```cj

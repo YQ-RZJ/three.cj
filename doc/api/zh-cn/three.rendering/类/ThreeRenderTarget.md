@@ -1,15 +1,9 @@
 # 类
 ## class ThreeRenderTarget
 ```cj
-public class ThreeRenderTarget <: IRenderTarget
+public class ThreeRenderTarget <: IRenderTarget & IReleasable
 ```
 基于 bgfx 帧缓冲的标准 2D 渲染目标
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-销毁帧缓冲，释放 GPU 资源
 
 ### func init\(Int64,Int64\)
 ```cj
@@ -23,6 +17,12 @@ public init(width: Int64, height: Int64)
 |---|---|---|
 |width|Int64|宽度（像素）height 高度（像素）|
 |height|Int64||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁帧缓冲，释放 GPU 资源
 
 ### func setSize\(Int64,Int64\)
 ```cj

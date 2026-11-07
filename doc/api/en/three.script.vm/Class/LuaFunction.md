@@ -1,7 +1,7 @@
 # Class
 ## class LuaFunction
 ```cj
-public class LuaFunction
+public class LuaFunction <: IReleasable
 ```
 Lua function reference
 
@@ -24,12 +24,6 @@ Return:
 Exception: 
 
 - LuaError On a runtime error
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases the registry reference
 
 ### func fromGlobal\(LuaVM,String\)
 ```cj
@@ -61,15 +55,21 @@ Parameter:
 |vm|LuaVM|The owning virtual machineref The registry reference (produced by luaL_ref)|
 |ref|Int32||
 
-### prop isValid: Bool
+### func release\(\)
 ```cj
-public prop isValid: Bool
+public func release(): Bool
 ```
-Whether the reference is still valid (not disposed)
+releases the registry reference.
 
 ### prop ref: Int32
 ```cj
 public prop ref: Int32
 ```
 The registry reference id
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the reference is still valid (not disposed)
 

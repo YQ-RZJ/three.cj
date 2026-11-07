@@ -22,12 +22,6 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 
 - 自身引用
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
-
 ### func init\(Color,Float64\)
 ```cj
 public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0)
@@ -40,6 +34,12 @@ public init(color!: Color = Color(0xffffff), intensity!: Float64 = 1.0)
 |---|---|---|
 |color|Color|光源颜色，默认 0xffffffintensity 光源强度，默认 1|
 |intensity|Float64||
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 GPU 资源
 
 ### var shadow
 ```cj

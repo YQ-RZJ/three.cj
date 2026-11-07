@@ -1,17 +1,9 @@
 # 类
 ## class RenderPixelatedPass
 ```cj
-public class RenderPixelatedPass <: Pass
+public class RenderPixelatedPass <: Pass & IReleasable
 ```
 像素化渲染 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 RenderPixelatedPass 占用的所有 GPU 资源。
-shader program 由 PostProcessingShaders/ShaderLibs 全局管理，不在此 dispose。
-全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func init\(Int64,Scene,Camera,Float64,Float64\)
 ```cj
@@ -28,6 +20,14 @@ public init(pixelSize: Int64, scene: Scene, camera: Camera, normalEdgeStrength!:
 |camera|Camera|相机|
 |normalEdgeStrength|Float64|法线边缘强度（默认 0.3）|
 |depthEdgeStrength|Float64|深度边缘强度（默认 0.4）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 RenderPixelatedPass 占用的所有 GPU 资源。
+shader program 由 PostProcessingShaders/ShaderLibs 全局管理，不在此 dispose。
+全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

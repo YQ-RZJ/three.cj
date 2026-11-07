@@ -1,15 +1,9 @@
 # 类
 ## class FilmPass
 ```cj
-public class FilmPass <: Pass
+public class FilmPass <: Pass & IReleasable
 ```
 胶片颗粒后处理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 film pass 占用的所有 GPU 资源
 
 ### func init\(Float64,Bool\)
 ```cj
@@ -23,6 +17,12 @@ public init(intensity!: Float64 = 0.5, grayscale!: Bool = false)
 |---|---|---|
 |intensity|Float64|颗粒强度（默认 0.5）|
 |grayscale|Bool|是否灰度（默认 false）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 film pass 占用的所有 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

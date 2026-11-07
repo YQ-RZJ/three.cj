@@ -1,15 +1,9 @@
 # 类
 ## class SMAAPass
 ```cj
-public class SMAAPass <: Pass
+public class SMAAPass <: Pass & IReleasable
 ```
 SMAA 后处理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 SMAAPass 占用的所有 GPU 资源（edges/weights RT + area/search LUT + 3 个 shader）。
 
 ### func init\(\)
 ```cj
@@ -18,6 +12,12 @@ public init()
 构造 SMAAPass。
 
 差异：全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 SMAAPass 占用的所有 GPU 资源（edges/weights RT + area/search LUT + 3 个 shader）。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -49,6 +49,12 @@ public override func setSize(width: Int64, height: Int64): Unit
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+内部 RT 是否已创建且未被释放
 
 ### let SMAA\_VIEW\_BLEND
 ```cj

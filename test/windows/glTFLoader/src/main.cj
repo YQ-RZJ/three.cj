@@ -156,7 +156,7 @@ public class TestWindow <: WindowEngine {
         println("  总帧数: ${this.totalFrames}")
         println("  平均 FPS: ${(Float64(this.totalFrames) / elapsed).toString()}")
         println("")
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }

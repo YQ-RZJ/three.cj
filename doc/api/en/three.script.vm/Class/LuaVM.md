@@ -1,7 +1,7 @@
 # Class
 ## class LuaVM
 ```cj
-public class LuaVM
+public class LuaVM <: IReleasable
 ```
 Lua scripting virtual machine
 
@@ -57,12 +57,6 @@ Parameter:
 |---|---|---|
 |narr|Int32|Pre-allocated array-part capacity (default 0)nrec Pre-allocated hash-part capacity (default 0)|
 |nrec|Int32||
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Closes the state and releases resources (handle() becomes invalid afterwards)
 
 ### func doBuffer\(String,String\)
 ```cj
@@ -372,6 +366,12 @@ Return:
 
 - The corresponding LuaValue (nil placeholder for tables/functions etc.)
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+closes the state and releases resources (handle() becomes invalid afterwards)
+
 ### func setField\(Int32,String\)
 ```cj
 public func setField(idx: Int32, name: String): Unit
@@ -410,12 +410,6 @@ Parameter:
 |---|---|---|
 |idx|Int32|The target top index (negative values are relative to the top)|
 
-### prop isValid: Bool
-```cj
-public prop isValid: Bool
-```
-Whether the state is still valid (not disposed)
-
 ### prop jitVersion: String
 ```cj
 public static prop jitVersion: String
@@ -427,6 +421,12 @@ The LuaJIT version string (e.g. "LuaJIT 2.1.x")
 public prop libsOpened: Bool
 ```
 Whether the standard libraries have been opened
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the state is still valid (not disposed)
 
 ### prop version: String
 ```cj

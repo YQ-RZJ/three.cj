@@ -1,7 +1,7 @@
 # Class
 ## class UiTextFilter
 ```cj
-public class UiTextFilter
+public class UiTextFilter <: IReleasable
 ```
 Text filter supporting filtering of text lists by conditions
 
@@ -10,12 +10,6 @@ Text filter supporting filtering of text lists by conditions
 public func clear(): Unit
 ```
 Clears the filter condition
-
-### func destroy\(\)
-```cj
-public func destroy(): Unit
-```
-Destroys the filter and releases underlying resources
 
 ### func draw\(String\)
 ```cj
@@ -70,4 +64,11 @@ Parameter:
 Return: 
 
 - Whether the text passes the filter condition
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+destroys the filter and releases
+underlying resources
 

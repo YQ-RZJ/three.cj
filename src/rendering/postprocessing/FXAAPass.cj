@@ -48,30 +48,35 @@ import three.rendering.types.*
 
 /**
  * @brief[zh-cn] FXAA 后处理 pass
- * @brief[en] FXAA post-processing pass
  * @explain[zh-cn] 喂 ShaderLibs 已注册的 "fxaa" 全屏 shader，复用父类 ShaderPass.render。
+ *
+ * @brief[en] FXAA post-processing pass
  * @explain[en] Feeds the registered "fxaa" full-screen shader in ShaderLibs and reuses the parent ShaderPass.render.
  */
 public class FXAAPass <: ShaderPass {
     /**
      * @brief[zh-cn] 构造 FXAAPass
-     * @brief[en] Constructs FXAAPass
      * @explain[zh-cn] 全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
+     *
+     * @brief[en] Constructs FXAAPass
      * @explain[en] The full-screen quad is held as a singleton by EffectComposer and injected via setQuad (base class quad field).
      */
     public init() {
         super("fxaa", textureID: "tDiffuse")
         // FXAAPass 默认 needsSwap=true
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
      * @brief[zh-cn] 在父类 render 的 submit 前绑定额外 uniform：u_resolution.xy = 1/width, 1/height
-     * @brief[en] Binds the extra uniform before the parent render's submit: u_resolution.xy = 1/width, 1/height
      * @explain[zh-cn] 每帧在 execBgfx 闭包内调用（bgfx uniform 需每次 submit 前重新 set）。
-     * @explain[en] Called every frame inside the execBgfx closure (bgfx uniforms must be re-set before each submit).
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] uniforms 父类已创建 tDiffuse sampler 的 uniform 注册表（复用同一实例）
+     *
+     * @brief[en] Binds the extra uniform before the parent render's submit: u_resolution.xy = 1/width, 1/height
+     * @explain[en] Called every frame inside the execBgfx closure (bgfx uniforms must be re-set before each submit).
      * @param[en] renderer The renderer
      * @param[en] uniforms The uniform registry where the parent has created the tDiffuse sampler (reused instance)
      */

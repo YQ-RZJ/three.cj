@@ -5,12 +5,6 @@ public open class StreamingAudio <: Audio
 ```
 Streaming audio extending Audio
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases streaming audio resources (decoder + streaming buffers + source)
-
 ### func init\(\)
 ```cj
 public init()
@@ -60,6 +54,12 @@ Parameter:
 Return: 
 
 - this (of type Audio)
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases streaming audio resources (decoder + streaming buffers + source)
 
 ### func stop\(\)
 ```cj

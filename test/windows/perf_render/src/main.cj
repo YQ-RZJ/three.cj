@@ -45,8 +45,8 @@ import three.utils.log.macros.*
 // ===== 测试参数（固定，保证可复现） =====
 const FEW_OBJECTS: Int64 = 25
 const MANY_OBJECTS: Int64 = 800
-const WARMUP_FRAMES: Int64 = 60
-const MEASURE_FRAMES: Int64 = 240
+const WARMUP_FRAMES: Int64 = 120
+const MEASURE_FRAMES: Int64 = 20000
 const PALETTE_SIZE: Int64 = 10
 const SPACING: Float64 = 1.6          // 网格间距
 const PI_F: Float64 = 3.14159265358979323846
@@ -119,12 +119,17 @@ public class PerfRenderWindow <: WindowEngine {
         this.frame++
         this.phaseFrame++
 
+        // 管线化：先等上一帧异步渲染执行完毕，再安全地读写场景
+        this.renderer.syncFrame()
+
         // 阶段推进：每阶段跑满 WARMUP+MEASURE 帧后切换
         let phaseFrames = WARMUP_FRAMES + MEASURE_FRAMES
         if (this.phaseFrame > phaseFrames) {
             this.phase++
             this.phaseFrame = 1
             if (this.phase >= 2) {
+                // 等末帧渲染执行完再读统计（renderAsync 后 info 延迟一帧）
+                this.renderer.syncFrame()
                 let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
                 // 末帧渲染统计（draw call / 三角形数）：用于校验合批与剔除结果是否正确
                 // （800 立方体经自动实例化应折叠为 10 个实例化 draw call）
@@ -144,8 +149,8 @@ public class PerfRenderWindow <: WindowEngine {
         this.camera.aspect = Float64(w) / Float64(if (h > 1i32) { h } else { 1i32 })
         this.camera.updateProjectionMatrix()
 
-        // 真实渲染路径
-        this.renderer.render(this.scene, this.camera)
+        // 真实渲染路径（管线化：投递后立即返回，与下一帧准备工作重叠）
+        this.renderer.renderAsync(this.scene, this.camera)
         ProfFrame.mark()   // 主帧标记（接收端据此统计帧耗时）
 
         // 画面内统计（bgfx 调试文本层）：FPS / draw call / 三角形数 / 阶段进度
@@ -191,7 +196,7 @@ public class PerfRenderWindow <: WindowEngine {
     // ===== 生命周期：关闭前清理 =====
     public override func onClose(): Unit {
         @LogInfo(["perf", "【cleanup】关闭渲染器..."])
-        this.renderer.shutdown()
+        this.renderer.release()
         @LogInfo(["perf", "=== perf 测试完成 ==="])
     }
 

@@ -1,7 +1,7 @@
 # Class
 ## class Backend
 ```cj
-public open class Backend
+public open class Backend <: IReleasable
 ```
 Render backend abstract base class
 
@@ -210,18 +210,6 @@ Parameter:
 |---|---|---|
 |texture|Texture|Texture|
 
-### func destroy\(\)
-```cj
-public open func destroy(): Unit
-```
-destroy is an alias of dispose (legacy compatibility)
-
-### func dispose\(\)
-```cj
-public open func dispose(): Unit
-```
-Dispose backend and release resources
-
 ### func draw\(IRenderObject\)
 ```cj
 public open func draw(renderObject: IRenderObject): Unit
@@ -360,6 +348,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |scene|Scene|Render scene (contains lights and caster geometry)|
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+dispose backend and release resources
 
 ### func resolveRenderTarget\(RenderTarget\)
 ```cj

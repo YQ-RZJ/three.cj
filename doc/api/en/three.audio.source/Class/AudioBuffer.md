@@ -1,7 +1,7 @@
 # Class
 ## class AudioBuffer
 ```cj
-public class AudioBuffer <: ILoadResult
+public class AudioBuffer <: ILoadResult & IReleasable
 ```
 Audio buffer that stores decoded PCM data
 
@@ -45,19 +45,25 @@ Return:
 
 - The created AudioBuffer instance
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases the OpenAL buffer resource
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>OpenAL calls run on the audio thread via context.execAudio.</p>
-
 ### func init\(\)
 ```cj
 public init()
 ```
 Creates an empty audio buffer (filled later by create / createChunk)
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Releases the OpenAL buffer resource
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>OpenAL calls run on the audio thread via context.execAudio; repeated calls return false.</p>
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the resource is valid (not released)
 
 ### var bufferId
 ```cj

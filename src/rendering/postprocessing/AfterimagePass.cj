@@ -66,6 +66,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -79,13 +80,15 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 残影后处理 pass
- * @brief[en] Afterimage post-processing pass
  * @explain[zh-cn] 持两个内部 RT（_compFB / _oldFB）做 ping-pong 残影累积。
+ *
+ * @brief[en] Afterimage post-processing pass
  * @explain[en] Holds two internal RTs (_compFB / _oldFB) for ping-pong afterimage accumulation.
  */
-public class AfterimagePass <: Pass {
+public class AfterimagePass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 阻尼系数（0~1），越大残影衰减越慢、拖尾越长，默认 0.96
+     *
      * @brief[en] Damping factor (0~1); larger = slower afterimage decay, longer trails, default 0.96
      */
     public var damp: Float64
@@ -127,6 +130,15 @@ public class AfterimagePass <: Pass {
     private var _rtsCreated: Bool = false
 
     /**
+     * @brief[zh-cn] 内部 RT 是否已创建且未被释放
+     *
+     * @brief[en] whether the internal RTs exist and have not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._rtsCreated }
+    }
+
+    /**
      * 渲染器引用（render() 时缓存，setSize/dispose 经其高阶 API 序列化）。
      */
     private var _renderer: Option<ThreeRenderer> = None
@@ -160,8 +172,9 @@ public class AfterimagePass <: Pass {
 
     /**
      * @brief[zh-cn] 构造 AfterimagePass
-     * @brief[en] Constructs AfterimagePass
      * @param[zh-cn] damp 阻尼系数（默认 0.96）
+     *
+     * @brief[en] Constructs AfterimagePass
      * @param[en] damp Damping factor (default 0.96)
      */
     public init(damp!: Float64 = 0.96) {
@@ -169,10 +182,13 @@ public class AfterimagePass <: Pass {
         this.damp = damp
         // needsSwap=true（pass 后 composer 交换 buffer）
         this.needsSwap = true
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
      * @brief[zh-cn] 设置 pass 尺寸，创建/重建内部双 RT
+     *
      * @brief[en] Sets the pass size, creating/rebuilding the internal dual RTs
      */
     public override func setSize(width: Int64, height: Int64): Unit {
@@ -403,18 +419,19 @@ public class AfterimagePass <: Pass {
 
     /**
      * @brief[zh-cn] 执行 afterimage pass
-     * @brief[en] Executes the afterimage pass
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] writeBuffer 写 buffer（copy pass 的输出目标）
      * @param[zh-cn] readBuffer 读 buffer（当前帧输入，绑到 tNew）
      * @param[zh-cn] deltaTime 帧间隔
+     * @explain[zh-cn] 流程：1. comp pass：tOld=_oldTex, tNew=readBuffer → mix → _compFB；
+     *         2. copy pass：把 _compFB 复制到 writeBuffer（或屏幕）；
+     *         3. swap：_oldFB ↔ _compFB，_oldTex ↔ _compTex（下一帧用新残影）。
+     *
+     * @brief[en] Executes the afterimage pass
      * @param[en] renderer Renderer
      * @param[en] writeBuffer Write buffer (output target of the copy pass)
      * @param[en] readBuffer Read buffer (current frame input, bound to tNew)
      * @param[en] deltaTime Frame delta time
-     * @explain[zh-cn] 流程：1. comp pass：tOld=_oldTex, tNew=readBuffer → mix → _compFB；
-     *         2. copy pass：把 _compFB 复制到 writeBuffer（或屏幕）；
-     *         3. swap：_oldFB ↔ _compFB，_oldTex ↔ _compTex（下一帧用新残影）。
      * @explain[en] Flow: 1. comp pass: tOld=_oldTex, tNew=readBuffer → mix → _compFB;
      *         2. copy pass: copies _compFB to writeBuffer (or screen);
      *         3. swap: _oldFB ↔ _compFB, _oldTex ↔ _compTex (the new afterimage is used next frame).
@@ -457,16 +474,21 @@ public class AfterimagePass <: Pass {
 
     /**
      * @brief[zh-cn] 释放 afterimage pass 占用的所有 GPU 资源
-     * @brief[en] Releases all GPU resources held by the afterimage pass
      * @explain[zh-cn] shader program 由 PostProcessingShaders 全局管理，不在此 dispose；
      *         全屏 quad 由 EffectComposer 持单例统一管理。
+     *
+     * @brief[en] Releases all GPU resources held by the afterimage pass
      * @explain[en] The shader programs are managed globally by PostProcessingShaders and are not disposed here;
      *         the full-screen quad is managed as a singleton by EffectComposer.
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         this._destroyRTs()
+        // uniform 句柄由本 pass 的 BgfxUniforms（_uniformsCache）持有（_cachedUniform 创建），
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
         // shader program 由 PostProcessingShaders 全局管理，不在此 dispose
         // 全屏 quad 由 EffectComposer 持单例统一管理，不在此 dispose
-        @LogTrace(["afterimage", "disposed"])
+        @LogTrace(["afterimage", "released"])
+        return true
     }
 }

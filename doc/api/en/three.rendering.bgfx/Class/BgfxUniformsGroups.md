@@ -1,7 +1,7 @@
 # Class
 ## class BgfxUniformsGroups
 ```cj
-public class BgfxUniformsGroups
+public class BgfxUniformsGroups <: IReleasable
 ```
 bgfx uniform group management
 
@@ -17,12 +17,6 @@ Parameter:
 |---|---|---|
 |groupId|Int64|Uniform group IDprogramId Shader program ID|
 |programId|Int64||
-
-### func disposeAll\(\)
-```cj
-public func disposeAll(): Unit
-```
-Dispose all uniform groups
 
 ### func dispose\(Int64\)
 ```cj
@@ -47,6 +41,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all uniform groups
 
 ### func update\(Int64,Int64\)
 ```cj

@@ -102,6 +102,18 @@ public class UiGlyphRanges {
             this._owner = CPointer<Unit>()
         }
     }
+
+    /**
+     * @brief[zh-cn] 析构：自动释放自建范围占用的堆内存
+     *
+     * @brief[en] Destructor: automatically frees heap memory owned by a self-built range
+     */
+    ~init() {
+        if (!this._owner.isNull()) {
+            ImVector_ImWchar_destroy_cj(this._owner)
+            this._owner = CPointer<Unit>()
+        }
+    }
 }
 
 // =============================================================================
@@ -168,6 +180,18 @@ public class UiFontData {
             this._ptr = CPointer<UInt8>()
         }
     }
+
+    /**
+     * @brief[zh-cn] 析构：自动释放未转移所有权的堆内存
+     *
+     * @brief[en] Destructor: automatically frees heap memory whose ownership was not transferred
+     */
+    ~init() {
+        if (!this._ptr.isNull() && !this._transferred) {
+            unsafe { LibC.free(this._ptr) }
+            this._ptr = CPointer<UInt8>()
+        }
+    }
 }
 
 // =============================================================================
@@ -208,6 +232,22 @@ public class UiFontConfig {
      * @brief[en] Frees the underlying ImFontConfig instance
      */
     public func finalize(): Unit {
+        if (!this._cfg.isNull()) {
+            ImFontConfig_destroy_cj(this._cfg)
+            this._cfg = CPointer<Unit>()
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 析构：自动释放底层 ImFontConfig 实例
+     * @explain[zh-cn] AddFont* 的默认参数每次都会新建配置对象，若只在显式 finalize
+     *               时释放则这些临时配置会永久驻留（每次添加字体泄漏一个 ImFontConfig）。
+     *
+     * @brief[en] Destructor: automatically frees the underlying ImFontConfig instance
+     * @explain[en] The default argument of AddFont* creates a config object on every call;
+     *             releasing only on explicit finalize would leak one ImFontConfig per added font.
+     */
+    ~init() {
         if (!this._cfg.isNull()) {
             ImFontConfig_destroy_cj(this._cfg)
             this._cfg = CPointer<Unit>()
@@ -573,6 +613,18 @@ public class UiFontGlyphRangesBuilder {
      * @brief[en] Frees the underlying builder resources
      */
     public func finalize(): Unit {
+        if (!this._builder.isNull()) {
+            ImFontGlyphRangesBuilder_destroy_cj(this._builder)
+            this._builder = CPointer<Unit>()
+        }
+    }
+
+    /**
+     * @brief[zh-cn] 析构：自动释放底层构建器
+     *
+     * @brief[en] Destructor: automatically frees the underlying builder
+     */
+    ~init() {
         if (!this._builder.isNull()) {
             ImFontGlyphRangesBuilder_destroy_cj(this._builder)
             this._builder = CPointer<Unit>()

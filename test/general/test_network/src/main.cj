@@ -220,7 +220,7 @@ main(): Int64 {
     check("TCP write 成功", sock.writeString("ping"))
     let echo = sock.readString()
     checkStr("TCP echo 回显", echo, "ping")
-    sock.close()
+    sock.release()
     println("")
 
     // ================= [6] Socket 事件回调 =================
@@ -236,7 +236,7 @@ main(): Int64 {
     let data = sock2.readString()
     check("onMessage 触发", listener.messages >= 1)
     checkStr("onMessage 数据", data, "event-test")
-    sock2.close()
+    sock2.release()
     check("onClose 触发", listener.closed)
     println("")
 
@@ -255,7 +255,7 @@ main(): Int64 {
     check("UDP loop bind", udpLoop.bind())
     check("UDP loop send", udpLoop.sendString("127.0.0.1", 50002, "loop-msg"))
     // 异步接收需要独立线程，这里用第二个 socket 绑定同端口模拟（仅验证 API 不抛异常）
-    udpLoop.close()
+    udpLoop.release()
     println("  [info] UDP API 调用完成")
     println("")
 

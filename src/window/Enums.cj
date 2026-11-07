@@ -25,17 +25,16 @@
  * @brief[zh-cn] 本文件定义窗口/输入相关的枚举类型
  * @explain[zh-cn] 设计目标：上层（WindowEngine/InputEngine 使用者）只需依赖 three，无需 import sdl4cj。
  * 数值与 SDL3 一一对应（跨平台一致），由 WindowEngine/InputEngine 内部映射。
+ * @note[zh-cn] 用法：
+ * win.setSystemCursor(SystemCursor.Hand)
+ * input.getGamepadAxis(GamepadAxis.LeftX)
+ * input.getGamepadButton(GamepadButton.South)
  *
  * @file[en] Enums three.window own window/input enums (replacing direct dependencies on the SDL_* enums from sdl4cj)
  * @brief[en] This file defines window/input related enum types
  * @explain[en] Design goal: upper layers (WindowEngine/InputEngine users) only need to depend on three
  * and never need to import sdl4cj. Values map 1:1 to SDL3 (consistent across platforms)
  * and are converted internally by WindowEngine/InputEngine.
- *
- * @note[zh-cn] 用法：
- * win.setSystemCursor(SystemCursor.Hand)
- * input.getGamepadAxis(GamepadAxis.LeftX)
- * input.getGamepadButton(GamepadButton.South)
  * @note[en] Usage:
  * win.setSystemCursor(SystemCursor.Hand)
  * input.getGamepadAxis(GamepadAxis.LeftX)

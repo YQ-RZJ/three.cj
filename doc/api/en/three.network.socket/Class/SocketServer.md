@@ -1,7 +1,7 @@
 # Class
 ## class SocketServer
 ```cj
-public class SocketServer
+public class SocketServer <: IReleasable
 ```
 TCP server
 
@@ -25,12 +25,6 @@ Return:
 
 - Returns true on success, false on failure
 
-### func close\(\)
-```cj
-public func close(): Unit
-```
-Closes the server
-
 ### func init\(UInt16\)
 ```cj
 public init(port: UInt16)
@@ -42,6 +36,14 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |port|UInt16|Bind port|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Closes the server
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Idempotent no-op returning false when not bound.</p>
 
 ### prop isBound: Bool
 ```cj

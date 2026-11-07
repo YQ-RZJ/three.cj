@@ -68,6 +68,7 @@ import three.physics.world.*
 import jolt4cj.jolt.*
 import three.utils.log.*
 import three.utils.log.macros.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // 内部枚举映射辅助
@@ -106,7 +107,7 @@ internal func ragdollActivationValue(a: PhysicsActivation): UInt32 {
  * class and released in dispose(); ragdoll settings/poses hold reference counts on the
  * skeleton, so a disposed skeleton stays alive while referenced.
  */
-public class PhysicsSkeleton {
+public class PhysicsSkeleton <: IReleasable {
     private var _handle: CPointer<Unit> = CPointer<Unit>()
     private var _disposed: Bool = false
 
@@ -212,19 +213,31 @@ public class PhysicsSkeleton {
     }
 
     /**
+     * @brief[zh-cn] 骨骼是否有效（创建成功且未销毁）
+     *
+     * @brief[en] Whether the skeleton is valid (created successfully and not disposed)
+     */
+    public prop releasable: Bool {
+        get() {
+            !this._disposed && !this._handle.isNull()
+        }
+    }
+
+    /**
      * @brief[zh-cn] 释放底层骨骼句柄
      *
-     * @brief[en] Releases the underlying skeleton handle
+     * @brief[en] releases the underlying skeleton handle
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return false
         }
         this._disposed = true
         if (!this._handle.isNull()) {
             JPH_Skeleton_Destroy_cj(this._handle)
             this._handle = CPointer<Unit>()
         }
+        return true
     }
 
     /// 模块内部：获取原生句柄（同包高级封装使用，不对外公开）
@@ -249,7 +262,7 @@ public class PhysicsSkeleton {
  * local transforms relative to the parent joint. Uses three left-handed coordinates;
  * conversion is automatic.
  */
-public class PhysicsSkeletonPose {
+public class PhysicsSkeletonPose <: IReleasable {
     private var _handle: CPointer<Unit> = CPointer<Unit>()
     private var _disposed: Bool = false
 
@@ -419,19 +432,31 @@ public class PhysicsSkeletonPose {
     }
 
     /**
+     * @brief[zh-cn] 姿态是否有效（创建成功且未销毁）
+     *
+     * @brief[en] Whether the pose is valid (created successfully and not disposed)
+     */
+    public prop releasable: Bool {
+        get() {
+            !this._disposed && !this._handle.isNull()
+        }
+    }
+
+    /**
      * @brief[zh-cn] 释放底层姿态句柄
      *
-     * @brief[en] Releases the underlying pose handle
+     * @brief[en] releases the underlying pose handle
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return false
         }
         this._disposed = true
         if (!this._handle.isNull()) {
             JPH_SkeletonPose_Destroy_cj(this._handle)
             this._handle = CPointer<Unit>()
         }
+        return true
     }
 
     /// 模块内部：获取原生句柄
@@ -655,14 +680,14 @@ public class PhysicsRagdollSettings {
     /**
      * @brief[zh-cn] 在指定物理世界中创建运行时布娃娃
      * @explain[zh-cn] 全部原生构建在物理线程内完成；返回的布娃娃尚未加入世界，
-     * 需调用 addToWorld()。失败（如后端非 Jolt、句柄为空）时返回 isValid=false 的对象。
+     * 需调用 addToWorld()。失败（如后端非 Jolt、句柄为空）时返回 releasable=false 的对象。
      * @param[zh-cn] world 目标物理世界
      * @return[zh-cn] 运行时布娃娃
      *
      * @brief[en] Creates a runtime ragdoll in the given physics world
      * @explain[en] All native construction happens on the physics thread; the returned
      * ragdoll is not yet added to the world — call addToWorld(). On failure (e.g. a
-     * non-Jolt backend or null handles) returns an object with isValid=false.
+     * non-Jolt backend or null handles) returns an object with releasable=false.
      * @param[en] world The target physics world
      * @return[en] The runtime ragdoll
      */
@@ -797,7 +822,7 @@ public class PhysicsRagdollSettings {
  * removeFromWorld() + dispose(). All runtime calls execute on the physics thread;
  * the public API only uses three math types.
  */
-public class PhysicsRagdoll {
+public class PhysicsRagdoll <: IReleasable {
     private let _world: PhysicsWorld
     private var _handle: CPointer<Unit> = CPointer<Unit>()
     private let _skeleton: PhysicsSkeleton
@@ -817,7 +842,7 @@ public class PhysicsRagdoll {
      *
      * @brief[en] Whether the ragdoll is valid (created successfully and not disposed)
      */
-    public prop isValid: Bool {
+    public prop releasable: Bool {
         get() {
             !this._disposed && !this._handle.isNull()
         }
@@ -841,7 +866,7 @@ public class PhysicsRagdoll {
      */
     public prop bodyCount: Int64 {
         get() {
-            if (!this.isValid) {
+            if (!this.releasable) {
                 return 0
             }
             let h = this._handle
@@ -858,7 +883,7 @@ public class PhysicsRagdoll {
      */
     public prop constraintCount: Int64 {
         get() {
-            if (!this.isValid) {
+            if (!this.releasable) {
                 return 0
             }
             let h = this._handle
@@ -876,7 +901,7 @@ public class PhysicsRagdoll {
      * @param[en] activation The activation mode (default: activate immediately)
      */
     public func addToWorld(activation!: PhysicsActivation = PhysicsActivation.Activate): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let h = this._handle
@@ -893,7 +918,7 @@ public class PhysicsRagdoll {
      * @brief[en] Removes the ragdoll from the physics world (it can be re-added with addToWorld)
      */
     public func removeFromWorld(): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let h = this._handle
@@ -909,7 +934,7 @@ public class PhysicsRagdoll {
      * @brief[en] Activates (wakes) the ragdoll
      */
     public func activate(): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let h = this._handle
@@ -924,7 +949,7 @@ public class PhysicsRagdoll {
      * @brief[en] Whether the ragdoll is active (not sleeping)
      */
     public func isActive(): Bool {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return false
         }
         let h = this._handle
@@ -941,7 +966,7 @@ public class PhysicsRagdoll {
      * @param[en] pose The target pose
      */
     public func setPose(pose: PhysicsSkeletonPose): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let h = this._handle
@@ -959,7 +984,7 @@ public class PhysicsRagdoll {
      * @param[en] pose The output pose (its joint states are filled after the call)
      */
     public func getPose(pose: PhysicsSkeletonPose): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let h = this._handle
@@ -977,7 +1002,7 @@ public class PhysicsRagdoll {
      * @param[en] pose The target pose
      */
     public func driveToPoseUsingMotors(pose: PhysicsSkeletonPose): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let h = this._handle
@@ -997,7 +1022,7 @@ public class PhysicsRagdoll {
      * deltaTime This frame's time step (seconds)
      */
     public func driveToPoseUsingKinematics(pose: PhysicsSkeletonPose, deltaTime: Float32): Unit {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return
         }
         let h = this._handle
@@ -1017,7 +1042,7 @@ public class PhysicsRagdoll {
      * @return[en] The body BodyID (usable in collision callbacks/queries)
      */
     public func getBodyID(bodyIndex: Int64): UInt32 {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return 0xFFFFFFFF
         }
         let h = this._handle
@@ -1034,7 +1059,7 @@ public class PhysicsRagdoll {
      * @return[en] A (root position, root rotation) tuple (three left-handed)
      */
     public func getRootTransform(): (Vector3, Quaternion) {
-        if (!this.isValid) {
+        if (!this.releasable) {
             return (Vector3(), Quaternion())
         }
         let h = this._handle
@@ -1058,11 +1083,11 @@ public class PhysicsRagdoll {
     /**
      * @brief[zh-cn] 销毁布娃娃（会自动从物理世界移除并释放全部刚体/约束）
      *
-     * @brief[en] Destroys the ragdoll (automatically removes it from the world and releases all bodies/constraints)
+     * @brief[en] destroys the ragdoll (automatically removes it from the world and releases all bodies/constraints)
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         if (this._disposed) {
-            return
+            return false
         }
         this._disposed = true
         if (!this._handle.isNull()) {
@@ -1080,5 +1105,6 @@ public class PhysicsRagdoll {
             this._handle = CPointer<Unit>()
             this._inWorld = false
         }
+        return true
     }
 }

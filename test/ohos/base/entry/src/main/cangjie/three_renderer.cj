@@ -259,7 +259,7 @@ public class ThreeWindow <: WindowEngine {
 
     // ===== 生命周期：关闭前（清理渲染器） =====
     public override func onClose(): Unit {
-        this.renderer.shutdown()
+        this.renderer.release()
     }
 }
 
@@ -309,7 +309,7 @@ public func resizeThreeRender(w: Int32, h: Int32): Unit {
 public func stopThreeRender(): Unit {
     g_renderRunning.store(false)
     match (g_windowEngine) {
-        case Some(engine) => engine.shutdown()
+        case Some(engine) => engine.release()
         case None => ()
     }
     g_windowEngine = None

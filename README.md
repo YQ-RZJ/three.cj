@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-0.2.0-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-1.0.0-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-Cross--Platform-lightgrey" style="display: inline-block;" />
@@ -201,12 +201,43 @@ three/
 
 ## Build & Usage
 
-### Build the Engine Library
+### Option 1 (Recommended): Reuse the Prebuilt Binary Artifacts
+
+The recommended path is to reuse the static artifacts published by the engine CI — no need
+to build the engine yourself, collect dependency libraries, or resolve symbol conflicts:
+
+1. Follow the [`test/bin-reuse`](./test/bin-reuse/README.md) project: download the static
+   artifact package `three-<os>-<arch>-static.zip` matching your platform, and extract it
+   into your project's `libs/` directory;
+2. Following [`test/bin-reuse/cjpm.toml`](./test/bin-reuse/cjpm.toml), add the
+   `[target.<triple>.bin-dependencies]` `path-option` (one entry per module directory) for
+   your target platform, and declare `-L libs -l:three-deps.a` plus that platform's system
+   library list in `link-option`;
+3. Build and run:
+
+```bash
+cjpm build
+cjpm run
+```
+
+Windows / Linux / macOS need no extra environment variables; OHOS / iOS / Android require
+the matching SDK environment variables first (see the comments on each target in the
+bin-reuse `cjpm.toml`). For caveats (cjc version match, macro plugin dynamic libraries,
+platform/artifact correspondence, etc.), see
+[`test/bin-reuse/README.md`](./test/bin-reuse/README.md).
+
+### Option 2 (Advanced): Build the Engine from Source
+
+Choose a source dependency when you need to modify the engine code:
 
 ```bash
 # Build the engine in the three/ directory (outputs dynamic library)
 cjpm build
 ```
+
+> **Parallel build tip**: The engine has a large codebase. If you choose to build it yourself,
+> it is recommended to enable parallel compilation with the `-j <N>` option to shorten the
+> build time, e.g. `cjpm build -j 8`.
 
 > **Link symbol note (cross-platform)**: cjpm links each Cangjie sub-package into a separate
 > dynamic library; third-party Cangjie FFI packages are linked as static archives, so their
@@ -221,7 +252,12 @@ cjpm build
 > `python scripts/gen_exclude_rsp.py` to regenerate both files at once
 > (see [scripts/README.md](./scripts/README.md)).
 
-### Build Configuration
+### Advanced Build Configuration (effective for source builds)
+
+The compile-time environment variables below apply to the **source-built** engine and
+business code. With Option 1 (prebuilt artifacts), the engine-side levels were already
+frozen into the artifacts at CI build time, while macro call sites in your own code still
+follow these rules from your own build environment.
 
 #### THREE_LOG_LEVEL
 
@@ -322,18 +358,19 @@ More examples can be found in the `test/windows/`, `test/general/`, and `test/oh
 
 ### Use in Your Project
 
-> **Note**: The `cjpm.toml` of this project references the `EXTEDN_LIBS_PATH_*` environment variable in `link-option`. You need to set it to the actual location of the dependency files before use. For example: `cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
-
-Add the dependency in your `cjpm.toml`:
+**Option 1 (recommended): binary artifact reuse** — download the prebuilt artifacts into
+`libs/`, then declare the binary modules and link options following
+[`test/bin-reuse/cjpm.toml`](./test/bin-reuse/cjpm.toml). Example for the Windows (MinGW)
+target:
 
 ```toml
-[dependencies]
-  [dependencies.three]
-    path = "path/to/three"
-    output-type = "static"
+[target.x86_64-w64-mingw32]
+  link-option = "-L libs -l:three-deps.a -lhid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -lsetupapi -lshell32 -ldinput8 -ld3d11 -ldxgi -ld3dcompiler -lavrt -ldsound -lws2_32 -lcrypt32 -ladvapi32 -lz -ldbghelp -lsecur32"
+  [target.x86_64-w64-mingw32.bin-dependencies]
+    path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
 ```
 
-Import in your Cangjie code:
+Import in your Cangjie code (identical to the source-dependency approach):
 
 ```cangjie
 import three.rendering.*            // Rendering (BgfxRenderer/BgfxRenderTarget)
@@ -355,6 +392,21 @@ import three.audio.*                // Audio
 import three.script.*               // Scripting
 import three.window.ui.*           // Immediate-mode UI (ImGui widgets)
 ```
+
+**Option 2 (Advanced): source dependency** — when you need to modify the engine source,
+pull the engine repository in as a path dependency:
+
+```toml
+[dependencies]
+  [dependencies.three]
+    path = "path/to/three"
+    output-type = "static"
+```
+
+> **Note**: with the source-dependency approach, the `cjpm.toml` of this project references
+> the `EXTEDN_LIBS_PATH_*` environment variable in `link-option`. You need to set it to the
+> actual location of the dependency files before use. For example:
+> `cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
 
 ## Threading Model
 

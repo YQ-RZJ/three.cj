@@ -38,6 +38,7 @@
 package three.rendering.common
 
 import std.collection.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 通用键值数据映射基类
@@ -50,7 +51,7 @@ import std.collection.*
  * Uses HashMap<Int64, HashMap<String, Any>> to store metadata by ID,
  * serving as the common base class for components like Attributes, Geometries, and Textures.
  */
-public open class DataMap {
+public open class DataMap <: IReleasable {
     /**
      * @brief[zh-cn] 内部数据存储
      *
@@ -114,7 +115,10 @@ public open class DataMap {
     /**
      * @brief[zh-cn] 释放所有数据
      *
-     * @brief[en] Disposes all data
+     * @brief[en] dispose all data
      */
-    public func dispose(): Unit { this.data = HashMap<Int64, HashMap<String, Any>>() }
+    public open func release(): Bool {
+        this.data = HashMap<Int64, HashMap<String, Any>>()
+        return true
+    }
 }

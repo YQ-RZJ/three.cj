@@ -1,7 +1,7 @@
 # Class
 ## class AudioEffect
 ```cj
-public class AudioEffect <: IAudioEffect
+public class AudioEffect <: IAudioEffect & IReleasable
 ```
 EFX effect object wrapping an OpenAL Effect handle
 
@@ -258,14 +258,6 @@ Return:
 
 - this (for chaining)
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases the OpenAL effect object
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Runs alDeleteEffects on the audio thread; repeated calls have no effect.</p>
-
 ### func getEffectId\(\)
 ```cj
 public func getEffectId(): UInt32
@@ -287,6 +279,14 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |context|AudioContext|The audio context (defaults to the AudioContext.context singleton)|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Releases the OpenAL effect object
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Runs alDeleteEffects on the audio thread; repeated calls return false.</p>
 
 ### func setParamf\(UInt32,Float32\)
 ```cj
@@ -363,6 +363,12 @@ Parameter:
 Return: 
 
 - this (for chaining)
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the resource is valid (not released)
 
 ### var context
 ```cj

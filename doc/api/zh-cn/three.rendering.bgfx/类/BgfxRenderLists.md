@@ -1,15 +1,9 @@
 # 类
 ## class BgfxRenderLists
 ```cj
-public class BgfxRenderLists
+public class BgfxRenderLists <: IReleasable
 ```
 bgfx 渲染列表管理
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有渲染列表
 
 ### func get\(Int64\)
 ```cj
@@ -32,4 +26,10 @@ public func get(sceneId: Int64): BgfxRenderList
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有渲染列表
 

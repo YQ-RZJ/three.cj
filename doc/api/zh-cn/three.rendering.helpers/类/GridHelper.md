@@ -1,15 +1,9 @@
 # 类
 ## class GridHelper
 ```cj
-public class GridHelper <: LineSegments
+public class GridHelper <: LineSegments & IReleasable
 ```
 网格辅助对象，在场景中显示二维网格线
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(Float64,Int64,Color,Color\)
 ```cj
@@ -25,4 +19,10 @@ public init(size!: Float64 = 10.0, divisions!: Int64 = 10, color1!: Color = Colo
 |divisions|Int64||
 |color1|Color||
 |color2|Color||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 

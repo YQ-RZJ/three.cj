@@ -1,7 +1,7 @@
 # 类
 ## class AudioEffect
 ```cj
-public class AudioEffect <: IAudioEffect
+public class AudioEffect <: IAudioEffect & IReleasable
 ```
 EFX 效果对象，封装 OpenAL Effect 句柄
 
@@ -258,14 +258,6 @@ public func create(): AudioEffect
 
 - this（便于链式调用）
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 OpenAL 效果对象
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>在音频线程执行 alDeleteEffects；重复调用无副作用。</p>
-
 ### func getEffectId\(\)
 ```cj
 public func getEffectId(): UInt32
@@ -287,6 +279,14 @@ public init(context!: AudioContext = AudioContext.context)
 |名称|类型|描述|
 |---|---|---|
 |context|AudioContext|音频上下文（默认使用 AudioContext.context 单例）|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 OpenAL 效果对象
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>在音频线程执行 alDeleteEffects；重复调用幂等返回 false。</p>
 
 ### func setParamf\(UInt32,Float32\)
 ```cj
@@ -362,6 +362,12 @@ public func setType(effectType: EffectType): AudioEffect
 返回: 
 
 - this（便于链式调用）
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+资源是否有效（未释放）
 
 ### var context
 ```cj

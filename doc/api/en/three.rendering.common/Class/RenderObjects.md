@@ -11,6 +11,12 @@ public func clear(): Unit
 ```
 Clears all caches
 
+### func endFrame\(\)
+```cj
+public func endFrame(): Unit
+```
+End-of-frame eviction: drops cache entries not accessed this frame
+
 ### func get\(Object3D,BufferGeometry,Material,RenderContext,Camera,Scene\)
 ```cj
 public func get(mesh: Object3D, geometry: BufferGeometry, material: Material, context: RenderContext, camera: Camera, scene: Scene): RenderObject

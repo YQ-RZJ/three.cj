@@ -1,7 +1,7 @@
 # Class
 ## class LUTPass
 ```cj
-public class LUTPass <: ShaderPass
+public class LUTPass <: ShaderPass & IReleasable
 ```
 Color grading (LUT) post-processing pass
 
@@ -18,12 +18,6 @@ Parameter:
 |renderer|ThreeRenderer|Renderer|
 |uniforms|BgfxUniforms|The uniform registry where the tDiffuse sampler has been created (LUT uniforms are added here)|
 
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases the GPU resources held by LUTPass
-
 ### func init\(TextureHandle,Int64,Float64\)
 ```cj
 public init(lut!: TextureHandle = INVALID_TEXTURE_HANDLE, lutSize!: Int64 = 0, intensity!: Float64 = 1.0)
@@ -37,6 +31,12 @@ Parameter:
 |lut|TextureHandle|The 3D LUT texture handle (default invalid → pass skipped)|
 |lutSize|Int64|LUT edge length (default 0, paired with an invalid texture; must be > 0 for a valid texture)|
 |intensity|Float64|Mix intensity (default 1.0)|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases the GPU resources held by LUTPass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

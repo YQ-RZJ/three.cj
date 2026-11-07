@@ -38,6 +38,7 @@
  * // 异步回调
  * client.enqueue(req) { r -> @LogInfo(["NetworkHttp", r.bodyString()]) }  // 成功
  * { e -> @LogError(["NetworkHttp", "失败: " + e]) }    // 失败
+ * @see[zh-cn] https://gitcode.com/raozj/httpclient4cj
  *
  * @file[en] NetworkHttp  High-level HTTP client wrapper (three.network.http sub-package)
  * @brief[en] Provides three-style HTTP wrappers built on httpclient4cj
@@ -57,9 +58,6 @@
  * // asynchronous callback
  * client.enqueue(req) { r -> @LogInfo(["NetworkHttp", r.bodyString()]) }  // success
  * { e -> @LogError(["NetworkHttp", "failure: " + e]) }   // failure
- *
- * @see[zh-cn] https://gitcode.com/raozj/httpclient4cj
- *
  * @see[en] https://gitcode.com/raozj/httpclient4cj
  */
 package three.network.http
@@ -74,6 +72,7 @@ import httpclient4cj.MediaType
 import httpclient4cj.HttpClient as TpcHttpClient
 import std.collection.*
 import std.time.*
+import three.utils.safe.IReleasable
 
 // =============================================================================
 // NetworkHttp：HTTP 客户端静态工具
@@ -239,7 +238,7 @@ public class NetworkHttp {
  * @explain[en] A reusable client with configurable connect/read/write timeouts,
  * offering synchronous execute and asynchronous enqueue.
  */
-public class HttpClient {
+public class HttpClient <: IReleasable {
     /**
      * @brief[zh-cn] 底层 httpclient4cj 客户端
      *
@@ -326,16 +325,15 @@ public class HttpClient {
     }
 
     /**
-     * @brief[zh-cn] 关闭客户端（释放连接池等资源）
+     * @brief[zh-cn] 释放资源
+     * @note[zh-cn] httpclient4cj 未暴露显式 close，连接池随 GC 回收；此方法当前为幂等空操作。
      *
-     * @brief[en] Closes the client (releases resources such as the connection pool)
-     *
-     * @note[zh-cn] httpclient4cj 未暴露显式 close，连接池随 GC 回收。
+     * @brief[en] Releases resources
      * @note[en] httpclient4cj does not expose an explicit close; the connection pool
-     * is reclaimed by GC.
+     * is reclaimed by GC. Currently an idempotent no-op.
      */
-    public func close(): Unit {
-        // httpclient4cj 未暴露显式 close，连接池随 GC 回收
+    public func release(): Bool {
+        return true
     }
 }
 

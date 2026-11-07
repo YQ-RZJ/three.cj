@@ -1,15 +1,9 @@
 # Class
 ## class SkeletonHelper
 ```cj
-public class SkeletonHelper <: LineSegments
+public class SkeletonHelper <: LineSegments & IReleasable
 ```
 Skeleton helper for visualizing Skeleton bone hierarchy
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(\)
 ```cj
@@ -28,6 +22,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |object|Object3D||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func setColors\(Color,Color\)
 ```cj

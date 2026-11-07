@@ -1,7 +1,7 @@
 # Class
 ## class UiListClipper
 ```cj
-public class UiListClipper
+public class UiListClipper <: IReleasable
 ```
 Virtual list clipper for high-performance large lists (draws only visible items)
 
@@ -17,12 +17,6 @@ Parameter:
 |---|---|---|
 |itemsCount|Int32|Total item count|
 |itemsHeight|Float32|Height per item (-1.0 = auto)|
-
-### func destroy\(\)
-```cj
-public func destroy(): Unit
-```
-Destroys the clipper and releases underlying resources
 
 ### func end\(\)
 ```cj
@@ -55,6 +49,13 @@ Return:
 public init()
 ```
 Constructs a virtual list clipper
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Unified destroys the clipper and releases
+underlying resources
 
 ### func step\(\)
 ```cj

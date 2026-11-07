@@ -1,15 +1,15 @@
 # 类
 ## class HemisphereLightHelper
 ```cj
-public class HemisphereLightHelper <: Object3D
+public class HemisphereLightHelper <: Object3D & IReleasable
 ```
 半球光辅助对象，用八面体网格可视化半球光
 
-### func dispose\(\)
+### func init\(\)
 ```cj
-public func dispose(): Unit
+public init()
 ```
-释放 GPU 资源
+构造半球光辅助对象
 
 ### func init\(Light,Float64,Option<Color>\)
 ```cj
@@ -25,11 +25,11 @@ public init(light: Light, size!: Float64 = 1.0, color!: Option < Color >= None <
 |size|Float64||
 |color|Option<Color>||
 
-### func init\(\)
+### func release\(\)
 ```cj
-public init()
+public func release(): Bool
 ```
-构造半球光辅助对象
+释放 GPU 资源
 
 ### func update\(\)
 ```cj

@@ -209,7 +209,7 @@ public class TestWindow <: WindowEngine {
                 }
                 // R 键重置：销毁并重建 afterimage pass 的 old RT
                 if (g_resetAfterimage) {
-                    p.dispose()
+                    p.release()
                     p.setSize(Int64(w), Int64(h))
                     g_resetAfterimage = false
                     println("  [R] afterimage pass 已重置（old RT 清空）")
@@ -252,10 +252,10 @@ public class TestWindow <: WindowEngine {
         println("")
         println("[5/5] 清理资源...")
         match (this.composer) {
-            case Some(composer) => composer.dispose()
+            case Some(composer) => composer.release()
             case None => ()
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }

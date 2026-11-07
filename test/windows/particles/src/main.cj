@@ -254,8 +254,8 @@ public class TestWindow <: WindowEngine {
     public override func onClose(): Unit {
         println("")
         println("[5/5] 清理资源...")
-        this.composer.dispose()
-        this.renderer.shutdown()
+        this.composer.release()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }

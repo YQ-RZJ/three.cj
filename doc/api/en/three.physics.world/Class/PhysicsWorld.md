@@ -1,7 +1,7 @@
 # Class
 ## class PhysicsWorld
 ```cj
-public class PhysicsWorld
+public class PhysicsWorld <: IReleasable
 ```
 Physics-world facade
 
@@ -518,6 +518,12 @@ Return:
 
 - true if anything was hit
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+destroys all bindings/bodies → releases the backend → notifies the physics thread to exit
+
 ### func setAngularVelocity\(PhysicsBodyHandle,Vector3\)
 ```cj
 public func setAngularVelocity(handle: PhysicsBodyHandle, angularVelocity: Vector3): Unit
@@ -766,12 +772,6 @@ Parameter:
 |---|---|---|
 |handle|PhysicsConstraintHandle|The constraint handlevelocity The target velocity|
 |velocity|Float64||
-
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-Shuts down the physics world: destroys all bindings/bodies → backend.shutdown → notifies the physics thread to exit
 
 ### func start\(UInt32,Vector3\)
 ```cj

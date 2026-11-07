@@ -1,7 +1,7 @@
 # Class
 ## class EffectComposer
 ```cj
-public class EffectComposer
+public class EffectComposer <: IReleasable
 ```
 Post-processing pass chain scheduler
 
@@ -27,12 +27,6 @@ Return:
 
 - The newly allocated view id
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases all GPU resources held by EffectComposer (internal dual RTs + all passes)
-
 ### func init\(ThreeRenderer\)
 ```cj
 public init(renderer: ThreeRenderer)
@@ -57,6 +51,13 @@ Parameter:
 |---|---|---|
 |pass|Pass|The pass to insert|
 |index|Int64|Insertion index|
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+releases all GPU resources held by
+EffectComposer (internal dual RTs + all passes)
 
 ### func removePass\(Pass\)
 ```cj
@@ -104,6 +105,12 @@ Fetches the current write buffer (used by capture.cj debug readback)
 Return: 
 
 - The FrameBufferHandle of the current write buffer
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+whether the internal dual RTs exist and have not been released
 
 ### var passes
 ```cj

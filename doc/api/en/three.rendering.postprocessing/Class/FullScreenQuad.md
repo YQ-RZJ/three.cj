@@ -1,15 +1,9 @@
 # Class
 ## class FullScreenQuad
 ```cj
-public class FullScreenQuad
+public class FullScreenQuad <: IReleasable
 ```
 Full-screen quad shared resources
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases the GPU resources held by the full-screen quad
 
 ### func ensureResources\(ThreeRenderer\)
 ```cj
@@ -28,6 +22,12 @@ Parameter:
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+releases the GPU resources held by the full-screen quad
 
 ### func setRenderer\(ThreeRenderer\)
 ```cj

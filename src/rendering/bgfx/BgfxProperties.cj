@@ -38,6 +38,7 @@ import three.scene.objects.*
 import three.core.time.*
 import three.rendering.rendertarget.*
 import three.core.event.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] bgfx 属性存储
@@ -46,7 +47,7 @@ import three.core.event.*
  * @brief[en] bgfx properties storage
  * @explain[en] Corresponds to WebGLProperties, stores render-related internal data for engine objects. Uses object id as key instead of JS WeakMap.
  */
-public class BgfxProperties {
+public class BgfxProperties <: IReleasable {
     /**
      * @brief[zh-cn] 属性映射（对象 ID -> 属性字典）
      *
@@ -128,10 +129,11 @@ public class BgfxProperties {
      * @brief[zh-cn] 释放所有数据
      * @explain[zh-cn] 对照 WebGLProperties.dispose()
      *
-     * @brief[en] Disposes all data
+     * @brief[en] dispose all data
      * @explain[en] Corresponds to WebGLProperties.dispose()
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         properties = HashMap<Int64, HashMap<String, Any>>()
+        return true
     }
 }

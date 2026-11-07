@@ -1,21 +1,21 @@
 # Class
 ## class SavePass
 ```cj
-public class SavePass <: Pass
+public class SavePass <: Pass & IReleasable
 ```
 Save pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Releases the GPU resources held by SavePass (internal RT)
 
 ### func init\(\)
 ```cj
 public init()
 ```
 Constructs SavePass
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+Releases the GPU resources held by SavePass (internal RT)
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -44,6 +44,12 @@ Parameter:
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+whether the internal RT exists and has not been released
 
 ### var renderTarget
 ```cj

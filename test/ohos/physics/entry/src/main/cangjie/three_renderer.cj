@@ -937,13 +937,13 @@ public class ThreeWindow <: WindowEngine {
     // ===== 生命周期：关闭前（先销毁约束，再销毁刚体，最后关闭物理世界与渲染器） =====
     public override func onClose(): Unit {
         for (c in this.constraints) {
-            c.dispose()
+            c.release()
         }
         for (b in this.bodies) {
-            b.dispose()
+            b.release()
         }
-        physicsWorld.shutdown()
-        this.renderer.shutdown()
+        physicsWorld.release()
+        this.renderer.release()
     }
 }
 
@@ -989,7 +989,7 @@ public func resizeThreeRender(w: Int32, h: Int32): Unit {
 public func stopThreeRender(): Unit {
     g_renderRunning.store(false)
     match (g_windowEngine) {
-        case Some(engine) => engine.shutdown()
+        case Some(engine) => engine.release()
         case None => ()
     }
     g_windowEngine = None

@@ -74,6 +74,7 @@ import std.collection.*
 import std.collection.concurrent.ConcurrentLinkedQueue
 import std.sync.{ AtomicBool, AtomicInt64 }
 import three.core.thread.*
+import three.utils.safe.IReleasable
 import three.profiler.*
 import three.profiler.macros.*
 import three.utils.log.*
@@ -269,7 +270,7 @@ internal class SensorEventPoster <: IPhysicsSensorListener {
  * world.update(1.0f32 / 60.0f32, 1)
  * // 渲染 myMesh（transform 已被同步）
  * }
- * world.shutdown()
+ * world.release()
  *
  * @brief[en] Physics-world facade
  * @explain[en] Typical usage:
@@ -282,9 +283,9 @@ internal class SensorEventPoster <: IPhysicsSensorListener {
  * world.update(1.0f32 / 60.0f32, 1)
  * // render myMesh (transform has already been synced)
  * }
- * world.shutdown()
+ * world.release()
  */
-public class PhysicsWorld {
+public class PhysicsWorld <: IReleasable {
     /// 物理后端（可插拔）
     private var _backend: IPhysicsBackend
 
@@ -355,11 +356,10 @@ public class PhysicsWorld {
     /**
      * @brief[zh-cn] 替换后端（运行时切换底层物理库）
      * @param[zh-cn] newBackend 新的后端实例
+     * @note[zh-cn] 旧后端必须先 shutdown；新后端需 init 后方可使用。
      *
      * @brief[en] Replaces the backend (swaps the underlying physics engine at runtime)
      * @param[en] newBackend The new backend instance
-     *
-     * @note[zh-cn] 旧后端必须先 shutdown；新后端需 init 后方可使用。
      * @note[en] The old backend must be shut down first; the new backend must be initialized before use.
      */
     public func setBackend(newBackend: IPhysicsBackend): Unit {
@@ -544,20 +544,21 @@ public class PhysicsWorld {
     }
 
     /**
-     * @brief[zh-cn] 关闭物理世界：销毁所有绑定/刚体 → backend.shutdown → 通知物理线程退出
+     * @brief[zh-cn] 销毁所有绑定/刚体 → 释放后端 → 通知物理线程退出
      *
-     * @brief[en] Shuts down the physics world: destroys all bindings/bodies → backend.shutdown → notifies the physics thread to exit
+     * @brief[en] destroys all bindings/bodies → releases the backend → notifies the physics thread to exit
      */
-    public func shutdown(): Unit {
-        // 解除所有绑定（仅清映射，刚体由 backend.shutdown 内部清理）
+    public func release(): Bool {
+        // 解除所有绑定（仅清映射，刚体由后端 release 内部清理）
         this._bindings.clear()
 
         let be = this._backend
-        _execPhysics({=> be.shutdown()})
+        _execPhysics({=> be.release()})
 
         // 通知物理线程退出（无锁原子标志 + 信号量唤醒；残留命令由线程退出前缀额外推进补齐）
         this._physicsExit.store(true)
         this._physicsWake.signal()
+        return true
     }
 
     /**
@@ -589,10 +590,9 @@ public class PhysicsWorld {
 
     /**
      * @brief[zh-cn] 优化 BroadPhase 包围盒树
+     * @note[zh-cn] 在批量插入刚体后、正式模拟前调用一次。
      *
      * @brief[en] Optimizes the BroadPhase bounding-volume tree
-     *
-     * @note[zh-cn] 在批量插入刚体后、正式模拟前调用一次。
      * @note[en] Call once after bulk-inserting bodies and before the main simulation.
      */
     public func optimizeBroadPhase(): Unit {
@@ -628,15 +628,14 @@ public class PhysicsWorld {
      * @param[en] handle The body handle
      */
     public func destroyBody(handle: PhysicsBodyHandle): Unit {
-        // 先解除绑定
-        var keyToRemove: Option<Int64> = None
+        // 先解除该刚体的全部绑定（同一刚体可能绑定多个 Object3D）
+        let keysToRemove = ArrayList<Int64>()
         for ((k, b) in this._bindings) {
             if (b.handle.bodyID == handle.bodyID) {
-                keyToRemove = Some(k)
-                break
+                keysToRemove.add(k)
             }
         }
-        if (let Some(k) <- keyToRemove) {
+        for (k in keysToRemove) {
             this._bindings.remove(k)
         }
         let be = this._backend
@@ -1387,14 +1386,13 @@ public class PhysicsWorld {
      * position 目标位置（世界坐标）
      * rotation 目标旋转
      * deltaTime 时间步长（秒）
+     * @note[zh-cn] 每帧调用，由 deltaTime 步长驱动。
      *
      * @brief[en] Moves a kinematic body to the given position/rotation
      * @param[en] handle The body handle
      * position The target position (world coordinates)
      * rotation The target rotation
      * deltaTime The time step (seconds)
-     *
-     * @note[zh-cn] 每帧调用，由 deltaTime 步长驱动。
      * @note[en] Call every frame; driven by the deltaTime step.
      */
     public func moveKinematic(handle: PhysicsBodyHandle, position: Vector3, rotation: Quaternion, deltaTime: Float32): Unit {

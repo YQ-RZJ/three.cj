@@ -1,15 +1,9 @@
 # Class
 ## class XRDepthSensing
 ```cj
-public class XRDepthSensing
+public class XRDepthSensing <: IReleasable
 ```
 XR depth sensing
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose resources
 
 ### func getMesh\(\)
 ```cj
@@ -47,6 +41,12 @@ Return:
 
 - Whether available
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release resources
+
 ### func reset\(\)
 ```cj
 public func reset(): Unit
@@ -79,4 +79,10 @@ Parameter:
 |depthFar|Float64||
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Resource validity: true when the handle is valid and marked available
 

@@ -1,15 +1,9 @@
 # 类
 ## class DotScreenPass
 ```cj
-public class DotScreenPass <: Pass
+public class DotScreenPass <: Pass & IReleasable
 ```
 点阵屏后处理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 dot screen pass 占用的所有 GPU 资源
 
 ### func init\(Vector2,Float64,Float64\)
 ```cj
@@ -24,6 +18,12 @@ public init(center!: Vector2 = Vector2(0.5, 0.5), angle!: Float64 = 1.57, scale!
 |center|Vector2|点阵中心（默认 (0.5, 0.5)）|
 |angle|Float64|点阵旋转角度（默认 1.57 ≈ π/2）|
 |scale|Float64|点阵密度（默认 1.0）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 dot screen pass 占用的所有 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

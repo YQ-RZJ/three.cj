@@ -27,9 +27,9 @@ public static func initialize(): Unit
 ```
 初始化所有着色器程序，注册 ShaderChunk 和材质着色器
 
-### func shutdown\(\)
+### func release\(\)
 ```cj
-public static func shutdown(): Unit
+public static func release(): Bool
 ```
 销毁着色器库，释放所有资源，停止编译器线程
 

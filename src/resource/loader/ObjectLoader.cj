@@ -1029,7 +1029,7 @@ internal func _dispatchGeometry(`type`: String, data: HashMap<String, Any>, shap
         // LatheGeometry/TubeGeometry/ExtrudeGeometry/ShapeGeometry/WireframeGeometry/EdgesGeometry
         // 霗 Vector2/Shape/Curve 复杂对象，仓颉侧 fromJSON 范围之外，保留默认几何体并标记 Ignore。
         case _ =>
-            // 未知类型：对照 JS warn，返回默认 BufferGeometry（后续渲染时可见为空）
+            // 未知类型：对照 warn，返回默认 BufferGeometry（后续渲染时可见为空）
             return BufferGeometry()
     }
 }

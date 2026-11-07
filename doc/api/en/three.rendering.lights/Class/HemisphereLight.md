@@ -22,12 +22,6 @@ Return:
 
 - Self reference
 
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-Dispose GPU resources
-
 ### func init\(Color,Color,Float64\)
 ```cj
 public init(skyColor!: Color = Color(0xffffff), groundColor!: Color = Color(0x000000), intensity!: Float64 = 1.0)

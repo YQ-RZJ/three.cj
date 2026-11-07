@@ -1,15 +1,9 @@
 # 类
 ## class BgfxShaderCache
 ```cj
-public class BgfxShaderCache
+public class BgfxShaderCache <: IReleasable
 ```
 bgfx 着色器缓存
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放所有缓存
 
 ### func getFragmentShaderStage\(Int64,String,BgfxShader,BgfxMemory\)
 ```cj
@@ -73,6 +67,12 @@ public func getVertexShaderStage(materialId: Int64, code: String, shader: BgfxSh
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放所有缓存
 
 ### func remove\(Int64\)
 ```cj

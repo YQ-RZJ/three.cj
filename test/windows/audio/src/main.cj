@@ -102,7 +102,8 @@ public class TestWindow <: WindowEngine {
 
         // 更新球体旋转
         this.frame++
-        let angle = this.elapsedTime * 0.02
+        // 角速度 0.5 rad/s（原 0.02 rad/s ≈ 314s/圈 太慢；今 ≈ 12.6s/圈，音源环绕感明显）
+        let angle = this.elapsedTime * 0.5
 
         // 球体围绕相机旋转（以相机位置为圆心做圆周运动）
         let radius = 3.0
@@ -156,15 +157,17 @@ public class TestWindow <: WindowEngine {
 
         // ---- 步骤 5: 清理音频资源 ----
         println("[5/6] 清理音频资源...")
-        this.sound.stop()
-        this.sound.disconnect()
+        // dispose 会注销 AudioContext 变换槽注册表中的条目（旧实现只 stop/disconnect，
+        // 监听器/音源槽会永久驻留）
+        this.sound.release()
+        this.listener.release()
         let audioCtx = this.listener.context
-        audioCtx.shutdown()
+        audioCtx.release()
         println("  音频已关闭")
         println("")
 
         // ---- 步骤 6: 关闭渲染器与窗口 ----
-        this.renderer.shutdown()
+        this.renderer.release()
         println("[6/6] ThreeRenderer + WindowEngine 已关闭")
     }
 }
@@ -276,8 +279,8 @@ public func verifyAudioCapabilities(listener: AudioListener, sound: PositionalAu
     }
 
     // 清理：释放效果器与槽（仅验证创建，不长期持有）
-    for (e in effects) { e.dispose() }
-    slot.dispose()
+    for (e in effects) { e.release() }
+    slot.release()
 
     log.append("\n=== 能力验证结果 ===\n")
     log.append("  PASS: ${passCount}\n")
@@ -357,7 +360,7 @@ public func verifyCaptureAndHrtf(): Unit {
 
         // 停止 + 关闭
         recorder.stop()
-        recorder.close()
+        recorder.release()
         if (!recorder.opened) {
             passCount += 1
             log.append("  [PASS] 捕获已停止并关闭设备\n")

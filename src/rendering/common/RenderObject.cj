@@ -301,6 +301,9 @@ public open class RenderObject <: IRenderObject {
      *               引用与标量字段，不重新分配任何辅助对象。
      *               注意：worldMatrix 保持"引用 mesh.matrixWorld"语义
      *               （matrixWorld 实例在引擎内是原地更新的，引用始终有效）。
+     * @param[zh-cn] mesh 新的渲染对象（Mesh/Line/Points 等）
+     * geometry 几何体
+     * material 材质
      *
      * @brief[en] Reuses this render object: resets it for a new mesh/geometry/material (pooling path)
      * @explain[en] The shadow depth pass and the post-processing passes create one
@@ -312,11 +315,6 @@ public open class RenderObject <: IRenderObject {
      *               without reallocating any helper object.
      *               Note: worldMatrix keeps the "references mesh.matrixWorld" semantics
      *               (the matrixWorld instance is updated in place, so the reference stays valid).
-     *
-     * @param[zh-cn] mesh 新的渲染对象（Mesh/Line/Points 等）
-     * geometry 几何体
-     * material 材质
-     *
      * @brief[en] mesh The new render object (Mesh/Line/Points etc.)
      * geometry Geometry
      * material Material

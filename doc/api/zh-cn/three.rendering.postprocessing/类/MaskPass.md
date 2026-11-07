@@ -1,15 +1,9 @@
 # 类
 ## class MaskPass
 ```cj
-public open class MaskPass <: Pass
+public open class MaskPass <: Pass & IReleasable
 ```
 遮罩 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 MaskPass 占用的 GPU 资源（几何缓存 + shader 缓存）。
 
 ### func init\(Scene,Camera\)
 ```cj
@@ -23,6 +17,12 @@ public init(scene: Scene, camera: Camera)
 |---|---|---|
 |scene|Scene|场景|
 |camera|Camera|相机|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 MaskPass 占用的 GPU 资源（几何缓存 + shader 缓存）。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

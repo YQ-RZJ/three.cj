@@ -1,15 +1,9 @@
 # 类
 ## class SpotLightHelper
 ```cj
-public class SpotLightHelper <: Object3D
+public class SpotLightHelper <: Object3D & IReleasable
 ```
 聚光灯辅助对象，用锥体线框可视化聚光灯的照射范围
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放 GPU 资源
 
 ### func init\(Light,Option<Color>\)
 ```cj
@@ -29,6 +23,12 @@ public init(light: Light, color!: Option < Color >= None < Color >)
 public init()
 ```
 构造聚光灯辅助对象
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放 GPU 资源
 
 ### func update\(\)
 ```cj

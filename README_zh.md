@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-0.2.0-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-1.0.0-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-跨平台-lightgrey" style="display: inline-block;" />
@@ -201,12 +201,36 @@ three/
 
 ## 构建与使用
 
-### 构建引擎库
+### 方式一（推荐）：使用预构建二进制产物
+
+推荐直接复用引擎 CI 发布的静态产物，无需自行编译引擎、收集依赖库或处理符号冲突：
+
+1. 参考 [`test/bin-reuse`](./test/bin-reuse/README_zh.md) 项目，下载与本机平台匹配的
+   静态产物包 `three-<os>-<arch>-static.zip`，解压置入工程的 `libs/` 目录；
+2. 参考 [`test/bin-reuse/cjpm.toml`](./test/bin-reuse/cjpm.toml)，为目标平台添加
+   `[target.<triple>.bin-dependencies]` 的 `path-option`（各模块目录），
+   并在 `link-option` 中声明 `-L libs -l:three-deps.a` + 该平台系统库清单；
+3. 编译运行：
+
+```bash
+cjpm build
+cjpm run
+```
+
+Windows / Linux / macOS 无需任何额外环境变量；OHOS / iOS / Android 需先设置对应 SDK
+环境变量（见 bin-reuse 项目 `cjpm.toml` 各 target 注释）。注意事项（cjc 版本匹配、
+宏插件动态库、平台与产物对应等）详见 [`test/bin-reuse/README_zh.md`](./test/bin-reuse/README_zh.md)。
+
+### 方式二（进阶）：从源码构建引擎库
+
+需要修改引擎源码时，选择源码依赖构建：
 
 ```bash
 # 在 three/ 目录下构建引擎（输出动态库）
 cjpm build
 ```
+
+> **并行编译提示**：由于引擎代码量较大，若选择自行编译，建议通过 `-j <N>` 参数启用并行编译以缩短构建时间，例如 `cjpm build -j 8`。
 
 > **链接符号说明（跨平台）**：cjpm 将每个仓颉子包链接为独立动态库，第三方仓颉 FFI 包以
 > 静态归档链入，需抑制其 mangled 符号的跨动态库重复导出、同时保持 C API 全局导出以收敛
@@ -218,7 +242,10 @@ cjpm build
 > `python scripts/gen_exclude_rsp.py` 即可同时刷新两个文件
 > （详见 [scripts/README_zh.md](./scripts/README_zh.md)）。
 
-### 编译配置
+### 进阶编译配置（源码构建时生效）
+
+以下编译期环境变量作用于**源码构建**的引擎与业务代码；使用方式一（预构建产物）时，
+引擎侧档位已由 CI 构建时固化在产物中，业务代码中的宏调用点仍按本节规则由自己的编译环境决定。
 
 #### THREE_LOG_LEVEL
 
@@ -305,18 +332,18 @@ cjpm run
 
 ### 在项目中使用
 
-**注意**：本项目 `cjpm.toml` 的 `link-option` 引用了 `EXTEDN_LIBS_PATH_*` 环境变量，使用前需配置其值为依赖文件的实际存放位置。比如：`cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
-
-在 `cjpm.toml` 中添加依赖：
+**方式一（推荐）：二进制产物复用**——下载预构建产物置入 `libs/` 后，参考
+[`test/bin-reuse/cjpm.toml`](./test/bin-reuse/cjpm.toml) 声明二进制模块与链接，例如
+Windows (MinGW) target：
 
 ```toml
-[dependencies]
-  [dependencies.three]
-    path = "path/to/three"
-    output-type = "static"
+[target.x86_64-w64-mingw32]
+  link-option = "-L libs -l:three-deps.a -lhid -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -lsetupapi -lshell32 -ldinput8 -ld3d11 -ldxgi -ld3dcompiler -lavrt -ldsound -lws2_32 -lcrypt32 -ladvapi32 -lz -ldbghelp -lsecur32"
+  [target.x86_64-w64-mingw32.bin-dependencies]
+    path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
 ```
 
-在仓颉代码中导入：
+在仓颉代码中导入（与源码依赖完全一致）：
 
 ```cangjie
 import three.rendering.*      // 渲染（BgfxRenderer/BgfxRenderTarget）
@@ -338,6 +365,19 @@ import three.audio.*               // 音频
 import three.script.*              // 脚本
 import three.window.ui.*          // 即时模式 UI（ImGui 控件）
 ```
+
+**方式二（进阶）：源码依赖**——需要修改引擎源码时，将引擎仓库作为 path 依赖引入：
+
+```toml
+[dependencies]
+  [dependencies.three]
+    path = "path/to/three"
+    output-type = "static"
+```
+
+> 注意：源码依赖方式下，本项目 `cjpm.toml` 的 `link-option` 引用了
+> `EXTEDN_LIBS_PATH_*` 环境变量，使用前需配置其值为依赖文件的实际存放位置。
+> 比如：`cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
 
 ## 线程模型
 

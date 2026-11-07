@@ -43,7 +43,7 @@ public class TextureBehaviorTest <: TestClass {
     func test_dispose() {
         // 对照 JS: dispose() 可调用（dispatch dispose 事件）
         let t = Texture()
-        t.dispose()
+        t.release()
         assertEqual("Texture dispose ok", "true", (t is Texture).toString(), "true")
     }
 }

@@ -92,11 +92,11 @@ public class TestWindow <: WindowEngine {
     public override func onClose(): Unit {
         println("")
         println("=== test_helpers 视觉测试完成 ===")
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
-        this.world.shutdown()
+        this.world.release()
         println("  PhysicsWorld 已关闭")
-        AudioContext.context.shutdown()
+        AudioContext.context.release()
         println("  AudioContext 已关闭")
     }
 }

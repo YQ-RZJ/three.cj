@@ -33,6 +33,7 @@ package three.rendering.bgfx
 
 import std.collection.*
 import std.sort.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 渲染项
@@ -275,7 +276,7 @@ public class BgfxRenderList {
  * @brief[en] bgfx render list management
  * @explain[en] Corresponds to WebGLRenderLists, manages caching of multiple render lists
  */
-public class BgfxRenderLists {
+public class BgfxRenderLists <: IReleasable {
     /**
      * @brief[zh-cn] 渲染列表缓存（场景 ID -> 渲染列表）
      *
@@ -311,9 +312,10 @@ public class BgfxRenderLists {
     /**
      * @brief[zh-cn] 释放所有渲染列表
      *
-     * @brief[en] Disposes all render lists
+     * @brief[en] dispose all render lists
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         lists = HashMap<Int64, BgfxRenderList>()
+        return true
     }
 }

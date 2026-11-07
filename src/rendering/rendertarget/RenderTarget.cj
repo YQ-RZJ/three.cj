@@ -31,6 +31,7 @@
  */
 package three.rendering.rendertarget
 
+import three.utils.safe.IReleasable
 import three.core.math.*
 import three.core.event.*
 import three.utils.constants.*
@@ -238,7 +239,7 @@ public class RenderTargetOptions {
  * @brief[en] Render target class, storing off-screen render buffer description
  * @explain[en] Usage example: let rt = RenderTarget(512, 512); rt.setSize(1024, 1024); renderer.setRenderTarget(rt). Extends EventDispatcher, managing off-screen rendering color/depth/stencil buffers and texture attachments.
  */
-public open class RenderTarget <: EventDispatcher {
+public open class RenderTarget <: EventDispatcher & IReleasable {
     /**
      * @brief[zh-cn] 几何体类型字符串
      *
@@ -534,7 +535,7 @@ public open class RenderTarget <: EventDispatcher {
                     }
                 }
             }
-            this.dispose()
+            this.release()
         }
         this.viewport.set(0.0, 0.0, Float64(width), Float64(height))
         this.scissor.set(0.0, 0.0, Float64(width), Float64(height))
@@ -613,8 +614,8 @@ public open class RenderTarget <: EventDispatcher {
      *
      * @brief[en] Release GPU-related resources allocated by this instance
      */
-    public func dispose(): Unit {
-        
-        this.dispatchEvent(Event("dispose"))
+    public func release(): Bool {
+        this.dispatchEvent(Event("release"))
+        return true
     }
 }

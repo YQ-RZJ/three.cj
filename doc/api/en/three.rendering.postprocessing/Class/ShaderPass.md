@@ -1,7 +1,7 @@
 # Class
 ## class ShaderPass
 ```cj
-public open class ShaderPass <: Pass
+public open class ShaderPass <: Pass & IReleasable
 ```
 Generic shader pass
 
@@ -18,12 +18,6 @@ Parameter:
 |renderer|ThreeRenderer|Renderer|
 |uniforms|BgfxUniforms|The uniform registry where the tDiffuse sampler has been created (extra uniforms can be added)|
 
-### func dispose\(\)
-```cj
-public open override func dispose(): Unit
-```
-Releases the GPU resources held by ShaderPass
-
 ### func init\(String,String\)
 ```cj
 public init(shaderName: String, textureID!: String = "tDiffuse")
@@ -36,6 +30,12 @@ Parameter:
 |---|---|---|
 |shaderName|String|The registered full-screen shader name in ShaderLibs|
 |textureID|String|The sampler name bound to readBuffer (default tDiffuse)|
+
+### func release\(\)
+```cj
+public open override func release(): Bool
+```
+Releases the GPU resources held by ShaderPass
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

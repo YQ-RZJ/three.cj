@@ -1,7 +1,7 @@
 # 类
 ## class XRController
 ```cj
-public class XRController
+public class XRController <: IReleasable
 ```
 XR 控制器
 
@@ -40,12 +40,6 @@ public func dispatchEvent(event: HashMap < String, Any >): Unit
 |名称|类型|描述|
 |---|---|---|
 |event|HashMap<String,Any>|事件数据|
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放资源
 
 ### func getGripSpace\(\)
 ```cj
@@ -92,6 +86,12 @@ public func getTargetRaySpace(): XRControllerSpace
 public init()
 ```
 
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放资源
 
 ### func setInputSource\(Any\)
 ```cj

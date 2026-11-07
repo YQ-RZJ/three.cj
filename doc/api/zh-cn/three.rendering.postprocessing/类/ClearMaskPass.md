@@ -1,7 +1,7 @@
 # 类
 ## class ClearMaskPass
 ```cj
-public class ClearMaskPass <: Pass
+public class ClearMaskPass <: Pass & IReleasable
 ```
 清遮罩 pass
 

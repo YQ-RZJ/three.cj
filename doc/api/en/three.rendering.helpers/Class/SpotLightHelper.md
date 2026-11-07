@@ -1,15 +1,9 @@
 # Class
 ## class SpotLightHelper
 ```cj
-public class SpotLightHelper <: Object3D
+public class SpotLightHelper <: Object3D & IReleasable
 ```
 Spot light helper visualizing illumination range with a cone wireframe
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Dispose GPU resources
 
 ### func init\(Light,Option<Color>\)
 ```cj
@@ -29,6 +23,12 @@ Parameter:
 public init()
 ```
 Construct a spot light helper
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release GPU resources
 
 ### func update\(\)
 ```cj

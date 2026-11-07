@@ -1,7 +1,7 @@
 # Class
 ## class GroundReflector
 ```cj
-public class GroundReflector <: Mesh
+public class GroundReflector <: Mesh & IReleasable
 ```
 Ground reflector (SSRPass dedicated planar reflection component)
 
@@ -20,12 +20,6 @@ Parameter:
 Return: 
 
 - true = renderable (facing correct), false = reflector facing away from camera (skip)流程：1. fresnelCoe = (dot(normalize(camera.position), reflect(normalize(camera.position), yAxis)) + 1) / 22. 反射面朝向检测：view = reflectorWorldPosition - cameraWorldPosition；view.dot(normal) > 0 → 反射面背向相机 → 返回 false（跳过本次渲染）3. 镜像构造 virtualCamera（位置/up/看向 target 全部按 normal 镜像）4. textureMatrix = 0.5偏移 × proj × viewInv × matrixWorld
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放反射器 GPU 资源。
 
 ### func ensureRTs\(\)
 ```cj
@@ -90,6 +84,12 @@ Parameter:
 |color|Color||
 |clipBias|Float64||
 |useDepthTexture|Bool||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+frees the reflector GPU resources.
 
 ### let REFLECTOR\_VIEW\_ID\_BASE
 ```cj

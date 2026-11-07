@@ -1,7 +1,7 @@
 # 类
 ## class Audio
 ```cj
-public open class Audio <: Object3D
+public open class Audio <: Object3D & IReleasable
 ```
 非位置音频基类，继承 Object3D
 
@@ -164,6 +164,12 @@ public open func play(offset: Float64): Audio
 返回: 
 
 - this（便于链式调用）
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+释放音频对象（停止 + 删除 OpenAL 源 + 注销隐式创建的监听器）
 
 ### func removeDirectFilter\(\)
 ```cj

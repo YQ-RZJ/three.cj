@@ -1,15 +1,9 @@
 # Class
 ## class PMREMGenerator
 ```cj
-public class PMREMGenerator
+public class PMREMGenerator <: IReleasable
 ```
 PMREM generator class
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Release resources held by the generator
 
 ### func fromColor\(Color\)
 ```cj
@@ -85,6 +79,12 @@ Return:
 public init()
 ```
 Construct PMREM generator
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+Release resources held by the generator
 
 ### let LEVEL\_FACE\_SIZES
 ```cj

@@ -1,15 +1,9 @@
 # 类
 ## class Pass
 ```cj
-public open class Pass
+public open class Pass <: IReleasable
 ```
 后处理 pass 抽象基类
-
-### func dispose\(\)
-```cj
-public open func dispose(): Unit
-```
-释放 pass 占用的 GPU 资源
 
 ### func init\(\)
 ```cj
@@ -28,6 +22,12 @@ public open func onAttach(composer: EffectComposer): Unit
 |名称|类型|描述|
 |---|---|---|
 |composer|EffectComposer|挂载的 EffectComposer|
+
+### func release\(\)
+```cj
+public open func release(): Bool
+```
+基类默认 no-op，子类覆写释放自身 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

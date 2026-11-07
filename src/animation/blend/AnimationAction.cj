@@ -405,12 +405,11 @@ public class AnimationAction {
      * @brief[zh-cn] 设置有效权重
      * @param[zh-cn] weight 权重
      * @return[zh-cn] 返回自身以支持链式调用
+     * @note[zh-cn] 动作禁用时有效权重为 0
      *
      * @brief[en] Sets the effective weight
      * @param[en] weight The weight
      * @return[en] Returns itself for chaining
-     *
-     * @note[zh-cn] 动作禁用时有效权重为 0
      * @note[en] The effective weight is 0 while the action is disabled
      */
     public func setEffectiveWeight(weight: Float64): AnimationAction {
@@ -529,12 +528,11 @@ public class AnimationAction {
      * @brief[zh-cn] 设置有效时间缩放
      * @param[zh-cn] timeScale 时间缩放
      * @return[zh-cn] 返回自身以支持链式调用
+     * @note[zh-cn] 动作暂停时有效时间缩放为 0
      *
      * @brief[en] Sets the effective time scale
      * @param[en] timeScale The time scale
      * @return[en] Returns itself for chaining
-     *
-     * @note[zh-cn] 动作暂停时有效时间缩放为 0
      * @note[en] The effective time scale is 0 while the action is paused
      */
     public func setEffectiveTimeScale(timeScale: Float64): AnimationAction {

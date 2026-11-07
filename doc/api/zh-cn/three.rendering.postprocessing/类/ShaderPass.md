@@ -1,7 +1,7 @@
 # 类
 ## class ShaderPass
 ```cj
-public open class ShaderPass <: Pass
+public open class ShaderPass <: Pass & IReleasable
 ```
 通用 shader pass
 
@@ -18,12 +18,6 @@ public open func bindExtraUniforms(renderer: ThreeRenderer, uniforms: BgfxUnifor
 |renderer|ThreeRenderer|渲染器|
 |uniforms|BgfxUniforms|已创建 tDiffuse sampler 的 uniform 注册表（可继续创建额外 uniform）|
 
-### func dispose\(\)
-```cj
-public open override func dispose(): Unit
-```
-释放 ShaderPass 占用的 GPU 资源
-
 ### func init\(String,String\)
 ```cj
 public init(shaderName: String, textureID!: String = "tDiffuse")
@@ -36,6 +30,12 @@ public init(shaderName: String, textureID!: String = "tDiffuse")
 |---|---|---|
 |shaderName|String|ShaderLibs 已注册的全屏 shader 名|
 |textureID|String|绑 readBuffer 的 sampler 名（默认 tDiffuse）|
+
+### func release\(\)
+```cj
+public open override func release(): Bool
+```
+释放 ShaderPass 占用的 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

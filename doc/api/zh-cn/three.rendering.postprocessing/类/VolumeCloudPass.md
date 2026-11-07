@@ -1,7 +1,7 @@
 # 类
 ## class VolumeCloudPass
 ```cj
-public class VolumeCloudPass <: ShaderPass
+public class VolumeCloudPass <: ShaderPass & IReleasable
 ```
 体积云后处理 pass（全屏 ray marching）
 
@@ -28,14 +28,6 @@ bgfx 需在 submit 前经 uniforms 注册表 createUniform + setUniform 绑定�
 |---|---|---|
 |renderer|ThreeRenderer|渲染器|
 |uniforms|BgfxUniforms|已创建 tDiffuse sampler 的 uniform 注册表（继续创建体积云 uniforms）|
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放体积云 pass 占用的 GPU 资源。
-volumecloud shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
-3D 噪声纹理为本 pass 自建，须显式销毁；全屏 quad 由 EffectComposer 统一管理。
 
 ### func init\(Camera,Vector3,Vector3,Color,Float64,Float64,Float64,Float64,Int64\)
 ```cj
@@ -68,6 +60,14 @@ public override func onAttach(composer: EffectComposer): Unit
 |名称|类型|描述|
 |---|---|---|
 |composer|EffectComposer|挂载的 EffectComposer（composer.renderer 即渲染器）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放体积云 pass 占用的 GPU 资源。
+volumecloud shader program 由 PostProcessingShaders 全局管理，不在此 dispose。
+3D 噪声纹理为本 pass 自建，须显式销毁；全屏 quad 由 EffectComposer 统一管理。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

@@ -43,6 +43,7 @@ import three.audio.device.*
 import three.audio.listener.*
 import three.profiler.*
 import three.profiler.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 音频缓冲区，存储解码后的 PCM 数据
@@ -52,7 +53,7 @@ import three.profiler.macros.*
  * @explain[en] Implements ILoadResult for binding to an OpenAL source via
  * Audio / PositionalAudio.
  */
-public class AudioBuffer <: ILoadResult {
+public class AudioBuffer <: ILoadResult & IReleasable {
     /**
      * @brief[zh-cn] OpenAL 缓冲区 ID
      *
@@ -124,6 +125,7 @@ public class AudioBuffer <: ILoadResult {
      * channels 声道数（1=单声道, 2=立体声）
      * sampleRate 采样率
      * @return[zh-cn] 创建的 AudioBuffer 实例
+     * @note[zh-cn] OpenAL 调用经 context.execAudio 在音频线程执行。
      *
      * @brief[en] Creates and fills an OpenAL buffer from PCM data (static buffer)
      * @param[en] pcmData PCM data pointer (16-bit interleaved format)
@@ -131,8 +133,6 @@ public class AudioBuffer <: ILoadResult {
      * channels Number of channels (1=mono, 2=stereo)
      * sampleRate Sample rate
      * @return[en] The created AudioBuffer instance
-     *
-     * @note[zh-cn] OpenAL 调用经 context.execAudio 在音频线程执行。
      * @note[en] OpenAL calls run on the audio thread via context.execAudio.
      */
     @Zone[three.audio.source.AudioBuffer.create, name=audioBufferCreate]
@@ -201,15 +201,25 @@ public class AudioBuffer <: ILoadResult {
     }
 
     /**
+     * @brief[zh-cn] 资源是否有效（未释放）
+     * @return[zh-cn] 有效返回 true
+     *
+     * @brief[en] Whether the resource is valid (not released)
+     * @return[en] Returns true when valid
+     */
+    public prop releasable: Bool {
+        get() { !this._disposed }
+    }
+
+    /**
      * @brief[zh-cn] 释放 OpenAL 缓冲区资源
+     * @note[zh-cn] OpenAL 调用经 context.execAudio 在音频线程执行；重复调用幂等返回 false。
      *
      * @brief[en] Releases the OpenAL buffer resource
-     *
-     * @note[zh-cn] OpenAL 调用经 context.execAudio 在音频线程执行。
-     * @note[en] OpenAL calls run on the audio thread via context.execAudio.
+     * @note[en] OpenAL calls run on the audio thread via context.execAudio; repeated calls return false.
      */
-    public func dispose(): Unit {
-        if (_disposed) { return }
+    public func release(): Bool {
+        if (_disposed) { return false }
         if (bufferId != 0u32) {
             let delId = bufferId
             AudioContext.context.execAudio({ =>
@@ -221,5 +231,6 @@ public class AudioBuffer <: ILoadResult {
             bufferId = 0u32
         }
         _disposed = true
+        return true
     }
 }

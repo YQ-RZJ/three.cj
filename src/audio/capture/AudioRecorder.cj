@@ -36,7 +36,7 @@
  * recorder.start()
  * // 每帧/定时：let n = recorder.getAvailableSamples(); recorder.readSamples(buf, n)
  * recorder.stop()
- * recorder.close()
+ * recorder.release()
  *
  * @file[en] AudioRecorder  Microphone audio capture (ALC capture extension), recording capability
  * @brief[en] Audio recorder: wraps the OpenAL ALC 1.1 capture extension for microphone capture
@@ -55,7 +55,7 @@
  * recorder.start()
  * // per frame/timer: let n = recorder.getAvailableSamples(); recorder.readSamples(buf, n)
  * recorder.stop()
- * recorder.close()
+ * recorder.release()
  */
 package three.audio.capture
 
@@ -67,6 +67,7 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import three.profiler.*
 import three.profiler.macros.*
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 麦克风音频捕获器，封装 ALC capture 扩展
@@ -78,7 +79,7 @@ import three.profiler.macros.*
  * capture and reading PCM data. All ALC calls are serialized onto the audio
  * thread via AudioContext.execAudio.
  */
-public class AudioRecorder {
+public class AudioRecorder <: IReleasable {
     /**
      * @brief[zh-cn] 捕获设备句柄
      *
@@ -192,14 +193,13 @@ public class AudioRecorder {
      * channels 声道数（1 = 单声道 / 2 = 立体声）
      * bufferSize 内部缓冲大小（帧数，建议 4096 以上）
      * @return[zh-cn] 是否成功打开
+     * @note[zh-cn] 对应 alcCaptureOpenDevice(NULL, frequency, format, buffersize)，在音频线程内执行。
      *
      * @brief[en] Opens the default capture device (microphone)
      * @param[en] frequency Sample rate in Hz (e.g. 44100 / 48000)
      * channels Channel count (1 = mono / 2 = stereo)
      * bufferSize Internal buffer size in frames (recommended >= 4096)
      * @return[en] Whether the device was opened successfully
-     *
-     * @note[zh-cn] 对应 alcCaptureOpenDevice(NULL, frequency, format, buffersize)，在音频线程内执行。
      * @note[en] Maps to alcCaptureOpenDevice(NULL, frequency, format, buffersize), executed on the audio thread.
      */
     public func open(frequency: UInt32, channels: UInt32, bufferSize!: Int32 = 8192): Bool {
@@ -238,11 +238,10 @@ public class AudioRecorder {
     /**
      * @brief[zh-cn] 开始捕获
      * @return[zh-cn] 是否已开始（设备已打开）
+     * @note[zh-cn] 对应 alcCaptureStart(device)。
      *
      * @brief[en] Starts capturing
      * @return[en] Whether capture has started (device opened)
-     *
-     * @note[zh-cn] 对应 alcCaptureStart(device)。
      * @note[en] Maps to alcCaptureStart(device).
      */
     public func start(): Bool {
@@ -255,10 +254,9 @@ public class AudioRecorder {
 
     /**
      * @brief[zh-cn] 停止捕获（保留已捕获数据，可继续读取）
+     * @note[zh-cn] 对应 alcCaptureStop(device)。
      *
      * @brief[en] Stops capturing (keeps captured data, which can still be read)
-     *
-     * @note[zh-cn] 对应 alcCaptureStop(device)。
      * @note[en] Maps to alcCaptureStop(device).
      */
     public func stop(): Unit {
@@ -271,11 +269,10 @@ public class AudioRecorder {
     /**
      * @brief[zh-cn] 获取当前可读取的采样帧数
      * @return[zh-cn] 可用帧数（0 = 暂无数据）
+     * @note[zh-cn] 对应 alcGetIntegerv(device, ALC_CAPTURE_SAMPLES, 1, &n)。
      *
      * @brief[en] Returns the number of sample frames currently available to read
      * @return[en] Number of available frames (0 = no data yet)
-     *
-     * @note[zh-cn] 对应 alcGetIntegerv(device, ALC_CAPTURE_SAMPLES, 1, &n)。
      * @note[en] Maps to alcGetIntegerv(device, ALC_CAPTURE_SAMPLES, 1, &n).
      */
     public func getAvailableSamples(): Int32 {
@@ -297,13 +294,12 @@ public class AudioRecorder {
      * @param[zh-cn] buffer 目标缓冲（调用方分配，大小须 ≥ samples × 声道数 × 2 字节）
      * samples 要读取的采样帧数（≤ getAvailableSamples()）
      * @return[zh-cn] 实际读取的字节数（samples × 声道数 × 2）
+     * @note[zh-cn] 对应 alcCaptureSamples(device, buffer, samples)；数据为 16-bit 交错 PCM。
      *
      * @brief[en] Reads captured PCM data
      * @param[en] buffer Target buffer (caller-allocated, size must be >= samples × channels × 2 bytes)
      * samples Number of sample frames to read (<= getAvailableSamples())
      * @return[en] Number of bytes actually read (samples × channels × 2)
-     *
-     * @note[zh-cn] 对应 alcCaptureSamples(device, buffer, samples)；数据为 16-bit 交错 PCM。
      * @note[en] Maps to alcCaptureSamples(device, buffer, samples); the data is 16-bit
      * interleaved PCM.
      */
@@ -318,15 +314,25 @@ public class AudioRecorder {
     }
 
     /**
+     * @brief[zh-cn] 资源是否有效（捕获设备已打开且未被释放）
+     * @return[zh-cn] 有效返回 true
+     *
+     * @brief[en] Whether the resource is valid (capture device opened and not released)
+     * @return[en] Returns true when valid
+     */
+    public prop releasable: Bool {
+        get() { !this._captureDevice.isNull() }
+    }
+
+    /**
      * @brief[zh-cn] 关闭捕获设备并释放资源
+     * @note[zh-cn] 对应 alcCaptureCloseDevice(device)；设备未打开时为幂等空操作。
      *
      * @brief[en] Closes the capture device and releases resources
-     *
-     * @note[zh-cn] 对应 alcCaptureCloseDevice(device)。
-     * @note[en] Maps to alcCaptureCloseDevice(device).
+     * @note[en] Maps to alcCaptureCloseDevice(device); idempotent no-op when the device is not opened.
      */
-    public func close(): Unit {
-        if (!this._opened) { return }
+    public func release(): Bool {
+        if (!this._opened) { return false }
         let dev = this._captureDevice
         let wasRecording = this._recording
         AudioContext.context.execAudio({ =>
@@ -338,5 +344,6 @@ public class AudioRecorder {
         this._captureDevice = CPointer<Unit>()
         this._opened = false
         this._recording = false
+        return true
     }
 }

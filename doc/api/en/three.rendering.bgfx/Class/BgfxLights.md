@@ -1,15 +1,9 @@
 # Class
 ## class BgfxLights
 ```cj
-public class BgfxLights
+public class BgfxLights <: IReleasable
 ```
 bgfx light management
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Disposes all light caches
 
 ### func getCache\(\)
 ```cj
@@ -42,6 +36,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |info|BgfxInfo||
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+dispose all light caches
 
 ### func reset\(\)
 ```cj

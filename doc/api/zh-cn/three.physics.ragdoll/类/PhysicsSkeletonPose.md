@@ -1,7 +1,7 @@
 # 类
 ## class PhysicsSkeletonPose
 ```cj
-public class PhysicsSkeletonPose
+public class PhysicsSkeletonPose <: IReleasable
 ```
 骨骼姿态：每个关节的局部位移/旋转（或关节矩阵）
 
@@ -16,12 +16,6 @@ public func calculateJointMatrices(): Unit
 public func calculateJointStates(): Unit
 ```
 由关节矩阵反算全部关节状态（位移/旋转）
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放底层姿态句柄
 
 ### func getJointMatrix\(Int64\)
 ```cj
@@ -67,6 +61,12 @@ public init(skeleton: PhysicsSkeleton)
 |---|---|---|
 |skeleton|PhysicsSkeleton|目标骨骼|
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+释放底层姿态句柄
+
 ### func setJointMatrix\(Int64,Matrix4\)
 ```cj
 public func setJointMatrix(index: Int64, matrix: Matrix4): Unit
@@ -99,6 +99,12 @@ public func setJointState(index: Int64, translation: Vector3, rotation: Quaterni
 public prop jointCount: Int64
 ```
 姿态中的关节数量
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+姿态是否有效（创建成功且未销毁）
 
 ### prop rootOffset: Vector3
 ```cj

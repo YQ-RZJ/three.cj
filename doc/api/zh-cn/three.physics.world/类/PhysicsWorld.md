@@ -1,7 +1,7 @@
 # 类
 ## class PhysicsWorld
 ```cj
-public class PhysicsWorld
+public class PhysicsWorld <: IReleasable
 ```
 物理世界门面
 
@@ -518,6 +518,12 @@ public func raycast(origin: Vector3, direction: Vector3, hit: PhysicsRayHit): Bo
 
 - 是否命中
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+销毁所有绑定/刚体 → 释放后端 → 通知物理线程退出
+
 ### func setAngularVelocity\(PhysicsBodyHandle,Vector3\)
 ```cj
 public func setAngularVelocity(handle: PhysicsBodyHandle, angularVelocity: Vector3): Unit
@@ -766,12 +772,6 @@ public func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: F
 |---|---|---|
 |handle|PhysicsConstraintHandle|约束句柄velocity 目标速度|
 |velocity|Float64||
-
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-关闭物理世界：销毁所有绑定/刚体 → backend.shutdown → 通知物理线程退出
 
 ### func start\(UInt32,Vector3\)
 ```cj

@@ -26,6 +26,7 @@
  * @explain[zh-cn] 统一表示 Lua 侧的基础值（nil/boolean/number/integer/string），供 LuaVM 压栈/读取
  * 与函数参数/返回值使用。表（LuaTable）与函数（LuaFunction）是引用类型，使用独立类封装
  * （内部经 luaL_ref 注册表引用保持有效），不放进本枚举。
+ * @example[zh-cn] 设置与读取全局变量
  *
  * @file[en] LuaValue  Lua value type (three.script.vm sub-package)
  * @brief[en] Lua base value type unifying Lua-side primitive values
@@ -33,8 +34,6 @@
  * stack push/read and function arguments/results in LuaVM. Tables (LuaTable) and functions
  * (LuaFunction) are reference types wrapped by dedicated classes (kept alive via the
  * luaL_ref registry reference) and therefore are not part of this enum.
- *
- * @example[zh-cn] 设置与读取全局变量
  * @example[en] Setting and reading a global variable
  * let v: LuaValue = LuaValue.Number(42.0)
  * vm.setGlobal("answer", v)

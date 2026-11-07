@@ -30,7 +30,6 @@
  * @brief[en] Single-joint aim IK job
  * @explain[en] Rotates a single joint so its forward axis aims at a target position.
  *              Supports pole vector, twist angle, and IK weight blending.
- *
  * @brief[en] Single-joint aim IK job
  */
 package three.animation.skeletal

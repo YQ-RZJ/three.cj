@@ -1,7 +1,7 @@
 # Class
 ## class ThreeRenderer
 ```cj
-public class ThreeRenderer <: Renderer & IRenderer
+public class ThreeRenderer <: Renderer & IRenderer & IReleasable
 ```
 bgfx renderer — thin Renderer implementation
 
@@ -1662,6 +1662,25 @@ Return:
 
 - Frame number when data is ready (safe to read data after this frame)
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+shutdown bgfx renderer and release resources
+
+### func renderAsync\(Scene,Camera\)
+```cj
+public func renderAsync(scene: Scene, camera: Camera): Unit
+```
+Render one frame asynchronously: post the whole frame to the render thread and return immediately
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|scene|Scene||
+|camera|Camera||
+
 ### func renderFrame\(Int32\)
 ```cj
 public func renderFrame(msecs: Int32): UInt32
@@ -2463,12 +2482,6 @@ Parameter:
 |view|BgfxMemory||
 |proj|BgfxMemory||
 
-### func shutdown\(\)
-```cj
-public func shutdown(): Unit
-```
-Shutdown bgfx renderer and release resources
-
 ### func submitIndirectCount\(UInt16,ProgramHandle,IndirectBufferHandle,UInt32,IndexBufferHandle,UInt32,UInt32,UInt32,UInt8\)
 ```cj
 public func submitIndirectCount(viewId: UInt16, program: ProgramHandle, indirect: IndirectBufferHandle, start: UInt32, numHandle: IndexBufferHandle, numIndex: UInt32, numMax: UInt32, depth!: UInt32 = 0u32, blend!: UInt8 = 0xFFu8): Unit
@@ -2537,6 +2550,12 @@ Parameter:
 |program|ProgramHandle||
 |depth|UInt32||
 |blend|UInt8||
+
+### func syncFrame\(\)
+```cj
+public func syncFrame(): Unit
+```
+Wait until all posted commands (including a pending async frame) have executed
 
 ### func touchView\(UInt16\)
 ```cj

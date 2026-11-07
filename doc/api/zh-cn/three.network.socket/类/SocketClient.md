@@ -1,17 +1,9 @@
 # 类
 ## class SocketClient
 ```cj
-public class SocketClient
+public class SocketClient <: IReleasable
 ```
 TCP 客户端
-
-### func close\(\)
-```cj
-public func close(): Unit
-```
-关闭连接
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>关闭后触发 onClose。</p>
 
 ### func connect\(\)
 ```cj
@@ -67,6 +59,14 @@ public func read(buf: Array < UInt8 >): Int64
 返回: 
 
 - 返回实际读取的字节数；连接关闭或出错返回 -1
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭连接
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>关闭后触发 onClose；未连接时为幂等空操作并返回 false。</p>
 
 ### func writeString\(String\)
 ```cj

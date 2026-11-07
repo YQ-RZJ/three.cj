@@ -64,52 +64,60 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 场景渲染 pass
- * @brief[en] Scene rendering pass
  * @explain[zh-cn] 把 scene/camera 渲染到 composer 的 readBuffer。
+ *
+ * @brief[en] Scene rendering pass
  * @explain[en] Renders the scene/camera into the composer's readBuffer.
  */
 public class RenderPass <: Pass {
     /**
      * @brief[zh-cn] 待渲染场景
+     *
      * @brief[en] Scene to render
      */
     public let scene: Scene
 
     /**
      * @brief[zh-cn] 待渲染相机
+     *
      * @brief[en] Camera to render with
      */
     public let camera: Camera
 
     /**
      * @brief[zh-cn] override material（可选）
+     *
      * @brief[en] Override material (optional)
      */
     public var overrideMaterial: Option<Material> = Option<Material>.None
 
     /**
      * @brief[zh-cn] clear color（可选）
+     *
      * @brief[en] Clear color (optional)
      */
     public var clearColor: Option<UInt32> = None
 
     /**
      * @brief[zh-cn] clear alpha（可选）
+     *
      * @brief[en] Clear alpha (optional)
      */
     public var clearAlpha: Option<Float64> = None
 
     /**
      * @brief[zh-cn] 是否清深度
+     *
      * @brief[en] Whether to clear the depth buffer
      */
     public var clearDepth: Bool = false
 
     /**
      * @brief[zh-cn] 构造 RenderPass
-     * @brief[en] Constructs RenderPass
      * @param[zh-cn] scene 场景
      * @param[zh-cn] camera 相机
+     *
+     * @brief[en] Constructs RenderPass
      * @param[en] scene Scene
      * @param[en] camera Camera
      */
@@ -123,15 +131,18 @@ public class RenderPass <: Pass {
         // 场景画进 readBuffer 后保持 readBuffer=场景结果，下一 pass 从 readBuffer 采样场景。
         // 若设 needsSwap=true，swap 后 readBuffer 变成空 buffer → 后续 pass 从空 buffer 采样 → 全黑。
         this.needsSwap = false
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
      * @brief[zh-cn] 渲染场景到 readBuffer
-     * @brief[en] Renders the scene into the readBuffer
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] writeBuffer 写 buffer（本 pass 不用）
      * @param[zh-cn] readBuffer 读 buffer（本 pass 的渲染目标）
      * @param[zh-cn] deltaTime 帧间隔
+     *
+     * @brief[en] Renders the scene into the readBuffer
      * @param[en] renderer Renderer
      * @param[en] writeBuffer Write buffer (unused by this pass)
      * @param[en] readBuffer Read buffer (render target of this pass)

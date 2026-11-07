@@ -93,15 +93,6 @@ public class HemisphereLight <: Light {
     }
 
     /**
-     * @brief[zh-cn] 释放 GPU 资源
-     *
-     * @brief[en] Dispose GPU resources
-     */
-    public override func dispose(): Unit {
-        super.dispose()
-    }
-
-    /**
      * @brief[zh-cn] 复制另一个半球光实例的值到本实例
      * @param[zh-cn] source 源对象
      * recursive 是否递归复制子对象

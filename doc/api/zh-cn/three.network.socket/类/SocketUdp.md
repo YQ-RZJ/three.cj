@@ -1,7 +1,7 @@
 # 类
 ## class SocketUdp
 ```cj
-public class SocketUdp
+public class SocketUdp <: IReleasable
 ```
 UDP 套接字
 
@@ -31,12 +31,6 @@ public func bind(): Bool
 
 - 绑定成功返回 true；失败返回 false
 
-### func close\(\)
-```cj
-public func close(): Unit
-```
-关闭套接字
-
 ### func init\(UInt16\)
 ```cj
 public init(bindPort!: UInt16 = 0)
@@ -60,6 +54,14 @@ public func receive():(String, Array < UInt8 >)
 返回: 
 
 - 返回 (远端地址字符串, 数据字节)；失败时返回 ("", [])
+
+### func release\(\)
+```cj
+public func release(): Bool
+```
+关闭套接字
+
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>未绑定时为幂等空操作并返回 false。</p>
 
 ### func sendString\(String,UInt16,String\)
 ```cj

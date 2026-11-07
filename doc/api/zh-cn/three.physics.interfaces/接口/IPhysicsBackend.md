@@ -523,6 +523,16 @@ func raycast(origin: Vector3, direction: Vector3, hit: PhysicsRayHit): Bool
 
 - 是否命中
 
+### func release\(\)
+```cj
+func release(): Bool
+```
+释放后端
+
+返回: 
+
+- 本次调用真正执行了释放返回 true；重复调用返回 false
+
 ### func setAngularVelocity\(PhysicsBodyHandle,Vector3\)
 ```cj
 func setAngularVelocity(handle: PhysicsBodyHandle, angularVelocity: Vector3): Unit
@@ -841,14 +851,6 @@ func setSliderTargetVelocity(handle: PhysicsConstraintHandle, velocity: Float64)
 |---|---|---|
 |handle|PhysicsConstraintHandle|约束句柄velocity 目标速度（米/秒）|
 |velocity|Float64||
-
-### func shutdown\(\)
-```cj
-func shutdown(): Unit
-```
-关闭后端（销毁物理系统 + 全局卸载）
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>调用后本实例不可再用。</p>
 
 ### func update\(Float32,Int32\)
 ```cj

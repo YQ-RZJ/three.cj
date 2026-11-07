@@ -1,7 +1,7 @@
 # Class
 ## class LuaTable
 ```cj
-public class LuaTable
+public class LuaTable <: IReleasable
 ```
 Lua table reference
 
@@ -22,12 +22,6 @@ Parameter:
 Return: 
 
 - The reference to the newly created table
-
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-Releases the registry reference
 
 ### func fromGlobal\(LuaVM,String\)
 ```cj
@@ -101,6 +95,12 @@ Return:
 
 - The length of the array part of the table
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+releases the registry reference.
+
 ### func setIndex\(Int32,LuaValue\)
 ```cj
 public func setIndex(i: Int32, value: LuaValue): Unit
@@ -133,15 +133,15 @@ public prop isArray: Bool
 ```
 Whether the table is an array (consecutive integer keys)
 
-### prop isValid: Bool
-```cj
-public prop isValid: Bool
-```
-Whether the reference is still valid (not disposed)
-
 ### prop ref: Int32
 ```cj
 public prop ref: Int32
 ```
 The registry reference id
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+Whether the reference is still valid (not disposed)
 

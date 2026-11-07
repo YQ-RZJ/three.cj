@@ -289,14 +289,14 @@ public class TestWindow <: WindowEngine {
         println("")
         println("[5/5] 清理资源...")
         match (this.composer) {
-            case Some(composer) => composer.dispose()
+            case Some(composer) => composer.release()
             case None => ()
         }
         // 释放 3D LUT 纹理（本测试项目创建，负责销毁）
         for (t in g_lutTextures) {
             if (Handle.isValid(t)) { this.renderer.destroyTexture(t) }
         }
-        this.renderer.shutdown()
+        this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")
     }

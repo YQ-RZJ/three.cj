@@ -91,7 +91,7 @@ main(): Int64 {
     // ---------- 1. LuaVM 生命周期 ----------
     println("[1] LuaVM 生命周期")
     let vm = LuaVM(openLibs: true)
-    check("创建 LuaVM 成功", vm.isValid)
+    check("创建 LuaVM 成功", vm.releasable)
     check("标准库已打开", vm.libsOpened)
     println("  Lua 版本: ${LuaVM.version}, LuaJIT: ${LuaVM.jitVersion}")
     println("")
@@ -145,9 +145,9 @@ main(): Int64 {
     println("[6] 编译 loadString → LuaFunction")
     // loadString 编译 chunk（定义全局函数 add），再经 fromGlobal 获取函数引用
     let defFn = vm.loadString("function add(a, b) return a + b end")
-    check("loadString 编译成功", defFn.isValid)
+    check("loadString 编译成功", defFn.releasable)
     defFn.call(args: [])  // 执行 chunk：定义全局 add
-    defFn.dispose()
+    defFn.release()
     let addOpt = LuaFunction.fromGlobal(vm, "add")
     check("fromGlobal 获取 add", addOpt.isSome())
     match (addOpt) {
@@ -156,7 +156,7 @@ main(): Int64 {
             checkEq("编译函数 add(3,4) = 7", sum[0].numberValue(), 7.0)
             let sum2 = addFn.call(args: [LuaValue.of(10.0), LuaValue.of(20.0)])
             checkEq("重复调用 add(10,20) = 30", sum2[0].numberValue(), 30.0)
-            addFn.dispose()
+            addFn.release()
         case None => ()
     }
     println("")
@@ -165,7 +165,7 @@ main(): Int64 {
     println("[7] LuaFunction.call 多返回值")
     let defMulti = vm.loadString("function multi(a, b) return a + b, a * b, a - b end")
     defMulti.call(args: [])  // 定义全局 multi
-    defMulti.dispose()
+    defMulti.release()
     let multiOpt = LuaFunction.fromGlobal(vm, "multi")
     check("fromGlobal 获取 multi", multiOpt.isSome())
     match (multiOpt) {
@@ -175,7 +175,7 @@ main(): Int64 {
             checkEq("和 = 10", mr[0].numberValue(), 10.0)
             checkEq("积 = 21", mr[1].numberValue(), 21.0)
             checkEq("差 = 4", mr[2].numberValue(), 4.0)
-            multiFn.dispose()
+            multiFn.release()
         case None => ()
     }
     println("")
@@ -193,7 +193,7 @@ main(): Int64 {
             t.set("hp", LuaValue.of(Int64(90)))
             check("写字段 hp = 90", t.get("hp").intValue() == 90)
             check("表长度 = 0（非数组）", t.len() == 0)
-            t.dispose()
+            t.release()
         case None => ()
     }
     // 数组表
@@ -207,7 +207,7 @@ main(): Int64 {
             a.setIndex(3, LuaValue.of(Int64(99)))
             check("写 arr[3] = 99", a.getIndex(3).intValue() == 99)
             check("isArray = true", a.isArray)
-            a.dispose()
+            a.release()
         case None => ()
     }
     // 从仓颉创建表
@@ -216,7 +216,7 @@ main(): Int64 {
     newT.setIndex(1, LuaValue.of(Int64(7)))
     checkStr("仓颉建表字段", newT.get("kind").stringValue(), "created_from_cj")
     check("仓颉建表 arr[1] = 7", newT.getIndex(1).intValue() == 7)
-    newT.dispose()
+    newT.release()
     println("")
 
     // ---------- 9. 仓颉方法绑定（Lua 调仓颉） ----------
@@ -260,7 +260,7 @@ main(): Int64 {
     // （说明：LuaTable 是注册表引用，直接演示 set 后从 Lua 调用）
     cjObj.set("name", LuaValue.of("CJObject"))
     checkStr("表字段 name", cjObj.get("name").stringValue(), "CJObject")
-    cjObj.dispose()
+    cjObj.release()
     println("")
 
     // ---------- 11. 错误处理 ----------
@@ -324,9 +324,9 @@ main(): Int64 {
     println("[15] 版本信息与清理")
     println("  Lua 版本: ${LuaVM.version}")
     println("  LuaJIT 版本: ${LuaVM.jitVersion}")
-    vm.dispose()
-    check("dispose 不抛异常", true)
-    check("dispose 后 invalid", !vm.isValid)
+    vm.release()
+    check("release 不抛异常", true)
+    check("release 后 invalid", !vm.releasable)
     println("")
 
     // ========== 结果汇总 ==========

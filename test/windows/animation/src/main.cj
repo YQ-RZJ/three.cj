@@ -133,7 +133,7 @@ public class TestWindow <: WindowEngine {
 
     public override func onClose(): Unit {
         println("[close] frame=${this.frame}")
-        this.renderer.shutdown()
+        this.renderer.release()
     }
 }
 

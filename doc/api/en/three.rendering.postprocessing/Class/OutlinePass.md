@@ -1,15 +1,9 @@
 # Class
 ## class OutlinePass
 ```cj
-public class OutlinePass <: Pass
+public class OutlinePass <: Pass & IReleasable
 ```
 Outline post-processing pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 OutlinePass 占用的 GPU 资源（所有 RT + shader 缓存）。
 
 ### func init\(Vector2,Scene,Camera,ArrayList<Object3D>\)
 ```cj
@@ -25,6 +19,12 @@ Parameter:
 |scene|Scene|待渲染场景|
 |camera|Camera|待渲染相机|
 |selectedObjects|ArrayList<Object3D>|选中的 3D 物体（描边目标）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 OutlinePass 占用的 GPU 资源（所有 RT + shader 缓存）。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj
@@ -53,6 +53,12 @@ Parameter:
 |---|---|---|
 |width|Int64||
 |height|Int64||
+
+### prop releasable: Bool
+```cj
+public prop releasable: Bool
+```
+whether the internal RTs exist and have not been released
 
 ### let OUTLINE\_VIEW\_ID\_BASE
 ```cj

@@ -523,6 +523,17 @@ Return:
 
 - true if anything was hit
 
+### func release\(\)
+```cj
+func release(): Bool
+```
+Releases the backend
+and de-initializes the library)
+
+Return: 
+
+- true if this call actually released; false on repeated calls
+
 ### func setAngularVelocity\(PhysicsBodyHandle,Vector3\)
 ```cj
 func setAngularVelocity(handle: PhysicsBodyHandle, angularVelocity: Vector3): Unit
@@ -841,14 +852,6 @@ Parameter:
 |---|---|---|
 |handle|PhysicsConstraintHandle|The constraint handlevelocity The target velocity (m/s)|
 |velocity|Float64||
-
-### func shutdown\(\)
-```cj
-func shutdown(): Unit
-```
-Shuts down the backend (destroys the physics system + global teardown)
-
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>The instance must not be used again after this call.</p>
 
 ### func update\(Float32,Int32\)
 ```cj

@@ -1,15 +1,9 @@
 # 类
 ## class HalftonePass
 ```cj
-public class HalftonePass <: Pass
+public class HalftonePass <: Pass & IReleasable
 ```
 RGB 半色调后处理 pass
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 halftone pass 占用的所有 GPU 资源
 
 ### func init\(Int64,Float64,Float64,Float64,Float64,Float64,Float64,Int64,Bool,Bool\)
 ```cj
@@ -31,6 +25,12 @@ public init(shape!: Int64 = 1, radius!: Float64 = 4.0, rotateR!: Float64 = 3.141
 |blendingMode|Int64|混合模式（默认 1=Linear）|
 |greyscale|Bool|灰度（默认 false）|
 |disable|Bool|禁用透传（默认 false）|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 halftone pass 占用的所有 GPU 资源
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

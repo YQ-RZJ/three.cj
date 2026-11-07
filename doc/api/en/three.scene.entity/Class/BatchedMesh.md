@@ -1,7 +1,7 @@
 # Class
 ## class BatchedMesh
 ```cj
-public class BatchedMesh <: Mesh
+public class BatchedMesh <: Mesh & IReleasable
 ```
 Batched mesh that packs multiple independent geometries into a single BufferGeometry for rendering
 
@@ -72,12 +72,6 @@ Parameter:
 |---|---|---|
 |geometryId|Int64||
 
-### func dispose\(\)
-```cj
-public func dispose(): Unit
-```
-释放本实例分配的 GPU 相关资源。
-
 ### func getInstanceCount\(Int64\)
 ```cj
 public func getInstanceCount(geometryId: Int64): Int64
@@ -142,6 +136,12 @@ public func optimize(): Unit
 ```
 与 JS side 一致：紧缩 active 几何到连续区间，提升后续渲染效率。
 
+### func release\(\)
+```cj
+public func release(): Bool
+```
+frees GPU-related resources allocated by this instance.
+
 ### func setInstanceCount\(Int64,Int64\)
 ```cj
 public func setInstanceCount(geometryId: Int64, count: Int64): Unit
@@ -185,19 +185,19 @@ Parameter:
 ```cj
 public var _colorsTexture: Option < DataTexture >
 ```
-对照 JS `this._colorsTexture = null`（BatchedMesh.js:279），渲染器初始化时注入。
+渲染器初始化时注入。
 
 ### var \_indirectTexture
 ```cj
 public var _indirectTexture: Option < DataTexture >
 ```
-对照 JS `this._indirectTexture = null`（BatchedMesh.js:278），渲染器初始化时注入。
+渲染器初始化时注入。
 
 ### var \_matricesTexture
 ```cj
 public var _matricesTexture: Option < DataTexture >
 ```
-对照 JS `this._matricesTexture = null`（BatchedMesh.js:277），渲染器初始化时注入。
+渲染器初始化时注入。
 
 ### var activeGeometryCount
 ```cj

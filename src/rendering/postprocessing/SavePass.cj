@@ -42,6 +42,7 @@
  */
 package three.rendering.postprocessing
 
+import three.utils.safe.IReleasable
 import three.rendering.ThreeRenderer
 import three.rendering.bgfx.BgfxConstants
 import three.rendering.bgfx.BgfxUniforms
@@ -53,13 +54,15 @@ import three.profiler.macros.*
 
 /**
  * @brief[zh-cn] 保存 pass
- * @brief[en] Save pass
  * @explain[zh-cn] 把 readBuffer 拷到内部 renderTarget。
+ *
+ * @brief[en] Save pass
  * @explain[en] Copies the readBuffer into the internal renderTarget.
  */
-public class SavePass <: Pass {
+public class SavePass <: Pass & IReleasable {
     /**
      * @brief[zh-cn] 内部 render target（color RT，RGBA16F，无 depth）
+     *
      * @brief[en] Internal render target (color RT, RGBA16F, no depth)
      */
     public var renderTarget: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
@@ -80,6 +83,15 @@ public class SavePass <: Pass {
     private var _rtCreated: Bool = false
 
     /**
+     * @brief[zh-cn] 内部 RT 是否已创建且未被释放
+     *
+     * @brief[en] whether the internal RT exists and has not been released
+     */
+    public prop releasable: Bool {
+        get() { return this._rtCreated }
+    }
+
+    /**
      * 已编译 program handle 缓存。
      */
     private var _prog: Option<ProgramHandle> = None
@@ -97,14 +109,17 @@ public class SavePass <: Pass {
 
     /**
      * @brief[zh-cn] 构造 SavePass
-     * @brief[en] Constructs SavePass
      * @explain[zh-cn] 全屏 quad 由 EffectComposer 持单例并经 setQuad 注入（基类 quad 字段）。
+     *
+     * @brief[en] Constructs SavePass
      * @explain[en] The full-screen quad is held as a singleton by EffectComposer and injected via setQuad (base class quad field).
      */
     public init() {
         super()
         // 保存后不交换 buffer
         this.needsSwap = false
+        // 终结器兜底：GC 回收时自动执行 dispose()（函数值捕获 this，非 open 类构造器允许）
+        this._finalizerFallback = Some({ => let _ = this.release() })
     }
 
     /**
@@ -127,6 +142,7 @@ public class SavePass <: Pass {
 
     /**
      * @brief[zh-cn] 设置内部 RT 尺寸（销毁重建）
+     *
      * @brief[en] Sets the internal RT size (destroy and rebuild)
      */
     public override func setSize(width: Int64, height: Int64): Unit {
@@ -137,11 +153,12 @@ public class SavePass <: Pass {
 
     /**
      * @brief[zh-cn] 执行保存 pass：拷 readBuffer 到 renderTarget
-     * @brief[en] Executes the save pass: copies the readBuffer into the renderTarget
      * @param[zh-cn] renderer 渲染器
      * @param[zh-cn] writeBuffer 写 buffer（本 pass 不用，结果存 renderTarget）
      * @param[zh-cn] readBuffer 读 buffer（拷贝源）
      * @param[zh-cn] deltaTime 帧间隔
+     *
+     * @brief[en] Executes the save pass: copies the readBuffer into the renderTarget
      * @param[en] renderer Renderer
      * @param[en] writeBuffer Write buffer (unused by this pass; result goes to renderTarget)
      * @param[en] readBuffer Read buffer (copy source)
@@ -196,9 +213,10 @@ public class SavePass <: Pass {
 
     /**
      * @brief[zh-cn] 释放 SavePass 占用的 GPU 资源（内部 RT）
+     *
      * @brief[en] Releases the GPU resources held by SavePass (internal RT)
      */
-    public override func dispose(): Unit {
+    public override func release(): Bool {
         if (this._rtCreated) {
             if (let Some(renderer) <- this._renderer) {
                 renderer.destroyFrameBuffer(this.renderTarget)
@@ -206,6 +224,9 @@ public class SavePass <: Pass {
             }
             this._rtCreated = false
         }
+        // 必须经 _disposePassUniforms() 释放，否则 composer 重建/切换后句柄泄漏（同 SMAA 修复点①）。
+        this._disposePassUniforms()
         this._prog = None
+        return true
     }
 }

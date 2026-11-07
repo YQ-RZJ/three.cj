@@ -1,15 +1,9 @@
 # Class
 ## class UnrealBloomPass
 ```cj
-public class UnrealBloomPass <: Pass
+public class UnrealBloomPass <: Pass & IReleasable
 ```
 Bloom post-processing pass (full 5-level pyramid UnrealBloom implementation)
-
-### func dispose\(\)
-```cj
-public override func dispose(): Unit
-```
-释放 bloom pass 占用的所有 GPU 资源。
 
 ### func init\(Float64,Float64,Float64\)
 ```cj
@@ -24,6 +18,12 @@ Parameter:
 |strength|Float64|Bloom 强度|
 |threshold|Float64|亮度阈值|
 |radius|Float64|Bloom 半径|
+
+### func release\(\)
+```cj
+public override func release(): Bool
+```
+释放 bloom pass 占用的所有 GPU 资源。
 
 ### func render\(ThreeRenderer,FrameBufferHandle,FrameBufferHandle,Float64\)
 ```cj

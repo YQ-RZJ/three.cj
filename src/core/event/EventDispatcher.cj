@@ -105,11 +105,6 @@ public class Event {
  * }
  * let car = Car()
  * let handle = car.addEventListener("start", { event =>
- * @LogInfo(["Car", "started!"])
- * })
- * car.start()
- * car.removeEventListener("start", handle)
- * ```
  *
  * @brief[en] Event dispatcher providing addEventListener/removeEventListener/hasEventListener/dispatchEvent event API
  * @explain[en] Usage example:
@@ -121,6 +116,13 @@ public class Event {
  * }
  * let car = Car()
  * let handle = car.addEventListener("start", { event =>
+ *
+ * @LogInfo(["Car", "started!"])
+ * })
+ * car.start()
+ * car.removeEventListener("start", handle)
+ * ```
+ *
  * @LogInfo(["Car", "started!"])
  * })
  * car.start()
@@ -238,6 +240,10 @@ public open class EventDispatcher {
             } else {
                 i += 1
             }
+        }
+        // 列表清空后删除类型键，避免大量一次性事件类型留下空条目
+        if (array.size == 0) {
+            listeners.remove(`type`)
         }
     }
 

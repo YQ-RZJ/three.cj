@@ -34,6 +34,7 @@ package three.rendering.bgfx
 import std.collection.*
 import bgfx4cj.bgfx.*
 import three.rendering.buffer.BufferAttribute
+import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 绑定状态
@@ -142,7 +143,7 @@ public class AttributeCache {
  * @brief[en] bgfx vertex binding states management
  * @explain[en] Mirrors WebGLBindingStates, managing vertex attribute binding states. bgfx uses VertexLayout instead of WebGL VAOs, setting bindings via bgfx_set_vertex_buffer_cj.
  */
-public class BgfxBindingStates {
+public class BgfxBindingStates <: IReleasable {
     /**
      * @brief[zh-cn] 最大顶点属性数
      *
@@ -313,11 +314,12 @@ public class BgfxBindingStates {
      * @brief[zh-cn] 释放所有绑定状态
      * @explain[zh-cn] 对照 WebGLBindingStates.dispose()
      *
-     * @brief[en] Dispose all binding states
+     * @brief[en] dispose all binding states
      * @explain[en] Mirrors WebGLBindingStates.dispose()
      */
-    public func dispose(): Unit {
+    public func release(): Bool {
         bindingStates = HashMap<Int64, HashMap<Int64, HashMap<Int64, HashMap<Bool, BindingState>>>>()
         reset()
+        return true
     }
 }
