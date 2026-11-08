@@ -56,6 +56,8 @@
  */
 package three.utils.safe
 
+import std.sync.AtomicBool
+
 /**
  * @brief[zh-cn] 可释放资源接口
  * @explain[zh-cn] 持有 GPU/系统句柄等需显式释放资源的类实现本接口，约定两个能力：
@@ -171,14 +173,20 @@ public class Safe<T> <: IReleasable where T <: IReleasable {
 
     /**
      * @brief[zh-cn] 是否已释放（手动或终结器任一路径触发后置 true）
-     * @explain[zh-cn] 保证"主动释放 + GC 兜底"全程至多执行一次底层释放。
+     * @explain[zh-cn] 原子标记 + CAS 保证"主动释放 + GC 兜底"全程至多执行一次底层释放：
+     *         手动释放可能在任意线程调用，终结器也可能在任意线程延迟触发，
+     *         检查-置位两步写法在并发下会双双通过检查（TOCTOU），
+     *         仅 CAS 胜者执行释放，天然保证恰好一次。
      *
      * @brief[en] Whether the resource has been released (set by either the manual or
      *            the finalizer path)
-     * @explain[en] Guarantees the underlying release runs at most once across
-     *              "manual release + GC fallback".
+     * @explain[en] Atomic flag + CAS guarantees the underlying release runs at most once
+     *              across "manual release + GC fallback": manual release() may be called
+     *              on any thread and the finalizer may fire late on any thread — a
+     *              check-then-set pattern races under concurrency (TOCTOU); only the CAS
+     *              winner performs the release.
      */
-    private var _released: Bool = false
+    private let _released: AtomicBool = AtomicBool(false)
 
     /**
      * @brief[zh-cn] 创建托管包装，接管 obj 的释放职责
@@ -201,7 +209,7 @@ public class Safe<T> <: IReleasable where T <: IReleasable {
      *              releasable (value.releasable is false); true otherwise
      */
     public prop releasable: Bool {
-        get() { !this._released && this.value.releasable }
+        get() { !this._released.load() && this.value.releasable }
     }
 
     /**
@@ -217,10 +225,11 @@ public class Safe<T> <: IReleasable where T <: IReleasable {
      *           do not use the resource via value afterwards (check releasable).
      */
     public func release(): Bool {
-        if (this._released) {
+        // CAS 抢占释放权：并发场景（手动释放 vs 终结器兜底）下仅胜者执行，
+        // 输者（含已释放的重复调用）返回 false——幂等与"至多一次"由 CAS 同时保证
+        if (!this._released.compareAndSwap(false, true)) {
             return false
         }
-        this._released = true
         return this.value.release()
     }
 
@@ -235,8 +244,8 @@ public class Safe<T> <: IReleasable where T <: IReleasable {
      *              Safe<T> stays non-open (Cangjie constraint: classes with finalizers cannot be open).
      */
     ~init() {
-        if (!this._released) {
-            this._released = true
+        // CAS 抢占释放权：与手动释放路径并发时仅一方执行（幂等 + 至多一次）
+        if (this._released.compareAndSwap(false, true)) {
             this.value.release()
         }
     }

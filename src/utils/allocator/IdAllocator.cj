@@ -38,6 +38,7 @@
 package three.utils.allocator
 
 import std.collection.*
+import std.sync.Mutex
 import three.utils.safe.IReleasable
 
 /**
@@ -51,7 +52,9 @@ import three.utils.safe.IReleasable
  * func release() { idGen.release(id) }
  * }
  * ```
- * @note[zh-cn] 起始 ID 在构造时指定（默认 0）；不是线程安全的，多线程场景需外部加锁。
+ * @note[zh-cn] 起始 ID 在构造时指定（默认 0）；内部以 ReentrantMutex 串行化
+ *         allocate/release/release()（重置）/freeCount，线程安全，可跨线程共享
+ *         （如各静态 _idGen/_idAlloc 被任意用户线程并发调用）。
  *
  * @brief[en] ID allocator
  * @explain[en] Allocates/recycles unique IDs for object instances to avoid renumbering on
@@ -64,14 +67,18 @@ import three.utils.safe.IReleasable
  * func release() { idGen.release(id) }
  * }
  * ```
- * @note[en] The start ID is given at construction (default 0); not thread-safe, so an
- * external lock is required in multi-threaded scenarios.
+ * @note[en] The start ID is given at construction (default 0); internally a ReentrantMutex
+ * serializes allocate/release/release() (reset)/freeCount, so the allocator is thread-safe
+ * and shareable across threads (e.g. static _idGen/_idAlloc hit from arbitrary user threads).
  */
 public class IdAllocator <: IReleasable {
     /** 下一个待分配的 ID */
     private var _nextId: Int64
     /** 已回收的空闲 ID 池（栈结构） */
     private let _freeIds: ArrayList<Int64> = ArrayList<Int64>()
+    /** 串行化全部操作的互斥锁：重置（release()）需与分配/回收线性化，
+     *  单个并发容器无法保证跨字段的原子重置，故统一用小锁 */
+    private let _mtx = Mutex()
 
     /**
      * @brief[zh-cn] 构造分配器
@@ -92,15 +99,17 @@ public class IdAllocator <: IReleasable {
      * @return[en] The newly allocated ID
      */
     public func allocate(): Int64 {
-        if (_freeIds.size > 0) {
-            let last = _freeIds.size - 1
-            let id = _freeIds.get(last).getOrThrow()
-            _freeIds.remove(last..last + 1)
+        synchronized (this._mtx) {
+            if (_freeIds.size > 0) {
+                let last = _freeIds.size - 1
+                let id = _freeIds.get(last).getOrThrow()
+                _freeIds.remove(last..last + 1)
+                return id
+            }
+            let id = _nextId
+            _nextId = _nextId + 1
             return id
         }
-        let id = _nextId
-        _nextId = _nextId + 1
-        return id
     }
 
     /**
@@ -111,7 +120,9 @@ public class IdAllocator <: IReleasable {
      * @param[en] id The ID to recycle
      */
     public func release(id: Int64): Unit {
-        _freeIds.add(id)
+        synchronized (this._mtx) {
+            _freeIds.add(id)
+        }
     }
 
     /**
@@ -124,8 +135,10 @@ public class IdAllocator <: IReleasable {
      *              release(id) overload (recycles a single ID)
      */
     public func release(): Bool {
-        _nextId = 0
-        _freeIds.clear()
+        synchronized (this._mtx) {
+            _nextId = 0
+            _freeIds.clear()
+        }
         return true
     }
 
@@ -137,6 +150,8 @@ public class IdAllocator <: IReleasable {
      * @return[en] The number of free IDs
      */
     public func freeCount(): Int64 {
-        return _freeIds.size
+        synchronized (this._mtx) {
+            return _freeIds.size
+        }
     }
 }
