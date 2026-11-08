@@ -152,7 +152,7 @@ message(STATUS "[cjpm] runtime .so copied ${_picked}/${_all_count} include='$ENV
             "X86_64_OHOS_LIBS=$ENV{X86_64_OHOS_LIBS}"
             "X86_64_MACRO_LIBS=$ENV{X86_64_MACRO_LIBS}"
             "X86_64_KIT_LIBS=$ENV{X86_64_KIT_LIBS}"
-            "EXTEDN_LIBS_PATH=$ENV{EXTEDN_LIBS_PATH}"
+            "EXTEND_LIBS_PATH=$ENV{EXTEND_LIBS_PATH}"
             "COMPILE_CONDITION_ENTRY=$ENV{COMPILE_CONDITION_ENTRY}"
             "${CJPM_EXE}" build --target ${CJPM_TARGET}
         COMMAND ${CMAKE_COMMAND} -E echo "[cjpm] copying cangjie .so -> ${OUT_LIBS_DIR}"

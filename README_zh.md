@@ -247,6 +247,38 @@ cjpm build
 以下编译期环境变量作用于**源码构建**的引擎与业务代码；使用方式一（预构建产物）时，
 引擎侧档位已由 CI 构建时固化在产物中，业务代码中的宏调用点仍按本节规则由自己的编译环境决定。
 
+#### EXTEND_LIBS_PATH_<系统>_<架构>
+
+**源码构建（方式二）的关键环境变量**：引擎 `cjpm.toml` 各 target 的 `link-option`
+以 `-L ${EXTEND_LIBS_PATH_<系统>_<架构>}` 形式引用它作为原生静态库（bgfx/SDL3/OpenAL/
+Jolt/LuaJIT/OpenSSL/tracy 等）与符号控制文件（`exclude.rsp`/`symbols_elf.map`）的
+**查找路径**。未设置（或路径下缺少对应 `.a` 文件）时链接阶段直接报找不到库，编译失败。
+
+| 平台 | 变量 |
+|------|------|
+| Windows (MinGW) | `EXTEND_LIBS_PATH_WIN_X64` / `EXTEND_LIBS_PATH_WIN_ARM64` |
+| Linux | `EXTEND_LIBS_PATH_LINUX_X64` / `EXTEND_LIBS_PATH_LINUX_ARM64` |
+| macOS | `EXTEND_LIBS_PATH_MACOS_X64` / `EXTEND_LIBS_PATH_MACOS_ARM64` |
+| OpenHarmony | `EXTEND_LIBS_PATH_OHOS_X64` / `EXTEND_LIBS_PATH_OHOS_ARM64` |
+| iOS（真机/模拟器） | `EXTEND_LIBS_PATH_IOS_ARM64` / `EXTEND_LIBS_PATH_IOS_SIM_X64` / `EXTEND_LIBS_PATH_IOS_SIM_ARM64` |
+| Android | `EXTEND_LIBS_PATH_ANDROID_X64` / `EXTEND_LIBS_PATH_ANDROID_ARM64` |
+
+一般统一指向仓库的 `libs/` 目录（原生静态库与符号控制文件的存放处），例如：
+
+```bash
+# Windows（cmd，构建 x86_64-w64-mingw32 target 时）
+set EXTEND_LIBS_PATH_WIN_X64=D:\path\to\three\libs
+
+# Windows（PowerShell）
+$env:EXTEND_LIBS_PATH_WIN_X64 = "D:\path\to\three\libs"
+
+# Linux / macOS
+export EXTEND_LIBS_PATH_LINUX_X64=/path/to/three/libs
+```
+
+> 注意：只有**以源码依赖方式**构建引擎（或构建引用引擎源码的子项目）才需要该变量；
+> 使用方式一（预构建二进制产物）时依赖已并入 `three-deps.a`，无需任何此类变量。
+
 #### THREE_LOG_LEVEL
 
 引擎日志通过 `three.utils.log` 宏包（`@LogTrace/@LogDebug/@LogInfo/@LogWarn/@LogError/@LogWarnOnce`）
@@ -312,8 +344,7 @@ export THREE_PROFILER=three.render
 `three.profiler.Sampling` / `ProfilerState` 控制。
 
 无 GUI 环境（CI 等）可用 `scripts/tracy_receiver.py` 代替 GUI/Worker：它主动连接被测进程、落盘原始与
-结构化产物，并直接产出热点统计（调用次数、耗时、P50/P95/P99）；真实渲染路径的性能基线测试程序位于
-`test/windows/perf_render/`。详见
+结构化产物，并直接产出热点统计（调用次数、耗时、P50/P95/P99）。详见
 [`doc/materials/zh-cn/profiler使用说明.md`](./doc/materials/zh-cn/profiler使用说明.md) 第七节。
 
 > 注意：与 `THREE_LOG_LEVEL` 一致，链路在宏展开（编译期）时读取并烧入产物，与运行期环境无关；
@@ -376,8 +407,8 @@ import three.window.ui.*          // 即时模式 UI（ImGui 控件）
 ```
 
 > 注意：源码依赖方式下，本项目 `cjpm.toml` 的 `link-option` 引用了
-> `EXTEDN_LIBS_PATH_*` 环境变量，使用前需配置其值为依赖文件的实际存放位置。
-> 比如：`cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
+> `EXTEND_LIBS_PATH_*` 环境变量，使用前需配置其值为依赖文件的实际存放位置。
+> 比如：`cmd: set EXTEND_LIBS_PATH_WIN_X64=/path/to/three/libs`
 
 ## 线程模型
 

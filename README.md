@@ -259,6 +259,43 @@ business code. With Option 1 (prebuilt artifacts), the engine-side levels were a
 frozen into the artifacts at CI build time, while macro call sites in your own code still
 follow these rules from your own build environment.
 
+#### EXTEND_LIBS_PATH_<OS>_<ARCH>
+
+**The key environment variable for source builds (Option 2)**: the `link-option` of each
+target in the engine's `cjpm.toml` references it as `-L ${EXTEND_LIBS_PATH_<OS>_<ARCH>}`,
+the **search path** for the native static libraries (bgfx/SDL3/OpenAL/Jolt/LuaJIT/OpenSSL/
+tracy, etc.) and the symbol control files (`exclude.rsp` / `symbols_elf.map`). If it is
+unset (or the path lacks the required `.a` files), the link stage fails with missing
+libraries.
+
+| Platform | Variables |
+|------|------|
+| Windows (MinGW) | `EXTEND_LIBS_PATH_WIN_X64` / `EXTEND_LIBS_PATH_WIN_ARM64` |
+| Linux | `EXTEND_LIBS_PATH_LINUX_X64` / `EXTEND_LIBS_PATH_LINUX_ARM64` |
+| macOS | `EXTEND_LIBS_PATH_MACOS_X64` / `EXTEND_LIBS_PATH_MACOS_ARM64` |
+| OpenHarmony | `EXTEND_LIBS_PATH_OHOS_X64` / `EXTEND_LIBS_PATH_OHOS_ARM64` |
+| iOS (device/simulator) | `EXTEND_LIBS_PATH_IOS_ARM64` / `EXTEND_LIBS_PATH_IOS_SIM_X64` / `EXTEND_LIBS_PATH_IOS_SIM_ARM64` |
+| Android | `EXTEND_LIBS_PATH_ANDROID_X64` / `EXTEND_LIBS_PATH_ANDROID_ARM64` |
+
+It normally points to the repository's `libs/` directory (where the native static
+libraries and symbol control files live), for example:
+
+```bash
+# Windows (cmd, building the x86_64-w64-mingw32 target)
+set EXTEND_LIBS_PATH_WIN_X64=D:\path\to\three\libs
+
+# Windows (PowerShell)
+$env:EXTEND_LIBS_PATH_WIN_X64 = "D:\path\to\three\libs"
+
+# Linux / macOS
+export EXTEND_LIBS_PATH_LINUX_X64=/path/to/three/libs
+```
+
+> Note: this variable is only needed when building the engine **from source** (Option 2,
+> or building sub-projects that reference the engine source). With Option 1 (prebuilt
+> binary artifacts) all dependencies are merged into `three-deps.a` and no such variable
+> is required.
+
 #### THREE_LOG_LEVEL
 
 Engine logging goes through the `three.utils.log` macro package
@@ -337,8 +374,7 @@ connection are controlled by `three.profiler.Sampling` / `ProfilerState`.
 
 For headless environments (CI, no GUI available), `scripts/tracy_receiver.py` acts as a
 Tracy GUI/Worker: it connects to the profiled process, writes the raw/structured artifacts to
-disk and emits hotspot statistics (call count, duration, P50/P95/P99). The real-pipeline
-performance baseline harness lives in `test/windows/perf_render/`. See
+disk and emits hotspot statistics (call count, duration, P50/P95/P99). See
 [`doc/materials/en/profiler-usage.md`](./doc/materials/en/profiler-usage.md) section VII.
 
 > Note: like `THREE_LOG_LEVEL`, links are read at macro expansion time (compile time) and
@@ -404,9 +440,9 @@ pull the engine repository in as a path dependency:
 ```
 
 > **Note**: with the source-dependency approach, the `cjpm.toml` of this project references
-> the `EXTEDN_LIBS_PATH_*` environment variable in `link-option`. You need to set it to the
+> the `EXTEND_LIBS_PATH_*` environment variable in `link-option`. You need to set it to the
 > actual location of the dependency files before use. For example:
-> `cmd: set EXTEDN_LIBS_PATH_WIN_X64=/path/to/three/libs`
+> `cmd: set EXTEND_LIBS_PATH_WIN_X64=/path/to/three/libs`
 
 ## Threading Model
 

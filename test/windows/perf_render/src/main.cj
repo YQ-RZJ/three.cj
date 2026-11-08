@@ -20,7 +20,7 @@ package perfRenderTest
  *   启动/阶段信息为 Info 级，逐帧统计为 Debug 级。
  *
  * 运行（PowerShell）：
- *   $env:EXTEDN_LIBS_PATH_WIN_X64="C:\workspace\Web\24w\three.cj\three.cj\libs"
+ *   $env:EXTEND_LIBS_PATH_WIN_X64="C:\workspace\Web\24w\three.cj\three.cj\libs"
  *   $env:THREE_PROFILER="three.rendering,three.perf"   # 编译期档位，切换需重编译
  *   $env:THREE_LOG_LEVEL=info                          # 编译期档位，切换需重编译
  *   cjpm build / cjpm run

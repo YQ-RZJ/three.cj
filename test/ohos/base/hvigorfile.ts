@@ -2,7 +2,7 @@ import { appTasks } from '@ohos/hvigor-ohos-plugin';
 import * as path from 'node:path'
 import { existsSync } from 'node:fs'
 
-// three 包（test/three/cjpm.toml 的 link-option）引用 ${EXTEDN_LIBS_PATH}，
+// three 包（test/three/cjpm.toml 的 link-option）引用 ${EXTEND_LIBS_PATH}，
 // 指向 three 引擎扩展静态库目录。cjpm 子进程继承 hvigor 进程的环境变量；
 // 若该变量为空，ld.lld 链接宏包 DLL 时会出现孤立 "-L"，把紧跟其后的
 // -l:libcangjie-std-*.dll 吞作 -L 的目录参数，导致宏包链接报
@@ -32,9 +32,9 @@ let mingwLibs = (() => {
   }
   return ''
 })()
-process.env.EXTEDN_LIBS_PATH_OHOS_ARM64 = `${libsPath}`
-process.env.EXTEDN_LINK_OPTION_OHOS_ARM64 = `-L ${libsPath}/arm64-v8a`
-process.env.EXTEDN_LIBS_PATH_WIN_X64 = `${threeLibsPath}`
+process.env.EXTEND_LIBS_PATH_OHOS_ARM64 = `${libsPath}`
+process.env.EXTEND_LINK_OPTION_OHOS_ARM64 = `-L ${libsPath}/arm64-v8a`
+process.env.EXTEND_LIBS_PATH_WIN_X64 = `${threeLibsPath}`
 // cjpm 会把该变量原样插值进 cjpm.toml 的 TOML 双引号字符串：
 // - 直接嵌 "" 会终止 TOML 字符串 → Invalid toml config；
 // - 裸路径遇空格被 ld.lld 拆词。
@@ -64,7 +64,7 @@ let mingwLibsShort = (() => {
   } catch (_) { /* fallthrough */ }
   return mingwLibs
 })()
-process.env.EXTEDN_LINK_OPTION_WIN_X64 = `-L ${mingwLibsShort}`
+process.env.EXTEND_LINK_OPTION_WIN_X64 = `-L ${mingwLibsShort}`
 process.env.THREE_LOG_LEVEL = `trace`
 
 export default {

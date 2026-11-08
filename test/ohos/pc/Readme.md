@@ -55,7 +55,7 @@ hvigor(构建 ArkTS)
 
 - 本工程当前面向 **arm64-v8a**（`aarch64-linux-ohos`）验证通过；`CMakeLists.txt` 已内置 `x86_64`（`x86_64-linux-ohos`）映射，`cjpm.toml` 也已有对应 target。
 - 但以下内容**硬编码了 arm64-v8a**，若切到 x86_64（Intel/AMD 的 2in1）需一并替换：
-  - `hvigorfile.ts` L44 `EXTEDN_LIBS_PATH = ... -L ${libsPath}/arm64-v8a`（需按目标 abi 改）；
+  - `hvigorfile.ts` L44 `EXTEND_LIBS_PATH = ... -L ${libsPath}/arm64-v8a`（需按目标 abi 改）；
   - `entry/libs/librequirecj_napi.a`（桥接库，当前为 arm64 产物；需用 `cxx_bridge` 重新产出 x86_64 版本）；
   - `entry/libs/*.a`（three 引擎 arm64 静态库）与运行时 `.so`。
 
@@ -123,7 +123,7 @@ $env:DEVECO_OH_NATIVE_HOME= 'C:\Program Files\HuaWei\DevEco Studio\sdk\default\o
 $env:AARCH64_LIBS         = "$env:DEVECO_CANGJIE_HOME\api\lib\linux_ohos_aarch64_cjnative\ohos"
 $env:AARCH64_MACRO_LIBS   = "$env:DEVECO_CANGJIE_HOME\api\macro\ohos"
 $env:AARCH64_KIT_LIBS     = "$env:DEVECO_CANGJIE_HOME\api\lib\linux_ohos_aarch64_cjnative\kit"
-$env:EXTEDN_LIBS_PATH     = 'C:\workspace\Web\24w\three.cj\three\test\ohos\pc\entry\libs -L C:\workspace\Web\24w\three.cj\three\test\ohos\pc\entry\libs\arm64-v8a'
+$env:EXTEND_LIBS_PATH     = 'C:\workspace\Web\24w\three.cj\three\test\ohos\pc\entry\libs -L C:\workspace\Web\24w\three.cj\three\test\ohos\pc\entry\libs\arm64-v8a'
 $env:COMPILE_CONDITION_ENTRY = 'APILevel_level=23,product=default,APILevel_syscap=C:\workspace\Web\24w\three.cj\three\test\ohos\pc\.idea\.deveco\cangjie\syscap_api_config.json,target=default'
 
 cd C:\workspace\Web\24w\three.cj\three\test\ohos\pc\entry
@@ -142,6 +142,6 @@ cd C:\workspace\Web\24w\three.cj\three\test\ohos\pc\entry
 | `cxx_bridge/requireCJLib/requireCJLib-ark` | C++ NAPI 桥接库源码（自动注册 `requireCJLib` NAPI 模块） |
 | `cxx_bridge/dist/requireCJLib-ophm-arm64-v8a-release-static-native.zip` | 桥接库预编译产物（解压取 `lib/napi/lib/librequirecj_napi.a` 放入 `entry/libs`） |
 | `entry/src/main/cpp/CMakeLists.txt` | 编排 cjpm 构建 + 拷贝 `.so` 的核心脚本 |
-| `hvigorfile.ts` | 注入 `CANGJIE_HOME` / `DEVECO_*` / `EXTEDN_LIBS_PATH` / `COMPILE_CONDITION_ENTRY` 等环境变量 |
+| `hvigorfile.ts` | 注入 `CANGJIE_HOME` / `DEVECO_*` / `EXTEND_LIBS_PATH` / `COMPILE_CONDITION_ENTRY` 等环境变量 |
 | `entry/cjpm.toml` | entry 仓颉工程配置（link-option 链接桥接库 + 静态库） |
 | `three/cjpm.toml` | three 引擎仓颉工程配置（目标平台 compile-option） |

@@ -9,7 +9,7 @@ building it yourself, and collecting dependencies.
 | Approach | What you need | Best for |
 |---|---|---|
 | **Binary reuse (this project)** | Download the release static artifact package and extract it into `libs/` | Quick integration, evaluation, business development |
-| Source dependency (see `[dependencies]` in the engine repo's cjpm.toml) | Engine source + 9 dependency packages + native static library package (`EXTEDN_LIBS_PATH` env) + exclude.rsp generation | When you need to modify the engine |
+| Source dependency (see `[dependencies]` in the engine repo's cjpm.toml) | Engine source + 9 dependency packages + native static library package (`EXTEND_LIBS_PATH` env) + exclude.rsp generation | When you need to modify the engine |
 
 Binary reuse keeps "building the engine, collecting 20+ dependency libraries,
 resolving symbol conflicts" entirely inside the engine CI. Downstream is reduced

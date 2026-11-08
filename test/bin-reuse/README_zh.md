@@ -8,7 +8,7 @@
 | 方式 | 需要准备 | 适用场景 |
 |---|---|---|
 | **二进制复用（本项目）** | 下载 release 静态产物包，解压进 `libs/` | 快速集成、验证、业务开发 |
-| 源码依赖（参考引擎仓库 cjpm.toml 的 `[dependencies]`） | 引擎源码 + 9 个依赖包源码 + native 静态库包（`EXTEDN_LIBS_PATH` 环境）+ exclude.rsp 生成 | 需要修改引擎代码 |
+| 源码依赖（参考引擎仓库 cjpm.toml 的 `[dependencies]`） | 引擎源码 + 9 个依赖包源码 + native 静态库包（`EXTEND_LIBS_PATH` 环境）+ exclude.rsp 生成 | 需要修改引擎代码 |
 
 二进制复用把"编译引擎、收集 20+ 个依赖库、处理符号冲突"这些事全部留在了
 引擎 CI 里，下游只剩**解压 + 声明链接**两步。

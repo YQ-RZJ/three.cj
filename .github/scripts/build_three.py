@@ -7,7 +7,7 @@ build_three.py — three.cj CI 统一构建脚本（GitHub Actions 用）
   1. 下载 cxx 侧（three.cj-cxx）已打包好的静态库压缩包，解出
      <os>/<arch>/release/static 下的 .a/.lib 平铺进 three.cj/libs/；
   2. 设置 cjpm.toml link-option 引用的环境变量：
-       EXTEDN_LIBS_PATH_<TAG>=<repo>/libs    EXTEDN_LINK_OPTION_<TAG>=""
+       EXTEND_LIBS_PATH_<TAG>=<repo>/libs    EXTEND_LINK_OPTION_<TAG>=""
   3. 第一次 `cjpm build --target <triple>`（预期链接失败，忽略错误——
      但编译会产出依赖包归档 target/release/<pkg>/*.a）；
   4. 运行 scripts/gen_exclude_rsp.py 刷新 exclude.rsp / symbols_elf.map，
@@ -495,9 +495,9 @@ def main():
     triple, tag = arch_map[args.arch]
     libs_dir = os.path.join(ROOT, "libs")
     env = dict(os.environ)
-    env["EXTEDN_LIBS_PATH_" + tag] = libs_dir
-    env["EXTEDN_LINK_OPTION_" + tag] = ""
-    log("EXTEDN_LIBS_PATH_%s=%s" % (tag, libs_dir))
+    env["EXTEND_LIBS_PATH_" + tag] = libs_dir
+    env["EXTEND_LINK_OPTION_" + tag] = ""
+    log("EXTEND_LIBS_PATH_%s=%s" % (tag, libs_dir))
 
     # 1. 安装 cxx 静态库（ohos：SDL3 走动态库版本）
     # ios 变体→cxx 包内目录名映射（cxx 侧 dist 命名）：
@@ -550,9 +550,9 @@ def main():
             if not args.host_url:
                 sys.exit("error: --host-tag 需与 --host-url 同时提供")
             host_libs_dir = os.path.join(ROOT, "libs-host")
-            env["EXTEDN_LIBS_PATH_" + args.host_tag] = host_libs_dir
-            env["EXTEDN_LINK_OPTION_" + args.host_tag] = ""
-            log("EXTEDN_LIBS_PATH_%s=%s（宏包宿主链接）" % (args.host_tag, host_libs_dir))
+            env["EXTEND_LIBS_PATH_" + args.host_tag] = host_libs_dir
+            env["EXTEND_LINK_OPTION_" + args.host_tag] = ""
+            log("EXTEND_LIBS_PATH_%s=%s（宏包宿主链接）" % (args.host_tag, host_libs_dir))
             # 宿主平台：取宏包所需的 darwin/linux/windows 静态库；
             # 宏包只链接不运行，平台产物目录名按 host 推断（ios 宿主=macos）
             host_os = {"ios": "macos"}.get(args.platform, os_dir)

@@ -16,8 +16,8 @@ Set the following environment variables, then run `cjpm build`:
 
 | Variable | Recommended value | Description |
 |---|---|---|
-| `EXTEDN_LIBS_PATH_WIN_X64` | path to local dependency libraries | Windows x64 native dependency search path |
-| `EXTEDN_LINK_OPTION_WIN_X64` | empty | extra link options (usually empty) |
+| `EXTEND_LIBS_PATH_WIN_X64` | path to local dependency libraries | Windows x64 native dependency search path |
+| `EXTEND_LINK_OPTION_WIN_X64` | empty | extra link options (usually empty) |
 | `THREE_LOG_LEVEL` | `off` (memory measurement) / `info`, `debug` (feature debugging) | **compile-time** logging level; `info/debug` introduce allocation noise |
 | `THREE_PROFILER` | `off` (memory measurement) / `all` or group prefix (profiling) | **compile-time** profiling switch |
 | `cjHeapSize` | `4GB` for large projects | compiler JVM/parser heap size, unrelated to runtime heap |
