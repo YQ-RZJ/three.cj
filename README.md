@@ -21,7 +21,7 @@
 
 This project is actively maintained. Follow [Bilibili UID:3546853029185667](https://space.bilibili.com/3546853029185667) for video tutorials and latest updates!
 
-> **Note** Test and example code can be found here: [Link](./doc/materials/en/test-windows-projects.md)
+> **Note** Test and example code can be found here: [Link](./doc/references/en/test-windows-projects.md)
 
 ## Features
 
@@ -80,8 +80,7 @@ three/
 ├── doc/                    # Project documentation
 │   ├── api/                # API documentation
 │   ├── asstes/             # Documentation assets
-│   ├── dev manual/         # Development manual
-│   └── materials/          # Project materials (test-case project notes, etc.)
+│   └── references/         # Project references (test-case project notes, etc.)
 ├── libs/                   # Native library directory (static libs for per-platform test linking, incl. exclude.rsp and symbols_elf.map)
 ├── scripts/                # Helper scripts (see scripts/README.md)
 ├── src/                    # Cangjie engine source (main body of this README)
@@ -375,7 +374,7 @@ connection are controlled by `three.profiler.Sampling` / `ProfilerState`.
 For headless environments (CI, no GUI available), `scripts/tracy_receiver.py` acts as a
 Tracy GUI/Worker: it connects to the profiled process, writes the raw/structured artifacts to
 disk and emits hotspot statistics (call count, duration, P50/P95/P99). See
-[`doc/materials/en/profiler-usage.md`](./doc/materials/en/profiler-usage.md) section VII.
+[`doc/references/en/profiler-usage.md`](./doc/references/en/profiler-usage.md) section VII.
 
 > Note: like `THREE_LOG_LEVEL`, links are read at macro expansion time (compile time) and
 > baked into the binary; they are independent of the runtime environment. After changing,

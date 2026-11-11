@@ -702,11 +702,11 @@ public class UiDrawList {
      * @param[en] tintCol Tint color (default white=no tint)
      */
     public func addImage(texRef: VoidPtr, pMin: Vector2, pMax: Vector2,
-                         uvMin!: ImVec2 = ImVec2(0.0, 0.0), uvMax!: ImVec2 = ImVec2(1.0, 1.0),
+                         uvMin!: Vector2 = Vector2(0.0, 0.0), uvMax!: Vector2 = Vector2(1.0, 1.0),
                          tintCol!: UInt32 = 0xFFFFFFFF): Unit {
         ImDrawList_AddImage_cj(this._dl, texRef.value,
             ImVec2(Float32(pMin.x), Float32(pMin.y)), ImVec2(Float32(pMax.x), Float32(pMax.y)),
-            uvMin, uvMax, tintCol)
+            ImVec2(Float32(uvMin.x), Float32(uvMin.y)), ImVec2(Float32(uvMax.x), Float32(uvMax.y)), tintCol)
     }
 
     /**
@@ -723,13 +723,14 @@ public class UiDrawList {
      * @param[en] tintCol Tint color (default white = no tint)
      */
     public func addImageQuad(texRef: VoidPtr, a: Vector2, b: Vector2, c: Vector2, d: Vector2,
-                              uvA!: ImVec2 = ImVec2(0.0, 0.0), uvB!: ImVec2 = ImVec2(1.0, 0.0),
-                              uvC!: ImVec2 = ImVec2(1.0, 1.0), uvD!: ImVec2 = ImVec2(0.0, 1.0),
+                              uvA!: Vector2 = Vector2(0.0, 0.0), uvB!: Vector2 = Vector2(1.0, 0.0),
+                              uvC!: Vector2 = Vector2(1.0, 1.0), uvD!: Vector2 = Vector2(0.0, 1.0),
                               tintCol!: UInt32 = 0xFFFFFFFF): Unit {
         ImDrawList_AddImageQuad_cj(this._dl, texRef.value,
             ImVec2(Float32(a.x), Float32(a.y)), ImVec2(Float32(b.x), Float32(b.y)),
             ImVec2(Float32(c.x), Float32(c.y)), ImVec2(Float32(d.x), Float32(d.y)),
-            uvA, uvB, uvC, uvD, tintCol)
+            ImVec2(Float32(uvA.x), Float32(uvA.y)), ImVec2(Float32(uvB.x), Float32(uvB.y)),
+            ImVec2(Float32(uvC.x), Float32(uvC.y)), ImVec2(Float32(uvD.x), Float32(uvD.y)), tintCol)
     }
 
     /**
@@ -752,11 +753,12 @@ public class UiDrawList {
      * @param[en] tintCol Tint color (default white = no tint)
      */
     public func addImageRounded(texRef: VoidPtr, pMin: Vector2, pMax: Vector2,
-                                 rounding: Float32, uvMin!: ImVec2 = ImVec2(0.0, 0.0),
-                                 uvMax!: ImVec2 = ImVec2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit {
+                                 rounding: Float32, uvMin!: Vector2 = Vector2(0.0, 0.0),
+                                 uvMax!: Vector2 = Vector2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit {
         ImDrawList_AddImageRounded_cj(this._dl, texRef.value,
             ImVec2(Float32(pMin.x), Float32(pMin.y)), ImVec2(Float32(pMax.x), Float32(pMax.y)),
-            uvMin, uvMax, tintCol, rounding, 0)
+            ImVec2(Float32(uvMin.x), Float32(uvMin.y)), ImVec2(Float32(uvMax.x), Float32(uvMax.y)),
+            tintCol, rounding, 0)
     }
 
     // ===== 多边形/折线 =====
@@ -764,49 +766,53 @@ public class UiDrawList {
 
     /**
      * @brief[zh-cn] 绘制折线（开放或闭合多边形）
-     * @param[zh-cn] points 顶点数组
+     * @param[zh-cn] points 顶点数组（Float32 平铺：x0,y0,x1,y1,...，2 个元素为一个顶点）
      * @param[zh-cn] col 颜色
      * @param[zh-cn] thickness 线宽
      * @param[zh-cn] flags ImDrawFlags
      *
      * @brief[en] Draws a polyline (open or closed polygon)
-     * @param[en] points Vertex array
+     * @param[en] points Vertex array (flat Float32: x0,y0,x1,y1,...; every 2 elements form one vertex)
      * @param[en] col Color
      * @param[en] thickness Line width
      * @param[en] flags ImDrawFlags
      */
-    public func addPolyline(points: PtrArray<ImVec2>, col: UInt32,
+    public func addPolyline(points: PtrArray<Float32>, col: UInt32,
                             thickness!: Float32 = 1.0, flags!: Int32 = 0): Unit {
-        if (points.size() == 0) { return }
-        ImDrawList_AddPolyline_cj(this._dl, points.data(), Int32(points.size()), col, thickness, flags)
+        if (points.size() < 2) { return }
+        // Float32 平铺数组（x0,y0,x1,y1,...）与 ImVec2 数组内存布局一致，FFI 边界重解释
+        let vtx = unsafe { CPointer<ImVec2>(CPointer<Unit>(points.data())) }
+        ImDrawList_AddPolyline_cj(this._dl, vtx, Int32(points.size() / 2), col, thickness, flags)
     }
 
     /**
      * @brief[zh-cn] 绘制凸多边形填充
-     * @param[zh-cn] points 顶点数组
+     * @param[zh-cn] points 顶点数组（Float32 平铺：x0,y0,x1,y1,...，2 个元素为一个顶点）
      * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Draws a convex polygon fill
-     * @param[en] points Vertex array
+     * @param[en] points Vertex array (flat Float32: x0,y0,x1,y1,...; every 2 elements form one vertex)
      * @param[en] col Color (IM_COL32 format)
      */
-    public func addConvexPolyFilled(points: PtrArray<ImVec2>, col: UInt32): Unit {
-        if (points.size() == 0) { return }
-        ImDrawList_AddConvexPolyFilled_cj(this._dl, points.data(), Int32(points.size()), col)
+    public func addConvexPolyFilled(points: PtrArray<Float32>, col: UInt32): Unit {
+        if (points.size() < 2) { return }
+        let vtx = unsafe { CPointer<ImVec2>(CPointer<Unit>(points.data())) }
+        ImDrawList_AddConvexPolyFilled_cj(this._dl, vtx, Int32(points.size() / 2), col)
     }
 
     /**
      * @brief[zh-cn] 绘制凹多边形填充
-     * @param[zh-cn] points 顶点数组
+     * @param[zh-cn] points 顶点数组（Float32 平铺：x0,y0,x1,y1,...，2 个元素为一个顶点）
      * @param[zh-cn] col 颜色（IM_COL32 格式）
      *
      * @brief[en] Draws a concave polygon fill
-     * @param[en] points Vertex array
+     * @param[en] points Vertex array (flat Float32: x0,y0,x1,y1,...; every 2 elements form one vertex)
      * @param[en] col Color (IM_COL32 format)
      */
-    public func addConcavePolyFilled(points: PtrArray<ImVec2>, col: UInt32): Unit {
-        if (points.size() == 0) { return }
-        ImDrawList_AddConcavePolyFilled_cj(this._dl, points.data(), Int32(points.size()), col)
+    public func addConcavePolyFilled(points: PtrArray<Float32>, col: UInt32): Unit {
+        if (points.size() < 2) { return }
+        let vtx = unsafe { CPointer<ImVec2>(CPointer<Unit>(points.data())) }
+        ImDrawList_AddConcavePolyFilled_cj(this._dl, vtx, Int32(points.size() / 2), col)
     }
 
     // ===== 路径扩展 =====
@@ -1031,10 +1037,10 @@ public class UiDrawList {
      * @param[en] uvC UV bottom-right
      * @param[en] col Color (IM_COL32 format)
      */
-    public func primRectUV(a: Vector2, c: Vector2, uvA: ImVec2, uvC: ImVec2, col: UInt32): Unit {
+    public func primRectUV(a: Vector2, c: Vector2, uvA: Vector2, uvC: Vector2, col: UInt32): Unit {
         ImDrawList_PrimRectUV_cj(this._dl,
             ImVec2(Float32(a.x), Float32(a.y)), ImVec2(Float32(c.x), Float32(c.y)),
-            uvA, uvC, col)
+            ImVec2(Float32(uvA.x), Float32(uvA.y)), ImVec2(Float32(uvC.x), Float32(uvC.y)), col)
     }
 
     /**

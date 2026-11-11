@@ -187,3 +187,15 @@ public static func isBuilt(): Bool
 
 - 已构建返回 true
 
+### func setDefaultFont\(UiFont\)
+```cj
+public static func setDefaultFont(font: UiFont): Unit
+```
+设置默认字体（io.FontDefault，UI 未显式 pushFont 时使用）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|font|UiFont|已添加到图集的字体对象|
+

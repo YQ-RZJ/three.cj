@@ -25,6 +25,7 @@
 |[WindowConfig](./类/WindowConfig.md#class-windowconfig)|窗口创建配置|
 |[WindowEngine](./类/WindowEngine.md#class-windowengine)|窗口引擎 v2（对齐 RGF 窗口模式）|
 |[WindowEvent](./类/WindowEvent.md#class-windowevent)|窗口事件|
+|[Window](./类/Window.md#class-window)|声明式窗口（组合 WindowEngine 的门面）|
 
 ### 结构体
 |  名称   | 描述  |

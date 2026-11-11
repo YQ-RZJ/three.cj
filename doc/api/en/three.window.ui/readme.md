@@ -11,7 +11,9 @@
 |[UiBeginListBox](./Class/UiBeginListBox.md#class-uibeginlistbox)|Custom list box begin widget (used with UiEndListBox)|
 |[UiBullet](./Class/UiBullet.md#class-uibullet)|Bullet widget (dot + same-line content)|
 |[UiButton](./Class/UiButton.md#class-uibutton)|Button widget|
+|[UiCheckboxFlags](./Class/UiCheckboxFlags.md#class-uicheckboxflags)|Checkbox flags widget|
 |[UiCheckbox](./Class/UiCheckbox.md#class-uicheckbox)|Checkbox widget|
+|[UiChildWindow](./Class/UiChildWindow.md#class-uichildwindow)|Child window widget (class form of BeginChild/EndChild)|
 |[UiClipRect](./Class/UiClipRect.md#class-uicliprect)|Clip rectangle container|
 |[UiCloseCurrentPopup](./Class/UiCloseCurrentPopup.md#class-uiclosecurrentpopup)|Close current popup widget|
 |[UiCollapsingHeader](./Class/UiCollapsingHeader.md#class-uicollapsingheader)|Collapsing header widget|
@@ -20,9 +22,10 @@
 |[UiColorEdit4](./Class/UiColorEdit4.md#class-uicoloredit4)|Color editor widget (RGBA)|
 |[UiColorPicker3](./Class/UiColorPicker3.md#class-uicolorpicker3)|3-channel color picker widget|
 |[UiColorPicker4](./Class/UiColorPicker4.md#class-uicolorpicker4)|Color picker widget (RGBA)|
-|[UiColor](./Class/UiColor.md#class-uicolor)|Color construction helper class|
 |[UiColumns](./Class/UiColumns.md#class-uicolumns)|Column layout container|
+|[UiComboPreview](./Class/UiComboPreview.md#class-uicombopreview)|Combo dropdown preview widget|
 |[UiCombo](./Class/UiCombo.md#class-uicombo)|Combo box widget|
+|[UiCursor](./Class/UiCursor.md#class-uicursor)|Cursor positioning, content region queries, ID stack and line metrics (all static)|
 |[UiDisabledBlock](./Class/UiDisabledBlock.md#class-uidisabledblock)|Disabled state container|
 |[UiDisabled](./Class/UiDisabled.md#class-uidisabled)|Disabled state container|
 |[UiDragDropSource](./Class/UiDragDropSource.md#class-uidragdropsource)|Drag source widget|
@@ -50,6 +53,7 @@
 |[UiGetDragDropPayload](./Class/UiGetDragDropPayload.md#class-uigetdragdroppayload)|Get drag payload widget|
 |[UiGlyphRanges](./Class/UiGlyphRanges.md#class-uiglyphranges)|Safe wrapper for glyph ranges (const ImWchar*)|
 |[UiGroup](./Class/UiGroup.md#class-uigroup)|Group container widget|
+|[UiIdScope](./Class/UiIdScope.md#class-uiidscope)|ID namespace scope widget|
 |[UiImageButton](./Class/UiImageButton.md#class-uiimagebutton)|Image button widget|
 |[UiImage](./Class/UiImage.md#class-uiimage)|Image display widget|
 |[UiIndent](./Class/UiIndent.md#class-uiindent)|Indent widget|
@@ -63,7 +67,10 @@
 |[UiInputInt4](./Class/UiInputInt4.md#class-uiinputint4)|4-channel integer input widget|
 |[UiInputInt](./Class/UiInputInt.md#class-uiinputint)|Integer input widget|
 |[UiInputTextCallback](./Class/UiInputTextCallback.md#class-uiinputtextcallback)|Input text callback data wrapper|
+|[UiInputTextMultiline](./Class/UiInputTextMultiline.md#class-uiinputtextmultiline)|Multiline text input widget|
 |[UiInputText](./Class/UiInputText.md#class-uiinputtext)|Text input widget|
+|[UiInvisibleButton](./Class/UiInvisibleButton.md#class-uiinvisiblebutton)|Invisible button (InvisibleButton)|
+|[UiItemFlags](./Class/UiItemFlags.md#class-uiitemflags)|Item flag container (content wrapped in PushItemFlag/PopItemFlag)|
 |[UiItemQuery](./Class/UiItemQuery.md#class-uiitemquery)|Widget state query — call after draw() to retrieve interaction state|
 |[UiKeyboard](./Class/UiKeyboard.md#class-uikeyboard)|Keyboard state query utility class (static methods wrapping ImGui keyboard query APIs)|
 |[UiLabelText](./Class/UiLabelText.md#class-uilabeltext)|Label plus value text widget (LabelText)|
@@ -83,7 +90,8 @@
 |[UiPopupModal](./Class/UiPopupModal.md#class-uipopupmodal)|Modal popup window widget (blocks interaction)|
 |[UiPopup](./Class/UiPopup.md#class-uipopup)|Regular popup window widget|
 |[UiProgressBar](./Class/UiProgressBar.md#class-uiprogressbar)|Progress bar widget|
-|[UiRect](./Class/UiRect.md#class-uirect)|Rectangle math helper class|
+|[UiRadioButtonGroup](./Class/UiRadioButtonGroup.md#class-uiradiobuttongroup)|Radio button group widget (shared Int value form)|
+|[UiRadioButton](./Class/UiRadioButton.md#class-uiradiobutton)|Radio button widget (boolean active form)|
 |[UiSameLine](./Class/UiSameLine.md#class-uisameline)|Same-line layout widget (places the next widget on the same line)|
 |[UiSelectable](./Class/UiSelectable.md#class-uiselectable)|Selectable widget|
 |[UiSeparatorText](./Class/UiSeparatorText.md#class-uiseparatortext)|Separator with text widget|
@@ -105,7 +113,9 @@
 |[UiSmallButton](./Class/UiSmallButton.md#class-uismallbutton)|Small button widget (borderless, suitable for toolbars)|
 |[UiSpacing](./Class/UiSpacing.md#class-uispacing)|Spacing widget|
 |[UiStorage](./Class/UiStorage.md#class-uistorage)|ImGui persistent key-value storage|
+|[UiStyleColor](./Class/UiStyleColor.md#class-uistylecolor)|Style color query utility|
 |[UiStyle](./Class/UiStyle.md#class-uistyle)|ImGui style management class|
+|[UiSystem](./Class/UiSystem.md#class-uisystem)|System utilities: clipboard, mouse drag detection, input capture|
 |[UiTabBar](./Class/UiTabBar.md#class-uitabbar)|Tab bar container widget|
 |[UiTabItemButton](./Class/UiTabItemButton.md#class-uitabitembutton)|Tab bar button widget (e.g. "+" button)|
 |[UiTabItem](./Class/UiTabItem.md#class-uitabitem)|Tab item widget|
@@ -123,6 +133,7 @@
 |[UiTextLink](./Class/UiTextLink.md#class-uitextlink)|Clickable link text widget|
 |[UiTextWrapped](./Class/UiTextWrapped.md#class-uitextwrapped)|Word-wrapped text widget|
 |[UiText](./Class/UiText.md#class-uitext)|Text display widget|
+|[UiTheme](./Class/UiTheme.md#class-uitheme)|Built-in theme applier|
 |[UiTooltip](./Class/UiTooltip.md#class-uitooltip)|Tooltip widget (shown on hover)|
 |[UiTreeNodeEx](./Class/UiTreeNodeEx.md#class-uitreenodeex)|Extended tree node widget (with flags support)|
 |[UiTreeNode](./Class/UiTreeNode.md#class-uitreenode)|Tree node widget|

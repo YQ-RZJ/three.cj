@@ -71,9 +71,9 @@ Parameter:
 |numSegments|Int32|Segment count (0 = auto)|
 |thickness|Float32|Line width|
 
-### func addConcavePolyFilled\(PtrArray<ImVec2>,UInt32\)
+### func addConcavePolyFilled\(PtrArray<Float32>,UInt32\)
 ```cj
-public func addConcavePolyFilled(points: PtrArray < ImVec2 >, col: UInt32): Unit
+public func addConcavePolyFilled(points: PtrArray < Float32 >, col: UInt32): Unit
 ```
 Draws a concave polygon fill
 
@@ -81,12 +81,12 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|points|PtrArray<ImVec2>|Vertex array|
+|points|PtrArray<Float32>|Vertex array (flat Float32: x0,y0,x1,y1,...; every 2 elements form one vertex)|
 |col|UInt32|Color (IM_COL32 format)|
 
-### func addConvexPolyFilled\(PtrArray<ImVec2>,UInt32\)
+### func addConvexPolyFilled\(PtrArray<Float32>,UInt32\)
 ```cj
-public func addConvexPolyFilled(points: PtrArray < ImVec2 >, col: UInt32): Unit
+public func addConvexPolyFilled(points: PtrArray < Float32 >, col: UInt32): Unit
 ```
 Draws a convex polygon fill
 
@@ -94,7 +94,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|points|PtrArray<ImVec2>|Vertex array|
+|points|PtrArray<Float32>|Vertex array (flat Float32: x0,y0,x1,y1,...; every 2 elements form one vertex)|
 |col|UInt32|Color (IM_COL32 format)|
 
 ### func addEllipseFilled\(Vector2,Vector2,UInt32,Float32,Int32\)
@@ -130,9 +130,9 @@ Parameter:
 |numSegments|Int32|Segment count (0 = auto)|
 |thickness|Float32|Line width|
 
-### func addImageQuad\(VoidPtr,Vector2,Vector2,Vector2,Vector2,ImVec2,ImVec2,ImVec2,ImVec2,UInt32\)
+### func addImageQuad\(VoidPtr,Vector2,Vector2,Vector2,Vector2,Vector2,Vector2,Vector2,Vector2,UInt32\)
 ```cj
-public func addImageQuad(texRef: VoidPtr, a: Vector2, b: Vector2, c: Vector2, d: Vector2, uvA!: ImVec2 = ImVec2(0.0, 0.0), uvB!: ImVec2 = ImVec2(1.0, 0.0), uvC!: ImVec2 = ImVec2(1.0, 1.0), uvD!: ImVec2 = ImVec2(0.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
+public func addImageQuad(texRef: VoidPtr, a: Vector2, b: Vector2, c: Vector2, d: Vector2, uvA!: Vector2 = Vector2(0.0, 0.0), uvB!: Vector2 = Vector2(1.0, 0.0), uvC!: Vector2 = Vector2(1.0, 1.0), uvD!: Vector2 = Vector2(0.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
 ```
 Draws a quad-mapped image
 
@@ -145,15 +145,15 @@ Parameter:
 |b|Vector2||
 |c|Vector2||
 |d|Vector2||
-|uvA|ImVec2||
-|uvB|ImVec2||
-|uvC|ImVec2||
-|uvD|ImVec2||
+|uvA|Vector2||
+|uvB|Vector2||
+|uvC|Vector2||
+|uvD|Vector2||
 |tintCol|UInt32|Tint color (default white = no tint)|
 
-### func addImageRounded\(VoidPtr,Vector2,Vector2,Float32,ImVec2,ImVec2,UInt32\)
+### func addImageRounded\(VoidPtr,Vector2,Vector2,Float32,Vector2,Vector2,UInt32\)
 ```cj
-public func addImageRounded(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, rounding: Float32, uvMin!: ImVec2 = ImVec2(0.0, 0.0), uvMax!: ImVec2 = ImVec2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
+public func addImageRounded(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, rounding: Float32, uvMin!: Vector2 = Vector2(0.0, 0.0), uvMax!: Vector2 = Vector2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
 ```
 Draws a rounded image
 
@@ -165,13 +165,13 @@ Parameter:
 |pMin|Vector2|Top-left corner|
 |pMax|Vector2|Bottom-right corner|
 |rounding|Float32|Corner rounding radius|
-|uvMin|ImVec2|UV top-left (default 0,0)|
-|uvMax|ImVec2|UV bottom-right (default 1,1)|
+|uvMin|Vector2|UV top-left (default 0,0)|
+|uvMax|Vector2|UV bottom-right (default 1,1)|
 |tintCol|UInt32|Tint color (default white = no tint)|
 
-### func addImage\(VoidPtr,Vector2,Vector2,ImVec2,ImVec2,UInt32\)
+### func addImage\(VoidPtr,Vector2,Vector2,Vector2,Vector2,UInt32\)
 ```cj
-public func addImage(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, uvMin!: ImVec2 = ImVec2(0.0, 0.0), uvMax!: ImVec2 = ImVec2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
+public func addImage(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, uvMin!: Vector2 = Vector2(0.0, 0.0), uvMax!: Vector2 = Vector2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
 ```
 Draws an image
 
@@ -182,8 +182,8 @@ Parameter:
 |texRef|VoidPtr|Texture reference pointer|
 |pMin|Vector2|Top-left corner|
 |pMax|Vector2|Bottom-right corner|
-|uvMin|ImVec2|UV top-left (default 0,0)|
-|uvMax|ImVec2|UV bottom-right (default 1,1)|
+|uvMin|Vector2|UV top-left (default 0,0)|
+|uvMax|Vector2|UV bottom-right (default 1,1)|
 |tintCol|UInt32|Tint color (default white=no tint)|
 
 ### func addLineH\(Float32,Float32,Float32,UInt32,Float32\)
@@ -264,9 +264,9 @@ Parameter:
 |numSides|Int32|Number of sides|
 |thickness|Float32|Line width|
 
-### func addPolyline\(PtrArray<ImVec2>,UInt32,Float32,Int32\)
+### func addPolyline\(PtrArray<Float32>,UInt32,Float32,Int32\)
 ```cj
-public func addPolyline(points: PtrArray < ImVec2 >, col: UInt32, thickness!: Float32 = 1.0, flags!: Int32 = 0): Unit
+public func addPolyline(points: PtrArray < Float32 >, col: UInt32, thickness!: Float32 = 1.0, flags!: Int32 = 0): Unit
 ```
 Draws a polyline (open or closed polygon)
 
@@ -274,7 +274,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|points|PtrArray<ImVec2>|Vertex array|
+|points|PtrArray<Float32>|Vertex array (flat Float32: x0,y0,x1,y1,...; every 2 elements form one vertex)|
 |col|UInt32|Color|
 |thickness|Float32|Line width|
 |flags|Int32|ImDrawFlags|
@@ -720,9 +720,9 @@ Parameter:
 |uvD|ImVec2|UV of vertex D|
 |col|UInt32|Color (IM_COL32 format)|
 
-### func primRectUV\(Vector2,Vector2,ImVec2,ImVec2,UInt32\)
+### func primRectUV\(Vector2,Vector2,Vector2,Vector2,UInt32\)
 ```cj
-public func primRectUV(a: Vector2, c: Vector2, uvA: ImVec2, uvC: ImVec2, col: UInt32): Unit
+public func primRectUV(a: Vector2, c: Vector2, uvA: Vector2, uvC: Vector2, col: UInt32): Unit
 ```
 Adds a primitive rectangle (with UV)
 
@@ -732,8 +732,8 @@ Parameter:
 |---|---|---|
 |a|Vector2|Top-left corner|
 |c|Vector2|Bottom-right corner|
-|uvA|ImVec2|UV top-left|
-|uvC|ImVec2|UV bottom-right|
+|uvA|Vector2|UV top-left|
+|uvC|Vector2|UV bottom-right|
 |col|UInt32|Color (IM_COL32 format)|
 
 ### func primRect\(Vector2,Vector2,UInt32\)

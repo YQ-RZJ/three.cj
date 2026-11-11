@@ -64,6 +64,12 @@ public static func dark(): Unit
 ```
 应用暗色主题
 
+### func getAlpha\(\)
+```cj
+public static func getAlpha(): Float32
+```
+读取全局透明度（ImGuiStyle.Alpha）
+
 ### func getClipboardText\(\)
 ```cj
 public static func getClipboardText(): String
@@ -92,23 +98,23 @@ public func getColorName(idx: Int32): String
 
 ### func getColorVec4\(Int32\)
 ```cj
-public static func getColorVec4(idx: Int32): ImVec4
+public static func getColorVec4(idx: Int32): Color4
 ```
-按 ImGuiCol 获取颜色值（Vec4）
+按索引读取样式色（RGBA 0.0..1.0）
 
 参数: 
 
 |名称|类型|描述|
 |---|---|---|
-|idx|Int32|颜色索引（ImGuiCol 枚举值）|
+|idx|Int32|ImGuiCol 索引|
 
 返回: 
 
-- 颜色值（RGBA，分量范围 [0, 1]）
+- 颜色值
 
 ### func getColor\(Int32\)
 ```cj
-public func getColor(idx: Int32): ImVec4
+public func getColor(idx: Int32): Color4
 ```
 获取颜色值
 
@@ -120,7 +126,7 @@ public func getColor(idx: Int32): ImVec4
 
 返回: 
 
-- ImVec4 颜色值
+- Color4 颜色值（RGBA）
 
 ### func getDisplaySize\(\)
 ```cj
@@ -172,6 +178,24 @@ public static func getFrameCount(): Int32
 
 - 已渲染帧数
 
+### func getFramePadding\(\)
+```cj
+public static func getFramePadding(): Vector2
+```
+读取控件框内边距（ImGuiStyle.FramePadding）
+
+### func getFrameRounding\(\)
+```cj
+public static func getFrameRounding(): Float32
+```
+读取控件框圆角半径（ImGuiStyle.FrameRounding）
+
+### func getItemSpacing\(\)
+```cj
+public static func getItemSpacing(): Vector2
+```
+读取控件间距（ImGuiStyle.ItemSpacing）
+
 ### func getScale\(\)
 ```cj
 public static func getScale(): Float32
@@ -191,6 +215,12 @@ public static func getTime(): Float64
 返回: 
 
 - 自 ImGui 初始化以来的运行秒数
+
+### func getWindowPadding\(\)
+```cj
+public static func getWindowPadding(): Vector2
+```
+读取窗口内边距（ImGuiStyle.WindowPadding）
 
 ### func hsvToRGB\(Float32,Float32,Float32\)
 ```cj
@@ -390,6 +420,16 @@ public func pushVarVec2(idx: Int32, value: Vector2): Unit
 |idx|Int32|变量索引|
 |value|Vector2|Vector2 值|
 
+### func read\(\)
+```cj
+public static func read(): ImGuiStyle
+```
+读取 ImGuiStyle 快照（含 windowPadding/itemSpacing/colors 等全部已定义字段）
+
+返回: 
+
+- ImGuiStyle 结构体副本
+
 ### func rgbToHSV\(Float32,Float32,Float32\)
 ```cj
 public static func rgbToHSV(r: Float32, g: Float32, b: Float32):(Float32, Float32, Float32)
@@ -442,6 +482,18 @@ public func scaleAllSizes(scaleFactor: Float32): Unit
 |---|---|---|
 |scaleFactor|Float32|缩放因子|
 
+### func setAlpha\(Float32\)
+```cj
+public static func setAlpha(alpha: Float32): Unit
+```
+设置全局透明度（ImGuiStyle.Alpha）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|alpha|Float32|透明度（0.0~1.0）|
+
 ### func setClipboardText\(String\)
 ```cj
 public static func setClipboardText(text: String): Unit
@@ -454,6 +506,19 @@ public static func setClipboardText(text: String): Unit
 |---|---|---|
 |text|String|要写入剪贴板的文本|
 
+### func setColor\(Int32,Color4\)
+```cj
+public static func setColor(idx: Int32, col: Color4): Unit
+```
+按索引修改样式色（RGBA 0.0..1.0）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|idx|Int32|ImGuiCol 索引|
+|col|Color4|新颜色|
+
 ### func setFontGlobalScale\(Float32\)
 ```cj
 public static func setFontGlobalScale(scale: Float32): Unit
@@ -465,6 +530,54 @@ public static func setFontGlobalScale(scale: Float32): Unit
 |名称|类型|描述|
 |---|---|---|
 |scale|Float32|缩放因子（1.0 = 原始大小）|
+
+### func setFramePadding\(Vector2\)
+```cj
+public static func setFramePadding(padding: Vector2): Unit
+```
+设置控件框内边距（ImGuiStyle.FramePadding）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|padding|Vector2|内边距|
+
+### func setFrameRounding\(Float32\)
+```cj
+public static func setFrameRounding(rounding: Float32): Unit
+```
+设置控件框圆角半径（ImGuiStyle.FrameRounding）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|rounding|Float32|圆角半径（0.0=直角）|
+
+### func setItemSpacing\(Vector2\)
+```cj
+public static func setItemSpacing(spacing: Vector2): Unit
+```
+设置控件间距（ImGuiStyle.ItemSpacing）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|spacing|Vector2|间距|
+
+### func setWindowPadding\(Vector2\)
+```cj
+public static func setWindowPadding(padding: Vector2): Unit
+```
+设置窗口内边距（ImGuiStyle.WindowPadding）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|padding|Vector2|内边距|
 
 ### func showFontSelector\(String\)
 ```cj
@@ -543,4 +656,16 @@ public static func vec4ToU32(col: ImVec4): UInt32
 返回: 
 
 - ImU32 打包颜色值
+
+### func write\(ImGuiStyle\)
+```cj
+public static func write(style: ImGuiStyle): Unit
+```
+写回 ImGuiStyle（通常 read() 修改个别字段后写回）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|style|ImGuiStyle|修改后的样式|
 

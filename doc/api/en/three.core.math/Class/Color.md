@@ -1,7 +1,7 @@
 # Class
 ## class Color
 ```cj
-public class Color <: IBackground
+public open class Color <: IBackground
 ```
 Color class, represented by RGB components, range [0, 1]
 

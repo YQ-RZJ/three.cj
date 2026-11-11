@@ -71,9 +71,9 @@ public func addCircle(center: Vector2, radius: Float32, col: UInt32, numSegments
 |numSegments|Int32|分段数（0=自动）|
 |thickness|Float32|线宽|
 
-### func addConcavePolyFilled\(PtrArray<ImVec2>,UInt32\)
+### func addConcavePolyFilled\(PtrArray<Float32>,UInt32\)
 ```cj
-public func addConcavePolyFilled(points: PtrArray < ImVec2 >, col: UInt32): Unit
+public func addConcavePolyFilled(points: PtrArray < Float32 >, col: UInt32): Unit
 ```
 绘制凹多边形填充
 
@@ -81,12 +81,12 @@ public func addConcavePolyFilled(points: PtrArray < ImVec2 >, col: UInt32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|points|PtrArray<ImVec2>|顶点数组|
+|points|PtrArray<Float32>|顶点数组（Float32 平铺：x0,y0,x1,y1,...，2 个元素为一个顶点）|
 |col|UInt32|颜色（IM_COL32 格式）|
 
-### func addConvexPolyFilled\(PtrArray<ImVec2>,UInt32\)
+### func addConvexPolyFilled\(PtrArray<Float32>,UInt32\)
 ```cj
-public func addConvexPolyFilled(points: PtrArray < ImVec2 >, col: UInt32): Unit
+public func addConvexPolyFilled(points: PtrArray < Float32 >, col: UInt32): Unit
 ```
 绘制凸多边形填充
 
@@ -94,7 +94,7 @@ public func addConvexPolyFilled(points: PtrArray < ImVec2 >, col: UInt32): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|points|PtrArray<ImVec2>|顶点数组|
+|points|PtrArray<Float32>|顶点数组（Float32 平铺：x0,y0,x1,y1,...，2 个元素为一个顶点）|
 |col|UInt32|颜色（IM_COL32 格式）|
 
 ### func addEllipseFilled\(Vector2,Vector2,UInt32,Float32,Int32\)
@@ -130,9 +130,9 @@ public func addEllipse(center: Vector2, radius: Vector2, col: UInt32, rot!: Floa
 |numSegments|Int32|分段数（0=自动）|
 |thickness|Float32|线宽|
 
-### func addImageQuad\(VoidPtr,Vector2,Vector2,Vector2,Vector2,ImVec2,ImVec2,ImVec2,ImVec2,UInt32\)
+### func addImageQuad\(VoidPtr,Vector2,Vector2,Vector2,Vector2,Vector2,Vector2,Vector2,Vector2,UInt32\)
 ```cj
-public func addImageQuad(texRef: VoidPtr, a: Vector2, b: Vector2, c: Vector2, d: Vector2, uvA!: ImVec2 = ImVec2(0.0, 0.0), uvB!: ImVec2 = ImVec2(1.0, 0.0), uvC!: ImVec2 = ImVec2(1.0, 1.0), uvD!: ImVec2 = ImVec2(0.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
+public func addImageQuad(texRef: VoidPtr, a: Vector2, b: Vector2, c: Vector2, d: Vector2, uvA!: Vector2 = Vector2(0.0, 0.0), uvB!: Vector2 = Vector2(1.0, 0.0), uvC!: Vector2 = Vector2(1.0, 1.0), uvD!: Vector2 = Vector2(0.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
 ```
 绘制四点映射图片
 
@@ -145,15 +145,15 @@ public func addImageQuad(texRef: VoidPtr, a: Vector2, b: Vector2, c: Vector2, d:
 |b|Vector2||
 |c|Vector2||
 |d|Vector2||
-|uvA|ImVec2||
-|uvB|ImVec2||
-|uvC|ImVec2||
-|uvD|ImVec2||
+|uvA|Vector2||
+|uvB|Vector2||
+|uvC|Vector2||
+|uvD|Vector2||
 |tintCol|UInt32|色调颜色（默认白色=不着色）|
 
-### func addImageRounded\(VoidPtr,Vector2,Vector2,Float32,ImVec2,ImVec2,UInt32\)
+### func addImageRounded\(VoidPtr,Vector2,Vector2,Float32,Vector2,Vector2,UInt32\)
 ```cj
-public func addImageRounded(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, rounding: Float32, uvMin!: ImVec2 = ImVec2(0.0, 0.0), uvMax!: ImVec2 = ImVec2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
+public func addImageRounded(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, rounding: Float32, uvMin!: Vector2 = Vector2(0.0, 0.0), uvMax!: Vector2 = Vector2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
 ```
 绘制圆角图片
 
@@ -165,13 +165,13 @@ public func addImageRounded(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, round
 |pMin|Vector2|左上角|
 |pMax|Vector2|右下角|
 |rounding|Float32|圆角半径|
-|uvMin|ImVec2|UV 左上角（默认 0,0）|
-|uvMax|ImVec2|UV 右下角（默认 1,1）|
+|uvMin|Vector2|UV 左上角（默认 0,0）|
+|uvMax|Vector2|UV 右下角（默认 1,1）|
 |tintCol|UInt32|色调颜色（默认白色=不着色）|
 
-### func addImage\(VoidPtr,Vector2,Vector2,ImVec2,ImVec2,UInt32\)
+### func addImage\(VoidPtr,Vector2,Vector2,Vector2,Vector2,UInt32\)
 ```cj
-public func addImage(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, uvMin!: ImVec2 = ImVec2(0.0, 0.0), uvMax!: ImVec2 = ImVec2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
+public func addImage(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, uvMin!: Vector2 = Vector2(0.0, 0.0), uvMax!: Vector2 = Vector2(1.0, 1.0), tintCol!: UInt32 = 0xFFFFFFFF): Unit
 ```
 绘制图片
 
@@ -182,8 +182,8 @@ public func addImage(texRef: VoidPtr, pMin: Vector2, pMax: Vector2, uvMin!: ImVe
 |texRef|VoidPtr|纹理引用指针|
 |pMin|Vector2|左上角|
 |pMax|Vector2|右下角|
-|uvMin|ImVec2|UV 左上角（默认 0,0）|
-|uvMax|ImVec2|UV 右下角（默认 1,1）|
+|uvMin|Vector2|UV 左上角（默认 0,0）|
+|uvMax|Vector2|UV 右下角（默认 1,1）|
 |tintCol|UInt32|色调颜色（默认白色=不着色）|
 
 ### func addLineH\(Float32,Float32,Float32,UInt32,Float32\)
@@ -264,9 +264,9 @@ public func addNgon(center: Vector2, radius: Float32, col: UInt32, numSides: Int
 |numSides|Int32|边数|
 |thickness|Float32|线宽|
 
-### func addPolyline\(PtrArray<ImVec2>,UInt32,Float32,Int32\)
+### func addPolyline\(PtrArray<Float32>,UInt32,Float32,Int32\)
 ```cj
-public func addPolyline(points: PtrArray < ImVec2 >, col: UInt32, thickness!: Float32 = 1.0, flags!: Int32 = 0): Unit
+public func addPolyline(points: PtrArray < Float32 >, col: UInt32, thickness!: Float32 = 1.0, flags!: Int32 = 0): Unit
 ```
 绘制折线（开放或闭合多边形）
 
@@ -274,7 +274,7 @@ public func addPolyline(points: PtrArray < ImVec2 >, col: UInt32, thickness!: Fl
 
 |名称|类型|描述|
 |---|---|---|
-|points|PtrArray<ImVec2>|顶点数组|
+|points|PtrArray<Float32>|顶点数组（Float32 平铺：x0,y0,x1,y1,...，2 个元素为一个顶点）|
 |col|UInt32|颜色|
 |thickness|Float32|线宽|
 |flags|Int32|ImDrawFlags|
@@ -720,9 +720,9 @@ public func primQuadUV(a: Vector2, b: Vector2, c: Vector2, d: Vector2, uvA: ImVe
 |uvD|ImVec2|顶点 D 的 UV|
 |col|UInt32|颜色（IM_COL32 格式）|
 
-### func primRectUV\(Vector2,Vector2,ImVec2,ImVec2,UInt32\)
+### func primRectUV\(Vector2,Vector2,Vector2,Vector2,UInt32\)
 ```cj
-public func primRectUV(a: Vector2, c: Vector2, uvA: ImVec2, uvC: ImVec2, col: UInt32): Unit
+public func primRectUV(a: Vector2, c: Vector2, uvA: Vector2, uvC: Vector2, col: UInt32): Unit
 ```
 添加原始矩形（带 UV）
 
@@ -732,8 +732,8 @@ public func primRectUV(a: Vector2, c: Vector2, uvA: ImVec2, uvC: ImVec2, col: UI
 |---|---|---|
 |a|Vector2|左上角|
 |c|Vector2|右下角|
-|uvA|ImVec2|UV 左上|
-|uvC|ImVec2|UV 右下|
+|uvA|Vector2|UV 左上|
+|uvC|Vector2|UV 右下|
 |col|UInt32|颜色（IM_COL32 格式）|
 
 ### func primRect\(Vector2,Vector2,UInt32\)

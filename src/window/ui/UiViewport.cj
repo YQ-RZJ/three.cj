@@ -39,6 +39,7 @@ package three.window.ui
 
 import std.core.*
 import imgui4cj.imgui.*
+import three.core.math.*
 import three.utils.memory.VoidPtr
 
 // =============================================================================
@@ -152,9 +153,10 @@ public class UiViewport {
      *
      * @brief[en] Viewport center point
      */
-    public func getCenter(): ImVec2 {
-        if (this._vp.isNull()) { return ImVec2(0.0, 0.0) }
-        return ImGuiViewport_GetCenter_cj(this._vp)
+    public func getCenter(): Vector2 {
+        if (this._vp.isNull()) { return Vector2(0.0, 0.0) }
+        let v = ImGuiViewport_GetCenter_cj(this._vp)
+        return Vector2(Float64(v.x), Float64(v.y))
     }
 
     /**
@@ -162,8 +164,9 @@ public class UiViewport {
      *
      * @brief[en] Work area center point
      */
-    public func getWorkCenter(): ImVec2 {
-        if (this._vp.isNull()) { return ImVec2(0.0, 0.0) }
-        return ImGuiViewport_GetWorkCenter_cj(this._vp)
+    public func getWorkCenter(): Vector2 {
+        if (this._vp.isNull()) { return Vector2(0.0, 0.0) }
+        let v = ImGuiViewport_GetWorkCenter_cj(this._vp)
+        return Vector2(Float64(v.x), Float64(v.y))
     }
 }

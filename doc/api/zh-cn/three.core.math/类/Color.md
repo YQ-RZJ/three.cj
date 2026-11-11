@@ -1,7 +1,7 @@
 # 类
 ## class Color
 ```cj
-public class Color <: IBackground
+public open class Color <: IBackground
 ```
 颜色类，使用 RGB 分量表示，范围 [0, 1]
 

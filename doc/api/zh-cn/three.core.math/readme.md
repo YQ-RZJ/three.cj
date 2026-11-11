@@ -17,6 +17,7 @@
 |  ----  | ----  |
 |[Box2](./类/Box2.md#class-box2)|2D 轴对齐包围盒类，用最小点和最大点表示|
 |[Box3](./类/Box3.md#class-box3)|3D 轴对齐包围盒类，用最小点和最大点表示|
+|[Color4](./类/Color4.md#class-color4)|带透明度分量的颜色类（RGBA，分量范围 [0, 1]）|
 |[ColorManagement](./类/ColorManagement.md#class-colormanagement)|颜色空间管理类，提供颜色空间之间的转换功能|
 |[ColorSpaceDefinition](./类/ColorSpaceDefinition.md#class-colorspacedefinition)|颜色空间定义，包含原色坐标、白点、传输函数、变换矩阵等信息|
 |[ColorSpaceOutputConfig](./类/ColorSpaceOutputConfig.md#class-colorspaceoutputconfig)|输出颜色空间配置|

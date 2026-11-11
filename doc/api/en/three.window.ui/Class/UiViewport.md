@@ -7,7 +7,7 @@ ImGui viewport query
 
 ### func getCenter\(\)
 ```cj
-public func getCenter(): ImVec2
+public func getCenter(): Vector2
 ```
 Viewport center point
 
@@ -49,7 +49,7 @@ Gets the viewport containing the current window
 
 ### func getWorkCenter\(\)
 ```cj
-public func getWorkCenter(): ImVec2
+public func getWorkCenter(): Vector2
 ```
 Work area center point
 

@@ -5,7 +5,9 @@ public class IdAllocator <: IReleasable
 ```
 ID 分配器
 
-<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>起始 ID 在构造时指定（默认 0）；不是线程安全的，多线程场景需外部加锁。</p>
+<p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>起始 ID 在构造时指定（默认 0）；内部以 ReentrantMutex 串行化
+allocate/release/release()（重置）/freeCount，线程安全，可跨线程共享
+（如各静态 _idGen/_idAlloc 被任意用户线程并发调用）。</p>
 
 ### func allocate\(\)
 ```cj

@@ -11,7 +11,9 @@
 |[UiBeginListBox](./类/UiBeginListBox.md#class-uibeginlistbox)|自定义列表框开始控件（配合 UiEndListBox 使用）|
 |[UiBullet](./类/UiBullet.md#class-uibullet)|项目符号控件（圆点 + 同行内容）|
 |[UiButton](./类/UiButton.md#class-uibutton)|按钮控件|
+|[UiCheckboxFlags](./类/UiCheckboxFlags.md#class-uicheckboxflags)|位标志复选框控件|
 |[UiCheckbox](./类/UiCheckbox.md#class-uicheckbox)|复选框控件|
+|[UiChildWindow](./类/UiChildWindow.md#class-uichildwindow)|子窗口控件（BeginChild/EndChild 的类形式）|
 |[UiClipRect](./类/UiClipRect.md#class-uicliprect)|剪裁矩形容器|
 |[UiCloseCurrentPopup](./类/UiCloseCurrentPopup.md#class-uiclosecurrentpopup)|关闭当前弹出窗口控件|
 |[UiCollapsingHeader](./类/UiCollapsingHeader.md#class-uicollapsingheader)|折叠标题控件|
@@ -20,9 +22,10 @@
 |[UiColorEdit4](./类/UiColorEdit4.md#class-uicoloredit4)|颜色编辑器控件（RGBA）|
 |[UiColorPicker3](./类/UiColorPicker3.md#class-uicolorpicker3)|三通道颜色选择器控件|
 |[UiColorPicker4](./类/UiColorPicker4.md#class-uicolorpicker4)|颜色选择器控件（RGBA）|
-|[UiColor](./类/UiColor.md#class-uicolor)|颜色构造辅助类|
 |[UiColumns](./类/UiColumns.md#class-uicolumns)|列布局容器|
+|[UiComboPreview](./类/UiComboPreview.md#class-uicombopreview)|Combo 下拉预览区控件|
 |[UiCombo](./类/UiCombo.md#class-uicombo)|下拉框控件|
+|[UiCursor](./类/UiCursor.md#class-uicursor)|光标定位、内容区查询、ID 栈与行高度量（全静态）|
 |[UiDisabledBlock](./类/UiDisabledBlock.md#class-uidisabledblock)|禁用状态容器|
 |[UiDisabled](./类/UiDisabled.md#class-uidisabled)|禁用状态容器|
 |[UiDragDropSource](./类/UiDragDropSource.md#class-uidragdropsource)|拖拽源控件|
@@ -50,6 +53,7 @@
 |[UiGetDragDropPayload](./类/UiGetDragDropPayload.md#class-uigetdragdroppayload)|获取拖放数据控件|
 |[UiGlyphRanges](./类/UiGlyphRanges.md#class-uiglyphranges)|字形范围（Unicode 区间数组）安全包装|
 |[UiGroup](./类/UiGroup.md#class-uigroup)|分组容器控件|
+|[UiIdScope](./类/UiIdScope.md#class-uiidscope)|ID 命名空间作用域控件|
 |[UiImageButton](./类/UiImageButton.md#class-uiimagebutton)|图片按钮控件|
 |[UiImage](./类/UiImage.md#class-uiimage)|图片显示控件|
 |[UiIndent](./类/UiIndent.md#class-uiindent)|缩进控件|
@@ -63,7 +67,10 @@
 |[UiInputInt4](./类/UiInputInt4.md#class-uiinputint4)|四通道整数输入框控件|
 |[UiInputInt](./类/UiInputInt.md#class-uiinputint)|整数输入框控件|
 |[UiInputTextCallback](./类/UiInputTextCallback.md#class-uiinputtextcallback)|输入文本回调数据包装器|
+|[UiInputTextMultiline](./类/UiInputTextMultiline.md#class-uiinputtextmultiline)|多行文本输入框控件|
 |[UiInputText](./类/UiInputText.md#class-uiinputtext)|文本输入框控件|
+|[UiInvisibleButton](./类/UiInvisibleButton.md#class-uiinvisiblebutton)|透明命中区控件（InvisibleButton）|
+|[UiItemFlags](./类/UiItemFlags.md#class-uiitemflags)|项级开关容器（PushItemFlag/PopItemFlag 包裹内容）|
 |[UiItemQuery](./类/UiItemQuery.md#class-uiitemquery)|控件状态查询——在 draw() 之后调用，获取交互状态|
 |[UiKeyboard](./类/UiKeyboard.md#class-uikeyboard)|键盘状态查询工具类（静态方法，封装 ImGui 键盘查询 API）|
 |[UiLabelText](./类/UiLabelText.md#class-uilabeltext)|标签+值文本控件（LabelText）|
@@ -83,7 +90,8 @@
 |[UiPopupModal](./类/UiPopupModal.md#class-uipopupmodal)|模态弹出窗口控件（阻塞交互）|
 |[UiPopup](./类/UiPopup.md#class-uipopup)|普通弹出窗口控件|
 |[UiProgressBar](./类/UiProgressBar.md#class-uiprogressbar)|进度条控件|
-|[UiRect](./类/UiRect.md#class-uirect)|矩形运算辅助类|
+|[UiRadioButtonGroup](./类/UiRadioButtonGroup.md#class-uiradiobuttongroup)|单选按钮组控件（Int 共享值形式）|
+|[UiRadioButton](./类/UiRadioButton.md#class-uiradiobutton)|单选按钮控件（布尔激活态形式）|
 |[UiSameLine](./类/UiSameLine.md#class-uisameline)|同行布局控件（将下一个控件放到同一行）|
 |[UiSelectable](./类/UiSelectable.md#class-uiselectable)|可选项控件|
 |[UiSeparatorText](./类/UiSeparatorText.md#class-uiseparatortext)|带文本的分隔线控件|
@@ -105,7 +113,9 @@
 |[UiSmallButton](./类/UiSmallButton.md#class-uismallbutton)|小按钮控件（无边框，适合工具栏）|
 |[UiSpacing](./类/UiSpacing.md#class-uispacing)|间距控件|
 |[UiStorage](./类/UiStorage.md#class-uistorage)|ImGui 持久化 key-value 存储|
+|[UiStyleColor](./类/UiStyleColor.md#class-uistylecolor)|样式色查询工具|
 |[UiStyle](./类/UiStyle.md#class-uistyle)|ImGui 样式管理类|
+|[UiSystem](./类/UiSystem.md#class-uisystem)|系统能力工具：剪贴板、鼠标拖拽判定、输入捕获|
 |[UiTabBar](./类/UiTabBar.md#class-uitabbar)|标签栏容器控件|
 |[UiTabItemButton](./类/UiTabItemButton.md#class-uitabitembutton)|标签栏按钮控件（如 "+" 按钮）|
 |[UiTabItem](./类/UiTabItem.md#class-uitabitem)|标签页控件|
@@ -123,6 +133,7 @@
 |[UiTextLink](./类/UiTextLink.md#class-uitextlink)|可点击链接文本控件|
 |[UiTextWrapped](./类/UiTextWrapped.md#class-uitextwrapped)|自动换行文本控件|
 |[UiText](./类/UiText.md#class-uitext)|文本显示控件|
+|[UiTheme](./类/UiTheme.md#class-uitheme)|内置主题应用工具|
 |[UiTooltip](./类/UiTooltip.md#class-uitooltip)|工具提示控件（悬停时显示）|
 |[UiTreeNodeEx](./类/UiTreeNodeEx.md#class-uitreenodeex)|扩展树节点控件（支持标志位）|
 |[UiTreeNode](./类/UiTreeNode.md#class-uitreenode)|树节点控件|

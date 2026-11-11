@@ -17,7 +17,7 @@ Return:
 
 ### func getMouseDragDelta\(Int32,Float32\)
 ```cj
-public static func getMouseDragDelta(button!: Int32 = 0, lockThreshold!: Float32 = - 1.0f32): ImVec2
+public static func getMouseDragDelta(button!: Int32 = 0, lockThreshold!: Float32 = - 1.0f32): Vector2
 ```
 Gets the mouse drag delta
 
@@ -34,7 +34,7 @@ Return:
 
 ### func getMousePos\(\)
 ```cj
-public static func getMousePos(): ImVec2
+public static func getMousePos(): Vector2
 ```
 Gets the mouse position
 

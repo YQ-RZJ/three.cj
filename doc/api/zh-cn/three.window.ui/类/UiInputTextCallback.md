@@ -24,6 +24,64 @@ public func deleteChars(pos: Int32, bytesCount: Int32): Unit
 |pos|Int32|起始位置|
 |bytesCount|Int32|删除的字节数|
 
+### func getBufSize\(\)
+```cj
+public func getBufSize(): Int32
+```
+缓冲容量（含 '\0' 存储位，只读）
+
+### func getBufTextLen\(\)
+```cj
+public func getBufTextLen(): Int32
+```
+文本长度（不含 '\0'）
+
+### func getBufText\(\)
+```cj
+public func getBufText(): String
+```
+读取缓冲区当前内容为仓颉字符串
+
+返回: 
+
+- 缓冲区文本（缓冲为空时为空字符串）
+
+### func getCursorPos\(\)
+```cj
+public func getCursorPos(): Int32
+```
+光标位置
+
+### func getEventChar\(\)
+```cj
+public func getEventChar(): UInt16
+```
+输入字符（[CharFilter] 可读写：替换字符或置 0 丢弃）
+
+### func getEventFlag\(\)
+```cj
+public func getEventFlag(): Int32
+```
+回调事件类型（ImGuiInputTextFlags_Callback*，只读）
+
+### func getEventKey\(\)
+```cj
+public func getEventKey(): Int32
+```
+事件键（ImGuiKey，只读）
+
+### func getSelectionEnd\(\)
+```cj
+public func getSelectionEnd(): Int32
+```
+选区终点
+
+### func getSelectionStart\(\)
+```cj
+public func getSelectionStart(): Int32
+```
+选区起点（== selectionEnd 时无选区）
+
 ### func hasSelection\(\)
 ```cj
 public func hasSelection(): Bool
@@ -66,6 +124,43 @@ public func isValid(): Bool
 public func selectAll(): Unit
 ```
 全选文本
+
+### func setCursorPos\(Int32\)
+```cj
+public func setCursorPos(pos: Int32): Unit
+```
+设置光标位置
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|pos|Int32|光标位置|
+
+### func setEventChar\(UInt16\)
+```cj
+public func setEventChar(c: UInt16): Unit
+```
+设置输入字符（置 0 表示丢弃该字符）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|c|UInt16|新字符|
+
+### func setSelectionRange\(Int32,Int32\)
+```cj
+public func setSelectionRange(start: Int32, end_: Int32): Unit
+```
+设置选区（同时移动光标到终点）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|start|Int32|起点|
+|end_|Int32|终点|
 
 ### func setSelection\(Int32,Int32\)
 ```cj

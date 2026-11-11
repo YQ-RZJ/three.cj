@@ -847,6 +847,12 @@ public mut prop bindOnClose: Option <() -> Unit >
 ```
 Bound event - before closing
 
+### prop bindOnCtxtInit: Option <\(\) \-> Unit >
+```cj
+public mut prop bindOnCtxtInit: Option <() -> Unit >
+```
+Callback after the Gui context is initialized (fixed snapshot)
+
 ### prop bindOnDestroy: Option <\(\) \-> Unit >
 ```cj
 public mut prop bindOnDestroy: Option <() -> Unit >

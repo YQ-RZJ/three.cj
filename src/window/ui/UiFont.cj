@@ -709,6 +709,24 @@ public class UiFontAtlas {
     }
 
     /**
+     * @brief[zh-cn] 设置默认字体（io.FontDefault，UI 未显式 pushFont 时使用）
+     * @explain[zh-cn] 须在字体添加后、首个 NewFrame 之前调用（建议在 onCtxtInit 中），
+     *             使图集首建即包含新字体，后端一次性上传字体纹理。
+     * @param[zh-cn] font 已添加到图集的字体对象
+     *
+     * @brief[en] Sets the default font (io.FontDefault; used when no explicit pushFont)
+     * @explain[en] Must be called after the font is added and before the first NewFrame
+     *             (recommended in onCtxtInit), so the atlas' first build includes it and the
+     *             backend uploads the font texture once.
+     * @param[en] font A font object already added to the atlas
+     */
+    public static func setDefaultFont(font: UiFont): Unit {
+        let io = ImGui_GetIO_cj()
+        if (io.isNull() || font.getHandle().value.isNull()) { return }
+        ImGuiIO_Set_FontDefault_cj(io, font.getHandle().value)
+    }
+
+    /**
      * @brief[zh-cn] 添加默认字体（内置 ProggyClean）
      * @param[zh-cn] fontConfig 字体配置（可选，默认新建）
      * @return[zh-cn] UiFont 字体对象

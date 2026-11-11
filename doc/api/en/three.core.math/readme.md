@@ -17,6 +17,7 @@
 |  ----  | ----  |
 |[Box2](./Class/Box2.md#class-box2)|2D axis-aligned bounding box class, defined by min and max points|
 |[Box3](./Class/Box3.md#class-box3)|3D axis-aligned bounding box class, defined by min and max points|
+|[Color4](./Class/Color4.md#class-color4)|Color class with alpha (RGBA, components in [0, 1])|
 |[ColorManagement](./Class/ColorManagement.md#class-colormanagement)|Color space management class, providing color space conversion functionality|
 |[ColorSpaceDefinition](./Class/ColorSpaceDefinition.md#class-colorspacedefinition)|Color space definition, containing primary coordinates, white point, transfer function, transformation matrix, etc.|
 |[ColorSpaceOutputConfig](./Class/ColorSpaceOutputConfig.md#class-colorspaceoutputconfig)|Output color space configuration|

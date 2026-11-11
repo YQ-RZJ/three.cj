@@ -7,7 +7,7 @@ ImGui 视口查询
 
 ### func getCenter\(\)
 ```cj
-public func getCenter(): ImVec2
+public func getCenter(): Vector2
 ```
 视口中心点
 
@@ -49,7 +49,7 @@ public static func getWindowViewport(): UiViewport
 
 ### func getWorkCenter\(\)
 ```cj
-public func getWorkCenter(): ImVec2
+public func getWorkCenter(): Vector2
 ```
 工作区中心点
 

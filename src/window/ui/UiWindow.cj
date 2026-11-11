@@ -43,6 +43,7 @@ package three.window.ui
 
 import std.core.*
 import imgui4cj.imgui.*
+import three.core.math.*
 import three.utils.memory.PtrArray
 
 /**
@@ -205,8 +206,8 @@ public class UiWindow {
      * @param[en] cond Condition flags
      * @param[en] pivot Pivot point
      */
-    public static func setNextWindowPosVec(pos: ImVec2, cond!: Int32 = 0, pivot!: ImVec2 = ImVec2(0.0, 0.0)): Unit {
-        igSetNextWindowPos_cj(pos, cond, pivot)
+    public static func setNextWindowPosVec(pos: Vector2, cond!: Int32 = 0, pivot!: Vector2 = Vector2(0.0, 0.0)): Unit {
+        igSetNextWindowPos_cj(ImVec2(Float32(pos.x), Float32(pos.y)), cond, ImVec2(Float32(pivot.x), Float32(pivot.y)))
     }
 
     /**
@@ -311,13 +312,19 @@ public class UiWindow {
      *
      * @brief[en] Gets the current window position
      */
-    public static func getWindowPos(): ImVec2 { return igGetWindowPos_cj() }
+    public static func getWindowPos(): Vector2 {
+        let v = igGetWindowPos_cj()
+        return Vector2(Float64(v.x), Float64(v.y))
+    }
     /**
      * @brief[zh-cn] 获取当前窗口尺寸
      *
      * @brief[en] Gets the current window size
      */
-    public static func getWindowSize(): ImVec2 { return igGetWindowSize_cj() }
+    public static func getWindowSize(): Vector2 {
+        let v = igGetWindowSize_cj()
+        return Vector2(Float64(v.x), Float64(v.y))
+    }
     /**
      * @brief[zh-cn] 获取当前窗口宽度
      *

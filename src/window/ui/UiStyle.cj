@@ -167,14 +167,15 @@ public class UiStyle {
     /**
      * @brief[zh-cn] 获取颜色值
      * @param[zh-cn] idx 颜色索引
-     * @return[zh-cn] ImVec4 颜色值
+     * @return[zh-cn] Color4 颜色值（RGBA）
      *
      * @brief[en] Returns the color value
      * @param[en] idx Color index
-     * @return[en] ImVec4 color value
+     * @return[en] Color4 color value (RGBA)
      */
-    public func getColor(idx: Int32): ImVec4 {
-        return unsafe { igGetStyleColorVec4_cj(idx).read() }
+    public func getColor(idx: Int32): Color4 {
+        let v = unsafe { igGetStyleColorVec4_cj(idx).read() }
+        return Color4(Float64(v.x), Float64(v.y), Float64(v.z), a: Float64(v.w))
     }
 
     /**
@@ -532,19 +533,6 @@ public class UiStyle {
     // ===== 颜色查询 =====
     // ===== Color Query =====
 
-    /**
-     * @brief[zh-cn] 按 ImGuiCol 获取颜色值（Vec4）
-     * @param[zh-cn] idx 颜色索引（ImGuiCol 枚举值）
-     * @return[zh-cn] 颜色值（RGBA，分量范围 [0, 1]）
-     *
-     * @brief[en] Gets color value by ImGuiCol (Vec4)
-     * @param[en] idx Color index (ImGuiCol enum value)
-     * @return[en] Color value (RGBA, components in [0, 1])
-     */
-    public static func getColorVec4(idx: Int32): ImVec4 {
-        return unsafe { igGetStyleColorVec4_cj(idx).read() }
-    }
-
     // ===== INI 持久化 =====
 
     /**
@@ -646,5 +634,157 @@ public class UiStyle {
      */
     public static func vec4ToU32(col: ImVec4): UInt32 {
         return igColorConvertFloat4ToU32_cj(col)
+    }
+
+    // ===== ImGuiStyle 结构体字段访问（@C struct 指针重解释） =====
+
+    /**
+     * @brief[zh-cn] 读取 ImGuiStyle 快照（含 windowPadding/itemSpacing/colors 等全部已定义字段）
+     * @return[zh-cn] ImGuiStyle 结构体副本
+     *
+     * @brief[en] Reads a snapshot of ImGuiStyle (all defined fields)
+     * @return[en] ImGuiStyle struct copy
+     */
+    public static func read(): ImGuiStyle { return ImGui_Style_Read_cj() }
+
+    /**
+     * @brief[zh-cn] 写回 ImGuiStyle（通常 read() 修改个别字段后写回）
+     * @param[zh-cn] style 修改后的样式
+     *
+     * @brief[en] Writes back ImGuiStyle (typically read(), modify, write back)
+     * @param[en] style Modified style
+     */
+    public static func write(style: ImGuiStyle): Unit { ImGui_Style_Write_cj(style) }
+
+    /**
+     * @brief[zh-cn] 读取全局透明度（ImGuiStyle.Alpha）
+     *
+     * @brief[en] Reads global alpha (ImGuiStyle.Alpha)
+     */
+    public static func getAlpha(): Float32 { return ImGui_Style_GetAlpha_cj() }
+
+    /**
+     * @brief[zh-cn] 设置全局透明度（ImGuiStyle.Alpha）
+     * @param[zh-cn] alpha 透明度（0.0~1.0）
+     *
+     * @brief[en] Sets global alpha (ImGuiStyle.Alpha)
+     * @param[en] alpha Alpha (0.0~1.0)
+     */
+    public static func setAlpha(alpha: Float32): Unit { ImGui_Style_SetAlpha_cj(alpha) }
+
+    /**
+     * @brief[zh-cn] 读取控件间距（ImGuiStyle.ItemSpacing）
+     *
+     * @brief[en] Reads item spacing (ImGuiStyle.ItemSpacing)
+     */
+    public static func getItemSpacing(): Vector2 {
+        let v = ImGui_Style_Read_cj().itemSpacing
+        return Vector2(Float64(v.x), Float64(v.y))
+    }
+
+    /**
+     * @brief[zh-cn] 设置控件间距（ImGuiStyle.ItemSpacing）
+     * @param[zh-cn] spacing 间距
+     *
+     * @brief[en] Sets item spacing (ImGuiStyle.ItemSpacing)
+     * @param[en] spacing Spacing
+     */
+    public static func setItemSpacing(spacing: Vector2): Unit {
+        var s = ImGui_Style_Read_cj()
+        s.itemSpacing = ImVec2(Float32(spacing.x), Float32(spacing.y))
+        ImGui_Style_Write_cj(s)
+    }
+
+    /**
+     * @brief[zh-cn] 读取窗口内边距（ImGuiStyle.WindowPadding）
+     *
+     * @brief[en] Reads window padding (ImGuiStyle.WindowPadding)
+     */
+    public static func getWindowPadding(): Vector2 {
+        let v = ImGui_Style_Read_cj().windowPadding
+        return Vector2(Float64(v.x), Float64(v.y))
+    }
+
+    /**
+     * @brief[zh-cn] 设置窗口内边距（ImGuiStyle.WindowPadding）
+     * @param[zh-cn] padding 内边距
+     *
+     * @brief[en] Sets window padding (ImGuiStyle.WindowPadding)
+     * @param[en] padding Padding
+     */
+    public static func setWindowPadding(padding: Vector2): Unit {
+        var s = ImGui_Style_Read_cj()
+        s.windowPadding = ImVec2(Float32(padding.x), Float32(padding.y))
+        ImGui_Style_Write_cj(s)
+    }
+
+    /**
+     * @brief[zh-cn] 读取控件框内边距（ImGuiStyle.FramePadding）
+     *
+     * @brief[en] Reads frame padding (ImGuiStyle.FramePadding)
+     */
+    public static func getFramePadding(): Vector2 {
+        let v = ImGui_Style_Read_cj().framePadding
+        return Vector2(Float64(v.x), Float64(v.y))
+    }
+
+    /**
+     * @brief[zh-cn] 设置控件框内边距（ImGuiStyle.FramePadding）
+     * @param[zh-cn] padding 内边距
+     *
+     * @brief[en] Sets frame padding (ImGuiStyle.FramePadding)
+     * @param[en] padding Padding
+     */
+    public static func setFramePadding(padding: Vector2): Unit {
+        var s = ImGui_Style_Read_cj()
+        s.framePadding = ImVec2(Float32(padding.x), Float32(padding.y))
+        ImGui_Style_Write_cj(s)
+    }
+
+    /**
+     * @brief[zh-cn] 读取控件框圆角半径（ImGuiStyle.FrameRounding）
+     *
+     * @brief[en] Reads frame rounding (ImGuiStyle.FrameRounding)
+     */
+    public static func getFrameRounding(): Float32 { return ImGui_Style_Read_cj().frameRounding }
+
+    /**
+     * @brief[zh-cn] 设置控件框圆角半径（ImGuiStyle.FrameRounding）
+     * @param[zh-cn] rounding 圆角半径（0.0=直角）
+     *
+     * @brief[en] Sets frame rounding (ImGuiStyle.FrameRounding)
+     * @param[en] rounding Rounding radius (0.0=square)
+     */
+    public static func setFrameRounding(rounding: Float32): Unit {
+        var s = ImGui_Style_Read_cj()
+        s.frameRounding = rounding
+        ImGui_Style_Write_cj(s)
+    }
+
+    /**
+     * @brief[zh-cn] 按索引读取样式色（RGBA 0.0..1.0）
+     * @param[zh-cn] idx ImGuiCol 索引
+     * @return[zh-cn] 颜色值
+     *
+     * @brief[en] Reads a style color by index (RGBA 0.0..1.0)
+     * @param[en] idx ImGuiCol index
+     * @return[en] Color value
+     */
+    public static func getColorVec4(idx: Int32): Color4 {
+        let v = ImGui_Style_GetColorVec4_cj(idx)
+        return Color4(Float64(v.x), Float64(v.y), Float64(v.z), a: Float64(v.w))
+    }
+
+    /**
+     * @brief[zh-cn] 按索引修改样式色（RGBA 0.0..1.0）
+     * @param[zh-cn] idx ImGuiCol 索引
+     * @param[zh-cn] col 新颜色
+     *
+     * @brief[en] Sets a style color by index (RGBA 0.0..1.0)
+     * @param[en] idx ImGuiCol index
+     * @param[en] col New color
+     */
+    public static func setColor(idx: Int32, col: Color4): Unit {
+        ImGui_Style_SetColorVec4_cj(idx, ImVec4(Float32(col.r), Float32(col.g), Float32(col.b), Float32(col.a)))
     }
 }

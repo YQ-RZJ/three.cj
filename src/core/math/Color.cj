@@ -48,7 +48,7 @@ import fastjson.stream.*
  * @explain[en] Color instances are represented by RGB components in the linear working color space (default LinearSRGBColorSpace). Inputs using SRGBColorSpace (e.g., hexadecimal and CSS strings) are automatically converted to the working color space.
  */
 @JsonAdapter
-public class Color <: IBackground {
+public open class Color <: IBackground {
     /**
      * @brief[zh-cn] 红色分量
      *

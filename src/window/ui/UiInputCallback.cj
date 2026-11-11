@@ -146,4 +146,118 @@ public class UiInputTextCallback {
         ImGuiInputTextCallbackData_InsertChars_cj(this._data, pos, cs, csEnd)
         unsafe { LibC.free(cs) }
     }
+
+    // ===== 字段访问（@C struct 指针重解释，见 imgui4cj types.cj） =====
+
+    /**
+     * @brief[zh-cn] 回调事件类型（ImGuiInputTextFlags_Callback*，只读）
+     *
+     * @brief[en] Callback event type (ImGuiInputTextFlags_Callback*, read-only)
+     */
+    public func getEventFlag(): Int32 { return ImGui_InputTextData_GetEventFlag_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 事件键（ImGuiKey，只读）
+     *
+     * @brief[en] Event key (ImGuiKey, read-only)
+     */
+    public func getEventKey(): Int32 { return ImGui_InputTextData_GetEventKey_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 输入字符（[CharFilter] 可读写：替换字符或置 0 丢弃）
+     *
+     * @brief[en] Event character ([CharFilter] read-write: replace, or 0 to drop)
+     */
+    public func getEventChar(): UInt16 { return ImGui_InputTextData_GetEventChar_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 设置输入字符（置 0 表示丢弃该字符）
+     * @param[zh-cn] c 新字符
+     *
+     * @brief[en] Sets the event character (0 to drop it)
+     * @param[en] c New character
+     */
+    public func setEventChar(c: UInt16): Unit { ImGui_InputTextData_SetEventChar_cj(this._data, c) }
+
+    /**
+     * @brief[zh-cn] 文本缓冲指针（internal：仅供包内 FFI 桥接使用）
+     * @explain[zh-cn] 公开面请使用 getBufText() 读取缓冲内容——本方法暴露裸指针，
+     *             直接写入可能破坏 ImGui 缓冲区不变量（长度/容量/终止符）。
+     *
+     * @brief[en] Text buffer pointer (internal: for package-internal FFI bridging only)
+     * @explain[en] Use getBufText() in public code to read buffer contents — this method
+     *             exposes a raw pointer; writing it directly may break ImGui buffer
+     *             invariants (length/capacity/terminator).
+     */
+    internal func getBuf(): CPointer<UInt8> { return ImGui_InputTextData_GetBuf_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 文本长度（不含 '\0'）
+     *
+     * @brief[en] Text length (excluding the terminating '\0')
+     */
+    public func getBufTextLen(): Int32 { return ImGui_InputTextData_GetBufTextLen_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 缓冲容量（含 '\0' 存储位，只读）
+     *
+     * @brief[en] Buffer capacity (including '\0' storage, read-only)
+     */
+    public func getBufSize(): Int32 { return ImGui_InputTextData_GetBufSize_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 读取缓冲区当前内容为仓颉字符串
+     * @return[zh-cn] 缓冲区文本（缓冲为空时为空字符串）
+     *
+     * @brief[en] Reads the current buffer contents as a Cangjie string
+     * @return[en] Buffer text (empty string when the buffer is null)
+     */
+    public func getBufText(): String {
+        let p = this.getBuf()
+        if (p.isNull()) { return "" }
+        return unsafe { CString(CPointer<UInt8>(CPointer<Unit>(p))).toString() }
+    }
+
+    /**
+     * @brief[zh-cn] 光标位置
+     *
+     * @brief[en] Cursor position
+     */
+    public func getCursorPos(): Int32 { return ImGui_InputTextData_GetCursorPos_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 设置光标位置
+     * @param[zh-cn] pos 光标位置
+     *
+     * @brief[en] Sets the cursor position
+     * @param[en] pos Cursor position
+     */
+    public func setCursorPos(pos: Int32): Unit { ImGui_InputTextData_SetCursorPos_cj(this._data, pos) }
+
+    /**
+     * @brief[zh-cn] 选区起点（== selectionEnd 时无选区）
+     *
+     * @brief[en] Selection start (== selection end when no selection)
+     */
+    public func getSelectionStart(): Int32 { return ImGui_InputTextData_GetSelectionStart_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 选区终点
+     *
+     * @brief[en] Selection end
+     */
+    public func getSelectionEnd(): Int32 { return ImGui_InputTextData_GetSelectionEnd_cj(this._data) }
+
+    /**
+     * @brief[zh-cn] 设置选区（同时移动光标到终点）
+     * @param[zh-cn] start 起点
+     * @param[zh-cn] end_ 终点
+     *
+     * @brief[en] Sets the selection (moves cursor to end)
+     * @param[en] start Start
+     * @param[en] end_ End
+     */
+    public func setSelectionRange(start: Int32, end_: Int32): Unit {
+        ImGui_InputTextData_SetSelection_cj(this._data, start, end_)
+    }
 }

@@ -25,6 +25,7 @@
 |[WindowConfig](./Class/WindowConfig.md#class-windowconfig)|Window creation configuration|
 |[WindowEngine](./Class/WindowEngine.md#class-windowengine)|Window engine v2 (aligned with the RGF window model)|
 |[WindowEvent](./Class/WindowEvent.md#class-windowevent)|Window event|
+|[Window](./Class/Window.md#class-window)|Declarative window (facade composing WindowEngine)|
 
 ### Struct
 |  Name   | Describe  |

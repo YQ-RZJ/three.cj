@@ -21,7 +21,7 @@
 
 本项目长期维护，关注 [Bilibili UID:3546853029185667](https://space.bilibili.com/3546853029185667) 观看视频教程与最新动态！
 
-**'注意** 测试及案例代码可见：[链接](./doc/materials/zh-cn/测试案例项目.md)
+**'注意** 测试及案例代码可见：[链接](./doc/references/zh-cn/测试案例项目.md)
 
 ## 项目特点
 
@@ -80,8 +80,7 @@ three/
 ├── doc/                    # 项目文档
 │   ├── api/                # API 文档
 │   ├── asstes/             # 文档资源
-│   ├── dev manual/         # 开发手册
-│   └── materials/          # 项目材料（测试案例项目说明等）
+│   └── references/         # 项目材料（测试案例项目说明等）
 ├── libs/                   # 原生库目录（各平台测试链接所需静态库，含 exclude.rsp 与 symbols_elf.map）
 ├── scripts/                # 辅助脚本（详见 scripts/README_zh.md）
 ├── src/                    # 仓颉引擎源码（本 README 主体）
@@ -345,7 +344,7 @@ export THREE_PROFILER=three.render
 
 无 GUI 环境（CI 等）可用 `scripts/tracy_receiver.py` 代替 GUI/Worker：它主动连接被测进程、落盘原始与
 结构化产物，并直接产出热点统计（调用次数、耗时、P50/P95/P99）。详见
-[`doc/materials/zh-cn/profiler使用说明.md`](./doc/materials/zh-cn/profiler使用说明.md) 第七节。
+[`doc/references/zh-cn/profiler使用说明.md`](./doc/references/zh-cn/profiler使用说明.md) 第七节。
 
 > 注意：与 `THREE_LOG_LEVEL` 一致，链路在宏展开（编译期）时读取并烧入产物，与运行期环境无关；
 > 修改后建议 `cjpm clean` 全量重建。

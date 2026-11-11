@@ -546,6 +546,23 @@ public class UiInputText <: UiWidget {
     }
 
     /**
+     * @brief[zh-cn] 析构：释放输入缓冲区堆内存（GC 兜底，无须手动调用）
+     * @explain[zh-cn] 缓冲区由本对象 malloc 并独占（getBufPtr 仅借用），生命周期与
+     *             控件实例一致，无须外部管理。
+     *
+     * @brief[en] Destructor: frees the input buffer heap memory (GC fallback, no manual call needed)
+     * @explain[en] The buffer is malloc'd and exclusively owned by this instance
+     *             (getBufPtr only borrows); its lifetime matches the widget instance
+     *             and needs no external management.
+     */
+    ~init() {
+        if (!this._buf.isNull()) {
+            unsafe { LibC.free(this._buf) }
+            this._buf = CPointer<Int8>()
+        }
+    }
+
+    /**
      * @brief[zh-cn] 渲染文本输入框
      * @return[zh-cn] 本次输入内容是否发生变化
      *
@@ -4094,7 +4111,10 @@ public class UiMouse {
      * @brief[en] Gets the mouse position
      * @return[en] Current mouse coordinates
      */
-    public static func getMousePos(): ImVec2 { return igGetMousePos_cj() }
+    public static func getMousePos(): Vector2 {
+        let v = igGetMousePos_cj()
+        return Vector2(Float64(v.x), Float64(v.y))
+    }
     /**
      * @brief[zh-cn] 获取鼠标拖拽增量
      * @param[zh-cn] button 拖拽按钮索引（默认 0=左键）
@@ -4106,7 +4126,10 @@ public class UiMouse {
      * @param[en] lockThreshold Lock threshold (default -1.0, uses ImGui default)
      * @return[en] Displacement from drag start to current position
      */
-    public static func getMouseDragDelta(button!: Int32 = 0, lockThreshold!: Float32 = -1.0f32): ImVec2 { return igGetMouseDragDelta_cj(button, lockThreshold) }
+    public static func getMouseDragDelta(button!: Int32 = 0, lockThreshold!: Float32 = -1.0f32): Vector2 {
+        let v = igGetMouseDragDelta_cj(button, lockThreshold)
+        return Vector2(Float64(v.x), Float64(v.y))
+    }
     /**
      * @brief[zh-cn] 重置鼠标拖拽增量
      * @param[zh-cn] button 拖拽按钮索引（默认 0=左键）

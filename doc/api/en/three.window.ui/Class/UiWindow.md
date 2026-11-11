@@ -129,13 +129,13 @@ Gets the current window height
 
 ### func getWindowPos\(\)
 ```cj
-public static func getWindowPos(): ImVec2
+public static func getWindowPos(): Vector2
 ```
 Gets the current window position
 
 ### func getWindowSize\(\)
 ```cj
-public static func getWindowSize(): ImVec2
+public static func getWindowSize(): Vector2
 ```
 Gets the current window size
 
@@ -239,9 +239,9 @@ public static func setNextWindowFocus(): Unit
 ```
 Sets the next window to gain focus
 
-### func setNextWindowPosVec\(ImVec2,Int32,ImVec2\)
+### func setNextWindowPosVec\(Vector2,Int32,Vector2\)
 ```cj
-public static func setNextWindowPosVec(pos: ImVec2, cond!: Int32 = 0, pivot!: ImVec2 = ImVec2(0.0, 0.0)): Unit
+public static func setNextWindowPosVec(pos: Vector2, cond!: Int32 = 0, pivot!: Vector2 = Vector2(0.0, 0.0)): Unit
 ```
 Sets the position of the next window (vector form)
 
@@ -249,9 +249,9 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|pos|ImVec2|Position in pixels|
+|pos|Vector2|Position in pixels|
 |cond|Int32|Condition flags|
-|pivot|ImVec2|Pivot point|
+|pivot|Vector2|Pivot point|
 
 ### func setNextWindowPos\(Float32,Float32,Int32,Float32,Float32\)
 ```cj

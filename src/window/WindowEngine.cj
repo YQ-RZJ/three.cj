@@ -677,6 +677,8 @@ public open class WindowEngine <: IReleasable {
 
     // ===== lambda 绑定（绑定优先于覆写，RGF 模式） =====
     private var _bindOnInit: Option<() -> Unit> = None
+    /// Gui 上下文初始化完成后的回调（在首个 NewFrame 之前，字体加载等图集定制的正确时机）
+    private var _bindOnCtxtInit: Option<() -> Unit> = None
     /**
      * @brief[zh-cn] 绑定式事件 - 窗口创建后
      *
@@ -685,6 +687,21 @@ public open class WindowEngine <: IReleasable {
     public mut prop bindOnInit: Option<() -> Unit> {
         get() { this._bindOnInit }
         set(v) { this._bindOnInit = v }
+    }
+
+    /**
+     * @brief[zh-cn] Gui 上下文初始化完成后的回调（只读快照）
+     * @explain[zh-cn] 触发时机：ctx.initialize() 之后、首个 NewFrame 之前——是字体加载、
+     *             图集定制等 ImGui 初始化依赖的正确时机（onInit 阶段 ImGui 上下文尚不存在）。
+     *
+     * @brief[en] Callback after the Gui context is initialized (fixed snapshot)
+     * @explain[en] Fired after ctx.initialize() and before the first NewFrame — the correct
+     *             timing for font loading and atlas customization (ImGui context does not
+     *             exist yet during onInit).
+     */
+    public mut prop bindOnCtxtInit: Option<() -> Unit> {
+        get() { this._bindOnCtxtInit }
+        set(v) { this._bindOnCtxtInit = v }
     }
     private var _bindOnFrame: Option<(Float64) -> Unit> = None
     /**
@@ -1075,6 +1092,8 @@ public open class WindowEngine <: IReleasable {
                     @LogInfo(["WindowEngine._windowLoop: initializing Gui context"])
                     ctx.initialize(this, execFn)
                     @LogInfo(["WindowEngine._windowLoop: Gui context initialized"])
+                    // Gui 初始化后、首个 NewFrame 前：字体加载/图集定制的正确时机
+                    if (let Some(f) <- this._bindOnCtxtInit) { f() }
                 } else {
                     @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
                 }

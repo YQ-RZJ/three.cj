@@ -187,3 +187,15 @@ Return:
 
 - true if built
 
+### func setDefaultFont\(UiFont\)
+```cj
+public static func setDefaultFont(font: UiFont): Unit
+```
+Sets the default font (io.FontDefault; used when no explicit pushFont)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|font|UiFont|A font object already added to the atlas|
+

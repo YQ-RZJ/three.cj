@@ -129,13 +129,13 @@ public static func getWindowHeight(): Float32
 
 ### func getWindowPos\(\)
 ```cj
-public static func getWindowPos(): ImVec2
+public static func getWindowPos(): Vector2
 ```
 获取当前窗口位置
 
 ### func getWindowSize\(\)
 ```cj
-public static func getWindowSize(): ImVec2
+public static func getWindowSize(): Vector2
 ```
 获取当前窗口尺寸
 
@@ -239,9 +239,9 @@ public static func setNextWindowFocus(): Unit
 ```
 设置下一个窗口获得焦点
 
-### func setNextWindowPosVec\(ImVec2,Int32,ImVec2\)
+### func setNextWindowPosVec\(Vector2,Int32,Vector2\)
 ```cj
-public static func setNextWindowPosVec(pos: ImVec2, cond!: Int32 = 0, pivot!: ImVec2 = ImVec2(0.0, 0.0)): Unit
+public static func setNextWindowPosVec(pos: Vector2, cond!: Int32 = 0, pivot!: Vector2 = Vector2(0.0, 0.0)): Unit
 ```
 设置下一个窗口的位置（向量形式）
 
@@ -249,9 +249,9 @@ public static func setNextWindowPosVec(pos: ImVec2, cond!: Int32 = 0, pivot!: Im
 
 |名称|类型|描述|
 |---|---|---|
-|pos|ImVec2|位置（像素）|
+|pos|Vector2|位置（像素）|
 |cond|Int32|条件标志|
-|pivot|ImVec2|枢轴|
+|pivot|Vector2|枢轴|
 
 ### func setNextWindowPos\(Float32,Float32,Int32,Float32,Float32\)
 ```cj

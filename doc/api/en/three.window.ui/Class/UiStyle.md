@@ -64,6 +64,12 @@ public static func dark(): Unit
 ```
 Applies the dark theme
 
+### func getAlpha\(\)
+```cj
+public static func getAlpha(): Float32
+```
+Reads global alpha (ImGuiStyle.Alpha)
+
 ### func getClipboardText\(\)
 ```cj
 public static func getClipboardText(): String
@@ -92,23 +98,23 @@ Return:
 
 ### func getColorVec4\(Int32\)
 ```cj
-public static func getColorVec4(idx: Int32): ImVec4
+public static func getColorVec4(idx: Int32): Color4
 ```
-Gets color value by ImGuiCol (Vec4)
+Reads a style color by index (RGBA 0.0..1.0)
 
 Parameter: 
 
 |Name|Type|Describe|
 |---|---|---|
-|idx|Int32|Color index (ImGuiCol enum value)|
+|idx|Int32|ImGuiCol index|
 
 Return: 
 
-- Color value (RGBA, components in [0, 1])
+- Color value
 
 ### func getColor\(Int32\)
 ```cj
-public func getColor(idx: Int32): ImVec4
+public func getColor(idx: Int32): Color4
 ```
 Returns the color value
 
@@ -120,7 +126,7 @@ Parameter:
 
 Return: 
 
-- ImVec4 color value
+- Color4 color value (RGBA)
 
 ### func getDisplaySize\(\)
 ```cj
@@ -172,6 +178,24 @@ Return:
 
 - Number of rendered frames
 
+### func getFramePadding\(\)
+```cj
+public static func getFramePadding(): Vector2
+```
+Reads frame padding (ImGuiStyle.FramePadding)
+
+### func getFrameRounding\(\)
+```cj
+public static func getFrameRounding(): Float32
+```
+Reads frame rounding (ImGuiStyle.FrameRounding)
+
+### func getItemSpacing\(\)
+```cj
+public static func getItemSpacing(): Vector2
+```
+Reads item spacing (ImGuiStyle.ItemSpacing)
+
 ### func getScale\(\)
 ```cj
 public static func getScale(): Float32
@@ -191,6 +215,12 @@ Gets the ImGui running time (seconds)
 Return: 
 
 - Seconds elapsed since ImGui initialization
+
+### func getWindowPadding\(\)
+```cj
+public static func getWindowPadding(): Vector2
+```
+Reads window padding (ImGuiStyle.WindowPadding)
 
 ### func hsvToRGB\(Float32,Float32,Float32\)
 ```cj
@@ -390,6 +420,16 @@ Parameter:
 |idx|Int32|Variable index|
 |value|Vector2|Vector2 value|
 
+### func read\(\)
+```cj
+public static func read(): ImGuiStyle
+```
+Reads a snapshot of ImGuiStyle (all defined fields)
+
+Return: 
+
+- ImGuiStyle struct copy
+
 ### func rgbToHSV\(Float32,Float32,Float32\)
 ```cj
 public static func rgbToHSV(r: Float32, g: Float32, b: Float32):(Float32, Float32, Float32)
@@ -442,6 +482,18 @@ Parameter:
 |---|---|---|
 |scaleFactor|Float32|Scale factor|
 
+### func setAlpha\(Float32\)
+```cj
+public static func setAlpha(alpha: Float32): Unit
+```
+Sets global alpha (ImGuiStyle.Alpha)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|alpha|Float32|Alpha (0.0~1.0)|
+
 ### func setClipboardText\(String\)
 ```cj
 public static func setClipboardText(text: String): Unit
@@ -454,6 +506,19 @@ Parameter:
 |---|---|---|
 |text|String|Text to write to the clipboard|
 
+### func setColor\(Int32,Color4\)
+```cj
+public static func setColor(idx: Int32, col: Color4): Unit
+```
+Sets a style color by index (RGBA 0.0..1.0)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|idx|Int32|ImGuiCol index|
+|col|Color4|New color|
+
 ### func setFontGlobalScale\(Float32\)
 ```cj
 public static func setFontGlobalScale(scale: Float32): Unit
@@ -465,6 +530,54 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |scale|Float32|Scale factor (1.0 = original size)|
+
+### func setFramePadding\(Vector2\)
+```cj
+public static func setFramePadding(padding: Vector2): Unit
+```
+Sets frame padding (ImGuiStyle.FramePadding)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|padding|Vector2|Padding|
+
+### func setFrameRounding\(Float32\)
+```cj
+public static func setFrameRounding(rounding: Float32): Unit
+```
+Sets frame rounding (ImGuiStyle.FrameRounding)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|rounding|Float32|Rounding radius (0.0=square)|
+
+### func setItemSpacing\(Vector2\)
+```cj
+public static func setItemSpacing(spacing: Vector2): Unit
+```
+Sets item spacing (ImGuiStyle.ItemSpacing)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|spacing|Vector2|Spacing|
+
+### func setWindowPadding\(Vector2\)
+```cj
+public static func setWindowPadding(padding: Vector2): Unit
+```
+Sets window padding (ImGuiStyle.WindowPadding)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|padding|Vector2|Padding|
 
 ### func showFontSelector\(String\)
 ```cj
@@ -543,4 +656,16 @@ Parameter:
 Return: 
 
 - Packed ImU32 color value
+
+### func write\(ImGuiStyle\)
+```cj
+public static func write(style: ImGuiStyle): Unit
+```
+Writes back ImGuiStyle (typically read(), modify, write back)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|style|ImGuiStyle|Modified style|
 

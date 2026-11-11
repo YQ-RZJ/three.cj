@@ -841,6 +841,12 @@ public mut prop bindOnClose: Option <() -> Unit >
 ```
 绑定式事件 - 关闭前
 
+### prop bindOnCtxtInit: Option <\(\) \-> Unit >
+```cj
+public mut prop bindOnCtxtInit: Option <() -> Unit >
+```
+Gui 上下文初始化完成后的回调（只读快照）
+
 ### prop bindOnDestroy: Option <\(\) \-> Unit >
 ```cj
 public mut prop bindOnDestroy: Option <() -> Unit >
