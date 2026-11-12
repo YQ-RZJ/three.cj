@@ -75,7 +75,7 @@ public class TrackBuilder {
      * @param[en] input The offline quaternion track data
      * @return[en] Some(SkeletalTrackData) or None
      */
-    public func invokeQuaternion(input: RawQuaternionTrack): Option<SkeletalTrackData> {
+    protected func invokeQuaternion(input: RawQuaternionTrack): Option<SkeletalTrackData> {
         if (!input.validate()) { return None }
         if (input.keyframes.size == 0) {
             return Some(SkeletalTrackData(name: input.name, trackType: TrackType.Quaternion))
@@ -106,7 +106,7 @@ public class TrackBuilder {
      * @param[en] input The offline 3-component vector track data
      * @return[en] Some(SkeletalTrackData) or None
      */
-    public func invokeFloat3(input: RawFloat3Track): Option<SkeletalTrackData> {
+    protected func invokeFloat3(input: RawFloat3Track): Option<SkeletalTrackData> {
         if (!input.validate()) { return None }
         if (input.keyframes.size == 0) {
             return Some(SkeletalTrackData(name: input.name, trackType: TrackType.Float3))

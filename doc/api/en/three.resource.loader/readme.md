@@ -40,9 +40,6 @@
 |[StringLoadResult](./Class/StringLoadResult.md#class-stringloadresult)|StringLoadResult: String load result wrapper|
 |[TGALoader](./Class/TGALoader.md#class-tgaloader)|TGA loader, loads Targa format images as DataTexture|
 |[TextureLoader](./Class/TextureLoader.md#class-textureloader)|Texture loader, loads images and creates Texture objects|
-|[_ObjParseObject](./Class/_ObjParseObject.md#class-_objparseobject)|OBJ parse object (corresponding to an o/g declaration)|
-|[_ObjParserState](./Class/_ObjParserState.md#class-_objparserstate)|OBJ parser state machine|
-|[_ObjSourceMaterial](./Class/_ObjSourceMaterial.md#class-_objsourcematerial)|OBJ source material segment (usemtl split info)|
 
 ### Variables & constants
 |  Name   | Describe  |

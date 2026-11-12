@@ -38,22 +38,6 @@ public override func load(url: String, onLoad:(ILoadResult) -> Unit, onProgress:
 |onProgress|(Int64)->Unit|进度回调|
 |onError|(String)->Unit|错误回调|
 
-### func parseJsonToArray\(String\)
-```cj
-public func parseJsonToArray(jsonStr: String): Array < HashMap < String, Any >>
-```
-
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|jsonStr|String|JSON 字符串|
-
-返回: 
-
-- 解析后的 Array<HashMap<String, Any>>
-
 ### func parse\(Array<HashMap<String,Any>>\)
 ```cj
 public func parse(json: Array < HashMap < String, Any >>): ArrayList < AnimationClip >

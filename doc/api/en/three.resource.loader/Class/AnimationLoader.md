@@ -38,22 +38,6 @@ Parameter:
 |onProgress|(Int64)->Unit|Progress callback|
 |onError|(String)->Unit|Error callback开始加载动画JS 内部使用 FileLoader 加载文本，然后调用 scope.parse(JSON.parse(text))|
 
-### func parseJsonToArray\(String\)
-```cj
-public func parseJsonToArray(jsonStr: String): Array < HashMap < String, Any >>
-```
-
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|jsonStr|String|JSON string|
-
-Return: 
-
-- Parsed Array<HashMap<String, Any>>使用 cjfast_json 将 JSON 字符串解析为 Array<HashMap<String, Any>>对应 JS: JSON.parse(text)
-
 ### func parse\(Array<HashMap<String,Any>>\)
 ```cj
 public func parse(json: Array < HashMap < String, Any >>): ArrayList < AnimationClip >

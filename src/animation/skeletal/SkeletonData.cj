@@ -186,7 +186,7 @@ public class SkeletonData {
      *
      * @brief[en] Returns the joint depth (number of edges to the root joint; the root joint is 0)
      */
-    public func jointDepth(jointIndex: Int): Int {
+    protected func jointDepth(jointIndex: Int): Int {
         var depth = 0
         var idx = jointIndex
         while (this.jointParents_[idx] >= 0) {
@@ -201,7 +201,7 @@ public class SkeletonData {
      *
      * @brief[en] Returns the maximum depth of the skeleton
      */
-    public func maxDepth(): Int {
+    protected func maxDepth(): Int {
         var maxD = 0
         for (i in 0..this.numJoints_) {
             let d = this.jointDepth(i)

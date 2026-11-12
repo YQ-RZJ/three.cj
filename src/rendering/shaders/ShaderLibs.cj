@@ -461,7 +461,7 @@ public class ShaderProgram <: IShaderProgram {
         return handle
     }
 
-    public func resolveShaders(): Unit {
+    internal func resolveShaders(): Unit {
         // ★占位符注入：把 chunk 中 SAMPLER2D/SAMPLERCUBE 的 __STAGE_XXX__ 占位符
         // 替换为 SamplerStages 中的实际 stage 数字，确保着色器端 reg 与后端
         // bgfx_set_texture_cj 的 stage 始终一致（全局 stage 分配器统一管理）。

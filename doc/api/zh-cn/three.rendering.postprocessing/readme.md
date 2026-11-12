@@ -6,7 +6,6 @@
 |  名称   | 描述  |
 |  ----  | ----  |
 |[AfterimagePass](./类/AfterimagePass.md#class-afterimagepass)|残影后处理 pass|
-|[BloomMipLevel](./类/BloomMipLevel.md#class-bloommiplevel)|单级金字塔 RT 资源（水平 + 垂直各一个 RT）。|
 |[BloomPass](./类/BloomPass.md#class-bloompass)|Bloom 后处理 pass（简单版）|
 |[BokehPass](./类/BokehPass.md#class-bokehpass)|景深（DOF）后处理 pass|
 |[ClearMaskPass](./类/ClearMaskPass.md#class-clearmaskpass)|清遮罩 pass|

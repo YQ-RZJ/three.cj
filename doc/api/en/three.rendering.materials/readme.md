@@ -11,7 +11,6 @@
 |[LineDashedMaterial](./Class/LineDashedMaterial.md#class-linedashedmaterial)|Dashed line material, supporting dashSize and gapSize|
 |[MaterialOverrideScope](./Class/MaterialOverrideScope.md#class-materialoverridescope)|Per-mesh material override stack (callback injection style)|
 |[Material](./Class/Material.md#class-material)|Abstract base class for materials, subclassed by all concrete material types|
-|[Materials](./Class/Materials.md#class-materials)|Materials utility class, providing material type query methods|
 |[MeshBasicMaterial](./Class/MeshBasicMaterial.md#class-meshbasicmaterial)|Mesh basic material, renders geometry in a simple way (no lighting)|
 |[MeshDepthMaterial](./Class/MeshDepthMaterial.md#class-meshdepthmaterial)|Material that renders geometry based on depth|
 |[MeshDistanceMaterial](./Class/MeshDistanceMaterial.md#class-meshdistancematerial)|Distance material used for point light shadow mapping|

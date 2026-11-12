@@ -686,7 +686,7 @@ public class PhysicsWorld <: IReleasable {
      * @param[en] object3d The rendering object
      * @return[en] The body handle, or INVALID if not bound
      */
-    public func getBoundHandle(object3d: Object3D): PhysicsBodyHandle {
+    internal func getBoundHandle(object3d: Object3D): PhysicsBodyHandle {
         if (let Some(b) <- this._bindings.get(object3d.id)) {
             b.handle
         } else {

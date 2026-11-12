@@ -37,18 +37,6 @@ Parameter:
 |parents|Array<Int16>||
 |names|Array<String>||
 
-### func jointDepth\(Int\)
-```cj
-public func jointDepth(jointIndex: Int): Int
-```
-Returns the joint depth (number of edges to the root joint; the root joint is 0)
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|jointIndex|Int||
-
 ### func jointName\(Int\)
 ```cj
 public func jointName(jointIndex: Int): String
@@ -78,12 +66,6 @@ Parameter:
 public func jointRestPoses(): Array < SoaTransform >
 ```
 Returns the SoA rest pose array
-
-### func maxDepth\(\)
-```cj
-public func maxDepth(): Int
-```
-Returns the maximum depth of the skeleton
 
 ### func numJoints\(\)
 ```cj

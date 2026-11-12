@@ -231,7 +231,7 @@ public open class ObjectLoader <: Loader {
      * @param[en] jsonOpt Shape data in JSON
      * @return[en] UUID to Shape mapping
      */
-    public func parseShapes(jsonOpt: Option<Any>): HashMap<String, Shape> {
+    protected func parseShapes(jsonOpt: Option<Any>): HashMap<String, Shape> {
         let shapes = HashMap<String, Shape>()
         if (let Some(val) <- jsonOpt) {
             match (val) {
@@ -261,7 +261,7 @@ public open class ObjectLoader <: Loader {
      * shapes Shape mapping
      * @return[en] UUID to BufferGeometry mapping
      */
-    public func parseGeometries(jsonOpt: Option<Any>, shapes: HashMap<String, Shape>): HashMap<String, BufferGeometry> {
+    protected func parseGeometries(jsonOpt: Option<Any>, shapes: HashMap<String, Shape>): HashMap<String, BufferGeometry> {
         let geometries = HashMap<String, BufferGeometry>()
         if (let Some(val) <- jsonOpt) {
             match (val) {
@@ -335,7 +335,7 @@ public open class ObjectLoader <: Loader {
      * @param[en] jsonOpt Image data in JSON
      * @return[en] UUID to Source mapping
      */
-    public func parseImages(jsonOpt: Option<Any>): HashMap<String, Source> {
+    protected func parseImages(jsonOpt: Option<Any>): HashMap<String, Source> {
         let images = HashMap<String, Source>()
         if (let Some(val) <- jsonOpt) {
             match (val) {
@@ -467,7 +467,7 @@ public open class ObjectLoader <: Loader {
      * animations Animation mapping
      * @return[en] Parsed 3D object
      */
-    public func parseObject(dataOpt: Option<Any>, geometries: HashMap<String, BufferGeometry>, materials: HashMap<String, Material>, textures: HashMap<String, Texture>, animations: HashMap<String, AnimationClip>): Object3D {
+    protected func parseObject(dataOpt: Option<Any>, geometries: HashMap<String, BufferGeometry>, materials: HashMap<String, Material>, textures: HashMap<String, Texture>, animations: HashMap<String, AnimationClip>): Object3D {
         if (let Some(val) <- dataOpt) {
             match (val) {
                 case data: HashMap<String, Any> => return this._parseObject(data, geometries, materials, textures, animations)
@@ -695,7 +695,7 @@ public open class ObjectLoader <: Loader {
      * object Scene root object (for finding bone nodes)
      * @return[en] UUID to Skeleton mapping
      */
-    public func parseSkeletons(jsonOpt: Option<Any>, object: Object3D): HashMap<String, Skeleton> {
+    protected func parseSkeletons(jsonOpt: Option<Any>, object: Object3D): HashMap<String, Skeleton> {
         let skeletons = HashMap<String, Skeleton>()
         let bones = HashMap<String, Bone>()
 
@@ -768,7 +768,7 @@ public open class ObjectLoader <: Loader {
      * @param[en] object Scene root object
      * skeletons Skeleton mapping
      */
-    public func bindSkeletons(object: Object3D, skeletons: HashMap<String, Skeleton>): Unit {
+    protected func bindSkeletons(object: Object3D, skeletons: HashMap<String, Skeleton>): Unit {
         if (skeletons.size == 0) { return }
         object.traverse({ child =>
             match (child) {
@@ -791,7 +791,7 @@ public open class ObjectLoader <: Loader {
      * @explain[en] Binds light targets to corresponding Object3D
      * @param[en] object Scene root object
      */
-    public func bindLightTargets(object: Object3D): Unit {
+    protected func bindLightTargets(object: Object3D): Unit {
         object.traverse({ child =>
             match (child) {
                 case dirLight: DirectionalLight =>

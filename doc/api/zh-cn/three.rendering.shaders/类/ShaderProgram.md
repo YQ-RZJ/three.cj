@@ -54,12 +54,6 @@ public func resetHandles(): Unit
 供 postprocessing 等外部层调用，避免其直接构造 bgfx 原生句柄。
 已有的 bgfx program/shader 会先被销毁，避免重编译时泄漏句柄。
 
-### func resolveShaders\(\)
-```cj
-public func resolveShaders(): Unit
-```
-
-
 ### var fragmentShaderBgfx
 ```cj
 public var fragmentShaderBgfx: String

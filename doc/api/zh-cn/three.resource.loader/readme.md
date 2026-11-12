@@ -40,9 +40,6 @@
 |[StringLoadResult](./类/StringLoadResult.md#class-stringloadresult)|StringLoadResult：字符串加载结果包装|
 |[TGALoader](./类/TGALoader.md#class-tgaloader)|TGA 加载器，加载 Targa 格式图片为 DataTexture|
 |[TextureLoader](./类/TextureLoader.md#class-textureloader)|纹理加载器，用于加载图片并创建 Texture 对象|
-|[_ObjParseObject](./类/_ObjParseObject.md#class-_objparseobject)|OBJ 解析对象（对应一个 o/g 声明）|
-|[_ObjParserState](./类/_ObjParserState.md#class-_objparserstate)|OBJ 解析状态机|
-|[_ObjSourceMaterial](./类/_ObjSourceMaterial.md#class-_objsourcematerial)|OBJ 源材质段（usemtl 切分信息）|
 
 ### 变量与常量
 |  名称   | 描述  |

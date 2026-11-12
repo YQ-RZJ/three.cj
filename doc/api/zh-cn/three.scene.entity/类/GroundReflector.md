@@ -21,12 +21,6 @@ public func computeVirtualCamera(camera: Camera): Bool
 
 - true=可渲染（朝向正确），false=反射面背向相机（跳过）镜像相机数学核心。
 
-### func ensureRTs\(\)
-```cj
-public func ensureRTs(): Unit
-```
-创建反射 RT（RGBA16F + D24；useDepthTexture=true 时额外 RGBA32F 深度 RT）。
-
 ### func getReflectDepthFB\(\)
 ```cj
 public func getReflectDepthFB(): FrameBufferHandle

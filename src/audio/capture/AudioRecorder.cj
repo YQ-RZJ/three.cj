@@ -183,7 +183,7 @@ public class AudioRecorder <: IReleasable {
      * @brief[en] Returns the capture device handle
      * @return[en] The ALC capture device handle
      */
-    public func getCaptureDevice(): CPointer<Unit> {
+    protected func getCaptureDevice(): CPointer<Unit> {
         return this._captureDevice
     }
 

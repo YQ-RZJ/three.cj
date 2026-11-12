@@ -212,22 +212,6 @@ Return:
 
 - The body's current angular velocity
 
-### func getBoundHandle\(Object3D\)
-```cj
-public func getBoundHandle(object3d: Object3D): PhysicsBodyHandle
-```
-Gets the body handle bound to an Object3D
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|object3d|Object3D|The rendering object|
-
-Return: 
-
-- The body handle, or INVALID if not bound
-
 ### func getConstraintCurrentAngle\(PhysicsConstraintHandle\)
 ```cj
 public func getConstraintCurrentAngle(handle: PhysicsConstraintHandle): Float64

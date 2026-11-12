@@ -17,16 +17,6 @@ Return:
 
 - Number of available frames (0 = no data yet)
 
-### func getCaptureDevice\(\)
-```cj
-public func getCaptureDevice(): CPointer < Unit >
-```
-Returns the capture device handle
-
-Return: 
-
-- The ALC capture device handle
-
 ### func init\(\)
 ```cj
 public init()

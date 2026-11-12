@@ -216,12 +216,6 @@ Return:
 
 - The top stack index
 
-### func handle\(\)
-```cj
-public func handle(): CPointer < Unit >
-```
-The underlying lua_State handle (for LuaBinder/LuaTable and other wrappers)
-
 ### func hasGlobal\(String\)
 ```cj
 public func hasGlobal(name: String): Bool
@@ -335,36 +329,6 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |n|Int32|The number of elements to pop (default 1)|
-
-### func pushValue\(CPointer<Unit>,LuaValue\)
-```cj
-public static func pushValue(L: CPointer < Unit >, v: LuaValue): Unit
-```
-Pushes a LuaValue onto the stack
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|L|CPointer<Unit>|The underlying lua_State handlev The LuaValue to push|
-|v|LuaValue||
-
-### func readValue\(CPointer<Unit>,Int32\)
-```cj
-public static func readValue(L: CPointer < Unit >, idx: Int32): LuaValue
-```
-Reads a LuaValue from a stack index
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|L|CPointer<Unit>|The underlying lua_State handleidx The stack index|
-|idx|Int32||
-
-Return: 
-
-- The corresponding LuaValue (nil placeholder for tables/functions etc.)
 
 ### func release\(\)
 ```cj

@@ -212,22 +212,6 @@ public func getAngularVelocity(handle: PhysicsBodyHandle): Vector3
 
 - 刚体当前角速度
 
-### func getBoundHandle\(Object3D\)
-```cj
-public func getBoundHandle(object3d: Object3D): PhysicsBodyHandle
-```
-获取某 Object3D 绑定的刚体句柄
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|object3d|Object3D|渲染对象|
-
-返回: 
-
-- 刚体句柄；无绑定返回 INVALID
-
 ### func getConstraintCurrentAngle\(PhysicsConstraintHandle\)
 ```cj
 public func getConstraintCurrentAngle(handle: PhysicsConstraintHandle): Float64

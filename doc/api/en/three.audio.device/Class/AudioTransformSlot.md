@@ -5,12 +5,6 @@ public class AudioTransformSlot
 ```
 An audio transform slot
 
-### func invalidate\(\)
-```cj
-public func invalidate(): Unit
-```
-Invalidates the slot (target source released): zeroes the source id and advances the version
-
 ### var gain
 ```cj
 public var gain: Float32 = 1.0f32

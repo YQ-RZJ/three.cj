@@ -29,13 +29,3 @@ TimeCritical
 ```
 Time-critical (highest) priority
 
-### func toSDLPriority\(\)
-```cj
-public func toSDLPriority(): Int32
-```
-Convert to SDL thread priority value
-
-Return: 
-
-- SDL_ThreadPriority enum value
-

@@ -178,7 +178,7 @@ public enum ThreadPriority {
      * @brief[en] Convert to SDL thread priority value
      * @return[en] SDL_ThreadPriority enum value
      */
-    public func toSDLPriority(): Int32 {
+    internal func toSDLPriority(): Int32 {
         match (this) {
             case Low => 0
             case Normal => 1

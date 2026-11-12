@@ -94,22 +94,6 @@ public func optimize(): AnimationClip
 
 - 返回当前剪辑以支持链式调用
 
-### func parseUserData\(String\)
-```cj
-public static func parseUserData(jsonStr: String): HashMap < String, Any >
-```
-使用 cjfast_json 解析 userData JSON 字符串为 HashMap<String, Any>
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|jsonStr|String|JSON 字符串|
-
-返回: 
-
-- 解析后的 HashMap<String, Any>
-
 ### func parse\(HashMap<String,Any>\)
 ```cj
 public static func parse(json: HashMap < String, Any >): AnimationClip
@@ -135,22 +119,6 @@ public func resetDuration(): AnimationClip
 返回: 
 
 - 返回当前剪辑以支持链式调用
-
-### func stringifyUserData\(HashMap<String,Any>\)
-```cj
-public static func stringifyUserData(userData: HashMap < String, Any >): String
-```
-使用 cjfast_json 序列化 HashMap<String, Any> 为 JSON 字符串
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|userData|HashMap<String,Any>|用户数据 HashMap|
-
-返回: 
-
-- JSON 字符串
 
 ### func trim\(\)
 ```cj

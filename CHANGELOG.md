@@ -2,6 +2,19 @@
 
 ## Feature
 
+skills: 新增 `.skills\three.cj-project-guide` 技能用于AI快速检索当前项目相关信息；
+skills: 新增 `.skills\three.cj-project-constraints` 技能用于约束项目代码，确保项目代码长期可维护；
+docs: 全量更新 API 文档
+feat: 加入自绘控件的案例；
+docs: 合并 `dev manual` 和 `materials` 到 `references` 目录内；
+feat: 加入坐标、光标相关能力；
+feat: 统一ui使用的数据类型；
+feat: 安全化ui的使用方法；
+feat: 为 ui 加入更多公开方法
+feat: 加入窗口引擎的声明式写法；
+chore: 调整 test\windows\gui 测试项目用新的窗口声明式写法；
+feat: 原子化 safe/Safe<T>
+docs: readme.md 追加关于环境变量的设置介绍
 feat: 为仓颉代码加入自动编译打包流程
 docs: Update API documentation
 feat: 统一使用 IReleasable 管理资源释放和有效性检查，以便于统一经由 Safe<T> 实现 GC 挂靠；
@@ -15,6 +28,8 @@ feat: 全量动、静包编译
 
 ## Fix
 
+fix: 优化项目公开修饰符，避免过度公开；
+fix: 修正环境变量 EXTEND_*
 fix: 将仓颉侧依赖包合并如deps.a的逻辑改为直接打包；
 
 # [0.3.0]

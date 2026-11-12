@@ -5,12 +5,6 @@ public class AudioTransformSlot
 ```
 音频变换槽
 
-### func invalidate\(\)
-```cj
-public func invalidate(): Unit
-```
-使槽失效（目标源已释放）：源 ID 置 0 并推进版本
-
 ### var gain
 ```cj
 public var gain: Float32 = 1.0f32

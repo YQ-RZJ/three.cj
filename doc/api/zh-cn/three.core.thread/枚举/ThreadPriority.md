@@ -29,13 +29,3 @@ TimeCritical
 ```
 时间关键（最高）优先级
 
-### func toSDLPriority\(\)
-```cj
-public func toSDLPriority(): Int32
-```
-转换为 SDL 线程优先级数值
-
-返回: 
-
-- SDL_ThreadPriority 枚举值
-

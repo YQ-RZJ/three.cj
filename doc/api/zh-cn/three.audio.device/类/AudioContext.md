@@ -226,12 +226,6 @@ public func unregisterTransformSlot(slot: AudioTransformSlot): Unit
 |---|---|---|
 |slot|AudioTransformSlot|变换槽|
 
-### prop alcContext: CPointer < Unit >
-```cj
-public prop alcContext: CPointer < Unit >
-```
-获取 OpenAL 上下文句柄
-
 ### prop context: AudioContext
 ```cj
 public static prop context: AudioContext

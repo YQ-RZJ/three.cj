@@ -5,31 +5,6 @@ public open class ObjectLoader <: Loader
 ```
 对象加载器，加载 JSON 格式的完整场景层级结构
 
-### func bindLightTargets\(Object3D\)
-```cj
-public func bindLightTargets(object: Object3D): Unit
-```
-绑定光源目标
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|object|Object3D|场景根对象|
-
-### func bindSkeletons\(Object3D,HashMap<String,Skeleton>\)
-```cj
-public func bindSkeletons(object: Object3D, skeletons: HashMap < String, Skeleton >): Unit
-```
-绑定骨骼到蒙皮网格
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|object|Object3D|场景根对象skeletons 骨骼映射|
-|skeletons|HashMap<String,Skeleton>||
-
 ### func init\(LoadingManager\)
 ```cj
 public init(manager: LoadingManager)
@@ -79,39 +54,6 @@ public func parseAnimations(jsonOpt: Option < Any >): HashMap < String, Animatio
 
 - UUID 到 AnimationClip 的映射
 
-### func parseGeometries\(Option<Any>,HashMap<String,Shape>\)
-```cj
-public func parseGeometries(jsonOpt: Option < Any >, shapes: HashMap < String, Shape >): HashMap < String, BufferGeometry >
-```
-解析几何体
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|jsonOpt|Option<Any>|JSON 中的几何体数据shapes 形状映射|
-|shapes|HashMap<String,Shape>||
-
-返回: 
-
-- UUID 到 BufferGeometry 的映射
-
-### func parseImages\(Option<Any>\)
-```cj
-public func parseImages(jsonOpt: Option < Any >): HashMap < String, Source >
-```
-解析图片
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|jsonOpt|Option<Any>|JSON 中的图片数据|
-
-返回: 
-
-- UUID 到 Source 的映射
-
 ### func parseJsonToHashMap\(String\)
 ```cj
 public func parseJsonToHashMap(jsonStr: String): HashMap < String, Any >
@@ -144,59 +86,6 @@ public open func parseMaterials(jsonOpt: Option < Any >, textures: HashMap < Str
 返回: 
 
 - UUID 到 Material 的映射
-
-### func parseObject\(Option<Any>,HashMap<String,BufferGeometry>,HashMap<String,Material>,HashMap<String,Texture>,HashMap<String,AnimationClip>\)
-```cj
-public func parseObject(dataOpt: Option < Any >, geometries: HashMap < String, BufferGeometry >, materials: HashMap < String, Material >, textures: HashMap < String, Texture >, animations: HashMap < String, AnimationClip >): Object3D
-```
-解析对象
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|dataOpt|Option<Any>|JSON 中的对象数据geometries 几何体映射materials 材质映射textures 纹理映射animations 动画映射|
-|geometries|HashMap<String,BufferGeometry>||
-|materials|HashMap<String,Material>||
-|textures|HashMap<String,Texture>||
-|animations|HashMap<String,AnimationClip>||
-
-返回: 
-
-- 解析后的 3D 对象
-
-### func parseShapes\(Option<Any>\)
-```cj
-public func parseShapes(jsonOpt: Option < Any >): HashMap < String, Shape >
-```
-解析形状
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|jsonOpt|Option<Any>|JSON 中的形状数据|
-
-返回: 
-
-- UUID 到 Shape 的映射
-
-### func parseSkeletons\(Option<Any>,Object3D\)
-```cj
-public func parseSkeletons(jsonOpt: Option < Any >, object: Object3D): HashMap < String, Skeleton >
-```
-解析骨骼
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|jsonOpt|Option<Any>|JSON 中的骨骼数据object 场景根对象（用于查找骨骼节点）|
-|object|Object3D||
-
-返回: 
-
-- UUID 到 Skeleton 的映射
 
 ### func parseTextures\(Option<Any>,HashMap<String,Source>\)
 ```cj

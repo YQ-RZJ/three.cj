@@ -5,12 +5,6 @@ public class Skeleton <: IPropertyBindingRoot & IReleasable
 ```
 骨骼类，管理一组 Bone 及其逆矩阵
 
-### func \_init\(\)
-```cj
-public func _init(): Unit
-```
-内部初始化：boneInverses 为空时自动计算；数量与 bones 不匹配时重建
-
 ### func calculateInverses\(\)
 ```cj
 public func calculateInverses(): Unit

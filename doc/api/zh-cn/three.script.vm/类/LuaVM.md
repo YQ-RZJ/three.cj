@@ -214,12 +214,6 @@ public func getTop(): Int32
 
 - 栈顶索引
 
-### func handle\(\)
-```cj
-public func handle(): CPointer < Unit >
-```
-底层 lua_State 句柄（供 LuaBinder/LuaTable 等高级封装使用）
-
 ### func hasGlobal\(String\)
 ```cj
 public func hasGlobal(name: String): Bool
@@ -331,36 +325,6 @@ public func pop(n!: Int32 = 1): Unit
 |名称|类型|描述|
 |---|---|---|
 |n|Int32|要弹出的元素个数（默认 1）|
-
-### func pushValue\(CPointer<Unit>,LuaValue\)
-```cj
-public static func pushValue(L: CPointer < Unit >, v: LuaValue): Unit
-```
-压入 LuaValue 到栈
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|L|CPointer<Unit>|底层 lua_State 句柄v 要压入的 LuaValue|
-|v|LuaValue||
-
-### func readValue\(CPointer<Unit>,Int32\)
-```cj
-public static func readValue(L: CPointer < Unit >, idx: Int32): LuaValue
-```
-从栈索引读取 LuaValue
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|L|CPointer<Unit>|底层 lua_State 句柄idx 栈索引|
-|idx|Int32||
-
-返回: 
-
-- 对应的 LuaValue（表/函数等返回 nil 占位）
 
 ### func release\(\)
 ```cj

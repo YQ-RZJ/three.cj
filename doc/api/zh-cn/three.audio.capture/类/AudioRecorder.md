@@ -17,16 +17,6 @@ public func getAvailableSamples(): Int32
 
 - 可用帧数（0 = 暂无数据）
 
-### func getCaptureDevice\(\)
-```cj
-public func getCaptureDevice(): CPointer < Unit >
-```
-获取捕获设备句柄
-
-返回: 
-
-- ALC 捕获设备句柄
-
 ### func init\(\)
 ```cj
 public init()

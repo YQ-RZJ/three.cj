@@ -21,12 +21,6 @@ Return:
 
 - true = renderable (facing correct), false = reflector facing away from camera (skip)流程：1. fresnelCoe = (dot(normalize(camera.position), reflect(normalize(camera.position), yAxis)) + 1) / 22. 反射面朝向检测：view = reflectorWorldPosition - cameraWorldPosition；view.dot(normal) > 0 → 反射面背向相机 → 返回 false（跳过本次渲染）3. 镜像构造 virtualCamera（位置/up/看向 target 全部按 normal 镜像）4. textureMatrix = 0.5偏移 × proj × viewInv × matrixWorld
 
-### func ensureRTs\(\)
-```cj
-public func ensureRTs(): Unit
-```
-创建反射 RT（RGBA16F + D24；useDepthTexture=true 时额外 RGBA32F 深度 RT）。
-
 ### func getReflectDepthFB\(\)
 ```cj
 public func getReflectDepthFB(): FrameBufferHandle

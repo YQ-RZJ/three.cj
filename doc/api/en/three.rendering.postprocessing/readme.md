@@ -6,7 +6,6 @@
 |  Name   | Describe  |
 |  ----  | ----  |
 |[AfterimagePass](./Class/AfterimagePass.md#class-afterimagepass)|Afterimage post-processing pass|
-|[BloomMipLevel](./Class/BloomMipLevel.md#class-bloommiplevel)|单级金字塔 RT 资源（水平 + 垂直各一个 RT）。|
 |[BloomPass](./Class/BloomPass.md#class-bloompass)|Bloom post-processing pass (simple version)|
 |[BokehPass](./Class/BokehPass.md#class-bokehpass)|Depth of Field (DOF) post-processing pass|
 |[ClearMaskPass](./Class/ClearMaskPass.md#class-clearmaskpass)|Clear-mask pass|

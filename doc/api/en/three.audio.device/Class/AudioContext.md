@@ -230,12 +230,6 @@ Parameter:
 |---|---|---|
 |slot|AudioTransformSlot|The transform slot|
 
-### prop alcContext: CPointer < Unit >
-```cj
-public prop alcContext: CPointer < Unit >
-```
-Returns the OpenAL context handle
-
 ### prop context: AudioContext
 ```cj
 public static prop context: AudioContext

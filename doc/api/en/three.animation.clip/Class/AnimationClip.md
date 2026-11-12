@@ -94,22 +94,6 @@ Return:
 
 - Returns this clip for chaining
 
-### func parseUserData\(String\)
-```cj
-public static func parseUserData(jsonStr: String): HashMap < String, Any >
-```
-Parses a userData JSON string into a HashMap<String, Any> using cjfast_json
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|jsonStr|String|The JSON string|
-
-Return: 
-
-- The parsed HashMap<String, Any>
-
 ### func parse\(HashMap<String,Any>\)
 ```cj
 public static func parse(json: HashMap < String, Any >): AnimationClip
@@ -135,22 +119,6 @@ Sets the duration of the clip to the duration of its longest keyframe track
 Return: 
 
 - Returns this clip for chaining
-
-### func stringifyUserData\(HashMap<String,Any>\)
-```cj
-public static func stringifyUserData(userData: HashMap < String, Any >): String
-```
-Serializes a HashMap<String, Any> into a JSON string using cjfast_json
-
-Parameter: 
-
-|Name|Type|Describe|
-|---|---|---|
-|userData|HashMap<String,Any>|The user data HashMap|
-
-Return: 
-
-- The JSON string
 
 ### func trim\(\)
 ```cj

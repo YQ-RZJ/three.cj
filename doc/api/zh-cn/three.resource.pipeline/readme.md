@@ -9,7 +9,6 @@
 |[AssetBundle](./类/AssetBundle.md#class-assetbundle)|资源包（只读档案）|
 |[AssetCache](./类/AssetCache.md#class-assetcache)|引用计数资源缓存|
 |[AssetManager](./类/AssetManager.md#class-assetmanager)|资源管理器|
-|[Crc32](./类/Crc32.md#class-crc32)|CRC32（IEEE 802.3，多项式 0xEDB88320）|
 
 ### 结构体
 |  名称   | 描述  |

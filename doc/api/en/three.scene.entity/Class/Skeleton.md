@@ -5,12 +5,6 @@ public class Skeleton <: IPropertyBindingRoot & IReleasable
 ```
 Skeleton class, manages a set of Bones and their inverse matrices
 
-### func \_init\(\)
-```cj
-public func _init(): Unit
-```
-Internal initialization: auto-calculates when boneInverses is empty; rebuilds when count mismatch
-
 ### func calculateInverses\(\)
 ```cj
 public func calculateInverses(): Unit

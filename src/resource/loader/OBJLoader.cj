@@ -358,7 +358,7 @@ public class OBJLoader <: Loader {
  * @brief[en] OBJ parser state machine
  * @explain[en] State management during OBJ parsing, tracking vertex/normal/UV/color/object/material data
  */
-public class _ObjParserState {
+internal class _ObjParserState {
     public var vertices: ArrayList<Float64>
     public var normals: ArrayList<Float64>
     public var uvs: ArrayList<Float64>
@@ -565,7 +565,7 @@ public class _ObjParserState {
  *
  * @brief[en] OBJ parse object (corresponding to an o/g declaration)
  */
-public class _ObjParseObject {
+internal class _ObjParseObject {
     public var name: String
     public var vertices: ArrayList<Float64>
     public var normals: ArrayList<Float64>
@@ -605,7 +605,7 @@ public class _ObjParseObject {
  *
  * @brief[en] OBJ source material segment (usemtl split info)
  */
-public class _ObjSourceMaterial {
+internal class _ObjSourceMaterial {
     public var name: String
     public var smooth: Bool
     public var groupStart: Int64

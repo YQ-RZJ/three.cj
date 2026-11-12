@@ -125,7 +125,7 @@ public class AnimationLoader <: Loader {
      * 使用 cjfast_json 将 JSON 字符串解析为 Array<HashMap<String, Any>>
      * 对应 JS: JSON.parse(text)
      */
-    public func parseJsonToArray(jsonStr: String): Array<HashMap<String, Any>> {
+    protected func parseJsonToArray(jsonStr: String): Array<HashMap<String, Any>> {
         try {
             let reader = JsonStreamReader(ByteBuffer(jsonStr.toArray()))
             let result = ArrayList<HashMap<String, Any>>()

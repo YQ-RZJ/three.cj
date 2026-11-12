@@ -37,18 +37,6 @@ public init(restPoses: Array < SoaTransform >, parents: Array < Int16 >, names: 
 |parents|Array<Int16>||
 |names|Array<String>||
 
-### func jointDepth\(Int\)
-```cj
-public func jointDepth(jointIndex: Int): Int
-```
-获取关节深度（到根关节的边数，根关节为 0）
-
-参数: 
-
-|名称|类型|描述|
-|---|---|---|
-|jointIndex|Int||
-
 ### func jointName\(Int\)
 ```cj
 public func jointName(jointIndex: Int): String
@@ -78,12 +66,6 @@ public func jointParent(jointIndex: Int): Int
 public func jointRestPoses(): Array < SoaTransform >
 ```
 获取 SoA 休息姿势数组
-
-### func maxDepth\(\)
-```cj
-public func maxDepth(): Int
-```
-获取骨骼的最大深度
 
 ### func numJoints\(\)
 ```cj

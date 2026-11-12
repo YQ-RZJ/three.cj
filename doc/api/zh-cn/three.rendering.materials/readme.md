@@ -11,7 +11,6 @@
 |[LineDashedMaterial](./类/LineDashedMaterial.md#class-linedashedmaterial)|虚线材质，支持dashSize和gapSize|
 |[MaterialOverrideScope](./类/MaterialOverrideScope.md#class-materialoverridescope)|per-mesh材质替换器栈（回调注入式）|
 |[Material](./类/Material.md#class-material)|材质抽象基类，所有具体材质类型继承本类|
-|[Materials](./类/Materials.md#class-materials)|材质工具类，提供材质类型查询方法|
 |[MeshBasicMaterial](./类/MeshBasicMaterial.md#class-meshbasicmaterial)|网格基础材质，以简单方式（无光照）渲染几何体|
 |[MeshDepthMaterial](./类/MeshDepthMaterial.md#class-meshdepthmaterial)|基于深度绘制几何体的材质|
 |[MeshDistanceMaterial](./类/MeshDistanceMaterial.md#class-meshdistancematerial)|用于实现点光源阴影映射的距离材质|
