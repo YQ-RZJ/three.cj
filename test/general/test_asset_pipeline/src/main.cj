@@ -15,5 +15,6 @@ main(): Int64 {
     testPackage.registerSuite({ => AssetBundleTest().asTestSuite() })
     testPackage.registerSuite({ => AssetCacheTest().asTestSuite() })
     testPackage.registerSuite({ => AssetManagerTest().asTestSuite() })
+    testPackage.registerSuite({ => ZipArchiveTest().asTestSuite() })
     return entryMain(testPackage)
 }

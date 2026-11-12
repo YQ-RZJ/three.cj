@@ -88,6 +88,8 @@ three/
 │   │   ├── blend/          # 动画混合与动作调度（AnimationMixer/Action/KeyframeTrack/PropertyBinding）
 │   │   ├── clip/           # 动画剪辑（AnimationClip/AnimationUtils）
 │   │   ├── interfaces/     # 跨包解耦接口
+│   │   ├── offline/        # 离线动画（叠加动画构建器/烘焙）
+│   │   ├── skeletal/       # 骨骼动画（骨骼/动画事件系统）
 │   │   └── tracks/         # 关键帧轨道（Boolean/Color/Number/Quaternion/String/Vector）
 │   ├── audio/              # 音频子系统（OpenAL）
 │   │   ├── capture/        # 录音（AudioRecorder）
@@ -102,7 +104,8 @@ three/
 │   │   ├── event/          # 事件系统（EventDispatcher/EventFactory/EventManager）
 │   │   ├── interfaces/     # 基础设施接口契约
 │   │   ├── math/           # 数学库（向量/矩阵/四元数/颜色/插值/包围盒/射线...）
-│   │   │   └── interpolants/ # 插值器（线性/贝塞尔/离散/三次/四元数）
+│   │   │   ├── interpolants/ # 插值器（线性/贝塞尔/离散/三次/四元数）
+│   │   │   └── soa/        # SoA 数据布局数学（4-wide 标量浮点模拟 SIMD 通道）
 │   │   ├── system/         # 系统信息（System/SystemInfo）
 │   │   ├── thread/         # 线程与同步（Thread/SThread/Sync/RecursiveMutex）
 │   │   └── time/           # 时间（Clock/Timer）
@@ -129,7 +132,7 @@ three/
 │   │   └── macros/         # 自动化侵入宏（@Zone/@Plot/@Message/...，由 THREE_PROFILER 门控）
 │   ├── rendering/          # 渲染系统（bgfx）
 │   │   ├── bgfx/           # bgfx 后端实现（BgfxBackend/材质/灯光/阴影/渲染状态/着色器缓存）
-│   │   ├── bgfxxr/         # XR 扩展（XR 控制器/深度感知/管理器）
+│   │   ├── xr/             # XR 扩展（XR 控制器/深度感知/管理器，对照 WebXR）
 │   │   ├── buffer/         # 顶点/索引缓冲（BufferAttribute/InstancedBuffer...）
 │   │   ├── cameras/        # 相机（Perspective/Orthographic/Stereo/Cube/Array/CameraView）
 │   │   ├── common/         # 渲染公共层（Renderer/RenderList/Pipeline/Backend/BindGroup...）
@@ -146,11 +149,13 @@ three/
 │   │   ├── textures/       # 纹理（CanvasTexture/CubeTexture/CompressedTexture...）
 │   │   └── types/          # bgfx 类型定义
 │   ├── resource/           # 资源加载与缓存
+│   │   ├── archive/        # 压缩包归档（ZIP 解析/逐条目解压/CRC32 校验/落盘展开）
 │   │   ├── bgfx/           # bgfx 底层资源操作
 │   │   ├── cache/          # 资源缓存（Cache）
 │   │   ├── loader/         # 加载器（glTF/OBJ/MTL/PLY/STL/DDS/KTX/PVR/EXR/HDR/TGA/Font...）
 │   │   ├── pipeline/       # 资源管线（AssetBundle/AssetBundleBuilder 打包读取、AssetManager 异步分帧加载、AssetCache 引用计数卸载）
 │   │   └── serializer/     # 序列化（Serializer）
+│   │       └── macros/     # 序列化宏包（重公开 cjfast_json 注解宏）
 │   ├── scene/              # 场景管理
 │   │   ├── ecs/            # ECS 框架（World/Entity/Component/System/Registry）
 │   │   │   └── macros/     # ECS 宏（Component/Entity/System 宏）
@@ -168,10 +173,12 @@ three/
 │   │   ├── encode/         # 编解码（Base64/MD5/SHA/Hash/Hex/UUID/UrlEncode）
 │   │   ├── log/            # 日志（Logger，五级分级）
 │   │   ├── memory/         # 内存工具（指针数组/内存转换）
-│   │   └── pool/           # 对象池（ObjectPool/PoolManager）
+│   │   ├── pool/           # 对象池（ObjectPool/PoolManager）
+│   │   └── safe/           # 安全托管（IReleasable 可释放接口、Safe<T> GC 兜底自动释放包装）
 │   └── window/             # 窗口与输入引擎（WindowEngine v2 + 输入提供者）
 │       └── ui/             # 即时模式 UI（ImGui 控件/布局/菜单/标签页/表格/弹窗/拖放/字体/样式/绘制）
 └── test/                   # 测试项目
+    ├── bin-reuse/          # 二进制产物复用示例（bin-dependencies + three-deps.a，下载 release 产物直接使用引擎）
     ├── general/            # 通用功能测试（数学/数据结构/ECS/网络/资源管线/序列化/编码...）
     ├── ohos/               # HarmonyOS 测试工程（audio/base/gui/pc/physics）
     └── windows/            # Windows 测试案例（boxshow/geometries/materials/helpers/后期处理/glTF/physics/gui...）

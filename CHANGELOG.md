@@ -2,6 +2,8 @@
 
 ## Feature
 
+feat: 在资源模块加入解压相关能力；
+docs: 更新 readme 的 "项目结构" 部分；
 skills: 新增 `.skills\three.cj-project-guide` 技能用于AI快速检索当前项目相关信息；
 skills: 新增 `.skills\three.cj-project-constraints` 技能用于约束项目代码，确保项目代码长期可维护；
 docs: 全量更新 API 文档

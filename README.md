@@ -88,6 +88,8 @@ three/
 │   │   ├── blend/          # Animation blending & action scheduling (AnimationMixer/Action/KeyframeTrack/PropertyBinding)
 │   │   ├── clip/           # Animation clips (AnimationClip/AnimationUtils)
 │   │   ├── interfaces/     # Cross-package decoupling interfaces
+│   │   ├── offline/        # Offline animation (additive animation builder/baking)
+│   │   ├── skeletal/       # Skeletal animation (skeleton/animation event system)
 │   │   └── tracks/         # Keyframe tracks (Boolean/Color/Number/Quaternion/String/Vector)
 │   ├── audio/              # Audio subsystem (OpenAL)
 │   │   ├── capture/        # Recording (AudioRecorder)
@@ -102,7 +104,8 @@ three/
 │   │   ├── event/          # Event system (EventDispatcher/EventFactory/EventManager)
 │   │   ├── interfaces/     # Infrastructure interface contracts
 │   │   ├── math/           # Math library (vector/matrix/quaternion/color/interpolation/bounding box/ray...)
-│   │   │   └── interpolants/ # Interpolants (linear/Bézier/discrete/cubic/quaternion)
+│   │   │   ├── interpolants/ # Interpolants (linear/Bézier/discrete/cubic/quaternion)
+│   │   │   └── soa/        # SoA-layout math (4-wide scalar float simulating SIMD lanes)
 │   │   ├── system/         # System info (System/SystemInfo)
 │   │   ├── thread/         # Threading & synchronization (Thread/SThread/Sync/RecursiveMutex)
 │   │   └── time/           # Time (Clock/Timer)
@@ -129,7 +132,7 @@ three/
 │   │   └── macros/         # Auto-instrumentation macros (@Zone/@Plot/@Message/..., gated by THREE_PROFILER)
 │   ├── rendering/          # Rendering system (bgfx)
 │   │   ├── bgfx/           # bgfx backend implementation (BgfxBackend/materials/lights/shadows/render state/shader cache)
-│   │   ├── bgfxxr/         # XR extension (XR controllers/depth perception/manager)
+│   │   ├── xr/             # XR extension (XR controllers/depth perception/manager, mirroring WebXR)
 │   │   ├── buffer/         # Vertex/index buffers (BufferAttribute/InstancedBuffer...)
 │   │   ├── cameras/        # Cameras (Perspective/Orthographic/Stereo/Cube/Array/CameraView)
 │   │   ├── common/         # Rendering common layer (Renderer/RenderList/Pipeline/Backend/BindGroup...)
@@ -146,11 +149,13 @@ three/
 │   │   ├── textures/       # Textures (CanvasTexture/CubeTexture/CompressedTexture...)
 │   │   └── types/          # bgfx type definitions
 │   ├── resource/           # Asset loading & caching
+│   │   ├── archive/        # Archive packages (ZIP parsing/per-entry extraction/CRC32 verification/disk extraction)
 │   │   ├── bgfx/           # bgfx low-level resource operations
 │   │   ├── cache/          # Resource cache (Cache)
 │   │   ├── loader/         # Loaders (glTF/OBJ/MTL/PLY/STL/DDS/KTX/PVR/EXR/HDR/TGA/Font...)
 │   │   ├── pipeline/       # Asset pipeline (AssetBundle/AssetBundleBuilder pack & read, AssetManager async frame-spread loading, AssetCache ref-counted unloading)
 │   │   └── serializer/     # Serialization (Serializer)
+│   │       └── macros/     # Serialization macro package (re-exports cjfast_json annotation macros)
 │   ├── scene/              # Scene management
 │   │   ├── ecs/            # ECS framework (World/Entity/Component/System/Registry)
 │   │   │   └── macros/     # ECS macros (Component/Entity/System macros)
@@ -168,10 +173,12 @@ three/
 │   │   ├── encode/         # Encoding/decoding (Base64/MD5/SHA/Hash/Hex/UUID/UrlEncode)
 │   │   ├── log/            # Logging (Logger, 5-level severity)
 │   │   ├── memory/         # Memory utilities (pointer arrays/memory conversion)
-│   │   └── pool/           # Object pool (ObjectPool/PoolManager)
+│   │   ├── pool/           # Object pool (ObjectPool/PoolManager)
+│   │   └── safe/           # Safe ownership (IReleasable releasable interface, Safe<T> GC-fallback auto-release wrapper)
 │   └── window/             # Window & input engine (WindowEngine v2 + input providers)
 │       └── ui/             # GUI subsystem (ImGui widgets/layout/menus/tabs/tables/popups/drag-drop/fonts/styles/draw lists)
 └── test/                   # Test projects
+    ├── bin-reuse/          # Binary artifact reuse example (bin-dependencies + three-deps.a; download release artifacts and use the engine directly)
     ├── general/            # General feature tests (math/data structures/ECS/network/asset pipeline/serialization/encoding...)
     ├── ohos/               # HarmonyOS test projects (audio/base/gui/pc/physics)
     └── windows/            # Windows test cases (boxshow/geometries/materials/helpers/post-processing/glTF/physics/gui...)
