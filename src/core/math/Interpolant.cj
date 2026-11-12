@@ -250,7 +250,7 @@ public open class Interpolant {
      * @brief[en] Get interpolation settings
      * @return[en] Settings object
      */
-    public func getSettings_(): HashMap<String, Int64> {
+    protected func getSettings_(): HashMap<String, Int64> {
         return this.settings ?? this.DefaultSettings_
     }
 
@@ -263,7 +263,7 @@ public open class Interpolant {
      * @param[en] index Sample value buffer index
      * @return[en] Result buffer
      */
-    public func copySampleValue_(index: Int64): Array<Float64> {
+    protected func copySampleValue_(index: Int64): Array<Float64> {
         let result = this.resultBuffer
         let values = this.sampleValues
         let stride = this.valueSize
@@ -289,7 +289,7 @@ public open class Interpolant {
      * t1 Next interpolation factor
      * @return[en] Result buffer
      */
-    public open func interpolate_(i1: Int64, t0: Float64, t: Float64, t1: Float64): Array<Float64> {
+    protected open func interpolate_(i1: Int64, t0: Float64, t: Float64, t1: Float64): Array<Float64> {
         throw Exception("THREE.Interpolant: Call to abstract method.")
         // 子类应返回 this.resultBuffer
     }
@@ -305,7 +305,7 @@ public open class Interpolant {
      * t0 Previous interpolation factor
      * t1 Next interpolation factor
      */
-    public open func intervalChanged_(i1: Int64, t0: Float64, t1: Float64): Unit {
+    protected open func intervalChanged_(i1: Int64, t0: Float64, t1: Float64): Unit {
         // empty
     }
 }

@@ -70,7 +70,7 @@ import three.profiler.macros.*
 /**
  * 单级金字塔 RT 资源（水平 + 垂直各一个 RT）。
  */
-public class BloomMipLevel {
+internal class BloomMipLevel {
     /** 水平模糊输出 RT（width × height） */
     public var horizontalFB: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
     /** 水平模糊输出纹理 */

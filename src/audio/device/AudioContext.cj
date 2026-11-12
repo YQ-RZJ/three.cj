@@ -268,7 +268,7 @@ public class AudioContext <: IReleasable {
      *
      * @brief[en] Returns the OpenAL context handle
      */
-    public prop alcContext: CPointer<Unit> {
+    protected prop alcContext: CPointer<Unit> {
         get() { _context }
     }
 

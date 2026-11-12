@@ -144,7 +144,7 @@ public class Skeleton <: IPropertyBindingRoot & IReleasable {
      *
      * @brief[en] Internal initialization: auto-calculates when boneInverses is empty; rebuilds when count mismatch
      */
-    public func _init(): Unit {
+    internal func _init(): Unit {
         if (this.boneInverses.size == 0) {
             this.calculateInverses()
         } else {

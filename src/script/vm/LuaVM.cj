@@ -141,11 +141,14 @@ public class LuaVM <: IReleasable {
     }
 
     /**
-     * @brief[zh-cn] 底层 lua_State 句柄（供 LuaBinder/LuaTable 等高级封装使用）
+     * @brief[zh-cn] 底层 lua_State 句柄（包内 LuaBinder/LuaFunction/LuaTable 等封装使用；
+     *               不对外暴露——指针由本类创建并经 release()/lua_close 释放，外部无需参与）
      *
-     * @brief[en] The underlying lua_State handle (for LuaBinder/LuaTable and other wrappers)
+     * @brief[en] The underlying lua_State handle (for in-package wrappers like LuaBinder/
+     *            LuaFunction/LuaTable; not exposed externally — the pointer is created and
+     *            freed by this class via release()/lua_close, external code is never involved)
      */
-    public func handle(): CPointer<Unit> {
+    protected func handle(): CPointer<Unit> {
         return this._L
     }
 
@@ -734,7 +737,7 @@ public class LuaVM <: IReleasable {
      * idx The stack index
      * @return[en] The corresponding LuaValue (nil placeholder for tables/functions etc.)
      */
-    public static func readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
+    protected static func readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
         return _readValue(L, idx)
     }
 
@@ -747,7 +750,7 @@ public class LuaVM <: IReleasable {
      * @param[en] L The underlying lua_State handle
      * v The LuaValue to push
      */
-    public static func pushValue(L: CPointer<Unit>, v: LuaValue): Unit {
+    protected static func pushValue(L: CPointer<Unit>, v: LuaValue): Unit {
         _pushValue(L, v)
     }
 }

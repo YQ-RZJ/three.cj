@@ -206,7 +206,7 @@ public class AudioTransformSlot {
      *              Adding 2 keeps the "even = stable" invariant; the intermediate odd state
      *              makes a concurrent reader skip this round.
      */
-    public func invalidate(): Unit {
+    protected func invalidate(): Unit {
         this.sourceId = 0u32
         this._version.fetchAdd(1)
         this._version.fetchAdd(1)

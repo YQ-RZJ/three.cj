@@ -6,6 +6,8 @@ Thumbs.db
 *.ipr
 .*/
 !.github/
+!.skills/
+*.sqlite3
 __pycache__/
 *.pyc
 target/

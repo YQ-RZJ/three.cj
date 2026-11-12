@@ -410,14 +410,14 @@ internal class _PlyElementData {
         this.nextToken = 0
     }
 
-    public func getScalar(name: String): Float64 {
+    protected func getScalar(name: String): Float64 {
         if (let Some(v) <- this.scalarValues.get(name)) {
             return v
         }
         return 0.0
     }
 
-    public func getList(name: String): ArrayList<Float64> {
+    protected func getList(name: String): ArrayList<Float64> {
         if (let Some(v) <- this.listValues.get(name)) {
             return v
         }

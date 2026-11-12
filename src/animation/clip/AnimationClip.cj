@@ -445,7 +445,7 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
      * @param[en] jsonStr The JSON string
      * @return[en] The parsed HashMap<String, Any>
      */
-    public static func parseUserData(jsonStr: String): HashMap<String, Any> {
+    protected static func parseUserData(jsonStr: String): HashMap<String, Any> {
         try {
             let reader = JsonStreamReader(ByteBuffer(jsonStr.toArray()))
             return JsonUtil.streamFromJsonForHashMapAny(reader)
@@ -466,7 +466,7 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
      * @param[en] userData The user data HashMap
      * @return[en] The JSON string
      */
-    public static func stringifyUserData(userData: HashMap<String, Any>): String {
+    protected static func stringifyUserData(userData: HashMap<String, Any>): String {
         // 2026-08-20 回退：删除 JsonValue 后，用 JsonStreamWriter 手写序列化 HashMap<String, Any> 的基础值
         let stream = ByteBuffer()
         var writer = JsonStreamWriter(stream)

@@ -40,7 +40,7 @@ import std.collection.*
  *
  * @brief[en] Materials utility class, providing material type query methods
  */
-public class Materials {
+internal class Materials {
     /**
      * @brief[zh-cn] 获取材质的类型标签
      * @param[zh-cn] material 材质实例
@@ -50,5 +50,5 @@ public class Materials {
      * @param[en] material Material instance
      * @return[en] Material type label string
      */
-    public static func getMaterialType(material: Material): String { return material.kind }
+    internal static func getMaterialType(material: Material): String { return material.kind }
 }

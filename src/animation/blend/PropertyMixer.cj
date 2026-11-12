@@ -180,7 +180,7 @@ public class PropertyMixer {
      * @param[en] accuIndex Accumulation index (0 or 1)
      * @param[en] weight Weight
      */
-    public func accumulate(accuIndex: Int64, weight: Float64): Unit {
+    protected func accumulate(accuIndex: Int64, weight: Float64): Unit {
         // 注意：当 weight = 0 时也会累积，调用者知道权重
         // 不应在 weight = 0 时调用此方法
 
@@ -213,7 +213,7 @@ public class PropertyMixer {
      * @brief[en] Accumulates data from the 'incoming' region into the add (additive) region
      * @param[en] weight Weight
      */
-    public func accumulateAdditive(weight: Float64): Unit {
+    protected func accumulateAdditive(weight: Float64): Unit {
         let buffer = this.buffer
         let stride = this.valueSize
         let offset = stride * this._addIndex
@@ -272,7 +272,7 @@ public class PropertyMixer {
      *
      * @brief[en] Remembers the original state of the bound property and copies it into the two accumulation regions
      */
-    public func saveOriginalState(): Unit {
+    protected func saveOriginalState(): Unit {
         let binding = this.binding
         let buffer = this.buffer
         let stride = this.valueSize
@@ -297,7 +297,7 @@ public class PropertyMixer {
      *
      * @brief[en] Restores the state previously saved via saveOriginalState to the binding
      */
-    public func restoreOriginalState(): Unit {
+    protected func restoreOriginalState(): Unit {
         let originalValueOffset = this.valueSize * 3
         this.binding.setValue(this.buffer, originalValueOffset)
     }

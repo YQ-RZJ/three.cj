@@ -436,7 +436,7 @@ public class AssetBundleBuilder {
  * @explain[en] Table-driven implementation; the 256-entry table is built lazily.
  * Used for bundle entry integrity checks.
  */
-public class Crc32 {
+internal class Crc32 {
     private static var _table: Array<UInt32> = Array<UInt32>()
     private static let _POLY: UInt32 = 0xEDB88320u32
 

@@ -230,7 +230,7 @@ public class GroundReflector <: Mesh & IReleasable {
     /**
      * 创建反射 RT（RGBA16F + D24；useDepthTexture=true 时额外 RGBA32F 深度 RT）。
      */
-    public func ensureRTs(): Unit {
+    internal func ensureRTs(): Unit {
         if (this._rtCreated) { return }
         @LogDebug(["reflector", "ensureRTs: creating reflect RT ${this._textureWidth}x${this._textureHeight}"])
         // 经 ResourceOps 封装创建/销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
