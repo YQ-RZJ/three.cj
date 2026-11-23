@@ -422,11 +422,11 @@ target:
 Import in your Cangjie code (identical to the source-dependency approach):
 
 ```cangjie
-import three.rendering.*            // Rendering (BgfxRenderer/BgfxRenderTarget)
-import three.rendering.geometry.*   // Geometry
-import three.rendering.materials.*  // Materials
-import three.rendering.cameras.*    // Cameras
-import three.rendering.lights.*     // Lights
+import three.renderers.*            // Rendering (BgfxRenderer/BgfxRenderTarget)
+import three.renderers.geometry.*   // Geometry
+import three.renderers.materials.*  // Materials
+import three.renderers.cameras.*    // Cameras
+import three.renderers.lights.*     // Lights
 import three.scene.scenegraph.*     // Scene graph (Scene/Group/Fog)
 import three.scene.entity.*         // Entities (Mesh/Points/Line/Sprite...)
 import three.core.math.*            // Math utilities
