@@ -259,7 +259,7 @@ public class AudioContext <: IReleasable {
      *
      * @brief[en] Returns the OpenAL device handle
      */
-    public prop device: CPointer<Unit> {
+    protected prop device: CPointer<Unit> {
         get() { _device }
     }
 
@@ -863,7 +863,7 @@ public class AudioContext <: IReleasable {
      * @note[zh-cn] 对应 ALC_SOFT_HRTF：alcGetIntegerv(device, ALC_HRTF_SOFT, 1, &hrtf)，
      * 其中 hrtf = ALC_HRTF_ENABLED_SOFT / ALC_HRTF_DISABLED_SOFT。
      *
-     * @brief[en] Enables or disables HRTF (headphone spatial rendering)
+     * @brief[en] Enables or disables HRTF (headphone spatial renderers)
      * @param[en] enabled true = enabled, false = disabled
      * @note[en] Maps to ALC_SOFT_HRTF: alcGetIntegerv(device, ALC_HRTF_SOFT, 1, &hrtf),
      * where hrtf = ALC_HRTF_ENABLED_SOFT / ALC_HRTF_DISABLED_SOFT.

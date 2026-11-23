@@ -59,5 +59,5 @@ public func setDataType(value: Int64): EXRLoader
 ```cj
 public var `type`: Int64
 ```
-输出数据类型（默认 FloatType；JS 侧支持 FloatType/HalfFloatType）
+输出数据类型（默认 FloatType）
 

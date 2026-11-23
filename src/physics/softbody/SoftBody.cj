@@ -34,7 +34,7 @@
  * jolt4cj SoftBodySharedSettings/SoftBodyCreationSettings FFI
  * @explain[en] A soft body = shared settings (vertices + faces + edge constraints) +
  * creation settings → soft-body rigid body. Jolt soft bodies have no transform/velocity
- * interface; rendering-mesh updates require reading the vertex buffer.
+ * interface; renderers-mesh updates require reading the vertex buffer.
  * All public APIs use three left-handed math types (no pointers exposed). Runtime FFI
  * calls are serialized onto the PhysicsWorld physics thread.
  */
@@ -43,7 +43,8 @@ package three.physics.softbody
 import std.collection.ArrayList
 import three.core.math.*
 import three.physics.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*

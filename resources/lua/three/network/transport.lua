@@ -1,0 +1,40 @@
+-- three/network/transport.lua —— three.network.transport 绑定模块
+--
+-- 返回 three.network.transport 全局命名空间。需引擎侧先安装 transport 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.network.transport")
+--
+-- 用法（TCP 长连接）：
+--     local T = require "three.network.transport"
+--     local conn = T.Connection.new("127.0.0.1", 9000)
+--     conn.onMessage = function(data) print(#data) end
+--     conn.onConnected = function() print("connected") end
+--     conn.onDisconnected = function(reason) print(reason) end
+--     conn.autoReconnect = true
+--     conn:connect()
+--     -- 主循环每帧：
+--     conn:update()       -- 心跳 / 检测 / 派发回调（返回抽干条数）
+--     conn:sendString("hi")
+--
+-- 用法（可靠 UDP）：
+--     local chan = T.ReliableChannel.new("127.0.0.1", 9000, 9001)
+--     chan.onMessage = function(data) print(#data) end
+--     chan:bind()
+--     chan:send({1, 2, 3})
+--     chan:update()
+--
+-- 已绑定类：
+--   Connection       TCP 长连接（host / port / isConnected / releasable；
+--                    heartbeatIntervalMs / heartbeatTimeoutMs / autoReconnect /
+--                    maxReconnectDelayMs 可读写；onMessage / onConnected / onDisconnected
+--                    只写回调；connect / send / sendString / update / pumpCallbacks /
+--                    pendingCallbacks / release；
+--                    静态 FRAME_PING / FRAME_PONG / FRAME_DATA / MAX_FRAME_SIZE）
+--   ReliableChannel  可靠 UDP（remoteHost / remotePort / rttMs / pendingCount / releasable；
+--                    resendDelayMs / maxResendDelayMs 可读写；onMessage 只写回调；
+--                    bind / send / update / release；
+--                    静态 RELIABLE_HEADER_SIZE / RELIABLE_ACK_SEQ / RELIABLE_MAX_PAYLOAD）
+--
+-- 说明：收包线程的 onMessage 不直接执行 Lua，而是经任务队列转投，由 update() /
+-- pumpCallbacks() 在 Lua 线程抽干（保持到达顺序）。回调属性只写，读取恒为 nil。
+
+return require("three").network.transport

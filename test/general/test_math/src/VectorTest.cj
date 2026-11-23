@@ -7,8 +7,7 @@ package test_math
 import std.unittest.*
 import std.math.*
 import three.core.math.*
-import three.rendering.buffer.*
-import three.core.interfaces.*
+import three.renderers.buffer.*
 
 public class VectorTest <: TestClass {
     public override func asTestSuite(): TestSuite {

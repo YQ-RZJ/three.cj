@@ -7,8 +7,7 @@ package test_math
 import std.unittest.*
 import std.math.*
 import three.core.math.*
-import three.rendering.buffer.*
-import three.core.interfaces.*
+import three.renderers.buffer.*
 
 public class AttributeReaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {
@@ -42,9 +41,9 @@ public class AttributeReaderTest <: TestClass {
     }
 
     func test_buffer_attribute_implements_interface() {
-        // BufferAttribute 应可视为 AttributeReader 接口
+        // BufferAttribute 应可视为 IAttributeReader 接口
         let attr = BufferAttribute([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], 3)
-        let reader: AttributeReader = attr
+        let reader: IAttributeReader = attr
         assertEqual("接口 count == 2", "true", reader.count == 2, true)
         assertEqual("接口 getX(0) == 1", "true", reader.getX(0) == 1.0, true)
         assertEqual("接口 getY(0) == 2", "true", reader.getY(0) == 2.0, true)

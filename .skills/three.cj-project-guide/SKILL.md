@@ -48,7 +48,7 @@ python scripts/search_docs.py --node domain:references --view indexes --max-page
 
 ```text
 python scripts/search_docs.py --query "Vector3 addScalar" --query "three.utils.memory/function-list" --view leaves
-python scripts/search_docs.py --node three.rendering/class:ThreeRenderer --view leaves
+python scripts/search_docs.py --node three.renderers/class:ThreeRenderer --view leaves
 ```
 
 `leaves` 输出选中页的完整正文（含签名、参数、返回、示例）。默认受 `--max-pages 20` 与 `--max-chars 24000` 保护，超限会被拒绝——先用 `--node` 锁定单个符号，必要时用 `--force` 显式放开；`--estimate` 可先查看展开规模。

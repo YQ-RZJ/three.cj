@@ -14,16 +14,15 @@ package xrmanager
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
-import three.rendering.xr.*
-import three.rendering.textures.*
-import three.rendering.types.*
+import three.renderers.cameras.*
+import three.renderers.xr.*
+import three.renderers.textures.*
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -68,7 +67,8 @@ public class TestWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x202030))
-        this.renderer.setDebug(0x00000008)
+        // 开启调试文本覆盖层（语义化开关）——dbgTextPrintf 画面内文本渲染的前提
+        this.renderer.setDebugText(true)
         println("  ThreeRenderer 初始化成功")
         println("")
 
@@ -90,13 +90,6 @@ public class TestWindow <: WindowEngine {
         match (this.objs) {
             case Some(objs) =>
                 objs.sphere.rotation.y = t * 0.5
-
-                // ---- XR 双眼模式：presenting 时先更新左右眼相机（IPD 偏移）----
-                // 对照 JS: WebXRManager.updateCamera → 渲染前设置 cameraL/cameraR 位姿，
-                // 渲染器遍历 ArrayCamera.cameras 各渲半屏。
-                if (objs.xrManager.isXRPresenting()) {
-                    objs.xrManager.updateCamera(objs.camera)
-                }
 
                 // ---- 鼠标拖动 ----
                 if (_mouse.getOrThrow().isMouseButtonDown(MouseButton.LEFT)) {
@@ -126,11 +119,18 @@ public class TestWindow <: WindowEngine {
                 objs.camera.aspect = Float64(w) / Float64(if (h > 1i32) { h } else { 1i32 })
                 objs.camera.updateProjectionMatrix()
 
-                // ---- 画面内文本 ----
-                this.renderer.dbgTextClear(0x00, false)
-                this.renderer.dbgTextPrintf(0, 0, 0x0f, "XR presenting=" + objs.xrManager.isXRPresenting().toString() + " refSpace=" + refSpaceStr(objs.xrManager.getReferenceSpaceType()))
+                // ---- XR 双眼模式：主相机位姿与投影更新完成后再派生左右眼相机（IPD 偏移）----
+                // 对照 JS: WebXRManager.updateCamera → 渲染前基于最新主相机设置 cameraL/cameraR 位姿，
+                // 避免首帧沿用未初始化相机矩阵导致左右眼视锥剔除。
+                if (objs.xrManager.isXRPresenting()) {
+                    objs.xrManager.updateCamera(objs.camera)
+                }
+
+                // ---- 画面内文本（bgfx dbgText） ----
                 let ctrlVisible = objs.controller.getTargetRaySpace().visible
-                this.renderer.dbgTextPrintf(0, 1, 0x0e, "controller.rayVisible=" + ctrlVisible.toString() + " depthTex=" + Handle.idx(objs.depthSensing.getTexture()).toString())
+                this.renderer.dbgTextClear(0x00, small: false)
+                this.renderer.dbgTextPrintf(0, 0, 0x0f, "XR presenting=" + objs.xrManager.isXRPresenting().toString() + " refSpace=" + refSpaceStr(objs.xrManager.getReferenceSpaceType()))
+                this.renderer.dbgTextPrintf(0, 1, 0x0e, "controller.rayVisible=" + ctrlVisible.toString() + " depthTex.idx=" + objs.depthSensing.getTextureIdx().toString())
 
                 // ---- 渲染：presenting 时走 ArrayCamera 双眼视口，否则单眼 ----
                 // 对照 JS: WebGLRenderer 在 camera.isArrayCamera 时遍历 cameras 各渲半屏

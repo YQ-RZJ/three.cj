@@ -1,0 +1,29 @@
+-- three/network/protocol.lua —— three.network.protocol 绑定模块
+--
+-- 返回 three.network.protocol 全局命名空间。需引擎侧先安装 protocol 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.network.protocol")
+--
+-- 用法（大端序/网络字节序）：
+--     local P = require "three.network.protocol"
+--     local w = P.PacketWriter.new()
+--     w:writeU16(7)
+--     w:writeString("hello")
+--     w:writeF32(0.5)
+--     local bytes = w:toArray()
+--
+--     local r = P.PacketReader.new(bytes)
+--     local msgType = r:readU16()
+--     local text = r:readString()
+--
+-- 已绑定类：
+--   PacketWriter  写出器（writeU8/U16/U32/U64/I16/I32/I64/Bool/F32/F64/
+--                writeBytes / writeString / toArray / clear / size；
+--                静态 MAX_STRING_BYTES）
+--   PacketReader  读取器（read* 同名系列 / readBytes / readString / skip /
+--                remaining / hasMore / position；静态 MAX_STRING_BYTES）
+--
+-- 说明：字节数组在 Lua 侧为数值数组（元素 0~255）；UInt32 / UInt64 以 Lua number
+-- （双精度）呈现。读取越界不抛错，返回 0 / false / "" / 空数组且游标不变，
+-- 建议先用 remaining / hasMore 判断。
+
+return require("three").network.protocol

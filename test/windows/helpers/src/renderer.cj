@@ -20,19 +20,20 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.helpers.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.helpers.*
+import three.renderers.ThreeRenderer
 import three.utils.constants.DoubleSide
 import three.audio.listener.AudioListener
 import three.audio.source.PositionalAudio
 import three.physics.body.RigidBody
 import three.physics.world.PhysicsWorld
 import three.physics.constraint.*
-import three.physics.interfaces.*
+import three.physics.backend.*
+import three.physics.common.*
 
 /// 几何体绕圈半径
 public let SHOW_RADIUS: Float64 = 6.0

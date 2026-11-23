@@ -24,7 +24,7 @@ def find_repo_root(start=None):
 # public 声明（含顶层与成员）：捕获可见性/修饰、种类、名称
 PUBLIC_DECL_RE = re.compile(
     r'^(\s*)((?:public\s+)(?:open\s+|abstract\s+|static\s+|mut\s+|override\s+)*'
-    r'(func|prop|class|interface|struct|enum|const|let|var)\s+([A-Za-z_]\w*)?)'
+    r'(func|prop|class|interface|struct|enum|const|let|var|init)\s+([A-Za-z_]\w*)?)'
 )
 
 
@@ -129,7 +129,7 @@ def package_usage(counts, sf, name):
 
 
 def resolve_modules(root, args):
-    """把 'animation'、'rendering/bgfx' 等参数解析为 (包名前缀, 文件列表)。"""
+    """把 'animation'、'renderers/bgfx' 等参数解析为 (包名前缀, 文件列表)。"""
     src = os.path.join(root, 'src')
     if not args:
         return [('all', [sf for sf in load_sources(root) if sf.rel.startswith('src/')])]

@@ -81,7 +81,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|object3d|Object3D|The rendering object to bindhandle The physics body handlesyncToObj true = physics→render (Dynamic/Kinematic bodies);false = render→physics (optional when a Kinematic body is user-driven)|
+|object3d|Object3D|The renderers object to bindhandle The physics body handlesyncToObj true = physics→render (Dynamic/Kinematic bodies);false = render→physics (optional when a Kinematic body is user-driven)|
 |handle|PhysicsBodyHandle||
 |syncToObj|Bool||
 
@@ -784,7 +784,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|object3d|Object3D|The rendering object to unbind|
+|object3d|Object3D|The renderers object to unbind|
 
 ### func update\(Float32,Int32\)
 ```cj

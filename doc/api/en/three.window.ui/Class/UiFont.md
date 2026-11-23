@@ -22,7 +22,7 @@ Parameter:
 ```cj
 public func calcTextSize(text: String, fontSize!: Float32 = 0.0f32, wrapWidth!: Float32 = - 1.0f32):(Float32, Float32)
 ```
-Calculates text rendering size
+Calculates text renderers size
 
 Parameter: 
 

@@ -201,9 +201,9 @@ public func getBarycoord(point: Vector3): Vector3
 
 - 重心坐标
 
-### func getInterpolatedAttribute\(AttributeReader,Int64,Int64,Int64,Vector3,Vector3\)
+### func getInterpolatedAttribute\(IAttributeReader,Int64,Int64,Int64,Vector3,Vector3\)
 ```cj
-public static func getInterpolatedAttribute(attr: AttributeReader, i1: Int64, i2: Int64, i3: Int64, barycoord: Vector3, target: Vector3): Vector3
+public static func getInterpolatedAttribute(attr: IAttributeReader, i1: Int64, i2: Int64, i3: Int64, barycoord: Vector3, target: Vector3): Vector3
 ```
 插值顶点属性，用重心坐标对属性三个顶点的值做线性插值，写入 target
 
@@ -211,7 +211,7 @@ public static func getInterpolatedAttribute(attr: AttributeReader, i1: Int64, i2
 
 |名称|类型|描述|
 |---|---|---|
-|attr|AttributeReader|顶点属性（AttributeReader 接口，由 BufferAttribute 实现）i1 顶点 a 的属性索引i2 顶点 b 的属性索引i3 顶点 c 的属性索引barycoord 重心坐标target 输出向量（写入插值结果）|
+|attr|IAttributeReader|顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）i1 顶点 a 的属性索引i2 顶点 b 的属性索引i3 顶点 c 的属性索引barycoord 重心坐标target 输出向量（写入插值结果）|
 |i1|Int64||
 |i2|Int64||
 |i3|Int64||
@@ -372,9 +372,9 @@ public func isFrontFacing(direction: Vector3): Bool
 
 - 是否朝向给定方向
 
-### func setFromAttributeAndIndices\(AttributeReader,Int64,Int64,Int64\)
+### func setFromAttributeAndIndices\(IAttributeReader,Int64,Int64,Int64\)
 ```cj
-public func setFromAttributeAndIndices(attribute: AttributeReader, i0: Int64, i1: Int64, i2: Int64): Triangle
+public func setFromAttributeAndIndices(attribute: IAttributeReader, i0: Int64, i1: Int64, i2: Int64): Triangle
 ```
 从顶点属性与索引设置三角形顶点
 
@@ -382,7 +382,7 @@ public func setFromAttributeAndIndices(attribute: AttributeReader, i0: Int64, i1
 
 |名称|类型|描述|
 |---|---|---|
-|attribute|AttributeReader|顶点属性（AttributeReader 接口，由 BufferAttribute 实现）i0 顶点 a 的索引i1 顶点 b 的索引i2 顶点 c 的索引|
+|attribute|IAttributeReader|顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）i0 顶点 a 的索引i1 顶点 b 的索引i2 顶点 c 的索引|
 |i0|Int64||
 |i1|Int64||
 |i2|Int64||

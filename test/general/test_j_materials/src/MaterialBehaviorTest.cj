@@ -9,7 +9,7 @@
 package test_j_materials
 
 import std.unittest.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 
 public class MaterialBehaviorTest <: TestClass {
     public override func asTestSuite(): TestSuite {

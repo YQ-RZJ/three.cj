@@ -35,12 +35,30 @@ public static func fromGlobal(vm: LuaVM, name: String): Option < LuaFunction >
 
 |名称|类型|描述|
 |---|---|---|
-|vm|LuaVM|目标虚拟机name 全局变量名|
-|name|String||
+|vm|LuaVM|目标虚拟机|
+|name|String|全局变量名|
 
 返回: 
 
 - 函数引用；若全局变量不存在或不是函数则返回 None
+
+### func fromStack\(LuaVM,VoidPtr,Int32\)
+```cj
+public static func fromStack(vm: LuaVM, L: VoidPtr, idx: Int32): Option < LuaFunction >
+```
+从栈索引建立函数引用（lua_pushvalue + luaL_ref；非函数返回 None）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|vm|LuaVM|所属虚拟机（引用释放时使用 handle）|
+|L|VoidPtr|底层 lua_State 句柄|
+|idx|Int32|栈索引（值不为函数时返回 None，栈不变）|
+
+返回: 
+
+- 函数引用；栈顶值不是函数时返回 None
 
 ### func init\(LuaVM,Int32\)
 ```cj
@@ -52,14 +70,14 @@ public init(vm!: LuaVM, ref!: Int32)
 
 |名称|类型|描述|
 |---|---|---|
-|vm|LuaVM|所属虚拟机ref 注册表引用（由 luaL_ref 产生）|
-|ref|Int32||
+|vm|LuaVM|所属虚拟机|
+|ref|Int32|注册表引用（由 luaL_ref 产生）|
 
 ### func release\(\)
 ```cj
 public func release(): Bool
 ```
-释放注册表引用。
+释放注册表引用
 
 ### prop ref: Int32
 ```cj

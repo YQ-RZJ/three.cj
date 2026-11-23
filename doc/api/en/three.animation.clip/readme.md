@@ -8,3 +8,8 @@
 |[AnimationClip](./Class/AnimationClip.md#class-animationclip)|An animation clip, containing a group of keyframe tracks|
 |[AnimationUtils](./Class/AnimationUtils.md#class-animationutils)|Animation utility class, providing static method wrappers|
 
+### Interface
+|  Name   | Describe  |
+|  ----  | ----  |
+|[IAnimationClip](./Interface/IAnimationClip.md#interface-ianimationclip)|Animation clip interface: the contract type through which the blend package references AnimationClip|
+

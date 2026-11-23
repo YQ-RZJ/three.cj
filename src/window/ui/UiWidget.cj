@@ -61,7 +61,7 @@ internal func ensureCurrentContext(): Unit {
  * @explain[zh-cn] 所有具体控件继承此类。子类重写 draw() 实现渲染逻辑。
  *
  * @brief[en] Base class for all ImGui widgets
- * @explain[en] All concrete widgets inherit from this class. Subclasses override draw() to implement rendering logic.
+ * @explain[en] All concrete widgets inherit from this class. Subclasses override draw() to implement renderers logic.
  */
 public open class UiWidget {
     /// 控件 ID（用于 ImGui PushID/PopID）

@@ -41,6 +41,11 @@
 |[TGALoader](./类/TGALoader.md#class-tgaloader)|TGA 加载器，加载 Targa 格式图片为 DataTexture|
 |[TextureLoader](./类/TextureLoader.md#class-textureloader)|纹理加载器，用于加载图片并创建 Texture 对象|
 
+### 接口
+|  名称   | 描述  |
+|  ----  | ----  |
+|[ILoadResult](./接口/ILoadResult.md#interface-iloadresult)|加载结果标记接口：Loader.load 的 onLoad 回调参数类型|
+
 ### 变量与常量
 |  名称   | 描述  |
 |  ----  | ----  |

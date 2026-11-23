@@ -18,8 +18,8 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|nargs|Int32|The number of argumentsnresults The expected number of results (LUA_MULTRET=-1 means all)|
-|nresults|Int32||
+|nargs|Int32|The number of arguments|
+|nresults|Int32|The expected number of results (LUA_MULTRET=-1 means all)|
 
 Return: 
 
@@ -55,8 +55,8 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|narr|Int32|Pre-allocated array-part capacity (default 0)nrec Pre-allocated hash-part capacity (default 0)|
-|nrec|Int32||
+|narr|Int32|Pre-allocated array-part capacity (default 0)|
+|nrec|Int32|Pre-allocated hash-part capacity (default 0)|
 
 ### func doBuffer\(String,String\)
 ```cj
@@ -68,8 +68,8 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|code|String|The source or precompiled bytecode stringname The chunk name (used in error messages, default "=(buffer)")|
-|name|String||
+|code|String|The source or precompiled bytecode string|
+|name|String|The chunk name (used in error messages, default "=(buffer)")|
 
 Return: 
 
@@ -187,8 +187,8 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|idx|Int32|The stack index of the tablename The field name|
-|name|String||
+|idx|Int32|The stack index of the table|
+|name|String|The field name|
 
 ### func getGlobal\(String\)
 ```cj
@@ -334,7 +334,7 @@ Parameter:
 ```cj
 public func release(): Bool
 ```
-closes the state and releases resources (handle() becomes invalid afterwards)
+Closes the state and releases resources (handle() becomes invalid afterwards)
 
 ### func setField\(Int32,String\)
 ```cj
@@ -346,8 +346,8 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|idx|Int32|The stack index of the tablename The field name|
-|name|String||
+|idx|Int32|The stack index of the table|
+|name|String|The field name|
 
 ### func setGlobal\(String,LuaValue\)
 ```cj
@@ -359,8 +359,21 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|name|String|The global variable namevalue The value to write|
-|value|LuaValue||
+|name|String|The global variable name|
+|value|LuaValue|The value to write|
+
+### func setObjectBridge\(Option<\(VoidPtr,Int64\)\->Unit>,Option<\(VoidPtr,Int32\)\->Int64>\)
+```cj
+public static func setObjectBridge(pusher: Option <(VoidPtr, Int64) -> Unit >, reader: Option <(VoidPtr, Int32) -> Int64 >): Unit
+```
+Registers the engine object bridge (userdata push/read implementation)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|pusher|Option<(VoidPtr,Int64)->Unit>|The push callback (writes the object id into userdata; optional, default pushes nil)|
+|reader|Option<(VoidPtr,Int32)->Int64>|The read callback (userdata → object id; optional, default returns 0)|
 
 ### func setTop\(Int32\)
 ```cj

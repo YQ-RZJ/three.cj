@@ -1,0 +1,21 @@
+-- three/physics/debug.lua —— three.physics.debug 绑定模块
+--
+-- 返回 three.physics.debug 全局命名空间。需引擎侧先安装 debug 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.debug")
+--
+-- 用法：
+--     local D = require "three.physics.debug"
+--     local dbg = D.PhysicsDebugRenderer.new()
+--     dbg:drawBodies(world)
+--     dbg:drawConstraints(world)
+--     dbg:nextFrame()
+--
+-- 已绑定类：
+--   PhysicsDebugLine      调试线段（new(from, to, color) + 只读属性）
+--   PhysicsDebugTriangle  调试三角形（new(v1, v2, v3, color) + 只读属性）
+--   PhysicsDebugRenderer  调试渲染器（releasable / lineCount / drawBodies /
+--                         drawConstraints / nextFrame / clear / release）
+--
+-- 说明：线段 / 三角形为结构体值对象，按值注册，字段只读。
+
+return require("three").physics.debug

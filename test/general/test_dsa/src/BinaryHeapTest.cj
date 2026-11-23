@@ -13,10 +13,10 @@ package test_dsa
 import std.unittest.*
 import std.collection.*
 import three.core.dsa.BinaryHeap
-import three.core.dsa.HeapNode
+import three.core.dsa.IHeapNode
 
 /** 测试用堆节点：Int64 值，最小堆 */
-class IntHeapNode <: HeapNode {
+class IntHeapNode <: IHeapNode {
     let val: Int64
     private var _index: Int64
 
@@ -30,7 +30,7 @@ class IntHeapNode <: HeapNode {
         set(v) { _index = v }
     }
 
-    public func lessThan(other: HeapNode): Bool {
+    public func lessThan(other: IHeapNode): Bool {
         let o = other as IntHeapNode
         return this.val < o.getOrThrow().val
     }

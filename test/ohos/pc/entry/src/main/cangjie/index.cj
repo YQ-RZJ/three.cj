@@ -31,9 +31,9 @@ func stopThreeRenderWrapper(runtime: JSContext, callInfo: JSCallInfo): JSValue {
     return runtime.boolean(true).toJSValue()
 }
 
-// isThreeRendering(): 查询渲染状态
-func isThreeRenderingWrapper(runtime: JSContext, callInfo: JSCallInfo): JSValue {
-    return runtime.boolean(isThreeRendering()).toJSValue()
+// isThreerenderers(): 查询渲染状态
+func isThreerenderersWrapper(runtime: JSContext, callInfo: JSCallInfo): JSValue {
+    return runtime.boolean(isThreerenderers()).toJSValue()
 }
 
 // resizeThreeRender(w, h): 事件驱动 resize —— ArkTS 侧 XComponent onAreaChange
@@ -56,7 +56,7 @@ let EXPORT_MODULE = JSModule.registerModule {
     runtime, exports => {=>
         exports["startThreeRender"] = runtime.function(startThreeRenderWrapper).toJSValue()
         exports["stopThreeRender"] = runtime.function(stopThreeRenderWrapper).toJSValue()
-        exports["isThreeRendering"] = runtime.function(isThreeRenderingWrapper).toJSValue()
+        exports["isThreerenderers"] = runtime.function(isThreerenderersWrapper).toJSValue()
         exports["resizeThreeRender"] = runtime.function(resizeThreeRenderWrapper).toJSValue()
     }()
 }

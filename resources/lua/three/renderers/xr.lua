@@ -1,0 +1,23 @@
+-- three/renderers/xr.lua —— three.renderers.xr 绑定模块
+--
+-- 返回 three.renderers.xr 全局命名空间。需引擎侧先安装 xr 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.renderers.xr")
+--
+-- 已绑定类：
+--   枚举：XRSessionState（None=0 / Creating=1 / Active=2 / Ending=3）/
+--         XRReferenceSpaceType（LocalFloor=0 / Local=1 / Bounded=2 / Unbounded=3）
+--   管理器：XRManager（new(renderer) / requestSession / endSession /
+--           setReferenceSpaceType / getCamera / getController / updateCamera /
+--           isXRPresenting / setEnabled / getEnvironmentBlendMode）
+--   渲染目标：XRRenderTarget（new(width, height) / width / height / setSize）
+--   控制器：XRController（getTargetRaySpace / getGripSpace / getHandSpace /
+--           setInputSource / getInputSource / connect / disconnect / update）
+--   控制器空间：XRControllerSpace（spaceType / positionX..Z / quaternionX..W /
+--           visible / hasInputSource / linearVelocity* / angularVelocity* / eventsEnabled）
+--   深度感知：XRDepthSensing（getTextureIdx / bindRenderer / getMesh /
+--           isAvailable / update / reset / release）
+--
+-- 约定：枚举成员以同名静态方法取整数（如 XRReferenceSpaceType.LocalFloor()）；
+-- dispatchEvent 接收 Lua 表，仅读取 "type" / "data" 两个键。
+
+return require("three").renderers.xr

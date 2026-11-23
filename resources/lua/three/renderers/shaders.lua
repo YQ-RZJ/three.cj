@@ -1,0 +1,26 @@
+-- three/renderers/shaders.lua —— three.renderers.shaders 绑定模块
+--
+-- 返回 three.renderers.shaders 全局命名空间。需引擎侧先安装 shaders 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.renderers.shaders")
+--
+-- 已绑定类：
+--   ShaderChunks.define(name, source)      注册着色器代码块
+--   ShaderChunks.get(name)                 读取代码块（缺失返回 nil）
+--   ShaderChunks.resolve(source)           递归展开 #include <name>
+--   ShaderVariant.getVariantKey(material)  生成材质变体键
+--   ShaderVariant.getDefines(material)     生成 #define 数组（可直接传给 IShaderProgram:compile）
+--   ShaderVariant.getActiveTextureFlags(material)  激活纹理标记数组
+--   UniformsLib.initialize()               注册内置 uniform 代码块
+--   SamplerStages.MAX_DIR_SHADOW() / MAX_SPOT_SHADOW() / MAX_POINT_SHADOW()
+--   SamplerStages.STAGE_FIXED_BASE() / STAGE_MAP() / STAGE_ROUGHNESS_MAP() / … / STAGE_SHADOW_BLIT()
+--   SamplerStages.dynamicShadowEnd(nDir, nSpot, nPoint) -> stage
+--   SamplerStages.getPlaceholderReplacements() -> {{占位符, stage}, ...}
+--   SamplerStages.applyPlaceholders(source)        __STAGE_XXX__ 替换
+--   SamplerStages.validate(nDir, nSpot, nPoint) -> bool
+--   ShaderCompiler.DEFAULT_STACK_SIZE() / start([stackSize]) / stop() / restart([stackSize])
+--   ShaderCompiler.submit(job) / totalSubmitted() / totalCompleted() / totalErrors()
+--   ShaderCompiler.isRunning() / progress()
+--   ShaderCompileJob（构造为 protected，由引擎内部创建；Lua 侧只读 label / varyingSize /
+--                     srcSize / compileResult，并可 waitFor() 阻塞等待）
+
+return require("three").renderers.shaders

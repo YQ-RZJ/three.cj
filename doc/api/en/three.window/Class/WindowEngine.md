@@ -10,7 +10,7 @@ reading its own event queue):
 onInit()                          // after window creation (init renderer/scene)
 while (!closeRequested):
 drainQueue -> build fixed snapshot  // all events this loop -> InputSnapshot
-bindOnFrame?(dt) / onFrame(dt)     // user logic/rendering - reads snapshot
+bindOnFrame?(dt) / onFrame(dt)     // user logic/renderers - reads snapshot
 snapshot.resetForNextFrame()       // reset at loop end (re-collect next loop)
 onClose(); onDestroy()</p>
 
@@ -291,7 +291,7 @@ Return:
 ```cj
 public func getSurface(): SDL_Surface
 ```
-Gets the window surface (for software rendering)
+Gets the window surface (for software renderers)
 
 Return: 
 
@@ -392,7 +392,7 @@ Called after the window is destroyed
 ```cj
 public open func onFrame(dt: Float64): Unit
 ```
-Called every loop (reads the fixed snapshot - logic + rendering)
+Called every loop (reads the fixed snapshot - logic + renderers)
 
 Parameter: 
 

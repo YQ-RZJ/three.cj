@@ -5,7 +5,7 @@ package sp_textures
  * - 球1：DataTexture 程序生成 64x64 棋盘格纹理（RGBA8，对照 test_loaders 风格）→ 验证程序化纹理上传
  * - 球2：TextureLoader 加载 res/checker.png（python 生成的 128x128 棋盘格）→ 验证图片加载解码
  * - 球3：DataTexture.copy() 拷贝球1纹理（对照 JS Texture.copy）→ 验证拷贝接口
- * - 相机鼠标轨道控制 + 画面内 dbgText 显示纹理尺寸/是否有效
+ * - 相机鼠标轨道控制 + 周期 println 显示纹理尺寸/是否有效
  */
 
 import std.sync.*
@@ -18,13 +18,13 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.textures.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.textures.*
 import three.resource.loader.TextureLoader
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseProvider
 import three.window.MouseButton

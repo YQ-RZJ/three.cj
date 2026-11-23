@@ -40,7 +40,7 @@ import three.core.math.interpolants.*
 import three.utils.constants.*
 import three.utils.log.*
 import three.utils.log.macros.*
-import three.animation.interfaces.IKeyframeTrack
+public import three.animation._interfaces.IKeyframeTrack
 import std.collection.*
 import std.math.*
 import fastjson.*

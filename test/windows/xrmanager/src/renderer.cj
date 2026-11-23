@@ -5,7 +5,7 @@ package xrmanager
  * - 构造 XRManager（关联 renderer）、XRController（inputState 跟踪）、
  *   XRDepthSensing（深度纹理），验证全部公开接口（对照 JS WebXR* 类）
  * - updateCamera / setProjectionFromUnion / updateUserCamera 调用验证（非 Presenting 时无副作用）
- * - 简单球体场景回退渲染 + 画面内 dbgText 显示 XR 状态
+ * - 简单球体场景回退渲染 + 周期 println 显示 XR 状态
  */
 
 import std.sync.*
@@ -17,14 +17,13 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
-import three.rendering.xr.*
-import three.rendering.textures.*
-import three.rendering.types.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
+import three.renderers.xr.*
+import three.renderers.textures.*
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -140,11 +139,9 @@ public func createScene(width: Int32, height: Int32, renderer: ThreeRenderer): S
     // ---- 3. XRDepthSensing（对照 JS WebXRDepthSensing）----
     let depthSensing = XRDepthSensing()
     println("  [xr] DepthSensing: isAvailable=${depthSensing.isAvailable()}")
-    // setTexture 需纹理句柄（对照 JS: WebXRDepthSensing.setDepthTexture）；
-    // 通过 three.rendering.types 的工厂函数构造，无须依赖 bgfx4cj
-    let depthTexHandle = Handle.texture(2u16)
-    depthSensing.setTexture(depthTexHandle)
-    println("  [xr] DepthSensing: setTexture OK")
+    // setTexture 为引擎内接口（纹理句柄入参，模块外不可见）；
+    // 公开面经 getTextureIdx() 只读句柄索引验证深度纹理通道
+    println("  [xr] DepthSensing: getTextureIdx=" + depthSensing.getTextureIdx().toString())
     let depthMesh = depthSensing.getMesh()
     println("  [xr] DepthSensing: getMesh=${match (depthMesh) { case Some(m) => "Some" case None => "None" }}")
     depthSensing.update(0.1, 100.0, 64, 64)

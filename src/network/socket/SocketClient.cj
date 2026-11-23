@@ -53,6 +53,7 @@ package three.network.socket
 import std.net.*
 import std.core.*
 import three.utils.safe.IReleasable
+import three.network._interfaces.ISocketClient
 
 /**
  * @brief[zh-cn] TCP 客户端
@@ -62,7 +63,7 @@ import three.utils.safe.IReleasable
  * @explain[en] A game-development-friendly wrapper around std.net.TcpSocket with
  * blocking read/write and event callbacks.
  */
-public class SocketClient <: IReleasable {
+public class SocketClient <: IReleasable & ISocketClient {
     /**
      * @brief[zh-cn] 目标主机
      *

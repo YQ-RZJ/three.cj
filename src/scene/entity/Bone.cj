@@ -30,11 +30,11 @@
  * @explain[en] The only difference from Object3D: serves as a bone node identifier in Skeleton/SkinnedMesh, with no geometry/material
  */
 package three.scene.entity
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import fastjson.*
 import fastjson.macros.*

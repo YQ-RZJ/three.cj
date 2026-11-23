@@ -1,7 +1,7 @@
 # 类
-## class BinaryHeap < T > where T <: HeapNode
+## class BinaryHeap < T > where T <: IHeapNode
 ```cj
-public class BinaryHeap < T > where T <: HeapNode
+public class BinaryHeap < T > where T <: IHeapNode
 ```
 二叉堆（默认最小堆）
 
@@ -43,12 +43,6 @@ public func get(index: Int64): T
 
 - 节点
 
-### func init\(\)
-```cj
-public init()
-```
-默认构造器，容量 4
-
 ### func init\(Int64\)
 ```cj
 public init(capacity: Int64)
@@ -60,6 +54,12 @@ public init(capacity: Int64)
 |名称|类型|描述|
 |---|---|---|
 |capacity|Int64|初始容量（<=0 时默认 4）|
+
+### func init\(\)
+```cj
+public init()
+```
+默认构造器，容量 4
 
 ### func isEmpty\(\)
 ```cj

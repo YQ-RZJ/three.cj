@@ -31,15 +31,15 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import std.collection.*
-import three.rendering.buffer.*
+import three.renderers.buffer.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
-import three.rendering.materials.*
-import three.rendering.textures.*
+import three.renderers.materials.*
+import three.renderers.textures.*
 import fastjson.*
 import fastjson.stream.*
 import std.io.*

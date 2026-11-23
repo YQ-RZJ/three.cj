@@ -18,11 +18,11 @@ import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
 import three.core.math.*
-import three.rendering.buffer.*
-import three.rendering.geometry.*
-import three.rendering.materials.*
-import three.rendering.cameras.PerspectiveCamera
-import three.rendering.cameras.Camera
+import three.renderers.buffer.*
+import three.renderers.geometry.*
+import three.renderers.materials.*
+import three.renderers.cameras.PerspectiveCamera
+import three.renderers.cameras.Camera
 
 public class ParticleBehaviorTest <: TestClass {
     public override func asTestSuite(): TestSuite {

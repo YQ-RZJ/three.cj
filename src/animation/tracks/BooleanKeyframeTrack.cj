@@ -61,12 +61,12 @@ public class BooleanKeyframeTrack <: KeyframeTrack {
 
     /**
      * @brief[zh-cn] 重写线性插值工厂方法为离散插值
-     * @explain[zh-cn] 布尔值不支持线性插值。对应 JS 中 BooleanKeyframeTrack.prototype.InterpolantFactoryMethodLinear = undefined
+     * @explain[zh-cn] 布尔值不支持线性插值，线性插值工厂方法重写为离散插值
      * @param[zh-cn] result 结果缓冲区的可选项
      * @return[zh-cn] 离散插值器
      *
      * @brief[en] Overrides the linear interpolation factory method with discrete interpolation
-     * @explain[en] Booleans do not support linear interpolation. Corresponds to BooleanKeyframeTrack.prototype.InterpolantFactoryMethodLinear = undefined in JS
+     * @explain[en] Booleans do not support linear interpolation, so the linear interpolation factory method is overridden with discrete interpolation
      * @param[en] result Optional result buffer
      * @return[en] Discrete interpolant
      */
@@ -76,12 +76,12 @@ public class BooleanKeyframeTrack <: KeyframeTrack {
 
     /**
      * @brief[zh-cn] 重写平滑插值工厂方法为离散插值
-     * @explain[zh-cn] 布尔值不支持平滑插值。对应 JS 中 BooleanKeyframeTrack.prototype.InterpolantFactoryMethodSmooth = undefined
+     * @explain[zh-cn] 布尔值不支持平滑插值，平滑插值工厂方法重写为离散插值
      * @param[zh-cn] result 结果缓冲区的可选项
      * @return[zh-cn] 离散插值器
      *
      * @brief[en] Overrides the smooth interpolation factory method with discrete interpolation
-     * @explain[en] Booleans do not support smooth interpolation. Corresponds to BooleanKeyframeTrack.prototype.InterpolantFactoryMethodSmooth = undefined in JS
+     * @explain[en] Booleans do not support smooth interpolation, so the smooth interpolation factory method is overridden with discrete interpolation
      * @param[en] result Optional result buffer
      * @return[en] Discrete interpolant
      */

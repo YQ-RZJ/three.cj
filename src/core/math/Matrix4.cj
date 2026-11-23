@@ -361,7 +361,7 @@ public class Matrix4 {
         // bgfx 标准：左手系，相机看向 +Z，Z 轴指向 相机→目标 方向
         // 即 Z = (target - eye).normalize()，相机在视图空间沿 +Z 看
         var z = Vector3().subVectors(target, eye).normalize()
-        // ★关键修复（镜像相机 up 平行容错，对照主流引擎的 Matrix4.lookAt 做法）：
+        // ★关键修复（镜像相机 up 平行容错）：
         //   GroundReflector 镜像相机 up 反射后 = (0,0,-1)，与视线
         //   z = target - pos（地面反射器场景下恰好 = (0,0,-1)）完全平行时，
         //   cross(up, z) 退化为零向量 → x 轴为 NaN/0 → view 矩阵异常 →

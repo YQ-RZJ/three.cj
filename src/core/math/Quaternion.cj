@@ -33,7 +33,7 @@ package three.core.math
 
 import std.math.*
 import std.random.*
-import three.core.interfaces.*
+import three.core._interfaces.*
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -649,16 +649,16 @@ public class Quaternion {
 
     /**
      * @brief[zh-cn] 从顶点属性读取四元数分量
-     * @param[zh-cn] attribute 顶点属性（AttributeReader 接口，由 BufferAttribute 实现）
+     * @param[zh-cn] attribute 顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）
      * index 顶点索引
      * @return[zh-cn] 当前实例
      *
      * @brief[en] Read quaternion components from vertex attribute (aligned with JS: Quaternion.fromBufferAttribute)
-     * @param[en] attribute Vertex attribute (AttributeReader interface, implemented by BufferAttribute)
+     * @param[en] attribute Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)
      * index Vertex index
      * @return[en] This instance
      */
-    public func fromBufferAttribute(attribute: AttributeReader, index: Int64): Quaternion {
+    public func fromBufferAttribute(attribute: IAttributeReader, index: Int64): Quaternion {
         this.x = attribute.getX(index)
         this.y = attribute.getY(index)
         this.z = attribute.getZ(index)

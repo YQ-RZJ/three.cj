@@ -17,8 +17,8 @@ package sp_sao
  */
 
 import three.core.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
 
 /// 创建开放盒子几何体（无前面板 +Z，内壁法线向内）
 public func createOpenBoxGeometry(width: Float64, height: Float64, depth: Float64): BufferGeometry {

@@ -5,9 +5,9 @@ public interface ISocketListener
 ```
 Socket event listener interface
 
-### func onClose\(SocketClient\)
+### func onClose\(ISocketClient\)
 ```cj
-func onClose(client: SocketClient): Unit
+func onClose(client: ISocketClient): Unit
 ```
 Callback invoked when the connection is closed
 
@@ -15,11 +15,11 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|client|SocketClient|The client that fired the event|
+|client|ISocketClient|The client that fired the event|
 
-### func onError\(SocketClient,String\)
+### func onError\(ISocketClient,String\)
 ```cj
-func onError(client: SocketClient, message: String): Unit
+func onError(client: ISocketClient, message: String): Unit
 ```
 Callback invoked on error
 
@@ -27,12 +27,12 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|client|SocketClient|The client that fired the eventmessage The error message|
+|client|ISocketClient|The client that fired the eventmessage The error message|
 |message|String||
 
-### func onMessage\(SocketClient,Array<UInt8>\)
+### func onMessage\(ISocketClient,Array<UInt8>\)
 ```cj
-func onMessage(client: SocketClient, data: Array < UInt8 >): Unit
+func onMessage(client: ISocketClient, data: Array < UInt8 >): Unit
 ```
 Callback invoked when data is received (raw bytes)
 
@@ -40,12 +40,12 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|client|SocketClient|The client that fired the eventdata The raw bytes received|
+|client|ISocketClient|The client that fired the eventdata The raw bytes received|
 |data|Array<UInt8>||
 
-### func onOpen\(SocketClient\)
+### func onOpen\(ISocketClient\)
 ```cj
-func onOpen(client: SocketClient): Unit
+func onOpen(client: ISocketClient): Unit
 ```
 Callback invoked when the connection is established
 
@@ -53,5 +53,5 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|client|SocketClient|The client that fired the event|
+|client|ISocketClient|The client that fired the event|
 

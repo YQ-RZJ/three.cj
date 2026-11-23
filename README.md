@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-1.0.0-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-1.1.8-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-Cross--Platform-lightgrey" style="display: inline-block;" />
@@ -62,18 +62,19 @@ This project is actively maintained. Follow [Bilibili UID:3546853029185667](http
 | `three.network.sync` | Sync models (LockstepSession deterministic lockstep + SnapshotBuffer interpolation) | `src/network/sync/` |
 | `three.physics` | Physics system (Jolt: world/rigid bodies/characters/constraints/binding/heightfield/soft bodies/vehicles/ragdolls/debug rendering) | `src/physics/` |
 | `three.profiler` | Profiling subsystem (Tracy: zones/frame marks/plots/messages/memory/GPU timing/locks/fibers/sampling, plus auto-instrumentation macros) | `src/profiler/` |
-| `three.rendering` | Rendering system (bgfx backend, cameras, geometry, materials, lights, post-processing, shaders) | `src/rendering/` |
+| `three.renderers` | Rendering system (bgfx backend, cameras, geometry, materials, lights, post-processing, shaders) | `src/renderers/` |
 | `three.resource` | Asset loading & caching (model/texture/animation loaders, serialization, asset pipeline) | `src/resource/` |
 | `three.resource.pipeline` | Asset pipeline (AssetBundle pack/read, AssetManager async frame-spread loading, AssetCache ref-counted unloading) | `src/resource/pipeline/` |
 | `three.scene` | Scene management (scene graph, entities, ECS, Object3D, raycasting) | `src/scene/` |
 | `three.script` | Scripting system (LuaJIT VM, bidirectional binding, hot-reloading) | `src/script/` |
+| `three.script.prebind` | Lua pre-bindings (LuaBindingFactory/PrebindUtil, auto-generated binding glue code) | `src/script/prebind/` |
 | `three.utils` | Utility library (logging, encoding, object pool, memory, allocator) | `src/utils/` |
 | `three.window` | Window & input engine (SDL3 window, input providers) | `src/window/` |
 | `three.window.ui` | GUI subsystem (ImGui widgets/windows/layout/menus/tabs/tables/popups/drag-drop/fonts/styles/draw lists/viewports/storage) | `src/window/ui/` |
 
 ## Project Structure
 
-> Note: The directory tree only shows directory-level structure; individual files are not listed due to their volume.
+> Note: The directory tree only shows directory-level structure; individual files are not listed due to their volume. Directories prefixed with `_` (such as `_interfaces`, `_bgfx`, `_gfx`) are internal subpackages; the interfaces subpackage keeps interface definitions only.
 
 ```
 three/
@@ -82,27 +83,28 @@ three/
 │   ├── asstes/             # Documentation assets
 │   └── references/         # Project references (test-case project notes, etc.)
 ├── libs/                   # Native library directory (static libs for per-platform test linking, incl. exclude.rsp and symbols_elf.map)
+├── resources/              # Engine sample assets (lua scripts, etc.)
 ├── scripts/                # Helper scripts (see scripts/README.md)
 ├── src/                    # Cangjie engine source (main body of this README)
 │   ├── animation/          # Animation system
+│   │   ├── _interfaces/    # Interfaces subpackage (IAnimationClip/IKeyframeTrack)
 │   │   ├── blend/          # Animation blending & action scheduling (AnimationMixer/Action/KeyframeTrack/PropertyBinding)
 │   │   ├── clip/           # Animation clips (AnimationClip/AnimationUtils)
-│   │   ├── interfaces/     # Cross-package decoupling interfaces
 │   │   ├── offline/        # Offline animation (additive animation builder/baking)
 │   │   ├── skeletal/       # Skeletal animation (skeleton/animation event system)
 │   │   └── tracks/         # Keyframe tracks (Boolean/Color/Number/Quaternion/String/Vector)
 │   ├── audio/              # Audio subsystem (OpenAL)
+│   │   ├── _interfaces/    # Interfaces subpackage (IAudioEffect/IAudioEffectSlot/IAudioFilter)
 │   │   ├── capture/        # Recording (AudioRecorder)
 │   │   ├── device/         # Audio context (AudioContext)
-│   │   ├── interfaces/     # Audio interface contracts
 │   │   ├── listener/       # Audio listener (AudioListener)
 │   │   ├── mixer/          # EFX effects & filters (AudioEffect/AudioFilter/AudioEffectSlot)
 │   │   └── source/         # Audio sources (Audio/PositionalAudio/StreamingAudio/AudioBuffer)
 │   ├── core/               # Core infrastructure
+│   │   ├── _interfaces/    # Interfaces subpackage (IBackground/IMaterial/IAttributeReader/IQueue...)
 │   │   ├── dispatch/       # Frame dispatch (FrameDispatch/FrameTask)
 │   │   ├── dsa/            # Data structures (BinaryHeap/BinaryPatriciaTrie/BitArray/Queue/RingBuffer/Stack...)
 │   │   ├── event/          # Event system (EventDispatcher/EventFactory/EventManager)
-│   │   ├── interfaces/     # Infrastructure interface contracts
 │   │   ├── math/           # Math library (vector/matrix/quaternion/color/interpolation/bounding box/ray...)
 │   │   │   ├── interpolants/ # Interpolants (linear/Bézier/discrete/cubic/quaternion)
 │   │   │   └── soa/        # SoA-layout math (4-wide scalar float simulating SIMD lanes)
@@ -110,35 +112,38 @@ three/
 │   │   ├── thread/         # Threading & synchronization (Thread/SThread/Sync/RecursiveMutex)
 │   │   └── time/           # Time (Clock/Timer)
 │   ├── network/            # Networking module
+│   │   ├── _interfaces/    # Interfaces subpackage (ISocketListener)
 │   │   ├── http/           # HTTP client (via httpclient4cj)
 │   │   ├── protocol/       # Game protocol codec (PacketCodec: PacketWriter/PacketReader big-endian streams)
 │   │   ├── socket/         # Socket client/server/UDP
 │   │   ├── sync/           # Sync models (Lockstep: LockstepSession deterministic lockstep/SnapshotBuffer interpolation)
 │   │   └── transport/      # Reliable transport (Connection: TCP framing/heartbeat/reconnect; ReliableChannel: reliable UDP)
 │   ├── physics/            # Physics system (Jolt)
+│   │   ├── _interfaces/    # Interfaces subpackage (IPhysicsBackend)
 │   │   ├── backend/        # Physics backend adapter (JoltBackend)
 │   │   ├── binding/        # Object3D ↔ RigidBody binding (PhysicsBinding)
 │   │   ├── body/           # Rigid body (RigidBody)
 │   │   ├── character/      # Character controller (Character)
+│   │   ├── common/         # Backend-agnostic physics data types (PhysicsCommon: enums/structs/classes, public API)
 │   │   ├── constraint/     # Constraints/joints (Constraint)
 │   │   ├── debug/          # Physics debug rendering (DebugRenderer: line/triangle cache bridging)
 │   │   ├── heightfield/    # Heightfield terrain (HeightField)
-│   │   ├── interfaces/     # Pluggable backend abstraction (IPhysicsBackend)
 │   │   ├── ragdoll/        # Ragdoll (Ragdoll)
 │   │   ├── softbody/       # Soft bodies/cloth (SoftBody)
 │   │   ├── vehicle/        # Vehicle (wheels/suspension/engine/differential)
 │   │   └── world/          # Physics world facade (PhysicsWorld, independent physics thread)
 │   ├── profiler/           # Profiling subsystem (Tracy)
 │   │   └── macros/         # Auto-instrumentation macros (@Zone/@Plot/@Message/..., gated by THREE_PROFILER)
-│   ├── rendering/          # Rendering system (bgfx)
-│   │   ├── bgfx/           # bgfx backend implementation (BgfxBackend/materials/lights/shadows/render state/shader cache)
+│   ├── renderers/          # Rendering system (Gfx abstraction + bgfx backend)
+│   │   ├── _bgfx/          # bgfx backend implementation (BgfxBackend/materials/lights/shadows/render state/shader cache)
+│   │   ├── _gfx/           # Gfx rendering abstraction layer (GfxDefs/GfxTypes: backend-agnostic enums/state bits/descriptor structs)
+│   │   ├── _interfaces/    # Interfaces subpackage (ICamera/IRenderer/IRenderBackend/IRenderTarget...)
 │   │   ├── xr/             # XR extension (XR controllers/depth perception/manager, mirroring WebXR)
 │   │   ├── buffer/         # Vertex/index buffers (BufferAttribute/InstancedBuffer...)
 │   │   ├── cameras/        # Cameras (Perspective/Orthographic/Stereo/Cube/Array/CameraView)
 │   │   ├── common/         # Rendering common layer (Renderer/RenderList/Pipeline/Backend/BindGroup...)
 │   │   ├── geometry/       # Geometry & curves (Box/Capsule/Cone/Cylinder/Sphere/Torus/Extrude/Path...)
 │   │   ├── helpers/        # Helpers (AxesHelper/GridHelper/ArrowHelper/BoxHelper...)
-│   │   ├── interfaces/     # Rendering interface contracts (IRenderer/ICamera/IRenderTarget...)
 │   │   ├── lights/         # Lights (Ambient/Directional/Point/Spot/Hemisphere/RectArea/LightProbe)
 │   │   ├── materials/      # Materials (Basic/Lambert/Phong/Standard/Physical/Toon/Matcap...)
 │   │   ├── postprocessing/ # Post-processing (FXAA/SMAA/SSAO/SSR/GTAO/Bloom/UnrealBloom/Outline...)
@@ -146,42 +151,44 @@ three/
 │   │   ├── shaders/        # Shaders (ShaderChunk/ShaderLib/ShaderCompiler/ShaderVariant)
 │   │   │   ├── ShaderChunk/ # Shader code chunks
 │   │   │   └── ShaderLib/   # Shader library
-│   │   ├── textures/       # Textures (CanvasTexture/CubeTexture/CompressedTexture...)
-│   │   └── types/          # bgfx type definitions
+│   │   └── textures/       # Textures (CanvasTexture/CubeTexture/CompressedTexture...)
 │   ├── resource/           # Asset loading & caching
 │   │   ├── archive/        # Archive packages (ZIP parsing/per-entry extraction/CRC32 verification/disk extraction)
-│   │   ├── bgfx/           # bgfx low-level resource operations
 │   │   ├── cache/          # Resource cache (Cache)
 │   │   ├── loader/         # Loaders (glTF/OBJ/MTL/PLY/STL/DDS/KTX/PVR/EXR/HDR/TGA/Font...)
 │   │   ├── pipeline/       # Asset pipeline (AssetBundle/AssetBundleBuilder pack & read, AssetManager async frame-spread loading, AssetCache ref-counted unloading)
 │   │   └── serializer/     # Serialization (Serializer)
 │   │       └── macros/     # Serialization macro package (re-exports cjfast_json annotation macros)
 │   ├── scene/              # Scene management
+│   │   ├── _interfaces/    # Interfaces subpackage (IScene/IMesh/IGroup)
 │   │   ├── ecs/            # ECS framework (World/Entity/Component/System/Registry)
 │   │   │   └── macros/     # ECS macros (Component/Entity/System macros)
 │   │   ├── entity/         # Renderable entities (Mesh/Points/Line/Sprite/SkinnedMesh/InstancedMesh/LOD/BatchedMesh)
-│   │   ├── interfaces/     # Scene interface contracts (IScene/IGroup/IMesh)
 │   │   ├── objects/        # 3D object base classes (Object3D/Raycaster/Layers)
 │   │   └── scenegraph/     # Scene graph (Scene/Group/Fog/FogExp2/ClippingGroup)
 │   ├── script/             # Scripting system (LuaJIT)
 │   │   ├── binding/        # Cangjie ↔ Lua bidirectional binding (LuaBinder)
 │   │   ├── hotreload/      # Script hot-reloading (LuaHotReload)
+│   │   ├── prebind/        # Lua pre-bindings (LuaBindingFactory/PrebindUtil, incl. auto-generated _renderers_*/_animation_* binding files)
 │   │   └── vm/             # LuaJIT VM wrapper (LuaVM/LuaValue/LuaTable/LuaFunction/LuaError)
 │   ├── utils/              # Utility library
+│   │   ├── _interfaces/    # Interfaces subpackage (IPoolObject/IReleasable)
 │   │   ├── allocator/      # Object ID allocator (IdAllocator)
 │   │   ├── constants/      # Constants
 │   │   ├── encode/         # Encoding/decoding (Base64/MD5/SHA/Hash/Hex/UUID/UrlEncode)
 │   │   ├── log/            # Logging (Logger, 5-level severity)
+│   │   │   └── macros/     # Log macros package (LogMacros; env-driven level gating at macro expansion)
 │   │   ├── memory/         # Memory utilities (pointer arrays/memory conversion)
 │   │   ├── pool/           # Object pool (ObjectPool/PoolManager)
 │   │   └── safe/           # Safe ownership (IReleasable releasable interface, Safe<T> GC-fallback auto-release wrapper)
 │   └── window/             # Window & input engine (WindowEngine v2 + input providers)
 │       └── ui/             # GUI subsystem (ImGui widgets/layout/menus/tabs/tables/popups/drag-drop/fonts/styles/draw lists)
+├── tools/                  # Cross-platform helper tools (per-platform subdirectories)
 └── test/                   # Test projects
     ├── bin-reuse/          # Binary artifact reuse example (bin-dependencies + three-deps.a; download release artifacts and use the engine directly)
     ├── general/            # General feature tests (math/data structures/ECS/network/asset pipeline/serialization/encoding...)
     ├── ohos/               # HarmonyOS test projects (audio/base/gui/pc/physics)
-    └── windows/            # Windows test cases (boxshow/geometries/materials/helpers/post-processing/glTF/physics/gui...)
+    └── windows/            # Windows test cases (boxshow/geometries/materials/helpers/post-processing/glTF/physics/gui/animation/audio/xr/ssr/gtao/IBL...)
 ```
 
 ## Requirements

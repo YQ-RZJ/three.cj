@@ -1,0 +1,31 @@
+-- three/audio/source.lua —— three.audio.source 绑定模块
+--
+-- 返回 three.audio.source 全局命名空间。需引擎侧先安装 source 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.audio.source")
+--
+-- 用法：
+--     local source = require "three.audio.source"
+--     local music = source.Audio.new()          -- 可传 AudioListener 作为首参
+--     music.buffer = buf                        -- 或 music:setBuffer(buf)
+--     music:setVolume(0.7):setLoop(true):play()
+--
+-- 已绑定类：
+--   Audio           非位置音频源（listener / context / sourceId / buffer / autoplay / gain /
+--                   isPlaying / loop / offset / playbackRate / hasPlaybackControl / detune /
+--                   sourceType / isAudio；getOutput / setBuffer / play / pause / stop /
+--                   disconnect / setVolume / getVolume / setLoop / getLoop / setPlaybackRate /
+--                   getPlaybackRate / setDetune / getDetune / getSourceState /
+--                   setDirectFilter / removeDirectFilter / connectEffectSlot /
+--                   disconnectEffectSlot / release）
+--   PositionalAudio 3D 位置音频（Audio 全部成员 + refDistance / rolloffFactor / maxDistance /
+--                   distanceModel / coneInnerAngle / coneOuterAngle / coneOuterGain / velocity
+--                   与对应 set/get、setDirectionalCone、updateMatrixWorld）
+--   StreamingAudio  流式音频（Audio 全部成员 + load(filePath) / updateStream）
+--   AudioBuffer     音频缓冲区（bufferId / channels / sampleRate / format / frameCount /
+--                   dataSize 可读写；releasable / release）
+--
+-- 说明：getSourceState() 返回整数（0x1011=Initial 0x1012=Playing 0x1013=Paused
+-- 0x1014=Stopped）；AudioBuffer 的静态 create / createChunk 需 CPointer PCM 指针，
+-- 不暴露给 Lua。三个音频源均继承 Object3D，但 Object3D 尚未绑定，父类成员不可用。
+
+return require("three").audio.source

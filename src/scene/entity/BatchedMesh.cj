@@ -29,10 +29,10 @@
  * 继承 Mesh；raycast/onBeforeRender/onBeforeShadow 等渲染器集成方法由 Level 8 完善。
  *
  * @file[en] BatchedMesh  Batched mesh
- * @brief[en] Efficient object that packs multiple independent geometries into a single BufferGeometry for rendering
+ * @brief[en] Efficient object that packs multiple independent geometries into a single BufferGeometry for renderers
  * @explain[en] Each geometry is identified by geometryId, supporting dynamic addGeometry/deleteGeometry/setGeometryAt,
  * with instanceCount controlling the number of instances per geometry. Unlike InstancedMesh
- * (which renders multiple instances of the same geometry), BatchedMesh merges different geometries for rendering.
+ * (which renders multiple instances of the same geometry), BatchedMesh merges different geometries for renderers.
  * Inherits Mesh; raycast/onBeforeRender/onBeforeShadow integration will be completed in Level 8.
  */
 package three.scene.entity
@@ -40,22 +40,22 @@ package three.scene.entity
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
-import three.rendering.textures.DataTexture
+import three.renderers.materials.*
+import three.renderers.textures.DataTexture
 import std.collection.*
 import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 批化网格，将多份独立几何打包到单一 BufferGeometry 中渲染
  *
- * @brief[en] Batched mesh that packs multiple independent geometries into a single BufferGeometry for rendering
+ * @brief[en] Batched mesh that packs multiple independent geometries into a single BufferGeometry for renderers
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
 public class BatchedMesh <: Mesh & IReleasable {
@@ -156,7 +156,7 @@ public class BatchedMesh <: Mesh & IReleasable {
         let id = this._geometryId
         this._geometryId += 1
         this.activeGeometryCount += 1
-        // 与 JS side 一致：计几何的顶点/索引数量并填入对应数组
+        // 计几何的顶点/索引数量并填入对应数组
         if (let Some(posAttr) <- geometry.getAttribute("position")) {
             this.vertexCount[id] = posAttr.count
         } else {
@@ -250,7 +250,7 @@ public class BatchedMesh <: Mesh & IReleasable {
     }
 
     // 计算指定 geometryId 对应的包围盒。
-    // 与 JS side 一致：取源几何 boundingBox 应用 setMatrixAt 变换后填入 this.boundingBox。
+    // 取源几何 boundingBox 应用 setMatrixAt 变换后填入 this.boundingBox。
     // geometryId - 几何 id。
     public func computeBoundingBoxAt(geometryId: Int64): Unit {
         if (geometryId < 0 || geometryId >= this.maxGeometryCount) {
@@ -275,7 +275,7 @@ public class BatchedMesh <: Mesh & IReleasable {
     }
 
     // 优化内部缓冲布局，消除 deleteGeometry 后产生的碎片。
-    // 与 JS side 一致：紧缩 active 几何到连续区间，提升后续渲染效率。
+    // 紧缩 active 几何到连续区间，提升后续渲染效率。
     public func optimize(): Unit {
         // 渲染器集成时完善：紧缩 active 几何到连续 geometryId 区间
     }

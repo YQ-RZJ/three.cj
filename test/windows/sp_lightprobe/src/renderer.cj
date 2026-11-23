@@ -32,10 +32,10 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
 
 /// 场景中关键对象的引用，供渲染循环更新
 public class SceneObjects {

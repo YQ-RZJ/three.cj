@@ -12,5 +12,6 @@
 ### Interface
 |  Name   | Describe  |
 |  ----  | ----  |
+|[ISocketClient](./Interface/ISocketClient.md#interface-isocketclient)|Socket client marker interface|
 |[ISocketListener](./Interface/ISocketListener.md#interface-isocketlistener)|Socket event listener interface|
 

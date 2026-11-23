@@ -17,6 +17,11 @@
 |[TreeSysEtyMapManager](./Class/TreeSysEtyMapManager.md#class-treesysetymapmanager)|System-entity mapping manager (prefix tree mode)|
 |[World](./Class/World.md#class-world)|World class, ECS top-level facade|
 
+### Interface
+|  Name   | Describe  |
+|  ----  | ----  |
+|[ISysEtyMapManager < S, E >](./Interface/ISysEtyMapManager.md#interface-isysetymapmanager-s-e-)|System-entity mapping manager interface|
+
 ### Type Alias
 |  Name   | Describe  |
 |  ----  | ----  |

@@ -5,9 +5,9 @@ public class AudioBuffer <: ILoadResult & IReleasable
 ```
 Audio buffer that stores decoded PCM data
 
-### func createChunk\(CPointer<Unit>,UInt64,UInt32,UInt32\)
+### func createChunk\(VoidPtr,UInt64,UInt32,UInt32\)
 ```cj
-public static func createChunk(pcmData: CPointer < Unit >, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
+public static func createChunk(pcmData: VoidPtr, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
 ```
 Creates a streaming chunk buffer (for StreamingAudio's queued buffers)
 
@@ -15,7 +15,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|pcmData|CPointer<Unit>|The PCM data pointer of this chunkframeCount The frame count of this chunkchannels Number of channelssampleRate Sample rate|
+|pcmData|VoidPtr|The PCM data pointer of this chunkframeCount The frame count of this chunkchannels Number of channelssampleRate Sample rate|
 |frameCount|UInt64||
 |channels|UInt32||
 |sampleRate|UInt32||
@@ -24,9 +24,9 @@ Return:
 
 - The created AudioBuffer instance (bufferId is ready)
 
-### func create\(CPointer<Unit>,UInt64,UInt32,UInt32\)
+### func create\(VoidPtr,UInt64,UInt32,UInt32\)
 ```cj
-public static func create(pcmData: CPointer < Unit >, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
+public static func create(pcmData: VoidPtr, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
 ```
 Creates and fills an OpenAL buffer from PCM data (static buffer)
 
@@ -36,7 +36,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|pcmData|CPointer<Unit>|PCM data pointer (16-bit interleaved format)frameCount Total number of frameschannels Number of channels (1=mono, 2=stereo)sampleRate Sample rate|
+|pcmData|VoidPtr|PCM data pointer (16-bit interleaved format)frameCount Total number of frameschannels Number of channels (1=mono, 2=stereo)sampleRate Sample rate|
 |frameCount|UInt64||
 |channels|UInt32||
 |sampleRate|UInt32||

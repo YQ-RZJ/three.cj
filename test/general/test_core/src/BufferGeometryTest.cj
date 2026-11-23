@@ -10,8 +10,8 @@ package test_core
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.geometry.BufferGeometry
-import three.rendering.buffer.BufferAttribute
+import three.renderers.geometry.BufferGeometry
+import three.renderers.buffer.BufferAttribute
 
 public class BufferGeometryTest <: TestClass {
     public override func asTestSuite(): TestSuite {

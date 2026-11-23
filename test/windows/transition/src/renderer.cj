@@ -31,16 +31,14 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.types.*
-import three.rendering.bgfx.BgfxConstants
-import three.utils.memory.BgfxMemory
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.textures.EngineDataTexture
 import three.utils.log.*
 import three.utils.log.macros.*
-import three.rendering.*
+import three.renderers.*
 
 /// RenderTransitionPass 默认参数（R 键重置时回到此值）
 public let DEFAULT_MIX_RATIO: Float64 = 0.0
@@ -84,14 +82,13 @@ public let MIX_TEX_SIZE: Int64 = 256
 /**
  * 生成过渡纹理（水平渐变灰度图，r 通道从黑到白）。
  * 参照 RenderTransitionPass 示例用噪声/渐变纹理做 tMixTexture。
- * 用 renderer.createTexture2D 高阶 API（mem 用 BgfxMemory 包装）上传，不直接触 bgfx4cj。
+ * 用 EngineDataTexture 资源对象（引擎公开 API）上传，不接触底层句柄类型。
  *
- * @param renderer 渲染器（经其高阶 API 序列化上传）
- * @return 过渡纹理句柄（RGBA8，Clamp 采样）
+ * @param renderer 渲染器（经其资源通道上传）
+ * @return 过渡纹理资源对象（RGBA8，Clamp 采样）
  */
-public func createMixTexture(renderer: ThreeRenderer): TextureHandle {
-    let w: UInt16 = UInt16(MIX_TEX_SIZE)
-    let h: UInt16 = UInt16(MIX_TEX_SIZE)
+public func createMixTexture(renderer: ThreeRenderer): EngineDataTexture {
+    let size = MIX_TEX_SIZE
     let pixBuf = ArrayList<UInt8>()
     for (y in 0..MIX_TEX_SIZE) {
         for (x in 0..MIX_TEX_SIZE) {
@@ -103,13 +100,13 @@ public func createMixTexture(renderer: ThreeRenderer): TextureHandle {
             pixBuf.add(255u8)    // a
         }
     }
-    let totalBytes = UInt32(w) * UInt32(h) * 4u32
-    let mem = BgfxMemory(totalBytes)
     let pixArr = Array<UInt8>(pixBuf.size, { i => pixBuf[i] })
-    mem.writeUInt8(pixArr, Int64(pixBuf.size))
-    let flags: UInt64 = UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
-    let tex = renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA8.value(), flags, Some(mem))
-    let tagDebug: Array<String> = ["transition", "createMixTexture: ${MIX_TEX_SIZE}x${MIX_TEX_SIZE} tex.idx=" + Handle.idx(tex).toString()]
+    let tex = EngineDataTexture(
+        renderer.gfxBackend(), size, size, pixArr,
+        format: EngineDataTexture.FORMAT_RGBA8,
+        flags: EngineDataTexture.FLAGS_CLAMP_UV
+    )
+    let tagDebug: Array<String> = ["transition", "createMixTexture: ${MIX_TEX_SIZE}x${MIX_TEX_SIZE} tex.idx=" + tex.handleIdx().toString()]
     @LogDebug(tagDebug)
     return tex
 }

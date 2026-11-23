@@ -1,7 +1,7 @@
 # Class
-## class BinaryHeap < T > where T <: HeapNode
+## class BinaryHeap < T > where T <: IHeapNode
 ```cj
-public class BinaryHeap < T > where T <: HeapNode
+public class BinaryHeap < T > where T <: IHeapNode
 ```
 Binary heap (default min-heap)
 
@@ -43,12 +43,6 @@ Return:
 
 - Node
 
-### func init\(\)
-```cj
-public init()
-```
-Default constructor with capacity 4
-
 ### func init\(Int64\)
 ```cj
 public init(capacity: Int64)
@@ -60,6 +54,12 @@ Parameter:
 |Name|Type|Describe|
 |---|---|---|
 |capacity|Int64|Initial capacity (defaults to 4 when <=0)|
+
+### func init\(\)
+```cj
+public init()
+```
+Default constructor with capacity 4
 
 ### func isEmpty\(\)
 ```cj

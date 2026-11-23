@@ -481,9 +481,9 @@ Return:
 
 - This instance
 
-### func fromBufferAttribute\(AttributeReader,Int64\)
+### func fromBufferAttribute\(IAttributeReader,Int64\)
 ```cj
-public func fromBufferAttribute(attribute: AttributeReader, index: Int64): Vector3
+public func fromBufferAttribute(attribute: IAttributeReader, index: Int64): Vector3
 ```
 Reads vector components from a vertex attribute (cf. JS: Vector3.fromBufferAttribute)
 
@@ -491,7 +491,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|attribute|AttributeReader|Vertex attribute (AttributeReader interface, implemented by BufferAttribute)index Vertex index|
+|attribute|IAttributeReader|Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)index Vertex index|
 |index|Int64||
 
 Return: 

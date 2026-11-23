@@ -59,13 +59,13 @@
   # 需环境变量：DEVECO_CANGJIE_HOME（仓颉 SDK）、DEVECO_OH_NATIVE_HOME（OHOS NDK native 目录）
   [target.aarch64-linux-ohos]
     compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/aarch64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
-    link-option = "-L libs -l:three-deps.a -lSDL3 -lEGL -lGLESv3 -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -lpthread -ldl -lOpenSLES -l:libnative_window.so"
+    link-option = "-L libs -l:three-deps.a -lSDL3 -lEGL -lGLESv3 -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -lpthread -ldl -lOpenSLES -l:libnative_window.so -ldeviceinfo_ndk.z"
     [target.aarch64-linux-ohos.bin-dependencies]
       path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
 
   [target.x86_64-linux-ohos]
     compile-option = "-B \"${DEVECO_CANGJIE_HOME}/build-tools/third_party/llvm/bin\" -B \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/sysroot/usr/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/clang/15.0.4/lib/x86_64-linux-ohos\" -L \"${DEVECO_OH_NATIVE_HOME}/llvm/lib/x86_64-linux-ohos\" --sysroot \"${DEVECO_OH_NATIVE_HOME}/sysroot\""
-    link-option = "-L libs -l:three-deps.a -lSDL3 -lEGL -lGLESv3 -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -lpthread -ldl -lOpenSLES -l:libnative_window.so"
+    link-option = "-L libs -l:three-deps.a -lSDL3 -lEGL -lGLESv3 -lohsensor -lhilog_ndk.z -lace_ndk.z -lrawfile.z -lace_napi.z -lpthread -ldl -lOpenSLES -l:libnative_window.so -ldeviceinfo_ndk.z"
     [target.x86_64-linux-ohos.bin-dependencies]
       path-option = [ "./libs/bgfx4cj", "./libs/fastjson", "./libs/httpclient4cj", "./libs/imgui4cj", "./libs/jolt4cj", "./libs/luajit4cj", "./libs/openalsoft4cj", "./libs/sdl4cj", "./libs/three", "./libs/tracy4cj" ]
 

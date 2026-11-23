@@ -30,7 +30,7 @@
  * ├── Character/          # 角色控制器
  * └── Constraint/         # 约束/关节
  * 仓颉侧拆分为子包：
- * three.physics.interfaces — 可插拔后端抽象（IPhysicsBackend + PhysicsShape/PhysicsBodyDesc 等）
+ * three.physics._interfaces — 可插拔后端抽象（IPhysicsBackend + PhysicsShape/PhysicsBodyDesc 等）
  * three.physics.backend    — 具体后端适配（JoltBackend 封装 jolt4cj.jolt）
  * three.physics.world      — PhysicsWorld 门面 + 独立物理线程（three.core.thread SThread）
  * three.physics.body       — RigidBody/碰撞体/约束的运行时句柄与便捷构造
@@ -49,7 +49,7 @@
  * ├── Character/          # character controller
  * └── Constraint/         # constraints/joints
  * Split into sub-packages on the Cangjie side:
- * three.physics.interfaces — pluggable backend abstraction (IPhysicsBackend + PhysicsShape/PhysicsBodyDesc, etc.)
+ * three.physics._interfaces — pluggable backend abstraction (IPhysicsBackend + PhysicsShape/PhysicsBodyDesc, etc.)
  * three.physics.backend    — concrete backend adapter (JoltBackend wraps jolt4cj.jolt)
  * three.physics.world      — PhysicsWorld facade + dedicated physics thread (three.core.thread SThread)
  * three.physics.body       — runtime handles and convenience builders for rigid bodies

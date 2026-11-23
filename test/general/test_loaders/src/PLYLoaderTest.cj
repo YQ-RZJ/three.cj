@@ -11,7 +11,7 @@ import std.unittest.*
 import std.collection.*
 import std.math.*
 import three.resource.loader.PLYLoader
-import three.rendering.geometry.BufferGeometry
+import three.renderers.geometry.BufferGeometry
 
 public class PLYLoaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {

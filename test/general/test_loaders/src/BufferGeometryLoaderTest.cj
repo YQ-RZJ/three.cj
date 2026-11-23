@@ -14,7 +14,7 @@ import std.unittest.*
 import std.collection.*
 import std.math.*
 import three.resource.loader.BufferGeometryLoader
-import three.rendering.buffer.BufferAttribute
+import three.renderers.buffer.BufferAttribute
 
 public class BufferGeometryLoaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {

@@ -1,0 +1,21 @@
+-- three/physics/heightfield.lua —— three.physics.heightfield 绑定模块
+--
+-- 返回 three.physics.heightfield 全局命名空间。需引擎侧先安装 heightfield 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.heightfield")
+--
+-- 用法：
+--     local H = require "three.physics.heightfield"
+--     local desc = H.PhysicsHeightFieldDesc.new()
+--     desc.sampleCount = 33
+--     desc.samples = heights            -- 数值数组（行主序）
+--     local terrain = H.PhysicsHeightFieldFactory.new(desc):createHeightField(world)
+--     local p = terrain:projectOntoSurface(1.0, 2.0)
+--
+-- 已绑定类：
+--   PhysicsHeightFieldDesc     高度场描述（samples / sampleCount / sizeX / sizeZ /
+--                              center / friction / restitution）
+--   PhysicsHeightField         运行时地形（releasable / bodyID / sampleCount /
+--                              projectOntoSurface / release）
+--   PhysicsHeightFieldFactory  工厂（createHeightField）
+
+return require("three").physics.heightfield

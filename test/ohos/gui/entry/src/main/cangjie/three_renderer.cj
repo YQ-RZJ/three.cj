@@ -23,7 +23,7 @@ import std.runtime.*
 import std.math.*
 import std.io.*
 import ohos.app.ability.ui_ability.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.WindowConfig
 import three.window.MouseProvider
@@ -32,12 +32,12 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
 import three.scene.entity.*
-import three.rendering.cameras.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
-import three.rendering.materials.*
-import three.rendering.lights.*
-import three.rendering.helpers.*
+import three.renderers.cameras.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
+import three.renderers.materials.*
+import three.renderers.lights.*
+import three.renderers.helpers.*
 import three.utils.memory.PtrArray
 import three.window.ui.*
 
@@ -83,8 +83,8 @@ public class ImGuiWindow <: WindowEngine {
         this.appliedH = h
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x1a, 0x1a, 0x2e))
-        // 绑定 execBgfx 到窗口引擎（供 ImGui render hook 使用）
-        this.bindRenderer(this.renderer.execBgfx)
+        // 绑定 runOnRenderThread 到窗口引擎（供 ImGui render hook 使用）
+        this.bindRenderer(this.renderer.runOnRenderThread)
 
         // 相机：绕场景旋转（对齐 windows/gui ImGuiWindow）
         this.camera.position.set(0.0, 2.0, 4.0)
@@ -262,6 +262,6 @@ public func stopThreeRender(): Unit {
 
 // ===== 查询渲染状态 =====
 
-public func isThreeRendering(): Bool {
+public func isThreerenderers(): Bool {
     return g_renderRunning.load()
 }

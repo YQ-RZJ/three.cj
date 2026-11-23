@@ -40,7 +40,7 @@
  *
  * @file[en] AssetCache  Ref-counted asset cache
  * @brief[en] Thread-safe ref-counted asset cache with ref-count-based unloading
- * @explain[en] Mirrors Unity Resources.UnloadUnusedAssets / Unreal ref-counted asset workflows:
+ * @explain[en] Ref-count-based asset unloading workflow:
  * - Lifecycle: add(key, resource) caches (initial ref count 0) → retain(key) by consumers →
  *   release(key) when done → collect()/collectIfNeeded() evicts entries whose count is zero.
  * - Thread safety: guarded internally by std.sync.Mutex; the background loading
@@ -59,7 +59,7 @@ package three.resource.pipeline
 
 import std.collection.*
 import std.sync.*
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import three.utils.safe.IReleasable
 
 /**

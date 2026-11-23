@@ -47,6 +47,7 @@
 package three.utils.pool
 
 import std.collection.*
+public import three.utils._interfaces.IPoolObject
 
 /**
  * @brief[zh-cn] 通用对象池

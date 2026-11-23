@@ -9,10 +9,10 @@
 package test_j_helpers
 
 import std.unittest.*
-import three.rendering.helpers.*
+import three.renderers.helpers.*
 import three.core.math.Vector3
 import three.core.math.Plane
-import three.rendering.cameras.PerspectiveCamera
+import three.renderers.cameras.PerspectiveCamera
 
 public class HelpersInstancingTest <: TestClass {
     public override func asTestSuite(): TestSuite {

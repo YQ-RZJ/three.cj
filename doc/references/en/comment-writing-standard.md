@@ -190,7 +190,7 @@ public struct TextureInfo {
  * @note[zh-cn] 并非所有平台都支持所有渲染器类型。
  *
  * @brief[en] bgfx renderer backend type
- * @explain[en] Specifies which graphics API is used for rendering.
+ * @explain[en] Specifies which graphics API is used for renderers.
  * @note[en] Not all renderer types are supported on every platform.
  */
 public enum RendererType {

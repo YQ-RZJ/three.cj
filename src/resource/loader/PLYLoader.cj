@@ -31,12 +31,12 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
-import three.rendering.buffer.*
-import three.rendering.geometry.BufferGeometry
+import three.core._interfaces.ILoadResult
+import three.renderers.buffer.*
+import three.renderers.geometry.BufferGeometry
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import three.utils.memory.AutoFreePtr
@@ -435,7 +435,7 @@ internal class _PlyBinaryResult {
     }
 }
 
-// 数据累积缓冲（对照 JS: createBuffer）
+// 数据累积缓冲
 internal class _PlyBuffer {
     public var vertices: ArrayList<Float64>
     public var normals: ArrayList<Float64>

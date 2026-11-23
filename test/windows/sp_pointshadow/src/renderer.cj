@@ -19,11 +19,11 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
 
 /// 盒子内部半宽（内壁范围）
 public let BOX_HALF: Float64 = 4.0

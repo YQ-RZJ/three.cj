@@ -50,6 +50,12 @@
 |[Vector4F](./类/Vector4F.md#class-vector4f)|Float32 4D 向量类|
 |[Vector4](./类/Vector4.md#class-vector4)|4D 向量类，表示有序四元组 (x, y, z, w)|
 
+### 接口
+|  名称   | 描述  |
+|  ----  | ----  |
+|[IBox3Expandable](./接口/IBox3Expandable.md#interface-ibox3expandable)|包围盒展开只读接口：供 Box3.setFromObject / expandByObject 遍历使用|
+|[IFrustumCullable](./接口/IFrustumCullable.md#interface-ifrustumcullable)|视锥体裁剪只读接口：提供对象的世界空间包围球|
+
 ### 枚举
 |  名称   | 描述  |
 |  ----  | ----  |

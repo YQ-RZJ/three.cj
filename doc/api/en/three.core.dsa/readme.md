@@ -5,7 +5,7 @@
 ### Class
 |  Name   | Describe  |
 |  ----  | ----  |
-|[BinaryHeap<T> where T <: HeapNode](./Class/BinaryHeap.md#class-binaryheap-t-where-t-heapnode)|Binary heap (default min-heap)|
+|[BinaryHeap<T> where T <: IHeapNode](./Class/BinaryHeap.md#class-binaryheap-t-where-t-iheapnode)|Binary heap (default min-heap)|
 |[BinaryPatriciaTrie < V >](./Class/BinaryPatriciaTrie.md#class-binarypatriciatrie-v-)|Binary Patricia Trie (Radix/Compressed Prefix Tree)|
 |[BitArray](./Class/BitArray.md#class-bitarray)|Dynamic binary bit manager|
 |[Boid](./Class/Boid.md#class-boid)|Single Boid (bird individual)|
@@ -27,5 +27,7 @@
 ### Interface
 |  Name   | Describe  |
 |  ----  | ----  |
-|[HeapNode](./Interface/HeapNode.md#interface-heapnode)|Heap node interface|
+|[ICircularQueue<T>](./Interface/ICircularQueue.md#interface-icircularqueue-t-)|Circular queue interface|
+|[IHeapNode](./Interface/IHeapNode.md#interface-iheapnode)|Heap node interface|
+|[IQueue<T>](./Interface/IQueue.md#interface-iqueue-t-)|Queue interface|
 

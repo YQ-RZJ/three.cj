@@ -10,7 +10,7 @@ package test_cameras
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.cameras.OrthographicCamera
+import three.renderers.cameras.OrthographicCamera
 
 public class OrthographicCameraTest <: TestClass {
     public override func asTestSuite(): TestSuite {

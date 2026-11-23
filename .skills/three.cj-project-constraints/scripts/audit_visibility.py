@@ -1,6 +1,6 @@
 """audit_visibility.py — C2 可见性审计：对模块内全部 public 声明做全库交叉引用并分类。
 
-用法：python audit_visibility.py <模块...>     # 如 animation / rendering/bgfx / core/math
+用法：python audit_visibility.py <模块...>     # 如 animation / renderers/bgfx / core/math
 输出标签：
   KEEP-INTERFACE          公共接口包中的声明，保持 public
   KEEP-OPEN               open 扩展点（open func / open class），默认保留，人工复核

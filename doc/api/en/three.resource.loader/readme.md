@@ -41,6 +41,11 @@
 |[TGALoader](./Class/TGALoader.md#class-tgaloader)|TGA loader, loads Targa format images as DataTexture|
 |[TextureLoader](./Class/TextureLoader.md#class-textureloader)|Texture loader, loads images and creates Texture objects|
 
+### Interface
+|  Name   | Describe  |
+|  ----  | ----  |
+|[ILoadResult](./Interface/ILoadResult.md#interface-iloadresult)|Load result marker interface: onLoad callback parameter type of Loader.load|
+
 ### Variables & constants
 |  Name   | Describe  |
 |  ----  | ----  |

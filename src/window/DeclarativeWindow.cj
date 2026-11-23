@@ -49,7 +49,7 @@
  * @file[en] DeclarativeWindow.cj — Declarative Window{} (facade composing WindowEngine)
  * @brief[en] A capability-idempotent declarative window on top of WindowEngine
  * @explain[en] Window is not a WindowEngine subclass; it composes an internal WindowEngine
- * instance: construction is declaration (trailing-closure builder), lifecycle/input/rendering
+ * instance: construction is declaration (trailing-closure builder), lifecycle/input/renderers
  * are declared via chained builders, and show/wait/close are idempotent (repeated calls are
  * no-ops). See the zh-cn doc block for the inheritance-vs-declarative usage comparison and
  * the capability mapping (renderWith/ui/onXxx/show/run).
@@ -58,7 +58,7 @@ package three.window
 
 import std.core.*
 import std.collection.ArrayList
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.safe.IReleasable
@@ -257,9 +257,10 @@ public class Window <: IReleasable {
         if (this._shown) { return true }
         this._shown = true
         let engine = this._engine
-        // ---- 渲染器绑定（泵线程启动前完成 execBgfx 注入） ----
+        // ---- 渲染器绑定（泵线程启动前完成 execBgfx + 后端注入） ----
         if (let Some(r) <- this._renderer) {
-            engine.bindRenderer({ cmd => r.execBgfx(cmd) })
+            engine.bindRenderer({ cmd => r.runOnRenderThread(cmd) })
+            engine.bindGfxBackend(r.backend)
         }
         // ---- 声明 ui 体：启用 Gui（需要渲染器提供 bgfx 通道） ----
         let uiBody = this._uiBody

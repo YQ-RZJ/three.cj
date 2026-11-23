@@ -19,7 +19,7 @@ import std.random.*
 import std.sort.*
 import three.core.dsa.Bvh
 import three.core.math.*
-import three.rendering.cameras.PerspectiveCamera
+import three.renderers.cameras.PerspectiveCamera
 
 public class BvhTest <: TestClass {
     public override func asTestSuite(): TestSuite {

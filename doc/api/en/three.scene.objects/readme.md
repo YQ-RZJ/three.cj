@@ -17,3 +17,8 @@
 |[RaycasterParams](./Class/RaycasterParams.md#class-raycasterparams)|Raycaster parameters structure (replaces original HashMap<String, HashMap<String, Any>>)|
 |[Raycaster](./Class/Raycaster.md#class-raycaster)|Raycaster class, used for mouse picking and other ray intersection tests|
 
+### Interface
+|  Name   | Describe  |
+|  ----  | ----  |
+|[IPropertyBindingRoot](./Interface/IPropertyBindingRoot.md#interface-ipropertybindingroot)|Property binding root node interface: type of PropertyBinding's rootNode/node/targetObject|
+

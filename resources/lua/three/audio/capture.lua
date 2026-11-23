@@ -1,0 +1,22 @@
+-- three/audio/capture.lua —— three.audio.capture 绑定模块
+--
+-- 返回 three.audio.capture 全局命名空间。需引擎侧先安装 capture 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.audio.capture")
+--
+-- 用法：
+--     local capture = require "three.audio.capture"
+--     local rec = capture.AudioRecorder.new()
+--     if rec:open(44100, 1, 8192) then
+--         rec:start()
+--         local n = rec:getAvailableSamples()
+--     end
+--
+-- 已绑定类：
+--   AudioRecorder  麦克风录音器（opened / recording / frequency / channels / format 只读；
+--                  open(frequency, channels, bufferSize) / start / stop /
+--                  getAvailableSamples / releasable / release）
+--
+-- 说明：readSamples(buffer: CPointer<UInt8>, samples) 需调用方分配原始内存，
+-- 不暴露给 Lua。
+
+return require("three").audio.capture

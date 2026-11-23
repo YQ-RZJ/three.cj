@@ -34,11 +34,11 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
 
 /// HalftonePass 默认参数（R 键重置时回到此值）
 public let DEFAULT_SHAPE: Int64 = 1         // Dot

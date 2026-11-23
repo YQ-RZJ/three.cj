@@ -15,10 +15,10 @@ import std.io.*
 import std.time.*
 import std.math.*
 import three.core.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.objects.*
 import three.utils.log.*
@@ -57,7 +57,6 @@ public class TestWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x20, 0x20, 0x30))
-        this.renderer.setDebug(0x00000008)
         println("  渲染器初始化成功: ${w}x${h}")
         println("")
 

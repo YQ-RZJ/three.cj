@@ -20,17 +20,18 @@ package threePhysicsTest
 
 import std.io.*
 import std.fs.{File, Path as FsPath}
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
-import three.rendering.cameras.*
-import three.physics.interfaces.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
+import three.renderers.cameras.*
+import three.physics.backend.*
+import three.physics.common.*
 import three.physics.world.*
 import three.physics.body.*
 import three.physics.binding.*
@@ -463,13 +464,13 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    println("=== Three.cj Physics + Rendering 测试 ===")
+    println("=== Three.cj Physics + renderers 测试 ===")
     println("")
 
     // ---- 步骤 1: 创建窗口（WindowEngine v2，SDL3 跨平台实现） ----
     println("[1/6] 创建窗口（WindowEngine v2）...")
     let win = TestWindow()
-    let wok = win.start(title: "three4cj Physics + Rendering", width: 1280, height: 720)
+    let wok = win.start(title: "three4cj Physics + renderers", width: 1280, height: 720)
     if (!wok) { println("  WindowEngine.start 失败!"); return 1 }
     win.setResizable(false)
     println("  窗口创建成功: ${win.getWidth()}x${win.getHeight()}, 原生句柄=${win.getNativeWindowHandle()}")

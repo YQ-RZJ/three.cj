@@ -319,9 +319,9 @@ public func fromArray(array: Array < Float64 >, offset!: Int64 = 0): Vector4
 
 - 当前实例
 
-### func fromBufferAttribute\(AttributeReader,Int64\)
+### func fromBufferAttribute\(IAttributeReader,Int64\)
 ```cj
-public func fromBufferAttribute(attribute: AttributeReader, index: Int64): Vector4
+public func fromBufferAttribute(attribute: IAttributeReader, index: Int64): Vector4
 ```
 从顶点属性读取向量分量
 
@@ -329,7 +329,7 @@ public func fromBufferAttribute(attribute: AttributeReader, index: Int64): Vecto
 
 |名称|类型|描述|
 |---|---|---|
-|attribute|AttributeReader|顶点属性（AttributeReader 接口，由 BufferAttribute 实现）index 顶点索引|
+|attribute|IAttributeReader|顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）index 顶点索引|
 |index|Int64||
 
 返回: 

@@ -14,7 +14,7 @@ import three.resource.loader.ObjectLoader
 import three.scene.objects.Object3D
 import three.scene.scenegraph.Group
 import three.scene.entity.Mesh
-import three.rendering.materials.MeshBasicMaterial
+import three.renderers.materials.MeshBasicMaterial
 
 public class ObjectLoaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {

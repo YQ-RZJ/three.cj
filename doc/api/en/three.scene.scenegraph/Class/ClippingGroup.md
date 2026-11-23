@@ -72,7 +72,7 @@ Whether to invert clipping (keep outside planes, clip inside)
 ```cj
 public var clipShadows: Bool
 ```
-Whether to apply clipping during shadow rendering (main render clipping only)
+Whether to apply clipping during shadow renderers (main render clipping only)
 
 ### var clippingPlanes
 ```cj

@@ -13,20 +13,20 @@ import std.io.*
 import std.time.*
 import std.math.*
 import std.collection.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.lights.*
-import three.rendering.postprocessing.EffectComposer
-import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.TexturePass
-import three.rendering.types.*
+import three.renderers.lights.*
+import three.renderers.postprocessing.EffectComposer
+import three.renderers.postprocessing.RenderPass
+import three.renderers.postprocessing.TexturePass
+import three.renderers.textures.EngineDataTexture
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -45,7 +45,7 @@ public class TestWindow <: WindowEngine {
     var camera: PerspectiveCamera = PerspectiveCamera(fov: 50.0, aspect: 1.0, near: 0.1, far: 100.0)
     var spheres: ArrayList<Mesh> = ArrayList<Mesh>()
     var composer: EffectComposer
-    var stripeTex: TextureHandle = INVALID_TEXTURE_HANDLE
+    var stripeTex: Option<EngineDataTexture> = None
     var frame: Int64 = 0
     var startTime: MonoTime = MonoTime.now()
     var orbitTheta: Float64 = 0.0
@@ -85,7 +85,7 @@ public class TestWindow <: WindowEngine {
         this.scene = scene
         this.camera = camera
         this.spheres = spheres
-        this.stripeTex = createStripeTexture(this.renderer)
+        this.stripeTex = Some(createStripeTexture(this.renderer))
 
         // 按后处理链的标准用法组织：
         //   composer.addPass(new RenderPass(scene, camera))   // 场景渲到 readBuffer
@@ -93,7 +93,7 @@ public class TestWindow <: WindowEngine {
         // 视觉效果：RenderPass 把场景画进 readBuffer，TexturePass 紧跟着用彩条纹理覆盖 readBuffer，
         // 最后上屏 → 整屏 8 条水平彩条（场景被彩条覆盖，证明 TexturePass 的贴图渲染生效）。
         this.composer.addPass(RenderPass(this.scene, this.camera))
-        this.composer.addPass(TexturePass(this.stripeTex, opacity: 1.0))
+        this.composer.addPass(TexturePass(this.stripeTex.getOrThrow(), opacity: 1.0))
         this.composer.setSize(Int64(w), Int64(h))
 
         println("[4/5] 进入渲染循环（RenderPass + TexturePass via EffectComposer，onFrame 由窗口泵线程驱动）...")

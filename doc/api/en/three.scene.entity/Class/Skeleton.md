@@ -123,7 +123,7 @@ Inverse matrices of each bone (world space → bone local space)
 ```cj
 public var boneMatrices: Option < Array < Float64 >>
 ```
-Flattened bone offset matrix array (16 Float64 per bone), used internally for rendering
+Flattened bone offset matrix array (16 Float64 per bone), used internally for renderers
 
 ### var boneTexture
 ```cj

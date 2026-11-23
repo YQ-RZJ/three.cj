@@ -32,16 +32,14 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
-import three.utils.memory.BgfxMemory
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
+import three.renderers.textures.EngineDataTexture
 import three.utils.log.*
 import three.utils.log.macros.*
-import three.rendering.types.*
-import three.rendering.bgfx.BgfxConstants
 
 /// LUTPass 默认参数（R 键重置时回到此值）
 public let DEFAULT_INTENSITY: Float64 = 1.0
@@ -83,8 +81,8 @@ public let DEFAULT_LUT_TYPE: Int64 = LUT_WARM
 /// LUT 边长（3D 纹理 16×16×16，RGBA8）
 public let LUT_SIZE: Int64 = 16
 
-/** 3D LUT 纹理句柄数组（下标 = LUT 类型 1..4，索引 [lutType-1]） */
-var g_lutTextures: ArrayList<TextureHandle> = ArrayList<TextureHandle>()
+/** 3D LUT 纹理资源数组（下标 = LUT 类型 1..4，索引 [lutType-1]） */
+var g_lutTextures: ArrayList<EngineDataTexture> = ArrayList<EngineDataTexture>()
 
 /**
  * 生成 LUT 纹理数据并上传为 bgfx 3D 纹理。
@@ -97,9 +95,9 @@ var g_lutTextures: ArrayList<TextureHandle> = ArrayList<TextureHandle>()
  *   R 通道 = x（红色分量），G = y，B = z（最慢维度为 B）
  *
  * @param lutType LUT 类型（1=identity 2=warm 3=cool 4=contrast）
- * @return 上传后的 3D 纹理句柄
+ * @return 上传后的 3D LUT 纹理资源对象
  */
-public func createLutTexture(renderer: ThreeRenderer, lutType: Int64): TextureHandle {
+public func createLutTexture(renderer: ThreeRenderer, lutType: Int64): EngineDataTexture {
     let size = LUT_SIZE
     let total = size * size * size * 4  // RGBA8 每 texel 4 字节
     let data = Array<UInt8>(total, { _ => 0u8 })
@@ -149,15 +147,13 @@ public func createLutTexture(renderer: ThreeRenderer, lutType: Int64): TextureHa
     }
 
     // 上传 3D 纹理（RGBA8，Clamp 采样，线性过滤 —— LUT 需三线性插值平滑过渡）
-    let mem = BgfxMemory(UInt32(total))
-    mem.writeUInt8(data, total)
-    let tex = renderer.createTexture3D(
-        UInt16(size), UInt16(size), UInt16(size), false,
-        TextureFormat.RGBA8.value(),
-        UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP) | UInt64(BgfxConstants.SAMPLER_W_CLAMP),
-        Some(mem))
+    let tex = EngineDataTexture(
+        renderer.gfxBackend(), size, size, size, data,
+        format: EngineDataTexture.FORMAT_RGBA8,
+        flags: EngineDataTexture.FLAGS_CLAMP_UVW
+    )
     @LogDebug(["lut", "createLutTexture: type=" + lutType.toString() +
-                  " size=" + size.toString() + " tex.idx=" + Handle.idx(tex).toString()])
+                  " size=" + size.toString() + " tex.idx=" + tex.handleIdx().toString()])
     return tex
 }
 

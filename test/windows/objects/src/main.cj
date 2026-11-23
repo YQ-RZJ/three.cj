@@ -13,7 +13,7 @@ package sp_objects
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -21,9 +21,9 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -79,8 +79,8 @@ public class TestWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x20, 0x20, 0x30))  // 深蓝灰背景
-        // 开启 bgfx 调试文本（DEBUG_TEXT = 0x08）——画面内文本（同 geometries/sp_materials）
-        this.renderer.setDebug(0x00000008)
+        // 开启调试文本覆盖层（语义化开关，同 geometries/materials）——画面内文本
+        this.renderer.setDebugText(true)
         println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
@@ -163,13 +163,8 @@ public class TestWindow <: WindowEngine {
             this.objs.lod.addLevel(rMesh, distance: 3.0)
         }
 
-        // ---- debug 打印（每 60 帧） ----
-        if (this.frame % 60 == 1) {
-            println("frustum: mesh=${meshIn} points=${ptsIn} line=${lineIn} sprite=${spriteIn} lod=${lodInFrustum} lodLevel=${lodLevel}")
-        }
-
-        // ---- 画面内文本（bgfx dbgText，同 geometries/sp_materials） ----
-        this.renderer.dbgTextClear(0x00, false)
+        // ---- 画面内文本（bgfx dbgText，同 geometries/materials） ----
+        this.renderer.dbgTextClear(0x00, small: false)
         this.renderer.dbgTextPrintf(0, 0, 0x0f, "frustum: mesh=" + meshIn.toString() + " pts=" + ptsIn.toString() + " line=" + lineIn.toString() + " sprite=" + spriteIn.toString())
         this.renderer.dbgTextPrintf(0, 1, 0x0e, "LOD level=" + lodLevel.toString() + " inFrustum=" + lodInFrustum.toString())
 

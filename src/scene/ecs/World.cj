@@ -32,7 +32,7 @@
 package three.scene.ecs
 
 import std.collection.*
-import three.core.interfaces.ISysEtyMapManager
+import three.core._interfaces.ISysEtyMapManager
 
 /**
  * @brief[zh-cn] 世界类，ECS 顶层门面

@@ -1,0 +1,23 @@
+-- three/physics/character.lua —— three.physics.character 绑定模块
+--
+-- 返回 three.physics.character 全局命名空间。需引擎侧先安装 character 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.character")
+--
+-- 用法：
+--     local C = require "three.physics.character"
+--     local desc = C.PhysicsCharacterDesc.new(capsuleShape)
+--     local factory = C.PhysicsCharacterFactory.new(desc)
+--     local ch = factory:createCharacter(world)
+--     ch:addToPhysicsSystem()
+--
+-- 已绑定类：
+--   PhysicsCharacterDesc     角色描述（shape 只读；position / rotation / layer /
+--                            mass / maxSlopeAngle 可读写）
+--   PhysicsCharacterFactory  工厂（createCharacter / createVirtualCharacter）
+--   PhysicsCharacter         刚体角色（addToPhysicsSystem / removeFromPhysicsSystem /
+--                            postSimulation / setLinearVelocity / getLinearVelocity /
+--                            getPosition / setPosition / isOnGround / getGroundState）
+--   PhysicsCharacterVirtual  虚拟角色（update / 速度与位置 / isOnGround /
+--                            getGroundState / release）
+
+return require("three").physics.character

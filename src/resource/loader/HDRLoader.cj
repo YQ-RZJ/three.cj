@@ -32,8 +32,8 @@
 package three.resource.loader
 
 import three.utils.constants.*
-import three.rendering.textures.*
-import three.rendering.geometry.DataUtils
+import three.renderers.textures.*
+import three.renderers.geometry.DataUtils
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
@@ -156,7 +156,7 @@ public open class HDRLoader <: DataTextureLoader {
         let numElements = rgba.size / 4
         var data = Array<UInt8>()
         if (this.`type` == FloatType) {
-            // FloatType：每像素 4 个 Float32（对照 JS Float32Array）→ 按字节承载
+            // FloatType：每像素 4 个 Float32 → 按字节承载
             data = Array<UInt8>(numElements * 4 * 4, { _ => 0u8 })
             for (j in 0..numElements) {
                 let e = Float64(rgba[j * 4 + 3])

@@ -6,7 +6,7 @@
  * - CONSUME 模式：逐个消耗参数，参数空时 finished
  * - LOOP 模式：循环遍历参数，callback 返回 false 时停止
  * - ONCE 模式：执行一次后 finished
- * - HeapNode 实现：lessThan 按优先级比较，index 追踪
+ * - IHeapNode 实现：lessThan 按优先级比较，index 追踪
  * - notEmpty / run / reset / paused / executionCount
  */
 package test_dispatch
@@ -167,7 +167,7 @@ public class FrameTaskTest <: TestClass {
         assertEqual("notEmpty ONCE after run", "false", task.notEmpty(), false)
     }
 
-    /// HeapNode lessThan：priority 小的更优先
+    /// IHeapNode lessThan：priority 小的更优先
     func test_heap_node_lessThan() {
         let params = CircularQueue<Array<Any>>()
         let t1 = FrameTask(1, FrameTaskMode.ONCE, 5, { _ => true }, params)

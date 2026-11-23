@@ -29,17 +29,17 @@
  * @file[en] Group
  * @brief[en] Group, a transform-less container scene object
  * @explain[en] Used to translate/rotate/scale a group of child objects as a whole.
- * The only difference from Object3D: rendering skips the group itself (no geometry/material),
+ * The only difference from Object3D: renderers skips the group itself (no geometry/material),
  * it serves only as a grouping node.
  */
 package three.scene.scenegraph
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
-import three.scene.interfaces.IGroup
+public import three.scene._interfaces.IGroup
 import std.collection.*
 import fastjson.*
 import fastjson.macros.*
@@ -50,7 +50,7 @@ import fastjson.stream.*
  * @explain[zh-cn] 用于将一组子对象整体平移/旋转/缩放，渲染时跳过本身
  *
  * @brief[en] Group, a transform-less container scene object
- * @explain[en] Used to translate/rotate/scale child objects as a whole, rendering skips the group itself
+ * @explain[en] Used to translate/rotate/scale child objects as a whole, renderers skips the group itself
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public class Group <: Object3D & IGroup {

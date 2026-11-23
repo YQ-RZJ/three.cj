@@ -3,7 +3,7 @@
 ```cj
 public class Sprite <: Object3D
 ```
-Sprite rendering object, a 2D plane always facing the camera
+Sprite renderers object, a 2D plane always facing the camera
 
 ### func \_getUnitQuadGeometry\(\)
 ```cj

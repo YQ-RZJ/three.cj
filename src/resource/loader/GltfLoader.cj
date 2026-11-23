@@ -31,20 +31,20 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import std.collection.*
 import std.fs.*
 import std.io.*
 import std.math.*
-import three.rendering.buffer.*
-import three.rendering.geometry.BufferGeometry
+import three.renderers.buffer.*
+import three.renderers.geometry.BufferGeometry
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
-import three.rendering.textures.*
+import three.renderers.materials.*
+import three.renderers.textures.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import bgfx4cj.bimg.*

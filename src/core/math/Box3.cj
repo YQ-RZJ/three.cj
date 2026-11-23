@@ -33,7 +33,8 @@ package three.core.math
 
 import std.math.*
 import std.collection.*
-import three.core.interfaces.*
+import three.core._interfaces.*
+public import three.core._interfaces.IBox3Expandable
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
@@ -124,15 +125,15 @@ public class Box3 {
     /**
      * @brief[zh-cn] 从顶点属性设置包围盒，使其包含属性中的全部位置数据
      * @explain[zh-cn] 从缓冲属性设置包围盒
-     * @param[zh-cn] attribute 顶点属性（AttributeReader 接口，由 BufferAttribute 实现）
+     * @param[zh-cn] attribute 顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）
      * @return[zh-cn] 当前实例
      *
      * @brief[en] Set the bounding box from a vertex attribute, containing all position data
      * @explain[en] JS reference: Box3.setFromBufferAttribute
-     * @param[en] attribute Vertex attribute (AttributeReader interface, implemented by BufferAttribute)
+     * @param[en] attribute Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)
      * @return[en] This instance
      */
-    public func setFromBufferAttribute(attribute: AttributeReader): Box3 {
+    public func setFromBufferAttribute(attribute: IAttributeReader): Box3 {
         this.makeEmpty()
         let _vector = Vector3()
         for (i in 0..attribute.count) {

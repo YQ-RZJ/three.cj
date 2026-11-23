@@ -27,23 +27,23 @@
  * 支持 morphTarget 变形动画和射线相交检测（raycast）。继承 Object3D 并实现 IMesh 接口。
  *
  * @file[en] Mesh
- * @brief[en] Mesh rendering object, the most commonly used triangle face rendering entity in 3D scenes
+ * @brief[en] Mesh renderers object, the most commonly used triangle face renderers entity in 3D scenes
  * @explain[en] A mesh consists of BufferGeometry (vertices/indices) and Material (shading parameters),
  * supporting morphTarget animation and ray intersection testing (raycast). Extends Object3D and implements IMesh.
  */
 package three.scene.entity
 
-import three.rendering.buffer.*
-import three.rendering.geometry.*
-import three.rendering.interfaces.IGeometryProvider
+import three.renderers.buffer.*
+import three.renderers.geometry.*
+import three.renderers._interfaces.IGeometryProvider
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
-import three.rendering.cameras.*
-import three.scene.interfaces.IMesh
+import three.renderers.materials.*
+import three.renderers.cameras.*
+public import three.scene._interfaces.IMesh
 import three.profiler.*
 import three.profiler.macros.*
 import std.collection.*
@@ -55,7 +55,7 @@ import fastjson.stream.*
  * @brief[zh-cn] 网格渲染对象，3D 场景中最常用的三角形面片渲染实体
  * @explain[zh-cn] 由 BufferGeometry 和 Material 组成，支持 morphTarget 变形动画和射线相交检测
  *
- * @brief[en] Mesh rendering object, the most commonly used triangle face rendering entity in 3D scenes
+ * @brief[en] Mesh renderers object, the most commonly used triangle face renderers entity in 3D scenes
  * @explain[en] Consists of BufferGeometry and Material, supporting morphTarget animation and ray intersection testing
  */
 @JsonAdapter[polymorphic = true ; withSuperClass = Object3D]
@@ -288,7 +288,7 @@ public open class Mesh <: Object3D & IMesh {
                         
                         let barycoord = Vector3()
                         tri.getBarycoord(pt, barycoord)
-                        // uv/uv1/normal 插值（对照 JS Triangle.getInterpolatedAttribute）
+                        // uv/uv1/normal 按重心坐标插值
                         var uvVal: ?Vector2 = None
                         if (let Some(uvAttr) <- geometry.getAttribute("uv")) {
                             let uA = Vector3(uvAttr.getX(a), uvAttr.getY(a), 0.0)

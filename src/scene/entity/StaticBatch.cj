@@ -41,11 +41,11 @@
  */
 package three.scene.entity
 
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.math.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import std.collection.*
 import std.sort.*
 

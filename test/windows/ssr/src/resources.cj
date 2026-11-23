@@ -11,8 +11,8 @@ package sp_ssr
  */
 
 import three.core.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
 
 /// 创建开放盒子几何体（无前面板 +Z，内壁法线向内）
 /// 对照 sp_gtao/resources.cj，SSR 测试用其观察内壁反射。

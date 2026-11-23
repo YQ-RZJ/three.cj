@@ -19,7 +19,7 @@ Return:
 ```cj
 public static func calcTextSize(text: String, hideTextAfterDoubleHash!: Bool = true, wrapWidth!: Float32 = - 1.0f32):(Float32, Float32)
 ```
-Calculates text rendering size
+Calculates text renderers size
 
 Parameter: 
 

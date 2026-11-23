@@ -8,7 +8,7 @@
 package test_j_renderers
 
 import std.unittest.*
-import three.rendering.shaders.UniformsUtils
+import three.renderers.common.*
 
 public class UniformsUtilsTest <: TestClass {
     public override func asTestSuite(): TestSuite {

@@ -1,0 +1,34 @@
+-- three/physics/ragdoll.lua —— three.physics.ragdoll 绑定模块
+--
+-- 返回 three.physics.ragdoll 全局命名空间。需引擎侧先安装 ragdoll 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.ragdoll")
+--
+-- 用法：
+--     local R = require "three.physics.ragdoll"
+--     local skel = R.PhysicsSkeleton.new()
+--     skel:addJoint("root")
+--     skel:addJoint("spine", 0)
+--     local joint = R.RagdollJoint.cone(anchor, axis, 0.5)
+--     local parts = {
+--         R.RagdollPartSettings.new(shape, pos, nil, nil, nil, 10.0),
+--         R.RagdollPartSettings.new(shape2, pos2, nil, nil, nil, 5.0, joint)
+--     }
+--     local rag = R.PhysicsRagdollSettings.new(skel, parts):createRagdoll(world)
+--     rag:addToWorld()
+--
+-- 已绑定类：
+--   PhysicsSkeleton        骨骼（addJoint / jointCount / jointName / jointParentIndex / release）
+--   PhysicsSkeletonPose    姿态（jointCount / setJointState / getJointState /
+--                          setJointMatrix / getJointMatrix / calculateJointMatrices /
+--                          calculateJointStates / release）
+--   RagdollJoint           关节（11 字段 + 静态 cone）
+--   RagdollPartSettings    部件（shape 只读；position / rotation / motionType / layer /
+--                          mass / toParent 可读写）
+--   PhysicsRagdollSettings 设置（stabilize / disableParentChildCollisions /
+--                          minSeparationDistance / createRagdoll）
+--   PhysicsRagdoll         运行时布娃娃（skeleton / bodyCount / constraintCount /
+--                          addToWorld / removeFromWorld / activate / isActive / setPose /
+--                          getPose / driveToPoseUsingMotors / driveToPoseUsingKinematics /
+--                          getBodyID / getRootTransform / release）
+
+return require("three").physics.ragdoll

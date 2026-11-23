@@ -439,9 +439,9 @@ Return:
 
 - This instance
 
-### func setFromBufferAttribute\(AttributeReader\)
+### func setFromBufferAttribute\(IAttributeReader\)
 ```cj
-public func setFromBufferAttribute(attribute: AttributeReader): Box3
+public func setFromBufferAttribute(attribute: IAttributeReader): Box3
 ```
 Set the bounding box from a vertex attribute, containing all position data
 
@@ -449,7 +449,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|attribute|AttributeReader|Vertex attribute (AttributeReader interface, implemented by BufferAttribute)|
+|attribute|IAttributeReader|Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)|
 
 Return: 
 

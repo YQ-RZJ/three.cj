@@ -36,7 +36,7 @@ Parameter:
 |url|String|Geometry file URL|
 |onLoad|(ILoadResult)->Unit|Load complete callback, parameter is BufferGeometry|
 |onProgress|(Int64)->Unit|Progress callback|
-|onError|(String)->Unit|Error callback开始加载几何体对应 JS: onLoad( scope.parse( JSON.parse( text ) ) );仓颉侧：使用 cjfast_json 将加载到的 JSON 文本解析为 HashMap<String, Any>|
+|onError|(String)->Unit|Error callback开始加载几何体仓颉侧：使用 cjfast_json 将加载到的 JSON 文本解析为 HashMap<String, Any>，再解析为 BufferGeometry 后回调|
 
 ### func parseJsonToHashMap\(String\)
 ```cj
@@ -52,7 +52,7 @@ Parameter:
 
 Return: 
 
-- Parsed HashMap<String, Any>使用 cjfast_json 将 JSON 字符串解析为 HashMap<String, Any>对应 JS: JSON.parse(text)
+- Parsed HashMap<String, Any>使用 cjfast_json 将 JSON 字符串解析为 HashMap<String, Any>
 
 ### func parse\(HashMap<String,Any>\)
 ```cj

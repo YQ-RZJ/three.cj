@@ -1,0 +1,24 @@
+-- three/animation/offline.lua —— three.animation.offline 绑定模块
+--
+-- 返回 three.animation.offline 全局命名空间。需引擎侧先安装 offline 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.animation.offline")
+--
+-- 用法：
+--     local offline = require "three.animation.offline"
+--     local raw = offline.RawAnimation.new(); raw:initTracks(1)
+--     raw:addTranslationKeyframe(0, 0, three.core.math.Vector3F.new(0, 0, 0))
+--
+-- 已绑定类：
+--   RawAnimation              离线动画数据（轨道初始化 / 关键帧追加 / 校验 / 排序）
+--   RawFloatTrack             离线浮点通道
+--   RawQuaternionTrack        离线四元数通道
+--   RawFloat3Track            离线三分量向量通道
+--   RawJoint / RawSkeleton    离线骨骼与关节
+--   AnimationOptimizer        动画关键帧优化器
+--   TrackOptimizer            通道关键帧优化器
+--   AnimationBuilder          构建 SkeletalAnimationData
+--   TrackBuilder              构建 SkeletalTrackData
+--   AdditiveAnimationBuilder  构建加法混合动画
+--   RawAnimationUtils         静态工具（retarget / resample / makeAdditiveDelta / concatenate）
+
+return require("three").animation.offline

@@ -10,8 +10,8 @@ package test_cameras
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.cameras.StereoCamera
-import three.rendering.cameras.PerspectiveCamera
+import three.renderers.cameras.StereoCamera
+import three.renderers.cameras.PerspectiveCamera
 
 public class StereoCameraTest <: TestClass {
     public override func asTestSuite(): TestSuite {

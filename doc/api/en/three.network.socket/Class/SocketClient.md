@@ -1,7 +1,7 @@
 # Class
 ## class SocketClient
 ```cj
-public class SocketClient <: IReleasable
+public class SocketClient <: IReleasable & ISocketClient
 ```
 TCP client
 

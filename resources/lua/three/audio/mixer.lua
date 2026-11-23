@@ -1,0 +1,29 @@
+-- three/audio/mixer.lua —— three.audio.mixer 绑定模块
+--
+-- 返回 three.audio.mixer 全局命名空间。需引擎侧先安装 mixer 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.audio.mixer")
+--
+-- 用法：
+--     local mixer = require "three.audio.mixer"
+--     local reverb = mixer.AudioEffect.createReverbEffect()
+--     local slot = mixer.AudioEffectSlot.new():setEffect(reverb):setGain(0.6)
+--     audio:connectEffectSlot(slot, 0)
+--
+-- 已绑定类：
+--   AudioEffect      EFX 效果（effectId / context；create / setType / setParamf / setParami /
+--                    release；13 个预设工厂：Reverb / EaxReverb / Chorus / Echo / Equalizer /
+--                    Distortion / Flanger / FrequencyShifter / PitchShifter / RingModulator /
+--                    Autowah / Compressor / VocalMorpher）
+--   AudioEffectSlot  EFX 效果槽（slotId / context；create / setEffect / setGain /
+--                    clearEffect / release）
+--   AudioFilter      EFX 滤波器（filterId / context；create / setType / setParamf / release；
+--                    预设工厂：createLowpassFilter / createHighpassFilter /
+--                    createBandpassFilter）
+--
+-- 说明：setType 以整数暴露枚举 —— EffectType: 0=Null 1=Reverb 2=Chorus 3=Distortion
+-- 4=Echo 5=Flanger 6=FrequencyShifter 7=VocalMorpher 8=PitchShifter 9=RingModulator
+-- 10=Autowah 11=Compressor 12=Equalizer 32768=EaxReverb；FilterType: 0=Null 1=Lowpass
+-- 2=Highpass 3=Bandpass。setParamfv(CPointer<Float32>) 不暴露给 Lua。
+-- 所有工厂方法的首个参数均可选（AudioContext，缺省用单例）。
+
+return require("three").audio.mixer

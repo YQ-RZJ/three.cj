@@ -10,8 +10,8 @@ package test_extras
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.geometry.CurvePath
-import three.rendering.geometry.LineCurve
+import three.renderers.geometry.CurvePath
+import three.renderers.geometry.LineCurve
 import three.core.math.Vector3
 
 public class CurvePathTest <: TestClass {

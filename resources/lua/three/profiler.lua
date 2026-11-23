@@ -1,0 +1,40 @@
+-- three/profiler.lua —— three.profiler 绑定模块
+--
+-- 返回 three.profiler 全局命名空间。需引擎侧先安装 profiler 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.profiler")
+--
+-- 用法：
+--     local P = require "three.profiler"
+--     local z = P.ProfZone.new("update", "main.lua", 1, "update")
+--     z:text("frame"); z:close()
+--     P.ProfPlot.point("fps", 60.0)
+--     P.ProfMessage.logInfo("hello")
+--     P.ProfFrame.mark()
+--
+-- 已绑定类：
+--   ProfZone        耗时区间（new 五种重载 / active / text / value / color / rename /
+--                   isClosed / close）
+--   ProfFrame       帧标记（mark / mark(name) / start / finish）
+--   ProfPlot        曲线（config / point / pointF32 / pointI64）
+--   ProfMessage     消息（log / logTrace / logDebug / logInfo / logWarning / logError /
+--                   logFatal / appInfo）
+--   ProfMemory      内存事件（alloc / free / discard，使用整数块 id）
+--   Gpu             GPU 时间域（newContext / zoneBegin / zoneEnd / time / contextName /
+--                   calibration / timeSync）
+--   Lock            锁竞争跟踪（announce / announceShared 返回上下文 id；terminate*
+--                   / beforeLock / afterLock / afterUnlock / afterTryLock）
+--   ProfFiber       纤维标记（enter / leave）
+--   ProfGpuZone     GPU 作用域（query / ctx / close / isClosed）
+--   ProfLockZone    锁作用域（close / isClosed）
+--   FiberScope      纤维作用域（close / isClosed）
+--   Sampling        调用栈采样（start / stop）
+--   ProfilerState   状态（isConnected / now / threadName）
+--   TracyPlotFormat      曲线格式常量（Number=0 / Memory=1 / Percentage=2 / Watt=3）
+--   TracyMessageSeverity 消息级别常量（Trace=0 / Debug=1 / Info=2 / Warning=3 /
+--                        Error=4 / Fatal=5）
+--
+-- 说明：运行时门面为无条件侵入（直接调用即上报 Tracy）；@Zone 等宏属于编译期展开，
+-- 不构成 Lua API。ProfMemory / Lock 的指针参数以整数 id 替代；
+-- ProfFrame.image（CPointer 参数）不绑定。
+
+return require("three").profiler

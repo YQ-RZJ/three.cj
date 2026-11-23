@@ -29,15 +29,15 @@ import std.math.*
 import std.random.*
 import std.time.*
 import std.collection.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.helpers.CameraHelper
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.helpers.CameraHelper
 
 // ===== 测试参数 =====
 const NUM_CUBES: Int64 = 400     // 立方体数量

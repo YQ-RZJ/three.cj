@@ -13,7 +13,7 @@ import std.collection.*
 import std.math.*
 import three.utils.memory.AutoFreePtr
 import three.resource.loader.STLLoader
-import three.rendering.geometry.BufferGeometry
+import three.renderers.geometry.BufferGeometry
 
 public class STLLoaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {

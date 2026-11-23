@@ -31,21 +31,21 @@
  * @brief[en] Scene, the root node of the scene graph
  * @explain[en] Scene holds all render objects (Object3D), fog (Fog/FogExp2),
  * background (can be Color/Texture/CubeTexture), and environment map (environment).
- * The renderer traverses the scene graph starting from Scene to complete rendering;
+ * The renderer traverses the scene graph starting from Scene to complete renderers;
  * autoUpdate controls whether to automatically update the scene graph matrices.
  */
 package three.scene.scenegraph
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
-import three.rendering.textures.*
-import three.core.interfaces.IBackground
-import three.scene.interfaces.IScene
+import three.renderers.materials.*
+import three.renderers.textures.*
+public import three.core._interfaces.IBackground
+public import three.scene._interfaces.IScene
 import std.collection.*
 import fastjson.*
 import fastjson.macros.*
@@ -303,7 +303,7 @@ public class Scene <: Object3D & IScene {
                 } else {
                     this.fogExp2 = None
                 }
-                // background 深拷贝（对照 JS: source.background.clone()）
+                // background 深拷贝
                 if (let Some(b) <- s.background) {
                     match (b) {
                         case c: Color => this.background = Some(c.clone())
@@ -313,7 +313,7 @@ public class Scene <: Object3D & IScene {
                 } else {
                     this.background = None
                 }
-                // environment 深拷贝（对照 JS: source.environment.clone()）
+                // environment 深拷贝
                 if (let Some(e) <- s.environment) {
                     this.environment = Some(e.clone())
                 } else {
@@ -324,7 +324,7 @@ public class Scene <: Object3D & IScene {
                 this.backgroundRotation.copy(s.backgroundRotation)
                 this.environmentIntensity = s.environmentIntensity
                 this.environmentRotation.copy(s.environmentRotation)
-                // overrideMaterial 深拷贝（对照 JS: source.overrideMaterial.clone()）
+                // overrideMaterial 深拷贝
                 if (let Some(m) <- s.overrideMaterial) {
                     this.overrideMaterial = Some(m.clone())
                 } else {

@@ -1,0 +1,26 @@
+-- three/physics/world.lua —— three.physics.world 绑定模块
+--
+-- 返回 three.physics.world 全局命名空间。需引擎侧先安装 world 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.world")
+--
+-- 用法：
+--     local W = require "three.physics.world"
+--     local world = W.PhysicsWorld.new()
+--     world:start(1024)
+--     local body = world:createBody(desc)
+--     world:update(1 / 60)
+--     world:release()
+--
+-- 已绑定类：
+--   PhysicsWorld  物理世界门面（backend / isInitialized；start / release；
+--                 setGravity / optimizeBroadPhase；createBody / destroyBody /
+--                 bindObject / unbindObject；update；transform / 速度 / 材质 /
+--                 运动类型 / 传感器读写；raycast / raycastAll / collidePoint /
+--                 collideShape / castShape；setContactListener；力 / 力矩 / 冲量 /
+--                 质量 / 重力因子 / moveKinematic；约束全套控制）
+--
+-- 说明：start() 前后端未初始化，刚体与查询操作不会产生有效结果。
+-- 传感器回调在主线程 update() 末尾派发；传含 onContact / onBodyActivated /
+-- onBodyDeactivated 的表给 setContactListener（nil 清除）。
+
+return require("three").physics.world

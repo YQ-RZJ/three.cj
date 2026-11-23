@@ -3,7 +3,7 @@
 ```cj
 public class FrustumArray
 ```
-Frustum array class for multi-layer rendering frustum culling
+Frustum array class for multi-layer renderers frustum culling
 
 ### func clone\(\)
 ```cj

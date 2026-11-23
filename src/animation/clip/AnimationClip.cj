@@ -33,19 +33,19 @@
  */
 package three.animation.clip
 
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import three.utils.constants.*
-import three.animation.interfaces.IAnimationClip
-import three.animation.interfaces.IKeyframeTrack
+public import three.animation._interfaces.IAnimationClip
+import three.animation._interfaces.IKeyframeTrack
 import three.animation.blend.KeyframeTrack
 import three.animation.skeletal.SkeletalAnimationData
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import std.collection.*
 import std.regex.*
 import std.convert.*
@@ -86,7 +86,7 @@ internal func getTrackTypeForValueTypeName(typeName: String): String {
  * @explain[zh-cn]
  * 仓颉侧：因 three.animation.clip 与 three.animation.clip.blend.tracks 存在跨包循环依赖（tracks 继承基类 KeyframeTrack），此处不能直接导入子类。
  * 故用基类 KeyframeTrack 装载，并按 typeStr 手动设置子类本应在 init 中设置的公共字段（ValueTypeName/ValueBufferType/DefaultInterpolation），
- * 保持与 JS 侧子类构造的语义对齐。
+ * 保持子类构造的语义一致。
  * 当 json.times === undefined 时，调用 AnimationUtils.flattenJSON 从 json.keys 提取 times 与 values
  * @param[zh-cn] json 序列化的关键帧轨道 JSON
  * @return[zh-cn] 解析后的 KeyframeTrack
@@ -436,12 +436,12 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
 
     /**
      * @brief[zh-cn] 使用 cjfast_json 解析 userData JSON 字符串为 HashMap<String, Any>
-     * @explain[zh-cn] 对应 JS: JSON.parse(json.userData || '{}')
+     * @explain[zh-cn] 输入为空或解析失败时返回空 HashMap
      * @param[zh-cn] jsonStr JSON 字符串
      * @return[zh-cn] 解析后的 HashMap<String, Any>
      *
      * @brief[en] Parses a userData JSON string into a HashMap<String, Any> using cjfast_json
-     * @explain[en] Corresponds to JS: JSON.parse(json.userData || '{}')
+     * @explain[en] Returns an empty HashMap when the input is empty or parsing fails
      * @param[en] jsonStr The JSON string
      * @return[en] The parsed HashMap<String, Any>
      */
@@ -457,12 +457,12 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
 
     /**
      * @brief[zh-cn] 使用 cjfast_json 序列化 HashMap<String, Any> 为 JSON 字符串
-     * @explain[zh-cn] 对应 JS: JSON.stringify(clip.userData)
+     * @explain[zh-cn] 序列化失败时返回 "{}"
      * @param[zh-cn] userData 用户数据 HashMap
      * @return[zh-cn] JSON 字符串
      *
      * @brief[en] Serializes a HashMap<String, Any> into a JSON string using cjfast_json
-     * @explain[en] Corresponds to JS: JSON.stringify(clip.userData)
+     * @explain[en] Returns "{}" when serialization fails
      * @param[en] userData The user data HashMap
      * @return[en] The JSON string
      */
@@ -549,7 +549,7 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
      * @brief[zh-cn] 按名称查找动画剪辑
      * @explain[zh-cn]
      * 第一个参数可以是剪辑数组，或者包含 "animations" 属性的 Object3D
-     * 对应 JS: 先匹配 Object3D 的 geometry.animations 或 animations 属性，再回退到数组
+     * 查找顺序：优先从 Object3D.animations 属性取值，未命中再回退到剪辑数组
      * 仓颉侧 BufferGeometry 不持有 animations，故仅从 Object3D.animations 取
      * @param[zh-cn] objectOrClipArray 剪辑数组或包含动画的对象
      * @param[zh-cn] name 要查找的名称
@@ -558,7 +558,7 @@ public class AnimationClip <: IAnimationClip & ILoadResult {
      * @brief[en] Finds an animation clip by name
      * @explain[en]
      * The first parameter can be an array of clips, or an Object3D containing an "animations" property
-     * Corresponds to JS: first matches the Object3D geometry.animations or animations property, then falls back to the array
+     * The Object3D.animations property is matched first, then the array is used as fallback
      * On the Cangjie side, BufferGeometry does not hold animations, so only Object3D.animations is used
      * @param[en] objectOrClipArray Array of clips or an object containing animations
      * @param[en] name The name to search for

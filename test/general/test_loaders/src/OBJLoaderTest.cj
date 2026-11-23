@@ -14,7 +14,7 @@ import std.collection.*
 import three.resource.loader.OBJLoader
 import three.scene.scenegraph.Group
 import three.scene.entity.Mesh
-import three.rendering.materials.MeshPhongMaterial
+import three.renderers.materials.MeshPhongMaterial
 
 public class OBJLoaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {

@@ -31,7 +31,7 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import three.animation.clip.*
 import std.collection.*
 import fastjson.*
@@ -123,7 +123,6 @@ public class AnimationLoader <: Loader {
      * @return[en] Parsed Array<HashMap<String, Any>>
      *
      * 使用 cjfast_json 将 JSON 字符串解析为 Array<HashMap<String, Any>>
-     * 对应 JS: JSON.parse(text)
      */
     protected func parseJsonToArray(jsonStr: String): Array<HashMap<String, Any>> {
         try {

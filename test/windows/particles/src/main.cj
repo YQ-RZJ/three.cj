@@ -20,7 +20,7 @@ package particles
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.KeyCode
@@ -30,11 +30,11 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.cameras.*
-import three.rendering.postprocessing.EffectComposer
-import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.OutputPass
+import three.renderers.materials.*
+import three.renderers.cameras.*
+import three.renderers.postprocessing.EffectComposer
+import three.renderers.postprocessing.RenderPass
+import three.renderers.postprocessing.OutputPass
 import three.utils.constants.*
 import three.utils.log.*
 import three.utils.log.macros.*

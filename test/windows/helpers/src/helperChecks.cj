@@ -26,16 +26,17 @@ import three.core.math.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.helpers.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.helpers.*
 import three.audio.listener.AudioListener
 import three.audio.source.PositionalAudio
 import three.physics.body.RigidBody
 import three.physics.world.PhysicsWorld
-import three.physics.interfaces.*
+import three.physics.backend.*
+import three.physics.common.*
 
 /// 断言计数（失败数）
 var g_failCount: Int64 = 0

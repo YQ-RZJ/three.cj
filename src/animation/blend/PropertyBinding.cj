@@ -35,16 +35,16 @@
  */
 package three.animation.blend
 
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
-import three.core.interfaces.IPropertyBindingRoot
+import three.core._interfaces.IPropertyBindingRoot
 import std.collection.*
 import std.convert.*
 import std.regex.*
@@ -398,7 +398,7 @@ public class PropertyBinding {
         // 查找节点
         let nodeName = _getStringFromMap(parsedPath, "nodeName")
         if (nodeName != "") {
-            // findNode 返回 Option<IPropertyBindingRoot>，未找到时回退根节点（与 JS `node === undefined ? rootNode : node` 一致）
+            // findNode 返回 Option<IPropertyBindingRoot>，未找到时回退根节点
             if (let Some(n) <- PropertyBinding.findNode(rootNode, nodeName)) {
                 this.node = n
             } else {

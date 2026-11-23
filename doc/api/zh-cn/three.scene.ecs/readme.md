@@ -17,6 +17,11 @@
 |[TreeSysEtyMapManager](./类/TreeSysEtyMapManager.md#class-treesysetymapmanager)|系统-实体映射管理（前缀树模式）|
 |[World](./类/World.md#class-world)|世界类，ECS 顶层门面|
 
+### 接口
+|  名称   | 描述  |
+|  ----  | ----  |
+|[ISysEtyMapManager < S, E >](./接口/ISysEtyMapManager.md#interface-isysetymapmanager-s-e-)|系统-实体映射管理接口|
+
 ### 类型别名
 |  名称   | 描述  |
 |  ----  | ----  |

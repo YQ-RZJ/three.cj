@@ -25,10 +25,11 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
-import three.physics.interfaces.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
+import three.physics.backend.*
+import three.physics.common.*
 import three.physics.world.*
 import three.physics.body.*
 import three.physics.constraint.*

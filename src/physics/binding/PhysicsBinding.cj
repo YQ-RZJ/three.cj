@@ -52,12 +52,13 @@
 package three.physics.binding
 
 import three.core.math.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.world.*
 import three.physics.body.*
 import three.scene.objects.*
 import three.scene.entity.*
-import three.rendering.geometry.*
+import three.renderers.geometry.*
 import std.collection.*
 
 // =============================================================================

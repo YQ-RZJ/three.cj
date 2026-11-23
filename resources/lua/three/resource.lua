@@ -1,0 +1,30 @@
+-- three/resource.lua —— three.resource 绑定模块
+--
+-- 返回 three.resource 全局命名空间。需引擎侧先安装 resource 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.resource")
+--
+-- 子模块（不创建新的状态，均指向同一全局表）：
+--     require "three.resource.cache"
+--     require "three.resource.archive"
+--     require "three.resource.serializer"
+--     require "three.resource.pipeline"
+--     require "three.resource.loader"
+--
+-- 已绑定类型：
+--   cache       Cache
+--   archive     ZipEntry / ZipArchive
+--   serializer  JsonSerializer
+--   pipeline    BundleEntry / AssetBundle / AssetBundleBuilder / AssetCache / AssetManager
+--   loader      Loader / LoadingManager / LoaderUtils / StringLoadResult / BytesLoadResult /
+--               ClipsLoadResult / FileLoader / ImageLoader / TextureLoader / CubeTextureLoader /
+--               FontLoader / AnimationLoader / AudioLoader / MaterialLoader /
+--               BufferGeometryLoader / OBJLoader / PLYLoader / STLLoader / GltfLoader /
+--               GltfAnimationChannel / GltfAnimationSampler / GltfAnimationData / GltfSkinData /
+--               CompressedTextureLoader / DataTextureLoader / DDSLoader / KTXLoader /
+--               PVRLoader / EXRLoader / HDRLoader / RGBELoader / TGALoader / MTLLoader /
+--               MaterialCreator
+--
+-- 说明：加载器 ILoadResult 等接口不绑定，具体实现类正常绑定；加载失败在绑定层
+-- 被捕获并返回 nil / false，不向 Lua 抛错。
+
+return require("three").resource

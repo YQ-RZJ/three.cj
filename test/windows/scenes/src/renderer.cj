@@ -6,7 +6,7 @@ package sp_scenes
  * - Scene 字段验证：background（Color 覆盖 clear 色）/ fog（线性雾）/
  *   fogExp2（指数雾）/ overrideMaterial（覆盖材质）切换
  * - Scene.copy/clone/toJSON 接口验证 + Fog/FogExp2 clone/toJSON
- * - 画面内 dbgText 显示当前 fog/background/overrideMaterial 状态
+ * - 周期 println 显示当前 fog/background/overrideMaterial 状态
  */
 
 import std.sync.*
@@ -19,11 +19,11 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
 import three.window.MouseButton
 
 /// 场景中关键对象的引用，供渲染循环更新

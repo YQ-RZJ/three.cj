@@ -21,7 +21,7 @@ expand 到 boundingBox；几何本身包围盒由 Mesh.computeBoundingBox 处理
 ```cj
 public func computeBoundingSphere(): Unit
 ```
-计算包围球。与 JS side 一致：先 computeBoundingBox，再用 box.getBoundingSphere 填充。
+计算包围球。先 computeBoundingBox，再用 box.getBoundingSphere 填充。
 
 ### func copy\(Object3D,Bool\)
 ```cj
@@ -144,7 +144,7 @@ Parameter:
 ```cj
 public func setMorphAt(index: Int64, influences: Array < Float64 >): Unit
 ```
-influences - morph target 影响系数数组（即 JS 的 object.morphTargetInfluences）。
+influences - morph target 影响系数数组（即 object.morphTargetInfluences）。
 
 Parameter: 
 

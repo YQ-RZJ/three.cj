@@ -18,8 +18,8 @@ public func callFunction(nargs: Int32, nresults!: Int32 = LUA_MULTRET): Array < 
 
 |名称|类型|描述|
 |---|---|---|
-|nargs|Int32|参数个数nresults 期望返回值个数（LUA_MULTRET=-1 表示取全部）|
-|nresults|Int32||
+|nargs|Int32|参数个数|
+|nresults|Int32|期望返回值个数（LUA_MULTRET=-1 表示取全部）|
 
 返回: 
 
@@ -55,8 +55,8 @@ public func createTable(narr!: Int32 = 0, nrec!: Int32 = 0): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|narr|Int32|预分配的数组部分容量（默认 0）nrec 预分配的哈希部分容量（默认 0）|
-|nrec|Int32||
+|narr|Int32|预分配的数组部分容量（默认 0）|
+|nrec|Int32|预分配的哈希部分容量（默认 0）|
 
 ### func doBuffer\(String,String\)
 ```cj
@@ -68,8 +68,8 @@ public func doBuffer(code: String, name!: String = "=(buffer)"): Array < LuaValu
 
 |名称|类型|描述|
 |---|---|---|
-|code|String|源码或预编译字节码字符串name chunk 名（用于错误消息，默认 "=(buffer)"）|
-|name|String||
+|code|String|源码或预编译字节码字符串|
+|name|String|chunk 名（用于错误消息，默认 "=(buffer)"）|
 
 返回: 
 
@@ -185,8 +185,8 @@ public func getField(idx: Int32, name: String): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|idx|Int32|表的栈索引name 字段名|
-|name|String||
+|idx|Int32|表的栈索引|
+|name|String|字段名|
 
 ### func getGlobal\(String\)
 ```cj
@@ -342,8 +342,8 @@ public func setField(idx: Int32, name: String): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|idx|Int32|表的栈索引name 字段名|
-|name|String||
+|idx|Int32|表的栈索引|
+|name|String|字段名|
 
 ### func setGlobal\(String,LuaValue\)
 ```cj
@@ -355,8 +355,21 @@ public func setGlobal(name: String, value: LuaValue): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|name|String|全局变量名value 要写入的变量值|
-|value|LuaValue||
+|name|String|全局变量名|
+|value|LuaValue|要写入的变量值|
+
+### func setObjectBridge\(Option<\(VoidPtr,Int64\)\->Unit>,Option<\(VoidPtr,Int32\)\->Int64>\)
+```cj
+public static func setObjectBridge(pusher: Option <(VoidPtr, Int64) -> Unit >, reader: Option <(VoidPtr, Int32) -> Int64 >): Unit
+```
+注册引擎对象桥接（push/read userdata 的实现）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|pusher|Option<(VoidPtr,Int64)->Unit>|压栈回调（将对象 id 写入 userdata；可空，默认压 nil）|
+|reader|Option<(VoidPtr,Int32)->Int64>|读栈回调（userdata → 对象 id；可空，默认返回 0）|
 
 ### func setTop\(Int32\)
 ```cj

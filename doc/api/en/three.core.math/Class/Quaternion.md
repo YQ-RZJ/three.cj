@@ -106,9 +106,9 @@ Return:
 
 - This instance
 
-### func fromBufferAttribute\(AttributeReader,Int64\)
+### func fromBufferAttribute\(IAttributeReader,Int64\)
 ```cj
-public func fromBufferAttribute(attribute: AttributeReader, index: Int64): Quaternion
+public func fromBufferAttribute(attribute: IAttributeReader, index: Int64): Quaternion
 ```
 Read quaternion components from vertex attribute (aligned with JS: Quaternion.fromBufferAttribute)
 
@@ -116,7 +116,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|attribute|AttributeReader|Vertex attribute (AttributeReader interface, implemented by BufferAttribute)index Vertex index|
+|attribute|IAttributeReader|Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)index Vertex index|
 |index|Int64||
 
 Return: 

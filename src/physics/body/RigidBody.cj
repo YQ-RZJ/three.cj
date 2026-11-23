@@ -44,7 +44,7 @@
  * - capsule(halfHeight, r) → PhysicsShape.Capsule
  * - cylinder(halfHeight, r) → PhysicsShape.Cylinder
  * - plane() → PhysicsShape.Plane
- * 这些工厂与 three.rendering.geometry 的 BoxGeometry/SphereGeometry/...
+ * 这些工厂与 three.renderers.geometry 的 BoxGeometry/SphereGeometry/...
  * 参数对齐，方便"几何体形状"一键生成物理碰撞体。
  *
  * @file[en] RigidBody Rigid-body convenience wrapper + PhysicsShape factory functions
@@ -72,13 +72,14 @@
  * - cylinder(halfHeight, r) → PhysicsShape.Cylinder
  * - plane() → PhysicsShape.Plane
  * These factories align with the parameters of BoxGeometry/SphereGeometry/...
- * in three.rendering.geometry, making it easy to generate a physics collider
+ * in three.renderers.geometry, making it easy to generate a physics collider
  * from a "geometry shape" in one step.
  */
 package three.physics.body
 
 import three.core.math.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.world.*
 import three.scene.objects.*
 import std.collection.*
@@ -837,5 +838,5 @@ public class RigidBody <: IReleasable {
 //   PhysicsShape.box(width, height, depth) / sphere(radius) / capsule(halfHeight, r)
 //   / cylinder(halfHeight, r) / plane() / mesh(vertices, triangles)
 //   / convexHull(points) / compound(parts)
-// 定义见 three.physics.interfaces.IPhysicsBackend.PhysicsShape。
+// 定义见 three.physics._interfaces.IPhysicsBackend.PhysicsShape。
 // =============================================================================

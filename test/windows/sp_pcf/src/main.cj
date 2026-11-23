@@ -14,7 +14,7 @@ package sp_pcf
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -22,9 +22,9 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.PcfVizMaterial
-import three.rendering.cameras.*
-import three.rendering.lights.*
+import three.renderers.materials.PcfVizMaterial
+import three.renderers.cameras.*
+import three.renderers.lights.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。

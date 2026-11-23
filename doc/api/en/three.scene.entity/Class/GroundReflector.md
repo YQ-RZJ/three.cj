@@ -21,31 +21,6 @@ Return:
 
 - true = renderable (facing correct), false = reflector facing away from camera (skip)流程：1. fresnelCoe = (dot(normalize(camera.position), reflect(normalize(camera.position), yAxis)) + 1) / 22. 反射面朝向检测：view = reflectorWorldPosition - cameraWorldPosition；view.dot(normal) > 0 → 反射面背向相机 → 返回 false（跳过本次渲染）3. 镜像构造 virtualCamera（位置/up/看向 target 全部按 normal 镜像）4. textureMatrix = 0.5偏移 × proj × viewInv × matrixWorld
 
-### func getReflectDepthFB\(\)
-```cj
-public func getReflectDepthFB(): FrameBufferHandle
-```
-取反射深度 RT frame buffer（useDepthTexture=true 时有效）。
-
-### func getReflectDepthTex\(\)
-```cj
-public func getReflectDepthTex(): TextureHandle
-```
-取反射深度 RT 纹理句柄（useDepthTexture=true 时有效，RGBA32F 存 NDC 深度）。
-供 capture 等调试工具回读验证。
-
-### func getReflectFB\(\)
-```cj
-public func getReflectFB(): FrameBufferHandle
-```
-取反射 RT frame buffer（渲染目标，由 SSRPass 设到 view）。
-
-### func getRenderTarget\(\)
-```cj
-public func getRenderTarget(): TextureHandle
-```
-取反射器内部 RT 的 color 纹理句柄。
-
 ### func getTextureSize\(\)
 ```cj
 public func getTextureSize():(Int64, Int64)
@@ -83,7 +58,7 @@ Parameter:
 ```cj
 public func release(): Bool
 ```
-frees the reflector GPU resources.
+Releases the reflector resources.
 
 ### let REFLECTOR\_VIEW\_ID\_BASE
 ```cj

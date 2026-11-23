@@ -12,14 +12,14 @@ package threeTest
 
 import std.io.*
 import std.time.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。

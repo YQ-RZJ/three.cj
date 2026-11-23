@@ -195,7 +195,7 @@ Parameter:
 ```cj
 public func setHrtfEnabled(enabled: Bool): Unit
 ```
-Enables or disables HRTF (headphone spatial rendering)
+Enables or disables HRTF (headphone spatial renderers)
 
 <p style="background:oklch(98% 0 0);color:black;border-radius:.375rem;padding:8px;margin:8px;white-space:pre-wrap;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"><span style="text-shadow:2px 2px 4px rgba(0, 0, 0, 0.3);">💬 </span>Maps to ALC_SOFT_HRTF: alcGetIntegerv(device, ALC_HRTF_SOFT, 1, &hrtf),
 where hrtf = ALC_HRTF_ENABLED_SOFT / ALC_HRTF_DISABLED_SOFT.</p>
@@ -235,12 +235,6 @@ Parameter:
 public static prop context: AudioContext
 ```
 Returns the singleton instance (lazily initialized)
-
-### prop device: CPointer < Unit >
-```cj
-public prop device: CPointer < Unit >
-```
-Returns the OpenAL device handle
 
 ### prop initialized: Bool
 ```cj

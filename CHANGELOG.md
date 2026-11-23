@@ -1,3 +1,55 @@
+# [1.1.8]
+
+## Feature
+
+docs: 更新 API 文档；
+chore: 调整调试文本渲染桥接；
+feat: lua 侧实现动态栈空间余量管理；（基于仓颉runtime非公开的API）
+feat: 允许设置lua侧的回调重入深度，实现在超出栈空间前提前异常终止；
+chore: 调整资源文件中 lua 的文件命名；
+docs: 调整文档项目结构部分相关描述；
+chore: 新增约束 protected package 的目录规则，并调整代码；
+chore: 优化 three.renderers.gfx 包使用方式；
+chore: 调整 EngineRenderTarget 等到合适的路由下；
+skills: 更新 three.cj-project-constraints ，加入接口相关约束；
+chore: 优化所有现存接口分布和循环依赖的处置方式；
+chore: 调整子包路由名 rendering -> renderers
+feat: 为 Lua 预绑定 three.rendering.*(gfx/xr/postprocessing/shaders);
+refactor: 公开后处理 pass 扩展面，bgfx 后端包私有化
+chore: 调整Pass中上次提交残留的一些bgfx相关注释内容；
+chore: 文件分布优化；
+refactor: 渲染后端抽象层重构，收敛 bgfx 直调至 three.rendering.bgfx
+feat: 为 Lua 预绑定 three.rendering.*(`buffer / textures / geometry / materials / cameras / lights / rendertarget` 和 .B `helpers / postprocessing / ThreeRenderer);
+feat: 为 Lua 预绑定 three.rendering.buffer/three.rendering.textuer;
+chore: 全量调整 prebind 下的代码文件命名规则；
+chore: 消除对外的指针暴露程度；
+feat: 为 Lua 预绑定 three.network;
+feat: 为 Lua 预绑定 three.physics;
+feat: 为 Lua 预绑定 three.profiler;
+feat: 为 Lua 预绑定 three.resource;
+feat: 为 Lua 预绑定 three.scene;
+feat: 为 Lua 预绑定 three.window;
+feat: lua 侧新增跨线程延迟回调队列，实现将工作线程产生的事件安全地送回 lua 侧执行。
+feat: 为 Lua 预绑定 three.animation/three.audio;
+feat: 为 Lua 预绑定 three.core\three.utils;
+test: 新增 Lua 预绑定的测试项目 test/general/test_script_bind;
+feat: lua 加入数组、函数等常用数据类型的绑定；
+feat: lua 相关成员实现 IReleasable 接口以具备安全释放的能力；
+feat: 为脚本引擎加入对象级（object/userdata）绑定的能力;
+feat: 实现脚本绑定引擎对象注册表（全局ID <-> 仓颉对象）;
+docs: 加入 lua 开发规范文档
+
+## Fix
+
+fix: 修复底层BgfxMemory的使用所导致的渲染能力缺失问题。
+fix: 部分测试项目的编译错误；
+fix: 修复DataUtils中误导致的无限递归调用问题；
+fix: 收缩所有Pass对bgfx的依赖；
+fix: 抽象 shader 编译部分能力；
+fix: 移除 ThreeRenderTarget 相关死代码；
+fix: 完善 skill 的全局工具脚本，避免漏报；
+fix: 补充 OHOS 缺失的连接选项 `-ldeviceinfo_ndk.z` ，以避免运行时底层 Tracy 出现悬垂指针崩溃；
+
 # [1.0.0]
 
 ## Feature
@@ -30,6 +82,8 @@ feat: 全量动、静包编译
 
 ## Fix
 
+fix: 修复部分Pass的异常渲染效果；
+fix: 解决因接口变更，部分测试项目编译异常的问题；
 fix: 优化项目公开修饰符，避免过度公开；
 fix: 修正环境变量 EXTEND_*
 fix: 将仓颉侧依赖包合并如deps.a的逻辑改为直接打包；

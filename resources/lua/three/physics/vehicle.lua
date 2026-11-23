@@ -1,0 +1,24 @@
+-- three/physics/vehicle.lua —— three.physics.vehicle 绑定模块
+--
+-- 返回 three.physics.vehicle 全局命名空间。需引擎侧先安装 vehicle 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.vehicle")
+--
+-- 用法：
+--     local V = require "three.physics.vehicle"
+--     local wheel = V.PhysicsVehicleWheelDesc.new(pos)
+--     local desc = V.PhysicsVehicleDesc.new(chassisDesc)
+--     desc.wheels = { wheel }
+--     desc.drivenWheels = { 0 }
+--     local car = V.PhysicsVehicleFactory.new(desc):createVehicle(world)
+--     car:setDriverInput(1.0, 0.0)
+--
+-- 已绑定类：
+--   PhysicsVehicleWheelDesc   车轮描述（position / radius / width / 悬挂 / 转向 / 制动物理参数）
+--   PhysicsVehicleEngineDesc  引擎描述（扭矩 / RPM / 齿比 / 换挡 / 离合）
+--   PhysicsVehicleDesc        载具描述（chassisDesc / wheels / engine / drivenWheels /
+--                             maxPitchRollAngle）
+--   PhysicsVehicle            运行时载具（releasable / chassis / wheelCount /
+--                             setDriverInput / getWheelWorldTransform / release）
+--   PhysicsVehicleFactory     工厂（createVehicle）
+
+return require("three").physics.vehicle

@@ -1,0 +1,38 @@
+-- three/network/http.lua —— three.network.http 绑定模块
+--
+-- 返回 three.network.http 全局命名空间。需引擎侧先安装 http 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.network.http")
+--
+-- 用法：
+--     local H = require "three.network.http"
+--     local req = H.HttpRequest.new("https://api.example.com/x", "GET",
+--         {{"Accept", "application/json"}})
+--     local resp = H.NetworkHttp.execute(req)     -- 失败返回 nil
+--     if resp and resp.isSuccess then
+--         print(resp:bodyString(), resp.contentType)
+--     end
+--
+--     -- 可复用客户端 + 超时
+--     local client = H.HttpClient.new(3000, 5000, 5000)
+--     local r2 = client:execute(H.HttpRequest.post("https://...", '{"a":1}'))
+--     client:release()
+--
+--     -- 异步（回调在 httpclient4cj 工作线程触发，需在主循环抽干）
+--     client:enqueue(req, function(resp) print(resp.code) end,
+--                    function(err) print(err) end)
+--     -- 每帧：
+--     client:pumpCallbacks()
+--
+-- 已绑定类：
+--   HttpRequest   请求描述（url / method / headers / body 只读属性；
+--                 静态 get/post/put/delete 工厂）
+--   HttpResponse  响应（code / message / headers / body / isSuccess / isRedirect /
+--                 contentType 只读属性；bodyString / header 方法）
+--   NetworkHttp   静态工具（execute / get / post，失败返回 nil）
+--   HttpClient    可复用客户端（connect/read/write 超时只读属性、releasable / release、
+--                 execute / enqueue / pumpCallbacks / pendingCallbacks）
+--
+-- 说明：headers 表示为「{name, value} 二元数组的数组」；body 为字符串或 nil。
+-- enqueue 的两个回调必须都是函数，否则返回 false。
+
+return require("three").network.http

@@ -6,7 +6,7 @@ package perfRenderTest
  * 设计要点：
  * - 真实生产渲染管线：ThreeRenderer.render(scene, camera) 走完整
  *   _render -> _collectRenderObjects -> RenderList.sort/finish -> BgfxBackend.draw 链，
- *   插桩 @Zone 全部位于这些真实热路径（three.rendering.*）。
+ *   插桩 @Zone 全部位于这些真实热路径（three.renderers.*）。
  * - 固定相机：位置/朝向恒定，不旋转、不移动，剔除与投影完全确定。
  * - 固定对象规模：FEW=25 立方体 / MANY=800 立方体，确定性网格排布（无随机）。
  * - 固定测量方案：每阶段 WARMUP_FRAMES 预热 + MEASURE_FRAMES 计测帧，
@@ -21,7 +21,7 @@ package perfRenderTest
  *
  * 运行（PowerShell）：
  *   $env:EXTEND_LIBS_PATH_WIN_X64="C:\workspace\Web\24w\three.cj\three.cj\libs"
- *   $env:THREE_PROFILER="three.rendering,three.perf"   # 编译期档位，切换需重编译
+ *   $env:THREE_PROFILER="three.renderers,three.perf"   # 编译期档位，切换需重编译
  *   $env:THREE_LOG_LEVEL=info                          # 编译期档位，切换需重编译
  *   cjpm build / cjpm run
  *   同时启动 python scripts/tracy_receiver.py --out captures/perf_few_many
@@ -30,14 +30,14 @@ package perfRenderTest
 import std.math.*
 import std.time.*
 import std.collection.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
 import three.profiler.*
 import three.utils.log.*
 import three.utils.log.macros.*
@@ -93,8 +93,8 @@ public class PerfRenderWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x1a1a24))
-        // 开启 bgfx 调试文本（DEBUG_TEXT = 0x08）——画面内 FPS / draw call 显示的前提
-        this.renderer.setDebug(0x00000008)
+        // 开启调试文本覆盖层（语义化开关）——画面内 FPS / draw call 显示的前提
+        this.renderer.setDebugText(true)
         @LogInfo(["perf", "ThreeRenderer 初始化成功"])
 
         // 共享材质调色板
@@ -181,7 +181,7 @@ public class PerfRenderWindow <: WindowEngine {
         let calls = this.renderer.info.render.calls
         let tris = this.renderer.info.render.triangles
 
-        this.renderer.dbgTextClear(0x00, false)
+        this.renderer.dbgTextClear(0x00, small: false)
         this.renderer.dbgTextPrintf(
             0, 0, 0x0f,
             "three.perf phase=" + phaseName + " objects=" + objCount.toString() +

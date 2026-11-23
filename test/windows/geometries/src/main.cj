@@ -9,13 +9,13 @@ package geometries
 
 import std.io.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
@@ -61,8 +61,8 @@ public class TestWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x20, 0x20, 0x30))
-        // 开启 bgfx 调试文本（DEBUG_TEXT = 0x08）——dbgTextPrintf 画面内文本渲染的前提
-        this.renderer.setDebug(0x00000008)
+        // 开启调试文本覆盖层（语义化开关）——dbgTextPrintf 画面内文本渲染的前提
+        this.renderer.setDebugText(true)
         println("  渲染器初始化成功: ${w}x${h}")
         println("")
 
@@ -124,7 +124,7 @@ public class TestWindow <: WindowEngine {
             }
         }
         // 每帧清屏调试文本并显示当前命中模型名（bgfx dbg_text_printf 画面内文本）
-        this.renderer.dbgTextClear(0x00, false)
+        this.renderer.dbgTextClear(0x00, small: false)
         this.renderer.dbgTextPrintf(0, 0, 0x0f, "=> " + hitName)
 
         // ---- 渲染 ----

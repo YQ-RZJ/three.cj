@@ -23,6 +23,7 @@ description: "three.cj 项目的工程约束标准（长期维护规范）。在
 | C6 | 日志输出 | 一切输出走 `LogMacros.cj` 日志宏（@LogError/.../@LogTrace），禁止裸 println | `audit_logging.py` |
 | C7 | 性能埋点 | 性能热点提前预埋 `ProfileMacros.cj` 的 `@Zone[链路]` 等宏 | `audit_profiler.py` |
 | C8 | 常量集中 | 引擎内所有常量统一定义在 `src/utils/constants` 包内，禁止散落 | 人工 + grep 审查 |
+| C9 | 接口收纳与重导出 | 接口统一收纳于模块 `interfaces` 子包（protected），由主实现包 `public import` 重导出；命名以大写 `I` 为前缀 | `audit_interfaces.py` + （人工 + 辅以 grep 审查） |
 
 ## 两条总判定标准（一切判据的源头）
 
@@ -154,7 +155,7 @@ description: "three.cj 项目的工程约束标准（长期维护规范）。在
 
 ## C7 性能热点预埋剖面宏
 
-**规则**：可能成为性能热点的函数，在**编写时**就预埋 `src/profiler/macros/ProfileMacros.cj` 的宏：函数级用 `@Zone[链路路径]`（如 `@Zone[three.rendering.ThreeRenderer.render]`，链路用"包路径.类名.方法名"命名）；帧边界用 `@FrameStart/@FrameMark/@FrameEnd`；计数与数值曲线用 `@Plot/@PlotI64/@Message`。宏受 `THREE_PROFILER` 环境变量按链路前缀门控，未命中链路时零开销。
+**规则**：可能成为性能热点的函数，在**编写时**就预埋 `src/profiler/macros/ProfileMacros.cj` 的宏：函数级用 `@Zone[链路路径]`（如 `@Zone[three.renderers.ThreeRenderer.render]`，链路用"包路径.类名.方法名"命名）；帧边界用 `@FrameStart/@FrameMark/@FrameEnd`；计数与数值曲线用 `@Plot/@PlotI64/@Message`。宏受 `THREE_PROFILER` 环境变量按链路前缀门控，未命中链路时零开销。
 
 **正面影响**：热点定位无需事后翻代码补埋点（补埋点 = 重新编译 + 重新复现场景，代价高）；链路门控使常驻埋点不拖累平时开发；命名规整的链路（`包.类.方法`）可直接与 Tracy 等后端的时间线、火焰图对齐（`scripts/tracy_*.py` 已有配套工具）。
 
@@ -163,7 +164,7 @@ description: "three.cj 项目的工程约束标准（长期维护规范）。在
 - 链路命名是长期契约：改名/移动方法时同步改 `@Zone` 字符串，否则时间线出现孤儿段 → 与方法名保持字面一致可降低漂移。
 - 过度埋点（每个 getter 一个 Zone）会放大时间线 → 以"函数可能含循环/FFI/锁/递归/大对象操作"为埋点门槛。
 
-**执行判据**：`audit_profiler.py <模块...>` 按启发式（public/open 的 `update|run|render|execute|simulate|step|process|tick|dispatch|flush` 等成员函数，且函数体非平凡）列出**未带 `@Zone` 的热点候选**，输出建议链路名；人工确认后补埋。已有埋点密度可参考 `three.rendering.ThreeRenderer`、`three.audio` 各 Job 的 `run` 等。
+**执行判据**：`audit_profiler.py <模块...>` 按启发式（public/open 的 `update|run|render|execute|simulate|step|process|tick|dispatch|flush` 等成员函数，且函数体非平凡）列出**未带 `@Zone` 的热点候选**，输出建议链路名；人工确认后补埋。已有埋点密度可参考 `three.renderers.ThreeRenderer`、`three.audio` 各 Job 的 `run` 等。
 
 ---
 
@@ -184,6 +185,33 @@ description: "three.cj 项目的工程约束标准（长期维护规范）。在
 
 **执行判据**：人工审查为主——新增代码中见到 `public let/const` 不在 `src/utils/constants` 内即违规；可用 `grep -rn "public let\|public const" src --include="*.cj"` 辅助定位散落常量（排除 constants 包与宏包）。迁移时同步清理旧定义（避免双份），完成后按总约定验证构建。
 
+---
+
+## C9 接口收纳与重导出（interfaces 子包 + protected + public import）
+
+**规则**：模块内的公共接口（interface）遵循以下三条约定：
+
+1. **统一收纳**：一个模块的接口声明统一放置在该模块的 `interfaces` 子包内（如 `three.animation.interfaces`、`three.audio.interfaces`、`three.core.interfaces`），不在业务包内散落接口声明。跨包解耦的契约（用于打破包循环依赖）同样收纳于此。
+   **目录命名**：protected package 的物理目录一律以 `_` 为前缀（`_interfaces`、`_gfx`、`_bgfx`），使 protected 包在目录树中一目了然；`_` 前缀目录不对外暴露，改名不影响外部 import 路径，仅引擎内部导入需同步。包声明与导入路径同步使用 `_` 前缀（如 `three.core._interfaces`）。零依赖词表叶子包目录同样加 `_` 前缀（如 `renderers/_gfx`、`renderers/_bgfx`）。并且确保接口包内只包含接口，不包含其它内容（如：枚举、类、结构体）。
+2. **protected 包 + 实现包重导出**：interfaces 子包声明为 `protected package`（仅模块内可见，外部模块不可直接导入）；每个接口由其**主实现所在包**通过 `public import` 重导出，外部使用方经实现包路径访问（如 `three.animation.blend.IKeyframeTrack`、`three.renderers.buffer.IAttributeReader`）。模块内部代码（src 同模块）可直接 import interfaces 子包。
+   - 重导出语句**不加说明性注释**，保持 import 区干净；
+   - 同一符号的显式私有导入与 public import 不得并存（会触发 `-Woff package-import` 冲突警告），public import 本身即可供本包使用；
+   - 重导出点不得引入包循环依赖：为接口选择主实现包时需验证实现包与消费方之间的既有依赖方向（如接口的消费方是 scene 而实现包 import 了 scene，则该实现包不能作为重导出点）。
+3. **命名规则**：接口名以大写 `I` 为前缀（如 `ILoadResult`、`IMaterial`、`IQueue`），与仓颉类型命名规范并存；历史遗留的无前缀接口名（如 `AttributeReader`）在触碰时顺带重命名。
+
+**正面影响**：接口契约与实现分离但不出现在公开 API 的陌生路径上——外部开发者"从实现的包名找到接口"；protected 保证接口包结构属于内部自由度，可随重构调整而不破坏外部；统一 I 前缀使接口在补全与阅读中一目了然；重导出使包循环依赖的解法（接口包）对外完全不可见。
+
+**负面影响与权衡**：
+- 重导出点选择错误（实现包与消费方存在或新增反向依赖）会形成包循环，编译报错 → 选点前先 grep 双向 import；多实现/多消费的标记接口（如 ILoadResult）以主实现包为准，其余消费方直接 import interfaces 子包。
+- protected 子包 + 重导出依赖"重导出提升可见性"语义（官方文档模式），测试模块（test/ 下独立 cjpm 模块）必须从重导出路径导入，不得 import protected 子包本体。
+- 接口改名（补 I 前缀等）会波及实现方、消费方与脚本 prebind 的 `prebindAs<...>` 强转 → 重命名需全库整词替换（注意 `\b` 边界避免误改已带前缀的引用），并同步 doc 注释。
+
+**包循环的解法——签名抽象化**：接口迁入 interfaces 子包若因签名引用实现包具体类型而循环，优先通过"签名去具体类型化"消除循环，而不是放弃迁移：回调/查询参数与返回值改用抽象接口（如 ISocketListener 的 SocketClient 参数 → ISocketClient 标记接口；IRenderContext 的 Camera/Scene/RenderTarget → ICamera/IScene/IRenderTarget），由具体类实现标记/抽象接口，消费方按接口取数（如 BgfxBackend 经 ICamera.matrixWorldInverse/projectionMatrix 取矩阵）。配合脚本绑定命名空间同步对齐（Lua 侧 `three.<mod>.<pkg>` 字符串须与仓颉包路径一致）。已落地样例：three.network.interfaces.ISocketListener、three.renderers.interfaces.IRenderObject/IRenderContext。真正无法解耦的存量（如签名语义强绑实现类型且无消费方需求）才记豁免。
+
+**已有落地样例**：`three.animation.interfaces`（IAnimationClip→clip、IKeyframeTrack→blend 重导出）、`three.audio.interfaces`（三接口→mixer 重导出）、`three.core.interfaces`（10 接口按主实现包重导出）。
+
+**执行判据**：`python <skill-root>/scripts/audit_interfaces.py [模块...]`（缺省扫全部 src）自动输出四类：`NOT-IN-INTERFACES`（接口未收纳进 interfaces 子包）、`NOT-PROTECTED`（interfaces 子包 package 行缺 protected）、`NO-REEXPORT`（接口无实现包 public import 重导出）、`BAD-NAME`（未以大写 I 前缀命名）。重导出扫描为全库范围，不随模块参数收窄；人工确认后修改，按总约定验证构建（由用户执行）。
+
 
 ---
 
@@ -200,7 +228,7 @@ description: "three.cj 项目的工程约束标准（长期维护规范）。在
 4. 每个候选逐项过"豁免清单"（总判定标准之下）：测试包阻断 > 接口契约 > API parity > 逃生舱 > open 扩展点 > 对称 API 组。
 5. 决策后执行修改 → 按总约定验证构建（用户提供了命令则执行，未提供则跳过并告知）→ 在变更说明中列出"改了什么、保留了什么、依据哪条豁免"。**报告保留项与修改项同等重要**——豁免是显式决策，不是默认。
 
-**脚本通用约定**：所有脚本只读；参数为 `src/` 下的模块名（如 `animation`、`rendering/bgfx`）；输出 `file:line` 与分类标签，退出码 0 表示脚本正常（不代表合规），合规与否以人工判定为准。
+**脚本通用约定**：所有脚本只读；参数为 `src/` 下的模块名（如 `animation`、`renderers/bgfx`）；输出 `file:line` 与分类标签，退出码 0 表示脚本正常（不代表合规），合规与否以人工判定为准。
 
 ---
 
@@ -234,8 +262,3 @@ description: "three.cj 项目的工程约束标准（长期维护规范）。在
 
 - **用法**：`cjtrace-recover -f <stacktrace-file> -m <map-file,...>` 使用混淆编译生成的符号映射文件，把异常堆栈中的混淆符号还原为函数名与源码路径，结果写标准输出。
 - **与本 SKILL 的关系**：release 版（混淆构建）线上崩溃排查的必备步骤；项目若启用混淆发布，必须把符号映射文件归档到构建产物旁，否则该工具无从还原——属于 C1（清理）与发布流程的衔接约定。
-
-
-
-
-

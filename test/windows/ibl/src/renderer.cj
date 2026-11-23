@@ -20,14 +20,14 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.textures.CubeTexture
-import three.rendering.textures.PMREMGenerator
-import three.rendering.textures.Texture
-import three.core.interfaces.IBackground
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.textures.CubeTexture
+import three.renderers.textures.PMREMGenerator
+import three.renderers.textures.Texture
+import three.scene.scenegraph.IBackground
 import three.utils.log.*
 import three.utils.log.macros.*
 

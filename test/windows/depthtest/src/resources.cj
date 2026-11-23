@@ -17,8 +17,8 @@ package depthtest
  */
 
 import three.core.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
 
 // ===== 深度可视化着色器（bgfx .sc 格式）=====
 

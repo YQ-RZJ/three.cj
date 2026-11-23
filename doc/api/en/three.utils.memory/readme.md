@@ -17,7 +17,6 @@
 |  Name   | Describe  |
 |  ----  | ----  |
 |[AutoFreePtr<T> where T <: CType](./Class/AutoFreePtr.md#class-autofreeptr-t-where-t-ctype)|Auto-free pointer wrapper|
-|[BgfxMemory](./Class/BgfxMemory.md#class-bgfxmemory)|Safe wrapper around bgfx Memory allocation|
 |[PtrArray<T> where T <: CType](./Class/PtrArray.md#class-ptrarray-t-where-t-ctype)|Pointer-backed array|
 |[ScopeGuard](./Class/ScopeGuard.md#class-scopeguard)|RAII scope guard|
 |[SharedPtr<T> where T <: CType](./Class/SharedPtr.md#class-sharedptr-t-where-t-ctype)|Reference-counted shared smart pointer|

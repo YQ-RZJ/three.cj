@@ -9,10 +9,10 @@
 package test_j_geometries
 
 import std.unittest.*
-import three.rendering.geometry.*
+import three.renderers.geometry.*
 import three.core.math.Vector2
 import three.core.math.Vector3
-import three.rendering.geometry.CatmullRomCurve3
+import three.renderers.geometry.CatmullRomCurve3
 
 public class GeometriesInstancingTest <: TestClass {
     public override func asTestSuite(): TestSuite {

@@ -3,7 +3,7 @@
 ```cj
 public class Points <: Object3D
 ```
-Points rendering object, renders a set of vertices as independent pixel squares
+Points renderers object, renders a set of vertices as independent pixel squares
 
 ### func clone\(\)
 ```cj

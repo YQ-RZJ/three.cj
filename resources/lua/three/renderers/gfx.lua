@@ -1,0 +1,21 @@
+-- three/renderers/gfx.lua —— three.renderers.gfx 抽象层绑定模块
+--
+-- 返回 three.renderers.gfx 全局命名空间。需引擎侧先安装 gfx 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.renderers.gfx")
+--
+-- 已绑定类：
+--   枚举：GfxTextureFormat / GfxUniformType / GfxAttrib / GfxAttribType /
+--         GfxViewMode / GfxBackbufferRatio / GfxAccess / GfxRendererType
+--   位标志：GfxTextureFlag / GfxSamplerFlag / GfxBufferFlag / GfxState /
+--           GfxStencilFlag / GfxClearFlag / GfxResetFlag
+--   值结构：GfxAttributeDesc / GfxAttachmentDesc / GfxUniformDesc /
+--           GfxCapsSummary / GfxStatsSummary
+--   句柄：GfxTextureHandle / GfxFrameBufferHandle / GfxProgramHandle / GfxUniformHandle /
+--         GfxShaderHandle / GfxVertexBufferHandle / GfxIndexBufferHandle / GfxVertexLayoutHandle /
+--         GfxDynamicVertexBufferHandle / GfxDynamicIndexBufferHandle /
+--         GfxIndirectBufferHandle / GfxOcclusionQueryHandle
+--
+-- 约定：枚举成员与标志常量以同名静态方法取值（如 GfxTextureFormat.RGBA8()）；
+-- 句柄在绑定 API 中统一用整数 idx 表示（0xFFFF = 无效）。
+
+return require("three").renderers.gfx

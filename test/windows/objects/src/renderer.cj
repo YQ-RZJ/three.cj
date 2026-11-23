@@ -9,7 +9,7 @@ package sp_objects
  * - 每帧验证：
  *     intersectsFrustum（Mesh/Points/Line/Sprite 补齐接口，对照 JS 一行委托）
  *     LOD.getCurrentLevel / setCurrentLevel / removeLevel 层级切换
- * - 画面内 dbgText 显示当前视锥内对象数与 LOD 层级
+ * - 周期 println 显示当前视锥内对象数与 LOD 层级
  */
 
 import std.sync.*
@@ -22,12 +22,12 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
 import three.window.MouseButton
 
 /// 场景中关键对象的引用，供渲染循环更新

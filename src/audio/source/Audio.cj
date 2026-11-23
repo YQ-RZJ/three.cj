@@ -45,11 +45,11 @@ import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
 
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import openalsoft4cj.al.*
@@ -60,7 +60,7 @@ import std.math.*
 import three.audio.device.*
 import three.audio.listener.*
 import three.audio.mixer.*
-import three.audio.interfaces.*
+import three.audio._interfaces.*
 import three.profiler.*
 import three.profiler.macros.*
 import three.utils.safe.IReleasable

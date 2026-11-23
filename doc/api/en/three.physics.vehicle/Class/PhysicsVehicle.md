@@ -9,7 +9,7 @@ Runtime wheeled vehicle
 ```cj
 public func getWheelWorldTransform(index: Int64): Matrix4
 ```
-Reads the world transform of a wheel (for rendering the wheel mesh)
+Reads the world transform of a wheel (for renderers the wheel mesh)
 
 Parameter: 
 

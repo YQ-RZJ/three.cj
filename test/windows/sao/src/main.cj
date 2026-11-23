@@ -12,18 +12,18 @@ package sp_sao
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.KeyCode
 import three.window.KeyboardProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.utils.log.*
 import three.utils.log.macros.*
-import three.rendering.postprocessing.EffectComposer
-import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.SAOPass
+import three.renderers.postprocessing.EffectComposer
+import three.renderers.postprocessing.RenderPass
+import three.renderers.postprocessing.SAOPass
 
 /**
  * v2 窗口子类：覆写生命周期回调。

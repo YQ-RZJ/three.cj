@@ -11,7 +11,7 @@ package test_cameras
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.cameras.Camera
+import three.renderers.cameras.Camera
 import three.core.math.Vector3
 
 public class CameraTest <: TestClass {

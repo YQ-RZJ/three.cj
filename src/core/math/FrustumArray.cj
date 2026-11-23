@@ -27,17 +27,17 @@
  *
  * @file[en] FrustumArray
  * @brief[en] Frustum array
- * @explain[en] Represents a collection of multiple frustums for multi-layer rendering. Obtains sub-camera matrix data from ArrayCamera via IArrayCameraSource interface, avoiding circular dependency between math and cameras packages.
+ * @explain[en] Represents a collection of multiple frustums for multi-layer renderers. Obtains sub-camera matrix data from ArrayCamera via IArrayCameraSource interface, avoiding circular dependency between math and cameras packages.
  */
 package three.core.math
 
-import three.core.interfaces.*
+import three.core._interfaces.*
 
 /**
  * @brief[zh-cn] 视锥体数组类，用于多层渲染的视锥体裁剪
  * @explain[zh-cn] 每个子相机对应一个 Frustum，支持从数组相机设置以及包围盒/球体/点相交测试
  *
- * @brief[en] Frustum array class for multi-layer rendering frustum culling
+ * @brief[en] Frustum array class for multi-layer renderers frustum culling
  * @explain[en] Each sub-camera corresponds to a Frustum, supports setting from array camera and bounding box/sphere/point intersection tests
  */
 public class FrustumArray {

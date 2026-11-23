@@ -1,0 +1,23 @@
+-- three/physics/softbody.lua —— three.physics.softbody 绑定模块
+--
+-- 返回 three.physics.softbody 全局命名空间。需引擎侧先安装 softbody 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.softbody")
+--
+-- 用法：
+--     local S = require "three.physics.softbody"
+--     local desc = S.PhysicsSoftBodyDesc.new()
+--     desc.vertices = { v1, v2, v3, v4 }
+--     desc.indices = { 0, 1, 2, 0, 2, 3 }
+--     local soft = S.PhysicsSoftBodyFactory.new(desc):createSoftBody(world)
+--
+-- 已绑定类：
+--   PhysicsSoftBodyDesc     软体描述（vertices / indices / compliance / bendType /
+--                           pressure / linearDamping / friction / restitution /
+--                           gravityFactor / vertexRadius / numIterations /
+--                           pinnedVertices / layer）
+--   PhysicsSoftBody         运行时软体（releasable / bodyID / release）
+--   PhysicsSoftBodyFactory  工厂（createSoftBody）
+--
+-- 说明：运行时顶点读取当前不可用（底层未导出 FFI），渲染侧自行维护。
+
+return require("three").physics.softbody

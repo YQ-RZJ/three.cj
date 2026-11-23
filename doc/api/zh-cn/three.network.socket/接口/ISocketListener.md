@@ -5,9 +5,9 @@ public interface ISocketListener
 ```
 Socket 事件监听器接口
 
-### func onClose\(SocketClient\)
+### func onClose\(ISocketClient\)
 ```cj
-func onClose(client: SocketClient): Unit
+func onClose(client: ISocketClient): Unit
 ```
 连接关闭回调
 
@@ -15,11 +15,11 @@ func onClose(client: SocketClient): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|client|SocketClient|触发事件的客户端|
+|client|ISocketClient|触发事件的客户端|
 
-### func onError\(SocketClient,String\)
+### func onError\(ISocketClient,String\)
 ```cj
-func onError(client: SocketClient, message: String): Unit
+func onError(client: ISocketClient, message: String): Unit
 ```
 错误回调
 
@@ -27,12 +27,12 @@ func onError(client: SocketClient, message: String): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|client|SocketClient|触发事件的客户端message 错误消息|
+|client|ISocketClient|触发事件的客户端message 错误消息|
 |message|String||
 
-### func onMessage\(SocketClient,Array<UInt8>\)
+### func onMessage\(ISocketClient,Array<UInt8>\)
 ```cj
-func onMessage(client: SocketClient, data: Array < UInt8 >): Unit
+func onMessage(client: ISocketClient, data: Array < UInt8 >): Unit
 ```
 收到数据回调（原始字节）
 
@@ -40,12 +40,12 @@ func onMessage(client: SocketClient, data: Array < UInt8 >): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|client|SocketClient|触发事件的客户端data 收到的原始字节|
+|client|ISocketClient|触发事件的客户端data 收到的原始字节|
 |data|Array<UInt8>||
 
-### func onOpen\(SocketClient\)
+### func onOpen\(ISocketClient\)
 ```cj
-func onOpen(client: SocketClient): Unit
+func onOpen(client: ISocketClient): Unit
 ```
 连接建立回调
 
@@ -53,5 +53,5 @@ func onOpen(client: SocketClient): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|client|SocketClient|触发事件的客户端|
+|client|ISocketClient|触发事件的客户端|
 

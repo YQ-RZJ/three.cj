@@ -1,7 +1,7 @@
 # 类
 ## class FrameTask
 ```cj
-public class FrameTask <: HeapNode
+public class FrameTask <: IHeapNode
 ```
 帧任务
 
@@ -22,9 +22,9 @@ public init(id: Int64, mode: FrameTaskMode, priority: Int64, callback:(FrameTask
 |params|ICircularQueue<Array<Any>>||
 |shareValue|?Any||
 
-### func lessThan\(HeapNode\)
+### func lessThan\(IHeapNode\)
 ```cj
-public func lessThan(other: HeapNode): Bool
+public func lessThan(other: IHeapNode): Bool
 ```
 比较函数：priority 越小越优先（最小堆）
 
@@ -32,7 +32,7 @@ public func lessThan(other: HeapNode): Bool
 
 |名称|类型|描述|
 |---|---|---|
-|other|HeapNode|另一个堆节点|
+|other|IHeapNode|另一个堆节点|
 
 返回: 
 

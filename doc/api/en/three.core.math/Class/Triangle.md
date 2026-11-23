@@ -201,9 +201,9 @@ Return:
 
 - Barycentric coordinates
 
-### func getInterpolatedAttribute\(AttributeReader,Int64,Int64,Int64,Vector3,Vector3\)
+### func getInterpolatedAttribute\(IAttributeReader,Int64,Int64,Int64,Vector3,Vector3\)
 ```cj
-public static func getInterpolatedAttribute(attr: AttributeReader, i1: Int64, i2: Int64, i3: Int64, barycoord: Vector3, target: Vector3): Vector3
+public static func getInterpolatedAttribute(attr: IAttributeReader, i1: Int64, i2: Int64, i3: Int64, barycoord: Vector3, target: Vector3): Vector3
 ```
 Interpolate vertex attribute (aligned with JS: Triangle.getInterpolatedAttribute), linearly interpolate attribute values at three vertices using barycentric coordinates, write to target
 
@@ -211,7 +211,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|attr|AttributeReader|Vertex attribute (AttributeReader interface, implemented by BufferAttribute)i1 Attribute index of vertex ai2 Attribute index of vertex bi3 Attribute index of vertex cbarycoord Barycentric coordinatestarget Output vector (writes interpolation result)|
+|attr|IAttributeReader|Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)i1 Attribute index of vertex ai2 Attribute index of vertex bi3 Attribute index of vertex cbarycoord Barycentric coordinatestarget Output vector (writes interpolation result)|
 |i1|Int64||
 |i2|Int64||
 |i3|Int64||
@@ -372,9 +372,9 @@ Return:
 
 - Whether front-facing towards the given direction
 
-### func setFromAttributeAndIndices\(AttributeReader,Int64,Int64,Int64\)
+### func setFromAttributeAndIndices\(IAttributeReader,Int64,Int64,Int64\)
 ```cj
-public func setFromAttributeAndIndices(attribute: AttributeReader, i0: Int64, i1: Int64, i2: Int64): Triangle
+public func setFromAttributeAndIndices(attribute: IAttributeReader, i0: Int64, i1: Int64, i2: Int64): Triangle
 ```
 Set triangle vertices from vertex attribute and indices (aligned with JS: Triangle.setFromAttributeAndIndices)
 
@@ -382,7 +382,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|attribute|AttributeReader|Vertex attribute (AttributeReader interface, implemented by BufferAttribute)i0 Index of vertex ai1 Index of vertex bi2 Index of vertex c|
+|attribute|IAttributeReader|Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)i0 Index of vertex ai1 Index of vertex bi2 Index of vertex c|
 |i0|Int64||
 |i1|Int64||
 |i2|Int64||

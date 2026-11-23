@@ -23,18 +23,18 @@
  *
  * @file[zh-cn] FrameTask
  * @brief[zh-cn] 帧任务与执行上下文
- * @explain[zh-cn] FrameTask 是分帧调度的最小执行单元，包含唯一 ID、优先级（用于 BinaryHeap 排序）、执行模式（CONSUME/LOOP/ONCE）、参数队列（ICircularQueue，支持消耗与循环两种取数方式）、回调函数（接收 FrameTaskContext）和耗时统计（lastTime / EWMA 平均耗时）。HeapNode 实现：priority 越小越优先（最小堆），0 表示强制队列。设计要点：params 字段统一为 ICircularQueue 类型，确保 LOOP 模式可直接调用 next()；run(deltaTime) 返回 Bool：true 表示本帧可继续执行；false 表示停止本帧调度；ONCE 模式执行一次后自动标记 finished；耗时用 MonoTime 测量，纳秒转毫秒用 Float64 保留精度。
+ * @explain[zh-cn] FrameTask 是分帧调度的最小执行单元，包含唯一 ID、优先级（用于 BinaryHeap 排序）、执行模式（CONSUME/LOOP/ONCE）、参数队列（ICircularQueue，支持消耗与循环两种取数方式）、回调函数（接收 FrameTaskContext）和耗时统计（lastTime / EWMA 平均耗时）。IHeapNode 实现：priority 越小越优先（最小堆），0 表示强制队列。设计要点：params 字段统一为 ICircularQueue 类型，确保 LOOP 模式可直接调用 next()；run(deltaTime) 返回 Bool：true 表示本帧可继续执行；false 表示停止本帧调度；ONCE 模式执行一次后自动标记 finished；耗时用 MonoTime 测量，纳秒转毫秒用 Float64 保留精度。
  *
  * @file[en] FrameTask
  * @brief[en] Frame task and execution context
- * @explain[en] FrameTask is the smallest execution unit for frame-based scheduling, containing a unique ID, priority (for BinaryHeap sorting), execution mode (CONSUME/LOOP/ONCE), parameter queue (ICircularQueue, supporting both consume and cycle retrieval), callback function (receiving FrameTaskContext), and time statistics (lastTime / EWMA average). HeapNode implementation: lower priority value means higher priority (min-heap), 0 means forced queue. Design notes: the params field is unified as ICircularQueue type to ensure LOOP mode can call next() directly; run(deltaTime) returns Bool: true means continue execution this frame; false means stop this frame's scheduling; ONCE mode auto-marks finished after one execution; timing uses MonoTime, nanoseconds to milliseconds converted with Float64 precision.
+ * @explain[en] FrameTask is the smallest execution unit for frame-based scheduling, containing a unique ID, priority (for BinaryHeap sorting), execution mode (CONSUME/LOOP/ONCE), parameter queue (ICircularQueue, supporting both consume and cycle retrieval), callback function (receiving FrameTaskContext), and time statistics (lastTime / EWMA average). IHeapNode implementation: lower priority value means higher priority (min-heap), 0 means forced queue. Design notes: the params field is unified as ICircularQueue type to ensure LOOP mode can call next() directly; run(deltaTime) returns Bool: true means continue execution this frame; false means stop this frame's scheduling; ONCE mode auto-marks finished after one execution; timing uses MonoTime, nanoseconds to milliseconds converted with Float64 precision.
  */
 package three.core.dispatch
 
 import std.collection.*
 import std.time.*
 import three.core.dsa.*
-import three.core.interfaces.*
+import three.core._interfaces.*
 
 /**
  * @brief[zh-cn] 帧任务模式
@@ -139,7 +139,7 @@ public class FrameTaskContext {
  * task.params.add([1])  // 添加参数组
  * ```
  */
-public class FrameTask <: HeapNode {
+public class FrameTask <: IHeapNode {
     /**
      * @brief[zh-cn] 唯一 ID（由调度器分配，调用方不应直接修改）
      *
@@ -253,7 +253,7 @@ public class FrameTask <: HeapNode {
         this._index = -1
     }
 
-    // ===== HeapNode 实现 =====
+    // ===== IHeapNode 实现 =====
 
     /**
      * @brief[zh-cn] 在堆中的索引（-1 表示不在堆中）
@@ -274,7 +274,7 @@ public class FrameTask <: HeapNode {
      * @param[en] other Another heap node
      * @return[en] Returns true when this.priority < other.priority
      */
-    public func lessThan(other: HeapNode): Bool {
+    public func lessThan(other: IHeapNode): Bool {
         // 用 is + as 安全转 type，避免不同类型比较时报错
         if (other is FrameTask) {
             let otherTask = other as FrameTask

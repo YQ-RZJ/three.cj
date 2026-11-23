@@ -13,7 +13,7 @@ package test_asset_pipeline
 import std.unittest.*
 import three.resource.pipeline.*
 import three.resource.loader.StringLoadResult
-import three.core.interfaces.ILoadResult
+import three.resource.loader.ILoadResult
 
 public class AssetCacheTest <: TestClass {
     public override func asTestSuite(): TestSuite {

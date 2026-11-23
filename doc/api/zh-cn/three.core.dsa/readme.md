@@ -5,7 +5,7 @@
 ### 类
 |  名称   | 描述  |
 |  ----  | ----  |
-|[BinaryHeap<T> where T <: HeapNode](./类/BinaryHeap.md#class-binaryheap-t-where-t-heapnode)|二叉堆（默认最小堆）|
+|[BinaryHeap<T> where T <: IHeapNode](./类/BinaryHeap.md#class-binaryheap-t-where-t-iheapnode)|二叉堆（默认最小堆）|
 |[BinaryPatriciaTrie < V >](./类/BinaryPatriciaTrie.md#class-binarypatriciatrie-v-)|二进制 Patricia Trie（Radix/压缩前缀树）|
 |[BitArray](./类/BitArray.md#class-bitarray)|动态二进制位管理器|
 |[Boid](./类/Boid.md#class-boid)|单个 Boid（鸟个体）|
@@ -27,5 +27,7 @@
 ### 接口
 |  名称   | 描述  |
 |  ----  | ----  |
-|[HeapNode](./接口/HeapNode.md#interface-heapnode)|堆节点接口|
+|[ICircularQueue<T>](./接口/ICircularQueue.md#interface-icircularqueue-t-)|循环队列接口|
+|[IHeapNode](./接口/IHeapNode.md#interface-iheapnode)|堆节点接口|
+|[IQueue<T>](./接口/IQueue.md#interface-iqueue-t-)|队列接口|
 

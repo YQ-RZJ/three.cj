@@ -11,3 +11,10 @@
 |[Group](./Class/Group.md#class-group)|Group, a transform-less container scene object|
 |[Scene](./Class/Scene.md#class-scene)|Scene, the root node of the scene graph|
 
+### Interface
+|  Name   | Describe  |
+|  ----  | ----  |
+|[IBackground](./Interface/IBackground.md#interface-ibackground)|Scene background marker interface: element type of Scene.background|
+|[IGroup](./Interface/IGroup.md#interface-igroup)|Render group marker interface: group parameter type for Material.onBeforeRender callback|
+|[IScene](./Interface/IScene.md#interface-iscene)|Scene marker interface: scene parameter type for CubeCamera.update / PMREMGenerator.fromScene|
+

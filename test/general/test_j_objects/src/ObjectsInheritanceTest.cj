@@ -13,8 +13,8 @@ import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
 import three.scene.objects.Object3D
-import three.rendering.geometry.BufferGeometry
-import three.rendering.materials.Material
+import three.renderers.geometry.BufferGeometry
+import three.renderers.materials.Material
 
 public class ObjectsInheritanceTest <: TestClass {
     public override func asTestSuite(): TestSuite {

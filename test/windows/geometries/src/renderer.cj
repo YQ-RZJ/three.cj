@@ -20,13 +20,13 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.geometry.LineCurve3
-import three.rendering.geometry.Shape
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.geometry.LineCurve3
+import three.renderers.geometry.Shape
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
 import three.utils.constants.DoubleSide
 
 /// 几何体围圈半径与数量

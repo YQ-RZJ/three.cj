@@ -10,7 +10,7 @@
 package test_j_textures
 
 import std.unittest.*
-import three.rendering.textures.*
+import three.renderers.textures.*
 
 public class TextureBehaviorTest <: TestClass {
     public override func asTestSuite(): TestSuite {

@@ -26,14 +26,13 @@
  * @explain[zh-cn] 实现 Google Group Varint 编码（参见 Jeff Dean WSDM09 keynote），
  *                  每 4 个 UInt32 值用 1 字节前缀 + 变长字节编码（1-4 字节/值），
  *                  用于骨骼动画关键帧索引压缩，减少内存占用。
- *                  算法参照 ozz-animation/include/ozz/base/encode/group_varint.h 移植。
  *
  * @file[en] GroupVarint
  * @brief[en] Group Varint encoding/decoding utility
  * @explain[en] Implements Google Group Varint encoding (see Jeff Dean WSDM09 keynote).
  *              Every 4 UInt32 values are encoded with a 1-byte prefix + variable-length
  *              bytes (1-4 bytes per value). Used for skeletal animation keyframe index
- *              compression. Ported from ozz-animation group_varint.h.
+ *              compression.
  */
 package three.utils.encode
 

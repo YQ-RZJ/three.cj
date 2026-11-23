@@ -34,7 +34,7 @@ package three.core.dispatch
 import std.collection.*
 import std.time.*
 import three.core.dsa.*
-import three.core.interfaces.*
+import three.core._interfaces.*
 
 /**
  * @brief[zh-cn] 帧调度器

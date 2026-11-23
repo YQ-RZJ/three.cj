@@ -3,7 +3,7 @@
 ```cj
 public open class Mesh <: Object3D & IMesh
 ```
-Mesh rendering object, the most commonly used triangle face rendering entity in 3D scenes
+Mesh renderers object, the most commonly used triangle face renderers entity in 3D scenes
 
 ### func copy\(Mesh,Bool\)
 ```cj

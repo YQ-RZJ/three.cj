@@ -37,13 +37,14 @@
 package three.audio.source
 
 import openalsoft4cj.al.*
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 
 import three.audio.device.*
 import three.audio.listener.*
 import three.profiler.*
 import three.profiler.macros.*
 import three.utils.safe.IReleasable
+import three.utils.memory.VoidPtr
 
 /**
  * @brief[zh-cn] 音频缓冲区，存储解码后的 PCM 数据
@@ -136,7 +137,8 @@ public class AudioBuffer <: ILoadResult & IReleasable {
      * @note[en] OpenAL calls run on the audio thread via context.execAudio.
      */
     @Zone[three.audio.source.AudioBuffer.create, name=audioBufferCreate]
-    public static func create(pcmData: CPointer<Unit>, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer {
+    public static func create(pcmData: VoidPtr, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer {
+        let pcm = pcmData.value
         let buf = AudioBuffer()
         buf.channels = channels
         buf.sampleRate = sampleRate
@@ -154,7 +156,7 @@ public class AudioBuffer <: ILoadResult & IReleasable {
 
             // 填充数据：s16 交错 PCM 字节数 = 帧数 × 声道数 × 2
             buf.dataSize = Int32(Int64(frameCount) * Int64(channels) * 2)
-            alBufferData_cj(buf.bufferId, buf.format, pcmData, buf.dataSize, Int32(sampleRate))
+            alBufferData_cj(buf.bufferId, buf.format, pcm, buf.dataSize, Int32(sampleRate))
         })
 
         return buf
@@ -180,7 +182,8 @@ public class AudioBuffer <: ILoadResult & IReleasable {
      * sampleRate Sample rate
      * @return[en] The created AudioBuffer instance (bufferId is ready)
      */
-    public static func createChunk(pcmData: CPointer<Unit>, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer {
+    public static func createChunk(pcmData: VoidPtr, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer {
+        let pcm = pcmData.value
         let buf = AudioBuffer()
         buf.channels = channels
         buf.sampleRate = sampleRate
@@ -194,7 +197,7 @@ public class AudioBuffer <: ILoadResult & IReleasable {
             unsafe { LibC.free(bufPtr) }
 
             buf.dataSize = Int32(Int64(frameCount) * Int64(channels) * 2)
-            alBufferData_cj(buf.bufferId, buf.format, pcmData, buf.dataSize, Int32(sampleRate))
+            alBufferData_cj(buf.bufferId, buf.format, pcm, buf.dataSize, Int32(sampleRate))
         })
 
         return buf

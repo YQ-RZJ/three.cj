@@ -31,14 +31,14 @@
  */
 package three.resource.loader
 
-import three.rendering.buffer.*
+import three.renderers.buffer.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
-import three.core.interfaces.ILoadResult
-import three.rendering.materials.*
-import three.rendering.textures.*
+import three.core._interfaces.ILoadResult
+import three.renderers.materials.*
+import three.renderers.textures.*
 import three.core.math.*
 import std.collection.*
 import std.fs.*

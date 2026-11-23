@@ -12,8 +12,8 @@ import std.unittest.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.geometry.BufferGeometry
-import three.rendering.materials.Material
+import three.renderers.geometry.BufferGeometry
+import three.renderers.materials.Material
 
 public class ObjectsInstancingTest <: TestClass {
     public override func asTestSuite(): TestSuite {

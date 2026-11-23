@@ -3,7 +3,7 @@
 ```cj
 public class BatchedMesh <: Mesh & IReleasable
 ```
-Batched mesh that packs multiple independent geometries into a single BufferGeometry for rendering
+Batched mesh that packs multiple independent geometries into a single BufferGeometry for renderers
 
 ### func addGeometry\(BufferGeometry\)
 ```cj
@@ -134,7 +134,7 @@ Parameter:
 ```cj
 public func optimize(): Unit
 ```
-与 JS side 一致：紧缩 active 几何到连续区间，提升后续渲染效率。
+紧缩 active 几何到连续区间，提升后续渲染效率。
 
 ### func release\(\)
 ```cj

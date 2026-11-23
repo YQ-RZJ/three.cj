@@ -24,7 +24,8 @@
  * @file[zh-cn] Audio 音频模块父包（锚点文件）
  * @brief[zh-cn] 音频模块父包，仅用于声明 three.audio 包
  * @explain[zh-cn] 本文件不含任何类型声明，仅作为包锚点，便于 cjpm 识别
- * device/source/listener/mixer/interfaces/capture 等子包。
+ * device/source/listener/mixer/interfaces/capture 等子包。interfaces 子包为
+ * protected 包（仅模块内可见），其契约经实现包 mixer 重导出（three.audio.mixer.IAudioEffect 等）。
  * @intro[zh-cn] three.audio 提供基于 OpenAL 的音频子系统，包括音频上下文
  * （AudioContext）、监听器（AudioListener）、静态/位置/流式音频源
  * （Audio/PositionalAudio/StreamingAudio）、录音（AudioRecorder）以及
@@ -34,7 +35,9 @@
  * @brief[en] The audio module parent package, used only to declare the three.audio package
  * @explain[en] This file contains no type declarations and serves only as a package
  * anchor so that cjpm can recognize the device/source/listener/mixer/
- * interfaces/capture subpackages.
+ * interfaces/capture subpackages. The interfaces subpackage is a protected
+ * package (module-visible only); its contracts are re-exported by the
+ * implementation package mixer (three.audio.mixer.IAudioEffect etc.).
  * @intro[en] three.audio provides an OpenAL-based audio subsystem, including the
  * audio context (AudioContext), listener (AudioListener), static/positional/
  * streaming audio sources (Audio/PositionalAudio/StreamingAudio), recording

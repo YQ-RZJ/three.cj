@@ -41,7 +41,7 @@ public override func copy(source: Object3D, recursive: Bool): Object3D
 ```cj
 public func getCurrentLevel(): Int64
 ```
-获取当前激活的层级索引。对照 JS: LOD.js getCurrentLevel() { return this._currentLevel; }
+获取当前激活的层级索引。
 
 ### func getObjectForDistance\(Float64\)
 ```cj
@@ -71,7 +71,7 @@ public func release(): Bool
 ```cj
 public func removeLevel(distance: Float64): Bool
 ```
-仓颉 ArrayList 无 splice/remove，参考 addLevel 的重建模式实现。
+仓颉 ArrayList 无 splice/remove，按 addLevel 的重建模式实现。
 
 参数: 
 
@@ -83,7 +83,7 @@ public func removeLevel(distance: Float64): Bool
 ```cj
 public func setCurrentLevel(level: Int64): Unit
 ```
-渲染器内部以 update(camera) 自动判定，与 JS side 一致。
+渲染器内部以 update(camera) 自动判定。
 
 参数: 
 

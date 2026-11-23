@@ -3,7 +3,7 @@
 ```cj
 public open class Line <: Object3D
 ```
-Line rendering object, a continuous polyline from vertices connected in order
+Line renderers object, a continuous polyline from vertices connected in order
 
 ### func clone\(\)
 ```cj
@@ -56,7 +56,7 @@ Return:
 ```cj
 public init(geometry!: BufferGeometry = BufferGeometry(), material!: Material = LineBasicMaterial())
 ```
-Construct a new line rendering object
+Construct a new line renderers object
 
 Parameter: 
 

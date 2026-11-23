@@ -32,7 +32,9 @@
 package three.core.dsa
 
 import std.collection.*
-import three.core.interfaces.*
+import three.core._interfaces.*
+public import three.core._interfaces.IQueue
+public import three.core._interfaces.ICircularQueue
 
 /**
  * @brief[zh-cn] 循环队列

@@ -15,9 +15,9 @@ public static func create(vm: LuaVM, narr!: Int32 = 0, nrec!: Int32 = 0): LuaTab
 
 |名称|类型|描述|
 |---|---|---|
-|vm|LuaVM|目标虚拟机narr 预分配数组部分容量nrec 预分配哈希部分容量|
-|narr|Int32||
-|nrec|Int32||
+|vm|LuaVM|目标虚拟机|
+|narr|Int32|预分配数组部分容量|
+|nrec|Int32|预分配哈希部分容量|
 
 返回: 
 
@@ -33,12 +33,30 @@ public static func fromGlobal(vm: LuaVM, name: String): Option < LuaTable >
 
 |名称|类型|描述|
 |---|---|---|
-|vm|LuaVM|目标虚拟机name 全局变量名|
-|name|String||
+|vm|LuaVM|目标虚拟机|
+|name|String|全局变量名|
 
 返回: 
 
 - 表引用；若全局变量不存在或不是表则返回 None
+
+### func fromStack\(LuaVM,VoidPtr,Int32\)
+```cj
+public static func fromStack(vm: LuaVM, L: VoidPtr, idx: Int32): Option < LuaTable >
+```
+从栈索引建立表引用（lua_pushvalue + luaL_ref；非表返回 None）
+
+参数: 
+
+|名称|类型|描述|
+|---|---|---|
+|vm|LuaVM|所属虚拟机（引用释放时使用 handle）|
+|L|VoidPtr|底层 lua_State 句柄|
+|idx|Int32|栈索引（值不为表时返回 None，栈不变）|
+
+返回: 
+
+- 表引用；栈顶值不是表时返回 None
 
 ### func getIndex\(Int32\)
 ```cj
@@ -55,6 +73,16 @@ public func getIndex(i: Int32): LuaValue
 返回: 
 
 - 索引处的值（不存在时返回 nil）
+
+### func getValues\(\)
+```cj
+public func getValues(): Array < LuaValue >
+```
+以数值数组形式读取表中全部数组段元素（t[1]..t[n]，n = len()）
+
+返回: 
+
+- 数组段元素；表无数组部分时返回空数组
 
 ### func get\(String\)
 ```cj
@@ -82,8 +110,8 @@ public init(vm!: LuaVM, ref!: Int32)
 
 |名称|类型|描述|
 |---|---|---|
-|vm|LuaVM|所属虚拟机ref 注册表引用（由 luaL_ref 产生）|
-|ref|Int32||
+|vm|LuaVM|所属虚拟机|
+|ref|Int32|注册表引用（由 luaL_ref 产生）|
 
 ### func len\(\)
 ```cj
@@ -99,7 +127,7 @@ public func len(): Int64
 ```cj
 public func release(): Bool
 ```
-释放注册表引用。
+释放注册表引用
 
 ### func setIndex\(Int32,LuaValue\)
 ```cj
@@ -111,8 +139,8 @@ public func setIndex(i: Int32, value: LuaValue): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|i|Int32|数组索引（从 1 开始）value 要写入的值|
-|value|LuaValue||
+|i|Int32|数组索引（从 1 开始）|
+|value|LuaValue|要写入的值|
 
 ### func set\(String,LuaValue\)
 ```cj
@@ -124,8 +152,8 @@ public func set(key: String, value: LuaValue): Unit
 
 |名称|类型|描述|
 |---|---|---|
-|key|String|字段名value 要写入的值|
-|value|LuaValue||
+|key|String|字段名|
+|value|LuaValue|要写入的值|
 
 ### prop isArray: Bool
 ```cj

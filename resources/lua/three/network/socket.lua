@@ -1,0 +1,31 @@
+-- three/network/socket.lua —— three.network.socket 绑定模块
+--
+-- 返回 three.network.socket 全局命名空间。需引擎侧先安装 socket 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.network.socket")
+--
+-- 用法（TCP 客户端）：
+--     local S = require "three.network.socket"
+--     local client = S.SocketClient.new("127.0.0.1", 8080)
+--     client.listener = {
+--         onOpen = function(c) print("open") end,
+--         onMessage = function(c, data) print(#data) end,
+--         onError = function(c, msg) print(msg) end,
+--         onClose = function(c) print("close") end
+--     }
+--     if client:connect() then
+--         client:writeString("hello")
+--         local data = client:readBytes(1024)
+--         client:release()
+--     end
+--
+-- 已绑定类：
+--   SocketClient  TCP 客户端（host / port / isConnected / releasable；connect / write /
+--                 writeString / read / readBytes / readString / release；listener 只写）
+--   SocketServer  TCP 服务端（port / isBound / releasable；bind / accept / release）
+--   SocketUdp     UDP 套接字（isBound / releasable；bind() / bind(port) / sendTo /
+--                 sendString / receive / release）
+--
+-- 说明：ISocketListener 为接口，不绑定；listener 接受含 onOpen / onMessage / onError /
+-- onClose 四个函数字段的表（赋值 nil 可清除）。数据在 Lua 侧为数值数组。
+
+return require("three").network.socket

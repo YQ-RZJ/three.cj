@@ -134,20 +134,20 @@ class TestListener <: ISocketListener {
     public var closed: Bool = false
     public var lastData: Array<UInt8> = []
 
-    public func onOpen(client: SocketClient): Unit {
+    public func onOpen(client: ISocketClient): Unit {
         this.opened = true
     }
 
-    public func onMessage(client: SocketClient, data: Array<UInt8>): Unit {
+    public func onMessage(client: ISocketClient, data: Array<UInt8>): Unit {
         this.messages += 1
         this.lastData = data
     }
 
-    public func onError(client: SocketClient, message: String): Unit {
+    public func onError(client: ISocketClient, message: String): Unit {
         println("    [event] onError: ${message}")
     }
 
-    public func onClose(client: SocketClient): Unit {
+    public func onClose(client: ISocketClient): Unit {
         this.closed = true
     }
 }

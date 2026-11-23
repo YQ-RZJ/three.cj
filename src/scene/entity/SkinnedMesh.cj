@@ -34,14 +34,14 @@
  * Extends Mesh; raycast handles bone-transformed vertex positions (via override getVertexPosition).
  */
 package three.scene.entity
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import three.utils.constants.*
 import three.animation.skeletal.*
 import three.profiler.*
@@ -201,7 +201,7 @@ public class SkinnedMesh <: Mesh {
     /**
      * @brief[zh-cn] 归一化 skinWeight 属性：各顶点权重缩放为总和 1，避免渲染瑕疵
      *
-     * @brief[en] Normalize skinWeight attribute: scale each vertex's weights to sum to 1, avoiding rendering artifacts
+     * @brief[en] Normalize skinWeight attribute: scale each vertex's weights to sum to 1, avoiding renderers artifacts
      */
     public func normalizeSkinWeights(): Unit {
         let geo = this.geometry

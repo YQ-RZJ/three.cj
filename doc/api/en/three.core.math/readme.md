@@ -25,7 +25,7 @@
 |[Color](./Class/Color.md#class-color)|Color class, represented by RGB components, range [0, 1]|
 |[Cylindrical](./Class/Cylindrical.md#class-cylindrical)|Cylindrical coordinates class for representing points in 3D space|
 |[Euler](./Class/Euler.md#class-euler)|Euler angles class, describing rotation using three angles (x, y, z) and rotation order|
-|[FrustumArray](./Class/FrustumArray.md#class-frustumarray)|Frustum array class for multi-layer rendering frustum culling|
+|[FrustumArray](./Class/FrustumArray.md#class-frustumarray)|Frustum array class for multi-layer renderers frustum culling|
 |[Frustum](./Class/Frustum.md#class-frustum)|Frustum class, defined by 6 planes|
 |[HSL](./Class/HSL.md#class-hsl)|HSL color value container, used as target parameter for getHSL method|
 |[Interpolant](./Class/Interpolant.md#class-interpolant)|Interpolant base class, providing interval search and interpolation template methods|
@@ -49,6 +49,12 @@
 |[Vector3](./Class/Vector3.md#class-vector3)|3D vector class, represents an ordered triple (x, y, z)|
 |[Vector4F](./Class/Vector4F.md#class-vector4f)|Float32 4D vector class|
 |[Vector4](./Class/Vector4.md#class-vector4)|4D vector class, represents an ordered quadruple (x, y, z, w)|
+
+### Interface
+|  Name   | Describe  |
+|  ----  | ----  |
+|[IBox3Expandable](./Interface/IBox3Expandable.md#interface-ibox3expandable)|Read-only interface for bounding box expansion: used by Box3.setFromObject / expandByObject for traversal|
+|[IFrustumCullable](./Interface/IFrustumCullable.md#interface-ifrustumcullable)|Read-only interface for frustum culling: provides object's world-space bounding sphere|
 
 ### Enum
 |  Name   | Describe  |

@@ -27,10 +27,10 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
 
 /// VolumeCloudPass 默认参数（R 键重置时回到此值）
 public let DEFAULT_THRESHOLD: Float64 = 0.25

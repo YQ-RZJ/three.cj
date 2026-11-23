@@ -36,12 +36,13 @@
 package three.scene.objects
 
 import three.core.math.*
-import three.rendering.buffer.*
+import three.renderers.buffer.*
 import three.core.event.*
-import three.core.interfaces.*
-import three.core.interfaces.ILoadResult
-import three.animation.interfaces.IAnimationClip
-import three.rendering.interfaces.IGeometryProvider
+import three.core._interfaces.*
+import three.core._interfaces.ILoadResult
+public import three.core._interfaces.IPropertyBindingRoot
+import three.animation._interfaces.IAnimationClip
+import three.renderers._interfaces.IGeometryProvider
 import std.collection.*
 import std.math.*
 import fastjson.*

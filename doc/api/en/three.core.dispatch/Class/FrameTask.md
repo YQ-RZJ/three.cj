@@ -1,7 +1,7 @@
 # Class
 ## class FrameTask
 ```cj
-public class FrameTask <: HeapNode
+public class FrameTask <: IHeapNode
 ```
 Frame task
 
@@ -22,9 +22,9 @@ Parameter:
 |params|ICircularQueue<Array<Any>>||
 |shareValue|?Any||
 
-### func lessThan\(HeapNode\)
+### func lessThan\(IHeapNode\)
 ```cj
-public func lessThan(other: HeapNode): Bool
+public func lessThan(other: IHeapNode): Bool
 ```
 Comparison function: lower priority value means higher priority (min-heap)
 
@@ -32,7 +32,7 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|other|HeapNode|Another heap node|
+|other|IHeapNode|Another heap node|
 
 Return: 
 

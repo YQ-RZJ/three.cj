@@ -114,7 +114,7 @@ Parameter:
 ```cj
 public func normalizeSkinWeights(): Unit
 ```
-Normalize skinWeight attribute: scale each vertex's weights to sum to 1, avoiding rendering artifacts
+Normalize skinWeight attribute: scale each vertex's weights to sum to 1, avoiding renderers artifacts
 
 ### func pose\(\)
 ```cj

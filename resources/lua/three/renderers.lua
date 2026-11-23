@@ -1,0 +1,27 @@
+-- three/renderers.lua —— three.renderers 绑定模块
+--
+-- 返回 three.renderers 全局命名空间。需引擎侧先安装 renderers 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.renderers")
+--
+-- 子模块（不创建新的状态，均指向同一全局表）：
+--     require "three.renderers.buffer"         BufferAttribute / 交错缓冲 / 实例化属性
+--     require "three.renderers.textures"       Texture 族 / Source / ImageUtils / PMREMGenerator
+--     require "three.renderers.geometry"       BufferGeometry / 图元几何 / 曲线 / Shape
+--     require "three.renderers.materials"      Material 族（Standard / Phong / Basic / Shader …）
+--     require "three.renderers.cameras"        Camera 族（Perspective / Orthographic / Stereo …）
+--     require "three.renderers.lights"         Light 族 / LightShadow / 阴影常量
+--     require "three.renderers.rendertarget"   RenderTarget / RenderTarget3D / 选项
+--     require "three.renderers.helpers"        Axes / Grid / Box / Arrow 等辅助对象
+--     require "three.renderers.postprocessing" Pass 族 / EffectComposer 后处理链
+--     require "three.renderers.gfx"            抽象层枚举 / 位标志 / 值结构 / 句柄
+--     require "three.renderers._interfaces"    IShaderProgram / IUniformRegistry
+--     require "three.renderers.xr"             XRManager / XRController / XRDepthSensing
+--     require "three.renderers.common"         Info 渲染统计 / Constants 通用常量
+--     require "three.renderers.shaders"        ShaderChunks / ShaderVariant（自定义着色器）
+--
+-- 根渲染器：three.renderers.ThreeRenderer（new / initBgfx / render / setClearColor /
+-- setWireframe / makeShaderProgram / makeUniformRegistry / present）
+-- 数据纹理：three.renderers.EngineDataTexture（2D/3D 像素上传 / invalid / dispose）
+-- 渲染目标：three.renderers.EngineRenderTarget（自定义 pass 用 frameBuffer/colorTexture 句柄）
+
+return require("three").renderers

@@ -3,7 +3,7 @@
 ```cj
 public open class LineSegments <: Line
 ```
-Line segments rendering object, pairing vertices into independent line segments
+Line segments renderers object, pairing vertices into independent line segments
 
 ### func computeLineDistances\(\)
 ```cj

@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-1.0.0-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-1.1.8-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-跨平台-lightgrey" style="display: inline-block;" />
@@ -62,18 +62,19 @@
 | `three.network.sync` | 同步模型（LockstepSession 确定性帧同步 + SnapshotBuffer 快照插值） | `src/network/sync/` |
 | `three.physics` | 物理系统（Jolt：世界/刚体/角色/约束/绑定/高度场/软体/载具/布娃娃/调试渲染） | `src/physics/` |
 | `three.profiler` | 性能剖析子系统（Tracy：Zone/帧标记/曲线图/消息/内存/GPU 时间域/锁竞争/纤维/采样，及自动化侵入宏） | `src/profiler/` |
-| `three.rendering` | 渲染系统（bgfx 后端、相机、几何体、材质、灯光、后处理、着色器） | `src/rendering/` |
+| `three.renderers` | 渲染系统（bgfx 后端、相机、几何体、材质、灯光、后处理、着色器） | `src/renderers/` |
 | `three.resource` | 资源加载与缓存（模型/纹理/动画加载器、序列化、资源管线） | `src/resource/` |
 | `three.resource.pipeline` | 资源管线（AssetBundle 打包/读取、AssetManager 异步分帧加载、AssetCache 引用计数卸载） | `src/resource/pipeline/` |
 | `three.scene` | 场景管理（场景图、实体、ECS、Object3D、射线） | `src/scene/` |
 | `three.script` | 脚本系统（LuaJIT VM、双向绑定、热更新） | `src/script/` |
+| `three.script.prebind` | Lua 预绑定（LuaBindingFactory/PrebindUtil，自动生成的双向绑定胶水代码） | `src/script/prebind/` |
 | `three.utils` | 工具库（日志、编解码、对象池、内存、分配器） | `src/utils/` |
 | `three.window` | 窗口与输入引擎（SDL3 窗口、输入提供者） | `src/window/` |
 | `three.window.ui` | GUI 子系统（ImGui 控件/窗口/布局/菜单/标签页/表格/弹窗/拖放/字体/样式/绘制列表/视口/存储） | `src/window/ui/` |
 
 ## 项目结构
 
-> 说明：目录树仅展示到目录层级，具体文件较多不再展开。
+> 说明：目录树仅展示到目录层级，具体文件较多不再展开；`_` 前缀子目录（如 `_interfaces`、`_bgfx`、`_gfx`）为内部子包，其中 interfaces 子包仅保留接口定义。
 
 ```
 three/
@@ -82,27 +83,28 @@ three/
 │   ├── asstes/             # 文档资源
 │   └── references/         # 项目材料（测试案例项目说明等）
 ├── libs/                   # 原生库目录（各平台测试链接所需静态库，含 exclude.rsp 与 symbols_elf.map）
+├── resources/              # 引擎示例资源（lua 脚本等）
 ├── scripts/                # 辅助脚本（详见 scripts/README_zh.md）
 ├── src/                    # 仓颉引擎源码（本 README 主体）
 │   ├── animation/          # 动画系统
+│   │   ├── _interfaces/    # 接口子包（IAnimationClip/IKeyframeTrack）
 │   │   ├── blend/          # 动画混合与动作调度（AnimationMixer/Action/KeyframeTrack/PropertyBinding）
 │   │   ├── clip/           # 动画剪辑（AnimationClip/AnimationUtils）
-│   │   ├── interfaces/     # 跨包解耦接口
 │   │   ├── offline/        # 离线动画（叠加动画构建器/烘焙）
 │   │   ├── skeletal/       # 骨骼动画（骨骼/动画事件系统）
 │   │   └── tracks/         # 关键帧轨道（Boolean/Color/Number/Quaternion/String/Vector）
 │   ├── audio/              # 音频子系统（OpenAL）
+│   │   ├── _interfaces/    # 接口子包（IAudioEffect/IAudioEffectSlot/IAudioFilter）
 │   │   ├── capture/        # 录音（AudioRecorder）
 │   │   ├── device/         # 音频上下文（AudioContext）
-│   │   ├── interfaces/     # 音频接口契约
 │   │   ├── listener/       # 音频监听器（AudioListener）
 │   │   ├── mixer/          # EFX 效果与滤波器（AudioEffect/AudioFilter/AudioEffectSlot）
 │   │   └── source/         # 音频源（Audio/PositionalAudio/StreamingAudio/AudioBuffer）
 │   ├── core/               # 核心基础设施
+│   │   ├── _interfaces/    # 接口子包（IBackground/IMaterial/IAttributeReader/IQueue...）
 │   │   ├── dispatch/       # 帧调度（FrameDispatch/FrameTask）
 │   │   ├── dsa/            # 数据结构（BinaryHeap/BinaryPatriciaTrie/BitArray/Queue/RingBuffer/Stack...）
 │   │   ├── event/          # 事件系统（EventDispatcher/EventFactory/EventManager）
-│   │   ├── interfaces/     # 基础设施接口契约
 │   │   ├── math/           # 数学库（向量/矩阵/四元数/颜色/插值/包围盒/射线...）
 │   │   │   ├── interpolants/ # 插值器（线性/贝塞尔/离散/三次/四元数）
 │   │   │   └── soa/        # SoA 数据布局数学（4-wide 标量浮点模拟 SIMD 通道）
@@ -110,35 +112,38 @@ three/
 │   │   ├── thread/         # 线程与同步（Thread/SThread/Sync/RecursiveMutex）
 │   │   └── time/           # 时间（Clock/Timer）
 │   ├── network/            # 网络模块
+│   │   ├── _interfaces/    # 接口子包（ISocketListener）
 │   │   ├── http/           # HTTP 客户端（基于 httpclient4cj）
 │   │   ├── protocol/       # 游戏协议编解码（PacketCodec：PacketWriter/PacketReader 大端字节流）
 │   │   ├── socket/         # Socket 客户端/服务器/UDP
 │   │   ├── sync/           # 同步模型（Lockstep：LockstepSession 帧同步/SnapshotBuffer 快照插值）
 │   │   └── transport/      # 可靠传输（Connection：TCP 组帧/心跳/重连；ReliableChannel：可靠 UDP）
 │   ├── physics/            # 物理系统（Jolt）
+│   │   ├── _interfaces/    # 接口子包（IPhysicsBackend）
 │   │   ├── backend/        # 物理后端适配（JoltBackend）
 │   │   ├── binding/        # Object3D ↔ 刚体绑定（PhysicsBinding）
 │   │   ├── body/           # 刚体（RigidBody）
 │   │   ├── character/      # 角色控制器（Character）
+│   │   ├── common/         # 后端无关物理数据类型（PhysicsCommon：枚举/结构/类，公开 API）
 │   │   ├── constraint/     # 约束/关节（Constraint）
 │   │   ├── debug/          # 物理调试渲染（DebugRenderer：线段/三角形缓存桥接）
 │   │   ├── heightfield/    # 高度场地形（HeightField）
-│   │   ├── interfaces/     # 可插拔后端抽象（IPhysicsBackend）
 │   │   ├── ragdoll/        # 布娃娃（Ragdoll）
 │   │   ├── softbody/       # 软体/布料（SoftBody）
 │   │   ├── vehicle/        # 载具（Vehicle：车轮/悬挂/引擎/差速器）
 │   │   └── world/          # 物理世界门面（PhysicsWorld，独立物理线程）
 │   ├── profiler/           # 性能剖析子系统（Tracy）
 │   │   └── macros/         # 自动化侵入宏（@Zone/@Plot/@Message/...，由 THREE_PROFILER 门控）
-│   ├── rendering/          # 渲染系统（bgfx）
-│   │   ├── bgfx/           # bgfx 后端实现（BgfxBackend/材质/灯光/阴影/渲染状态/着色器缓存）
+│   ├── renderers/          # 渲染系统（Gfx 抽象 + bgfx 后端）
+│   │   ├── _bgfx/          # bgfx 后端实现（BgfxBackend/材质/灯光/阴影/渲染状态/着色器缓存）
+│   │   ├── _gfx/           # Gfx 渲染抽象层（GfxDefs/GfxTypes：后端无关枚举/状态位/描述结构）
+│   │   ├── _interfaces/    # 接口子包（ICamera/IRenderer/IRenderBackend/IRenderTarget...）
 │   │   ├── xr/             # XR 扩展（XR 控制器/深度感知/管理器，对照 WebXR）
 │   │   ├── buffer/         # 顶点/索引缓冲（BufferAttribute/InstancedBuffer...）
 │   │   ├── cameras/        # 相机（Perspective/Orthographic/Stereo/Cube/Array/CameraView）
 │   │   ├── common/         # 渲染公共层（Renderer/RenderList/Pipeline/Backend/BindGroup...）
 │   │   ├── geometry/       # 几何体与曲线（Box/Capsule/Cone/Cylinder/Sphere/Torus/Extrude/Path...）
 │   │   ├── helpers/        # 辅助对象（AxesHelper/GridHelper/ArrowHelper/BoxHelper...）
-│   │   ├── interfaces/     # 渲染接口契约（IRenderer/ICamera/IRenderTarget...）
 │   │   ├── lights/         # 灯光（Ambient/Directional/Point/Spot/Hemisphere/RectArea/LightProbe）
 │   │   ├── materials/      # 材质（Basic/Lambert/Phong/Standard/Physical/Toon/Matcap...）
 │   │   ├── postprocessing/ # 后期处理（FXAA/SMAA/SSAO/SSR/GTAO/Bloom/UnrealBloom/Outline...）
@@ -146,42 +151,44 @@ three/
 │   │   ├── shaders/        # 着色器（ShaderChunk/ShaderLib/ShaderCompiler/ShaderVariant）
 │   │   │   ├── ShaderChunk/ # 着色器代码块
 │   │   │   └── ShaderLib/   # 着色器库
-│   │   ├── textures/       # 纹理（CanvasTexture/CubeTexture/CompressedTexture...）
-│   │   └── types/          # bgfx 类型定义
+│   │   └── textures/       # 纹理（CanvasTexture/CubeTexture/CompressedTexture...）
 │   ├── resource/           # 资源加载与缓存
 │   │   ├── archive/        # 压缩包归档（ZIP 解析/逐条目解压/CRC32 校验/落盘展开）
-│   │   ├── bgfx/           # bgfx 底层资源操作
 │   │   ├── cache/          # 资源缓存（Cache）
 │   │   ├── loader/         # 加载器（glTF/OBJ/MTL/PLY/STL/DDS/KTX/PVR/EXR/HDR/TGA/Font...）
 │   │   ├── pipeline/       # 资源管线（AssetBundle/AssetBundleBuilder 打包读取、AssetManager 异步分帧加载、AssetCache 引用计数卸载）
 │   │   └── serializer/     # 序列化（Serializer）
 │   │       └── macros/     # 序列化宏包（重公开 cjfast_json 注解宏）
 │   ├── scene/              # 场景管理
+│   │   ├── _interfaces/    # 接口子包（IScene/IMesh/IGroup）
 │   │   ├── ecs/            # ECS 框架（World/Entity/Component/System/Registry）
 │   │   │   └── macros/     # ECS 宏（Component/Entity/System 宏）
 │   │   ├── entity/         # 可渲染实体（Mesh/Points/Line/Sprite/SkinnedMesh/InstancedMesh/LOD/BatchedMesh）
-│   │   ├── interfaces/     # 场景接口契约（IScene/IGroup/IMesh）
 │   │   ├── objects/        # 3D 对象基类（Object3D/Raycaster/Layers）
 │   │   └── scenegraph/     # 场景图（Scene/Group/Fog/FogExp2/ClippingGroup）
 │   ├── script/             # 脚本系统（LuaJIT）
 │   │   ├── binding/        # 仓颉 ↔ Lua 双向绑定（LuaBinder）
 │   │   ├── hotreload/      # 脚本热更新（LuaHotReload）
+│   │   ├── prebind/        # Lua 预绑定（LuaBindingFactory/PrebindUtil，含 _renderers_*/_animation_* 等自动生成绑定文件）
 │   │   └── vm/             # LuaJIT VM 封装（LuaVM/LuaValue/LuaTable/LuaFunction/LuaError）
 │   ├── utils/              # 工具库
+│   │   ├── _interfaces/    # 接口子包（IPoolObject/IReleasable）
 │   │   ├── allocator/      # 对象 ID 分配器（IdAllocator）
 │   │   ├── constants/      # 常量
 │   │   ├── encode/         # 编解码（Base64/MD5/SHA/Hash/Hex/UUID/UrlEncode）
 │   │   ├── log/            # 日志（Logger，五级分级）
+│   │   │   └── macros/     # 日志宏包（LogMacros，宏展开时读取环境变量固化分级）
 │   │   ├── memory/         # 内存工具（指针数组/内存转换）
 │   │   ├── pool/           # 对象池（ObjectPool/PoolManager）
 │   │   └── safe/           # 安全托管（IReleasable 可释放接口、Safe<T> GC 兜底自动释放包装）
 │   └── window/             # 窗口与输入引擎（WindowEngine v2 + 输入提供者）
 │       └── ui/             # 即时模式 UI（ImGui 控件/布局/菜单/标签页/表格/弹窗/拖放/字体/样式/绘制）
+├── tools/                  # 跨平台辅助工具（platform 分目录）
 └── test/                   # 测试项目
     ├── bin-reuse/          # 二进制产物复用示例（bin-dependencies + three-deps.a，下载 release 产物直接使用引擎）
     ├── general/            # 通用功能测试（数学/数据结构/ECS/网络/资源管线/序列化/编码...）
     ├── ohos/               # HarmonyOS 测试工程（audio/base/gui/pc/physics）
-    └── windows/            # Windows 测试案例（boxshow/geometries/materials/helpers/后期处理/glTF/physics/gui...）
+    └── windows/            # Windows 测试案例（boxshow/geometries/materials/helpers/后期处理/glTF/physics/gui/animation/audio/xr/ssr/gtao/IBL...）
 ```
 
 ## 环境要求
@@ -383,11 +390,11 @@ Windows (MinGW) target：
 在仓颉代码中导入（与源码依赖完全一致）：
 
 ```cangjie
-import three.rendering.*      // 渲染（BgfxRenderer/BgfxRenderTarget）
-import three.rendering.geometry.*  // 几何体
-import three.rendering.materials.* // 材质
-import three.rendering.cameras.*   // 相机
-import three.rendering.lights.*    // 灯光
+import three.renderers.*      // 渲染（BgfxRenderer/BgfxRenderTarget）
+import three.renderers.geometry.*  // 几何体
+import three.renderers.materials.* // 材质
+import three.renderers.cameras.*   // 相机
+import three.renderers.lights.*    // 灯光
 import three.scene.scenegraph.*    // 场景图（Scene/Group/Fog）
 import three.scene.entity.*        // 实体（Mesh/Points/Line/Sprite...）
 import three.core.math.*           // 数学工具

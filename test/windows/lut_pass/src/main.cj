@@ -11,7 +11,7 @@ package lut_pass
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.KeyCode
@@ -19,19 +19,19 @@ import three.window.KeyboardProvider
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.lights.*
-import three.rendering.postprocessing.EffectComposer
-import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.LUTPass
-import three.rendering.postprocessing.OutputPass
+import three.renderers.lights.*
+import three.renderers.postprocessing.EffectComposer
+import three.renderers.postprocessing.RenderPass
+import three.renderers.postprocessing.LUTPass
+import three.renderers.postprocessing.OutputPass
 import three.utils.constants.*
 import three.utils.log.*
 import three.utils.log.macros.*
-import three.rendering.types.*
+import three.renderers.textures.EngineDataTexture
 import std.collection.*
 
 /**
@@ -108,7 +108,7 @@ public class TestWindow <: WindowEngine {
 
         // 默认用 warm LUT（索引 lutType-1）
         let lutPass = LUTPass(
-            lut: g_lutTextures[Int64(DEFAULT_LUT_TYPE) - 1],
+            g_lutTextures[Int64(DEFAULT_LUT_TYPE) - 1],
             lutSize: LUT_SIZE,
             intensity: DEFAULT_INTENSITY
         )
@@ -221,10 +221,10 @@ public class TestWindow <: WindowEngine {
                 let lutIdx = g_lutType - 1
                 if (lutIdx >= 0 && lutIdx < g_lutTextures.size) {
                     let curLut = g_lutTextures[Int64(lutIdx)]
-                    if (Handle.idx(lutPass.lut) != Handle.idx(curLut)) {
+                    if (lutPass.lut.handleIdx() != curLut.handleIdx()) {
                         lutPass.lut = curLut
                         @LogDebug(["lut", "lut switched: type=" + g_lutType.toString() +
-                                      " tex.idx=" + Handle.idx(curLut).toString()])
+                                      " tex.idx=" + curLut.handleIdx().toString()])
                     }
                 }
 
@@ -294,7 +294,7 @@ public class TestWindow <: WindowEngine {
         }
         // 释放 3D LUT 纹理（本测试项目创建，负责销毁）
         for (t in g_lutTextures) {
-            if (Handle.isValid(t)) { this.renderer.destroyTexture(t) }
+            if (t.releasable) { let _ = t.release() }
         }
         this.renderer.release()
         println("  ThreeRenderer 已关闭")

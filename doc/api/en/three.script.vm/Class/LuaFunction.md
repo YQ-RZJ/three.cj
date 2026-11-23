@@ -35,12 +35,31 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|vm|LuaVM|The target virtual machinename The global variable name|
-|name|String||
+|vm|LuaVM|The target virtual machine|
+|name|String|The global variable name|
 
 Return: 
 
 - The function reference, or None if the global is missing or not a function
+
+### func fromStack\(LuaVM,VoidPtr,Int32\)
+```cj
+public static func fromStack(vm: LuaVM, L: VoidPtr, idx: Int32): Option < LuaFunction >
+```
+Creates a function reference from a stack index (lua_pushvalue + luaL_ref;
+None when the value is not a function)
+
+Parameter: 
+
+|Name|Type|Describe|
+|---|---|---|
+|vm|LuaVM|The owning virtual machine (used for release)|
+|L|VoidPtr|The underlying lua_State handle|
+|idx|Int32|The stack index (returns None and leaves the stack untouched when not a function)|
+
+Return: 
+
+- The function reference, or None when the top value is not a function
 
 ### func init\(LuaVM,Int32\)
 ```cj
@@ -52,14 +71,14 @@ Parameter:
 
 |Name|Type|Describe|
 |---|---|---|
-|vm|LuaVM|The owning virtual machineref The registry reference (produced by luaL_ref)|
-|ref|Int32||
+|vm|LuaVM|The owning virtual machine|
+|ref|Int32|The registry reference (produced by luaL_ref)|
 
 ### func release\(\)
 ```cj
 public func release(): Bool
 ```
-releases the registry reference.
+Releases the registry reference
 
 ### prop ref: Int32
 ```cj

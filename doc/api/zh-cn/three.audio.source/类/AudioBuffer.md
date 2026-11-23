@@ -5,9 +5,9 @@ public class AudioBuffer <: ILoadResult & IReleasable
 ```
 音频缓冲区，存储解码后的 PCM 数据
 
-### func createChunk\(CPointer<Unit>,UInt64,UInt32,UInt32\)
+### func createChunk\(VoidPtr,UInt64,UInt32,UInt32\)
 ```cj
-public static func createChunk(pcmData: CPointer < Unit >, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
+public static func createChunk(pcmData: VoidPtr, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
 ```
 创建流式分段缓冲区（用于 StreamingAudio 的队列缓冲）
 
@@ -15,7 +15,7 @@ public static func createChunk(pcmData: CPointer < Unit >, frameCount: UInt64, c
 
 |名称|类型|描述|
 |---|---|---|
-|pcmData|CPointer<Unit>|该分段的 PCM 数据指针frameCount 该分段的帧数channels 声道数sampleRate 采样率|
+|pcmData|VoidPtr|该分段的 PCM 数据指针frameCount 该分段的帧数channels 声道数sampleRate 采样率|
 |frameCount|UInt64||
 |channels|UInt32||
 |sampleRate|UInt32||
@@ -24,9 +24,9 @@ public static func createChunk(pcmData: CPointer < Unit >, frameCount: UInt64, c
 
 - 创建的 AudioBuffer 实例（bufferId 已就绪）
 
-### func create\(CPointer<Unit>,UInt64,UInt32,UInt32\)
+### func create\(VoidPtr,UInt64,UInt32,UInt32\)
 ```cj
-public static func create(pcmData: CPointer < Unit >, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
+public static func create(pcmData: VoidPtr, frameCount: UInt64, channels: UInt32, sampleRate: UInt32): AudioBuffer
 ```
 根据 PCM 数据创建并填充 OpenAL 缓冲区（静态缓冲）
 
@@ -36,7 +36,7 @@ public static func create(pcmData: CPointer < Unit >, frameCount: UInt64, channe
 
 |名称|类型|描述|
 |---|---|---|
-|pcmData|CPointer<Unit>|PCM 数据指针（16-bit 交错格式）frameCount 总帧数channels 声道数（1=单声道, 2=立体声）sampleRate 采样率|
+|pcmData|VoidPtr|PCM 数据指针（16-bit 交错格式）frameCount 总帧数channels 声道数（1=单声道, 2=立体声）sampleRate 采样率|
 |frameCount|UInt64||
 |channels|UInt32||
 |sampleRate|UInt32||

@@ -232,12 +232,6 @@ public static prop context: AudioContext
 ```
 获取单例实例（懒初始化）
 
-### prop device: CPointer < Unit >
-```cj
-public prop device: CPointer < Unit >
-```
-获取 OpenAL 设备句柄
-
 ### prop initialized: Bool
 ```cj
 public prop initialized: Bool

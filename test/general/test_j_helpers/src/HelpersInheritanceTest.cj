@@ -9,7 +9,7 @@
 package test_j_helpers
 
 import std.unittest.*
-import three.rendering.helpers.*
+import three.renderers.helpers.*
 import three.scene.objects.Object3D
 import three.core.math.Vector3
 import three.core.math.Plane

@@ -1,0 +1,24 @@
+-- three/animation/skeletal.lua —— three.animation.skeletal 绑定模块
+--
+-- 返回 three.animation.skeletal 全局命名空间。需引擎侧先安装 skeletal 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.animation.skeletal")
+--
+-- 用法：
+--     local skeletal = require "three.animation.skeletal"
+--     local ctrl = skeletal.AnimatorController.new()
+--     ctrl:addState(skeletal.AnimatorState.new('idle', 'clipIdle'))
+--
+-- 已绑定类：
+--   JointTrack             关节通道数据（trans/rot/scale 时间与取值数组）
+--   SkeletalAnimationData  骨骼动画运行时数据（duration / numTracks / track(i)）
+--   SkeletalTrackData      骨骼动画用户通道（采样 sampleFloat / sampleQuaternion / sampleFloat3）
+--   AnimatorParam / TransitionCondition / AnimatorState / AnimatorTransition / AnimatorController
+--                          动画状态机（状态 / 参数 / 过渡 / 每帧 update）
+--   SkeletonData           运行时骨骼数据（关节数 / 父索引 / 名称查询）
+--   SkeletonUtils          骨骼工具（层级 / 子树 / 祖先 / 统计）
+--   AnimationEventSystem   动画帧事件与完成回调（Lua 闭包可注册）
+--
+-- 说明：ozz Job 管线（SamplingJob / BlendingJob / SkinningJob / IK / GPU 蒙皮）需要
+--      SoA/Simd 栈缓冲，暂未绑定。
+
+return require("three").animation.skeletal

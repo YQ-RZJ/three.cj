@@ -1,0 +1,130 @@
+/**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] 背景
+ * @brief[zh-cn] 场景背景渲染类，根据场景背景设置决定清除色
+ * @explain[zh-cn]
+ * Background 继承自 DataMap，负责根据 scene.background 的类型（Color/Texture/None）
+ * 设置 view0 的清除色。当 scene.background 为 Color 时覆盖 renderer.clearColor，
+ * 否则保留 renderer.clearColor 已设置的值。
+ *
+ * @file[en] Background
+ * @brief[en] Scene background renderers class, determines clear color based on scene background settings
+ * @explain[en]
+ * Background extends DataMap and is responsible for setting the clear color of view0
+ * based on the type of scene.background (Color/Texture/None). When scene.background is a Color,
+ * it overrides renderer.clearColor; otherwise, it preserves the renderer.clearColor value.
+ */
+package three.renderers.common
+
+import three.renderers.buffer.*
+import three.renderers.geometry.*
+import three.scene.objects.*
+import three.core.time.*
+import three.renderers.rendertarget.*
+import three.core.event.*
+import three.core.math.*
+import three.scene.scenegraph.*
+import three.renderers.textures.*
+import three.renderers._gfx.*
+import three.renderers._interfaces.IRenderBackend
+/**
+ * @brief[zh-cn] 场景背景渲染类
+ * @explain[zh-cn]
+ * 根据 scene.background 类型决定 view0 的清除色：
+ * - scene.background = Some(Color) → 用该颜色作为清除色
+ * - scene.background = None → 保留 renderer.clearColor
+ * - scene.background = Texture/CubeTexture → 暂不支持，保留 renderer.clearColor
+ *
+ * @brief[en] Scene background renderers class
+ * @explain[en]
+ * Determines the clear color of view0 based on scene.background type:
+ * - scene.background = Some(Color) → uses that color as clear color
+ * - scene.background = None → preserves renderer.clearColor
+ * - scene.background = Texture/CubeTexture → not yet supported, preserves renderer.clearColor
+ */
+public open class Background <: DataMap {
+    /**
+     * @brief[zh-cn] 背景颜色
+     *
+     * @brief[en] Background color
+     */
+    public var color: Color
+
+    /**
+     * @brief[zh-cn] 背景纹理
+     *
+     * @brief[en] Background texture
+     */
+    public var texture: Texture
+
+    /**
+     * @brief[zh-cn] 背景强度
+     *
+     * @brief[en] Background intensity
+     */
+    public var intensity: Float64
+
+    /**
+     * @brief[zh-cn] 构造默认背景实例
+     *
+     * @brief[en] Constructs a default background instance
+     */
+    public init() {
+        super()
+        this.color = Color(0x000000)
+        this.texture = Texture()
+        this.intensity = 1.0
+    }
+
+    /**
+     * @brief[zh-cn] 渲染背景，按引擎通用语义决定 view0 的清除色
+     * @explain[zh-cn]
+     * 当 scene.background 为 Color 时覆盖 renderer.clearColor；
+     * 否则保留 beginRender 已设置的清除色，避免无条件覆盖导致灰色背景 bug。
+     * @param[zh-cn] scene 场景对象
+     * backend 渲染后端（经 setViewClear 下发清除命令）
+     *
+     * @brief[en] Renders the background, determining view0 clear color by common engine semantics
+     * @explain[en]
+     * When scene.background is a Color, overrides renderer.clearColor;
+     * otherwise preserves the clear color already set by beginRender, avoiding unconditional override that causes a gray background bug.
+     * @param[en] scene Scene object
+     * backend Render backend (issues the clear command via setViewClear)
+     */
+    internal func render(scene: Scene, backend: IRenderBackend, viewId!: UInt16 = 0u16): Unit {
+        if (let Some(bg) <- scene.background) {
+            match (bg) {
+                case c: Color =>
+                    let r = UInt8(c.r * 255.0)
+                    let g = UInt8(c.g * 255.0)
+                    let b = UInt8(c.b * 255.0)
+                    let a = UInt8(255)
+                    let newColor = (UInt32(r) << 24) | (UInt32(g) << 16) | (UInt32(b) << 8) | UInt32(a)
+                    backend.setViewClear(viewId, GfxClearFlag.COLOR | GfxClearFlag.DEPTH, newColor, depth: 1.0f32,
+                        stencil: 0u8)
+                case _ => ()
+            }
+        }
+    }
+}

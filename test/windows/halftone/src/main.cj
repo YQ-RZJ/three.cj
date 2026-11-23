@@ -12,7 +12,7 @@ package halftone
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.KeyCode
@@ -20,15 +20,15 @@ import three.window.KeyboardProvider
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.lights.*
-import three.rendering.postprocessing.EffectComposer
-import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.HalftonePass
-import three.rendering.postprocessing.OutputPass
+import three.renderers.lights.*
+import three.renderers.postprocessing.EffectComposer
+import three.renderers.postprocessing.RenderPass
+import three.renderers.postprocessing.HalftonePass
+import three.renderers.postprocessing.OutputPass
 import three.utils.constants.*
 import three.utils.log.*
 import three.utils.log.macros.*
@@ -111,8 +111,8 @@ public class TestWindow <: WindowEngine {
             greyscale: false,
             disable: false
         )
+        // EffectComposer 链：RenderPass → HalftonePass → OutputPass → 上屏
         composer.addPass(halftonePass)
-
         composer.addPass(OutputPass(toneMapping: ACESFilmicToneMapping, exposure: 1.0, sRGB: true))
         composer.setSize(Int64(this.getWidth()), Int64(this.getHeight()))
         this.composer = Some(composer)

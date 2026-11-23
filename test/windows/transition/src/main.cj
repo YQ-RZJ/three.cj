@@ -24,7 +24,7 @@ package transition
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.KeyCode
@@ -32,15 +32,15 @@ import three.window.KeyboardProvider
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.lights.*
-import three.rendering.postprocessing.EffectComposer
-import three.rendering.postprocessing.RenderTransitionPass
-import three.rendering.postprocessing.OutputPass
-import three.rendering.types.*
+import three.renderers.lights.*
+import three.renderers.postprocessing.EffectComposer
+import three.renderers.postprocessing.RenderTransitionPass
+import three.renderers.postprocessing.OutputPass
+import three.renderers.textures.EngineDataTexture
 import three.utils.constants.*
 import three.utils.log.*
 import three.utils.log.macros.*
@@ -65,7 +65,7 @@ public class TestWindow <: WindowEngine {
     var cubes: ArrayList<Mesh> = ArrayList<Mesh>()
     var composer: Option<EffectComposer> = None
     var transitionPass: Option<RenderTransitionPass> = None
-    var mixTex: TextureHandle = INVALID_TEXTURE_HANDLE
+    var mixTex: Option<EngineDataTexture> = None
     var frame: Int64 = 0
     var startTime: MonoTime = MonoTime.now()
 
@@ -115,7 +115,7 @@ public class TestWindow <: WindowEngine {
         println("  鼠标左键拖动：调整公转角度；滚轮：缩放；按窗口关闭按钮退出\n")
 
         // 生成过渡纹理
-        this.mixTex = createMixTexture(this.renderer)
+        this.mixTex = Some(createMixTexture(this.renderer))
 
         // EffectComposer 链：RenderTransitionPass → OutputPass → 上屏
         let composer = EffectComposer(this.renderer)
@@ -123,7 +123,7 @@ public class TestWindow <: WindowEngine {
         transitionPass.setTransition(DEFAULT_MIX_RATIO)
         transitionPass.setTextureThreshold(DEFAULT_THRESHOLD)
         transitionPass.useTexture(DEFAULT_USE_TEXTURE)
-        transitionPass.setTexture(this.mixTex)
+        transitionPass.setTexture(this.mixTex.getOrThrow())
         composer.addPass(transitionPass)
         composer.addPass(OutputPass(toneMapping: ACESFilmicToneMapping, exposure: 1.0, sRGB: true))
         composer.setSize(Int64(this.getWidth()), Int64(this.getHeight()))
@@ -264,37 +264,36 @@ public class TestWindow <: WindowEngine {
                 }
 
                 // 中间步骤模式切换（按键 1/2/3/4）
-                match (g_debugMode) {
-                    case MODE_AUTO =>
-                        // 自动过渡循环：mixRatio 0→1→0 往复
-                        transitionPass.enabled = true
-                        if (!g_pauseRotation) {
-                            g_mixRatio = g_mixRatio + 0.01 * Float64(g_autoDirection)
-                            if (g_mixRatio >= 1.0) {
-                                g_mixRatio = 1.0
-                                g_autoDirection = -1
-                            } else if (g_mixRatio <= 0.0) {
-                                g_mixRatio = 0.0
-                                g_autoDirection = 1
-                            }
-                            transitionPass.setTransition(g_mixRatio)
+                // 注：MODE_* 为运行期 let 常量，仓颉 match 会将其视为变量绑定而恒命中首分支，故用 if/else if
+                if (g_debugMode == MODE_AUTO) {
+                    // 自动过渡循环：mixRatio 0→1→0 往复
+                    transitionPass.enabled = true
+                    if (!g_pauseRotation) {
+                        g_mixRatio = g_mixRatio + 0.01 * Float64(g_autoDirection)
+                        if (g_mixRatio >= 1.0) {
+                            g_mixRatio = 1.0
+                            g_autoDirection = -1
+                        } else if (g_mixRatio <= 0.0) {
+                            g_mixRatio = 0.0
+                            g_autoDirection = 1
                         }
-                    case MODE_SCENE_A =>
-                        // 静态场景A（mixRatio=0，全场景A）
-                        transitionPass.enabled = true
-                        g_mixRatio = 0.0
-                        transitionPass.setTransition(0.0)
-                    case MODE_HALF =>
-                        // 半过渡（mixRatio=0.5，A/B 各半）
-                        transitionPass.enabled = true
-                        g_mixRatio = 0.5
-                        transitionPass.setTransition(0.5)
-                    case MODE_SCENE_B =>
-                        // 静态场景B（mixRatio=1，全场景B）
-                        transitionPass.enabled = true
-                        g_mixRatio = 1.0
-                        transitionPass.setTransition(1.0)
-                    case _ => ()
+                        transitionPass.setTransition(g_mixRatio)
+                    }
+                } else if (g_debugMode == MODE_SCENE_A) {
+                    // 静态场景A（mixRatio=0，全场景A）
+                    transitionPass.enabled = true
+                    g_mixRatio = 0.0
+                    transitionPass.setTransition(0.0)
+                } else if (g_debugMode == MODE_HALF) {
+                    // 半过渡（mixRatio=0.5，A/B 各半）
+                    transitionPass.enabled = true
+                    g_mixRatio = 0.5
+                    transitionPass.setTransition(0.5)
+                } else if (g_debugMode == MODE_SCENE_B) {
+                    // 静态场景B（mixRatio=1，全场景B）
+                    transitionPass.enabled = true
+                    g_mixRatio = 1.0
+                    transitionPass.setTransition(1.0)
                 }
 
                 match (this.composer) {
@@ -321,7 +320,10 @@ public class TestWindow <: WindowEngine {
             case Some(composer) => composer.release()
             case None => ()
         }
-        if (Handle.isValid(this.mixTex)) { this.renderer.destroyTexture(this.mixTex) }
+        match (this.mixTex) {
+            case Some(t) => if (t.releasable) { let _ = t.release() }
+            case None => ()
+        }
         this.renderer.release()
         println("  ThreeRenderer 已关闭")
         println("=== 测试完成 ===")

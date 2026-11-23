@@ -10,8 +10,8 @@ package test_extras
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.geometry.Shape
-import three.rendering.geometry.Path
+import three.renderers.geometry.Shape
+import three.renderers.geometry.Path
 import three.core.math.Vector3
 
 public class ShapeTest <: TestClass {

@@ -3,7 +3,7 @@
 ```cj
 public class UiContext
 ```
-UI context — manages ImGui lifecycle and rendering
+UI context — manages ImGui lifecycle and renderers
 
 ### func init\(\)
 ```cj

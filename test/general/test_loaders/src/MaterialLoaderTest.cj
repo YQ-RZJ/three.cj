@@ -12,7 +12,7 @@ import std.unittest.*
 import std.collection.*
 import std.math.*
 import three.resource.loader.MaterialLoader
-import three.rendering.materials.*
+import three.renderers.materials.*
 
 public class MaterialLoaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {

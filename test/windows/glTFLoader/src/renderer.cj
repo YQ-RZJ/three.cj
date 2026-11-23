@@ -16,12 +16,12 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.ThreeRenderer
 import three.resource.loader.GltfLoader
-import three.rendering.lights.*
+import three.renderers.lights.*
 
 /// 创建场景、相机和灯光
 public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera, Group) {

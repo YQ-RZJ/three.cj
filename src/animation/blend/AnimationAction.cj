@@ -36,16 +36,16 @@
  */
 package three.animation.blend
 
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import three.core.math.interpolants.*
 import three.utils.constants.*
-import three.animation.interfaces.IAnimationClip
+import three.animation._interfaces.IAnimationClip
 import std.collection.*
 import std.math.*
 

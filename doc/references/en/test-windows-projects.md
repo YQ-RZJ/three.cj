@@ -750,7 +750,7 @@ The shadow pipeline debug projects cover debug modes 1 through 9, used to verify
 
 ### perf_render
 
-> Real-render-path performance baseline test: fixed camera and deterministic object scale (FEW=25 / MANY=800 cubes), 60 warmup frames + 240 measured frames per stage; stages advance automatically and the program exits automatically when done. The instrumentation points sit on the real `three.rendering.*` hot path, with `ProfFrame.mark()` every frame. Combined with `scripts/tracy_receiver.py` it captures Tracy protocol data and produces a baseline of call counts / durations / P50 / P95 / P99 (runs fine without a GUI). See [profiler usage guide · section VII](./profiler-usage.md#vii-headless-capture-and-performance-baseline).
+> Real-render-path performance baseline test: fixed camera and deterministic object scale (FEW=25 / MANY=800 cubes), 60 warmup frames + 240 measured frames per stage; stages advance automatically and the program exits automatically when done. The instrumentation points sit on the real `three.renderers.*` hot path, with `ProfFrame.mark()` every frame. Combined with `scripts/tracy_receiver.py` it captures Tracy protocol data and produces a baseline of call counts / durations / P50 / P95 / P99 (runs fine without a GUI). See [profiler usage guide · section VII](./profiler-usage.md#vii-headless-capture-and-performance-baseline).
 
 ![perf_render](../../asstes/perf_render.gif)
 

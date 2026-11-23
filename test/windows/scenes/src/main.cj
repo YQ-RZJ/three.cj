@@ -11,7 +11,7 @@ package sp_scenes
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
@@ -19,8 +19,8 @@ import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.cameras.*
+import three.renderers.materials.*
+import three.renderers.cameras.*
 
 /**
  * v2 窗口子类：覆写生命周期回调。
@@ -73,7 +73,8 @@ public class TestWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x20, 0x20, 0x30))
-        this.renderer.setDebug(0x00000008)
+        // 开启调试文本覆盖层（语义化开关）——dbgTextPrintf 画面内文本渲染的前提
+        this.renderer.setDebugText(true)
         println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
@@ -155,8 +156,8 @@ public class TestWindow <: WindowEngine {
         this.objs.camera.aspect = Float64(w) / Float64(if (h > 1i32) { h } else { 1i32 })
         this.objs.camera.updateProjectionMatrix()
 
-        // ---- 画面内文本 ----
-        this.renderer.dbgTextClear(0x00, false)
+        // ---- 画面内文本（bgfx dbgText） ----
+        this.renderer.dbgTextClear(0x00, small: false)
         this.renderer.dbgTextPrintf(0, 0, 0x0f, "mode=" + this.mode.toString() + " fog=" + match (this.objs.scene.fog) { case Some(f) => f.name case None => "none" } + " fogExp2=" + match (this.objs.scene.fogExp2) { case Some(f) => f.name case None => "none" })
         this.renderer.dbgTextPrintf(0, 1, 0x0e, "bg=" + match (this.objs.scene.background) { case Some(_) => "Some" case None => "None" } + " override=" + match (this.objs.scene.overrideMaterial) { case Some(_) => "Some" case None => "None" })
 

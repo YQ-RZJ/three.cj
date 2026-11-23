@@ -10,16 +10,12 @@ import std.sync.*
 
 // ========== Win32 API FFI 声明 ==========
 
-@CallingConv[STDCALL]
 foreign func GetModuleHandleW(lpModuleName: CPointer<UInt16>): UIntNative
 
-@CallingConv[STDCALL]
 foreign func LoadCursorW(hInstance: UIntNative, lpCursorName: CPointer<UInt16>): UIntNative
 
-@CallingConv[STDCALL]
 foreign func RegisterClassExW(lpwcx: CPointer<Unit>): UInt16
 
-@CallingConv[STDCALL]
 foreign func CreateWindowExW(
     dwExStyle: UInt32,
     lpClassName: CPointer<UInt16>,
@@ -33,31 +29,22 @@ foreign func CreateWindowExW(
     lpParam: CPointer<Unit>
 ): UIntNative
 
-@CallingConv[STDCALL]
 foreign func ShowWindow(hWnd: UIntNative, nCmdShow: Int32): Bool
 
-@CallingConv[STDCALL]
 foreign func UpdateWindow(hWnd: UIntNative): Bool
 
-@CallingConv[STDCALL]
 foreign func PeekMessageW(lpMsg: CPointer<Unit>, hWnd: UIntNative, wMsgFilterMin: UInt32, wMsgFilterMax: UInt32, wRemoveMsg: UInt32): Bool
 
-@CallingConv[STDCALL]
 foreign func TranslateMessage(lpMsg: CPointer<Unit>): Bool
 
-@CallingConv[STDCALL]
 foreign func DispatchMessageW(lpMsg: CPointer<Unit>): UIntNative
 
-@CallingConv[STDCALL]
 foreign func PostQuitMessage(nExitCode: Int32): Unit
 
-@CallingConv[STDCALL]
 foreign func DefWindowProcW(hWnd: UIntNative, Msg: UInt32, wParam: UIntNative, lParam: UIntNative): UIntNative
 
-@CallingConv[STDCALL]
 foreign func DestroyWindow(hWnd: UIntNative): Bool
 
-@CallingConv[STDCALL]
 foreign func GetClientRect(hWnd: UIntNative, lpRect: CPointer<Unit>): Bool
 
 // ========== 常量 ==========
@@ -107,7 +94,6 @@ public var g_mouseWheelDelta: Int32 = 0
 var g_wndProcRef: ?CFunc<(UIntNative, UInt32, UIntNative, UIntNative) -> UIntNative> = None
 
 @C
-@CallingConv[STDCALL]
 func wndProc(hWnd: UIntNative, uMsg: UInt32, wParam: UIntNative, lParam: UIntNative): UIntNative {
     if (uMsg == WM_DESTROY) {
         println("  [wndProc] WM_DESTROY")

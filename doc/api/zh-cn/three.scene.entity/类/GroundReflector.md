@@ -21,31 +21,6 @@ public func computeVirtualCamera(camera: Camera): Bool
 
 - true=可渲染（朝向正确），false=反射面背向相机（跳过）镜像相机数学核心。
 
-### func getReflectDepthFB\(\)
-```cj
-public func getReflectDepthFB(): FrameBufferHandle
-```
-取反射深度 RT frame buffer（useDepthTexture=true 时有效）。
-
-### func getReflectDepthTex\(\)
-```cj
-public func getReflectDepthTex(): TextureHandle
-```
-取反射深度 RT 纹理句柄（useDepthTexture=true 时有效，RGBA32F 存 NDC 深度）。
-供 capture 等调试工具回读验证。
-
-### func getReflectFB\(\)
-```cj
-public func getReflectFB(): FrameBufferHandle
-```
-取反射 RT frame buffer（渲染目标，由 SSRPass 设到 view）。
-
-### func getRenderTarget\(\)
-```cj
-public func getRenderTarget(): TextureHandle
-```
-取反射器内部 RT 的 color 纹理句柄。
-
 ### func getTextureSize\(\)
 ```cj
 public func getTextureSize():(Int64, Int64)
@@ -83,7 +58,7 @@ public init(geometry: BufferGeometry, textureWidth!: Int64 = 512, textureHeight!
 ```cj
 public func release(): Bool
 ```
-释放反射器 GPU 资源。
+释放反射器资源。
 
 ### let REFLECTOR\_VIEW\_ID\_BASE
 ```cj

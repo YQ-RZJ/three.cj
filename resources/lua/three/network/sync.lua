@@ -1,0 +1,35 @@
+-- three/network/sync.lua —— three.network.sync 绑定模块
+--
+-- 返回 three.network.sync 全局命名空间。需引擎侧先安装 sync 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.network.sync")
+--
+-- 用法（帧同步）：
+--     local N = require "three.network.sync"
+--     local session = N.LockstepSession.new(1)
+--     session:addPlayer(2)
+--     session.onAdvance = function(tick, ids, inputs)
+--         -- 只用 (tick, ids, inputs) 派生状态，保证确定性
+--     end
+--     session:submitLocalInput({1, 2, 3})
+--     session:submitRemoteInput(2, 0, {4, 5})
+--     session:update(0.016)
+--
+-- 用法（快照插值）：
+--     local buf = N.SnapshotBuffer.new(1000)
+--     buf:addSnapshot(0, {0, 0, 0})
+--     buf:addSnapshot(100, {10, 0, 5})
+--     local ok, values = buf:sampleValues(50)     -- 相邻快照线性插值
+--     local out = {0, 0, 0}
+--     buf:sample(50, out)                          -- 就地写回 out
+--
+-- 已绑定类：
+--   LockstepSession  帧同步会话（localPlayerId / confirmedTick / targetTick 只读；
+--                    tickIntervalMs / inputDelayTicks / maxWaitMs 可读写；onAdvance 只写；
+--                    addPlayer / removePlayer / submitLocalInput / submitRemoteInput /
+--                    update / reset）
+--   SnapshotBuffer   快照缓冲（count / components / oldestTimeMs / newestTimeMs 只读；
+--                    addSnapshot / sample / sampleValues / clear）
+--
+-- 说明：inputs 为「字节数组的数组」；无快照时 oldestTimeMs / newestTimeMs 为 nil。
+
+return require("three").network.sync

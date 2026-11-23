@@ -7,7 +7,7 @@ package rendercommon
  *   Info（reset/update 渲染统计）、Background（scene.background Color）、
  *   QuadMesh（全屏四边形）
  * - BgfxRenderer（<: common.Renderer）渲染球体场景验证调度链路
- * - 画面内 dbgText 显示 Info 统计
+ * - 周期 println 显示 Info 统计
  */
 
 import std.sync.*
@@ -20,13 +20,13 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
 import three.window.MouseButton
-import three.rendering.common.*
+import three.renderers.common.*
 
 /// 场景中关键对象的引用，供渲染循环更新
 public class SceneObjects {

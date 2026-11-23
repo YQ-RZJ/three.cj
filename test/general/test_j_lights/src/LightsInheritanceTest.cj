@@ -11,7 +11,7 @@
 package test_j_lights
 
 import std.unittest.*
-import three.rendering.lights.*
+import three.renderers.lights.*
 import three.core.math.Color
 
 public class LightsInheritanceTest <: TestClass {

@@ -1,0 +1,25 @@
+-- three/resource/loader.lua —— three.resource.loader 绑定模块
+--
+-- 返回 three.resource.loader 全局命名空间。需引擎侧先安装 loader 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.resource.loader")
+--
+-- 用法：
+--     local R = require "three.resource.loader"
+--     local loader = R.FileLoader.new()
+--     local text = loader:load("config.json")
+--
+--     local gltf = R.GltfLoader.new()
+--     local scene = gltf:load("model.glb")
+--
+--     local obj = R.OBJLoader.new()
+--     local group = obj:parse(text)
+--
+-- 已绑定类：Loader / LoadingManager / LoaderUtils / StringLoadResult / BytesLoadResult /
+-- ClipsLoadResult / FileLoader / ImageLoader / TextureLoader / CubeTextureLoader /
+-- FontLoader / AnimationLoader / AudioLoader / MaterialLoader / BufferGeometryLoader /
+-- OBJLoader / PLYLoader / STLLoader / GltfLoader / GltfAnimationChannel /
+-- GltfAnimationSampler / GltfAnimationData / GltfSkinData / CompressedTextureLoader /
+-- DataTextureLoader / DDSLoader / KTXLoader / PVRLoader / EXRLoader / HDRLoader /
+-- RGBELoader / TGALoader / MTLLoader / MaterialCreator
+
+return require("three").resource.loader

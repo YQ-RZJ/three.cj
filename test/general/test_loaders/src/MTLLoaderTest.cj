@@ -13,7 +13,7 @@ import std.collection.*
 import std.math.*
 import three.resource.loader.MTLLoader
 import three.resource.loader.MaterialCreator
-import three.rendering.materials.MeshPhongMaterial
+import three.renderers.materials.MeshPhongMaterial
 
 public class MTLLoaderTest <: TestClass {
     public override func asTestSuite(): TestSuite {

@@ -32,42 +32,16 @@
 package three.core.dsa
 
 import std.collection.*
-
-/**
- * @brief[zh-cn] 堆节点接口
- * @explain[zh-cn] 堆节点需要维护自身在堆中的索引（index），以便支持 O(log n) 的 remove/update。
- *
- * @brief[en] Heap node interface
- * @explain[en] Heap nodes need to maintain their index in the heap to support O(log n) remove/update operations.
- */
-public interface HeapNode {
-    /**
-     * @brief[zh-cn] 在堆中的索引，-1 表示不在堆中
-     *
-     * @brief[en] Index in the heap, -1 means not in the heap
-     */
-    mut prop index: Int64
-
-    /**
-     * @brief[zh-cn] 比较函数
-     * @param[zh-cn] other 另一个节点
-     * @return[zh-cn] true 表示 this 比 other 更优先（应排在更前面）
-     *
-     * @brief[en] Comparison function
-     * @param[en] other Another node
-     * @return[en] true means this has higher priority than other (should be placed ahead)
-     */
-    func lessThan(other: HeapNode): Bool
-}
+public import three.core._interfaces.IHeapNode
 
 /**
  * @brief[zh-cn] 二叉堆（默认最小堆）
- * @explain[zh-cn] 通过 HeapNode.lessThan 决定堆的性质：lessThan 返回 true 表示 this 更优先 → 最小堆；若需最大堆，让 lessThan 返回 this > other 的判断。
+ * @explain[zh-cn] 通过 IHeapNode.lessThan 决定堆的性质：lessThan 返回 true 表示 this 更优先 → 最小堆；若需最大堆，让 lessThan 返回 this > other 的判断。
  *
  * @brief[en] Binary heap (default min-heap)
- * @explain[en] The heap property is determined by HeapNode.lessThan: lessThan returning true means this has higher priority → min-heap; for max-heap, have lessThan return the this > other comparison.
+ * @explain[en] The heap property is determined by IHeapNode.lessThan: lessThan returning true means this has higher priority → min-heap; for max-heap, have lessThan return the this > other comparison.
  */
-public class BinaryHeap<T> where T <: HeapNode {
+public class BinaryHeap<T> where T <: IHeapNode {
     /**
      * @brief[zh-cn] 内部节点数组
      *

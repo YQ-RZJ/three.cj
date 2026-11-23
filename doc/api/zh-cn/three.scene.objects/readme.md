@@ -17,3 +17,8 @@
 |[RaycasterParams](./类/RaycasterParams.md#class-raycasterparams)||
 |[Raycaster](./类/Raycaster.md#class-raycaster)|射线投射器类，用于鼠标拾取等射线相交测试|
 
+### 接口
+|  名称   | 描述  |
+|  ----  | ----  |
+|[IPropertyBindingRoot](./接口/IPropertyBindingRoot.md#interface-ipropertybindingroot)|属性绑定根节点接口：PropertyBinding 的 rootNode/node/targetObject 类型|
+

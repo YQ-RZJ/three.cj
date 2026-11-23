@@ -11,9 +11,9 @@
 package test_j_lights
 
 import std.unittest.*
-import three.rendering.lights.*
+import three.renderers.lights.*
 import three.core.math.Color
-import three.rendering.cameras.PerspectiveCamera
+import three.renderers.cameras.PerspectiveCamera
 
 public class LightsInstancingTest <: TestClass {
     public override func asTestSuite(): TestSuite {

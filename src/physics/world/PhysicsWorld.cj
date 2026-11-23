@@ -30,7 +30,7 @@
  * - 死锁约束：_execPhysics 不可重入——闭包内只能包含对 backend 的原始调用，
  * 禁止嵌套调用其它走 _execPhysics 的方法，否则自我等待死锁。
  * 可插拔后端：
- * - PhysicsWorld 仅依赖 three.physics.interfaces.IPhysicsBackend。
+ * - PhysicsWorld 仅依赖 three.physics._interfaces.IPhysicsBackend。
  * - 构造时注入具体后端实例（默认 JoltBackend）；运行时可通过 setBackend 切换。
  * - 替换底层物理库只需新写一个 IPhysicsBackend 实现，无需改 world/body/binding。
  * 步进驱动：PhysicsWorld.update(dt) 由主渲染线程每帧调用；
@@ -50,7 +50,7 @@
  * raw backend calls; never nest calls to other methods that go through
  * _execPhysics, or a self-wait deadlock occurs.
  * Pluggable backend:
- * - PhysicsWorld depends only on three.physics.interfaces.IPhysicsBackend.
+ * - PhysicsWorld depends only on three.physics._interfaces.IPhysicsBackend.
  * - a concrete backend instance is injected at construction (JoltBackend by
  * default); it can be swapped at runtime via setBackend.
  * - replacing the underlying engine only needs a new IPhysicsBackend
@@ -67,7 +67,8 @@
 package three.physics.world
 
 import three.core.math.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.backend.*
 import three.scene.objects.*
 import std.collection.*
@@ -654,7 +655,7 @@ public class PhysicsWorld <: IReleasable {
      * false=渲染→物理（Kinematic 由用户驱动时可选）
      *
      * @brief[en] Binds an Object3D to an existing body: the body transform is auto-synced to the object after each step
-     * @param[en] object3d The rendering object to bind
+     * @param[en] object3d The renderers object to bind
      * handle The physics body handle
      * syncToObj true = physics→render (Dynamic/Kinematic bodies);
      * false = render→physics (optional when a Kinematic body is user-driven)
@@ -671,7 +672,7 @@ public class PhysicsWorld <: IReleasable {
      * @param[zh-cn] object3d 要解除绑定的渲染对象
      *
      * @brief[en] Unbinds an Object3D from physics (does not destroy the body)
-     * @param[en] object3d The rendering object to unbind
+     * @param[en] object3d The renderers object to unbind
      */
     public func unbindObject(object3d: Object3D): Unit {
         this._bindings.remove(object3d.id)
@@ -683,7 +684,7 @@ public class PhysicsWorld <: IReleasable {
      * @return[zh-cn] 刚体句柄；无绑定返回 INVALID
      *
      * @brief[en] Gets the body handle bound to an Object3D
-     * @param[en] object3d The rendering object
+     * @param[en] object3d The renderers object
      * @return[en] The body handle, or INVALID if not bound
      */
     internal func getBoundHandle(object3d: Object3D): PhysicsBodyHandle {

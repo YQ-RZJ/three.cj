@@ -19,13 +19,13 @@ import std.fs.{File, Path as FsPath}
 import std.collection.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.audio.*
 import three.audio.listener.*
 import three.audio.device.*
@@ -173,13 +173,13 @@ public class TestWindow <: WindowEngine {
 }
 
 main(): Int64 {
-    println("=== Three.cj Audio + Rendering 测试 ===")
+    println("=== Three.cj Audio + renderers 测试 ===")
     println("")
 
     // ---- 步骤 1: 创建窗口（WindowEngine v2，SDL3 跨平台实现） ----
     println("[1/6] 创建窗口（WindowEngine）...")
     let win = TestWindow()
-    let wok = win.start(title: "three4cj Audio + Rendering", width: 1280, height: 720)
+    let wok = win.start(title: "three4cj Audio + renderers", width: 1280, height: 720)
     if (!wok) { println("  WindowEngine.start 失败!"); return 1 }
     win.setResizable(false)
     println("  窗口创建成功: ${win.getWidth()}x${win.getHeight()}, 原生句柄=${win.getNativeWindowHandle()}")

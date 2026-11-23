@@ -11,8 +11,8 @@ package test_j_materials
 
 import std.unittest.*
 import std.math.*
-import three.rendering.materials.*
-import three.rendering.textures.*
+import three.renderers.materials.*
+import three.renderers.textures.*
 import three.core.math.*
 
 public class ParticleMaterialBehaviorTest <: TestClass {

@@ -24,17 +24,17 @@ import std.time.*
 import std.runtime.*
 import std.math.*
 import ohos.app.ability.ui_ability.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.WindowConfig
 import three.core.math.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
 import three.scene.entity.*
-import three.rendering.cameras.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
-import three.rendering.materials.*
+import three.renderers.cameras.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
+import three.renderers.materials.*
 import std.convert.RadixConvertible
 import kit.CoreFileKit.*
 import three.audio.*
@@ -433,6 +433,6 @@ public func stopThreeRender(): Unit {
 
 // ===== 查询渲染状态 =====
 
-public func isThreeRendering(): Bool {
+public func isThreerenderers(): Bool {
     return g_renderRunning.load()
 }

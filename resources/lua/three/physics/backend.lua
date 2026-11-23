@@ -1,0 +1,22 @@
+-- three/physics/backend.lua —— three.physics.backend 绑定模块
+--
+-- 返回 three.physics.backend 全局命名空间。需引擎侧先安装 backend 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.backend")
+--
+-- 用法：
+--     local B = require "three.physics.backend"
+--     local backend = B.JoltBackend.new()
+--     backend:initialize(1024, three.core.math.Vector3.new(0, -9.81, 0))
+--     -- 每帧：backend:update(1 / 60)
+--     backend:release()
+--
+-- 已绑定类：
+--   JoltBackend  物理后端（initialize / release / isInitialized / setGravity /
+--                optimizeBroadPhase / backendName；刚体创建销毁；transform / 速度 /
+--                材质 / 运动类型 / 对象层；update；查询；传感器监听；力 / 冲量 /
+--                质量 / 重力因子 / moveKinematic；约束全套控制）
+--
+-- 说明：setContactListener 接受含 onContact / onBodyActivated / onBodyDeactivated 的表，
+-- 回调经任务队列由 update() 在 Lua 线程抽干执行。
+
+return require("three").physics.backend

@@ -134,7 +134,7 @@ public init(maxGeometryCount: Int64, maxVertexCount: Int64, maxIndexCount: Int64
 ```cj
 public func optimize(): Unit
 ```
-与 JS side 一致：紧缩 active 几何到连续区间，提升后续渲染效率。
+紧缩 active 几何到连续区间，提升后续渲染效率。
 
 ### func release\(\)
 ```cj

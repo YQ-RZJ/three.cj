@@ -13,3 +13,8 @@
 |[PropertyBinding](./Class/PropertyBinding.md#class-propertybinding)|Property binding that associates an animation track's property path with an actual object property|
 |[PropertyMixer](./Class/PropertyMixer.md#class-propertymixer)|Property mixer that buffers scene graph properties and allows weighted accumulation|
 
+### Interface
+|  Name   | Describe  |
+|  ----  | ----  |
+|[IKeyframeTrack](./Interface/IKeyframeTrack.md#interface-ikeyframetrack)|Keyframe track interface: the element type of AnimationClip.tracks|
+

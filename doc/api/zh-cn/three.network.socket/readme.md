@@ -12,5 +12,6 @@
 ### 接口
 |  名称   | 描述  |
 |  ----  | ----  |
+|[ISocketClient](./接口/ISocketClient.md#interface-isocketclient)|Socket 客户端标记接口|
 |[ISocketListener](./接口/ISocketListener.md#interface-isocketlistener)|Socket 事件监听器接口|
 

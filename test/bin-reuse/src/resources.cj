@@ -5,8 +5,8 @@ package binReuseTest
  */
 
 import three.core.*
-import three.rendering.geometry.*
-import three.rendering.buffer.*
+import three.renderers.geometry.*
+import three.renderers.buffer.*
 
 // ========== 自定义着色器源码（bgfx .sc 格式）==========
 

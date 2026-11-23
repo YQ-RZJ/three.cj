@@ -11,14 +11,14 @@ package sp_textures
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
-import three.rendering.textures.*
+import three.renderers.cameras.*
+import three.renderers.textures.*
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -68,7 +68,8 @@ public class TestWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x20, 0x20, 0x30))
-        this.renderer.setDebug(0x00000008)
+        // 开启调试文本覆盖层（语义化开关）——dbgTextPrintf 画面内文本渲染的前提
+        this.renderer.setDebugText(true)
         println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
@@ -116,13 +117,8 @@ public class TestWindow <: WindowEngine {
         this.objs.camera.aspect = Float64(w) / Float64(if (h > 1i32) { h } else { 1i32 })
         this.objs.camera.updateProjectionMatrix()
 
-        // ---- debug 打印（每 60 帧）----
-        if (this.frame % 60 == 1) {
-            println("textures: data=${this.objs.tex1.width}x${this.objs.tex1.height} ${this.objs.tex2.name}=${this.objs.tex2.width}x${this.objs.tex2.height} copied=${this.objs.tex3.width}x${this.objs.tex3.height}")
-        }
-
-        // ---- 画面内文本 ----
-        this.renderer.dbgTextClear(0x00, false)
+        // ---- 画面内文本（bgfx dbgText） ----
+        this.renderer.dbgTextClear(0x00, small: false)
         this.renderer.dbgTextPrintf(0, 0, 0x0f, "data tex: " + this.objs.tex1.width.toString() + "x" + this.objs.tex1.height.toString())
         this.renderer.dbgTextPrintf(0, 1, 0x0e, this.objs.tex2.name + ": " + this.objs.tex2.width.toString() + "x" + this.objs.tex2.height.toString() + "  copied: " + this.objs.tex3.width.toString() + "x" + this.objs.tex3.height.toString())
 

@@ -11,17 +11,16 @@ package sp_wireframe
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.objects.*
-import three.rendering.lights.*
-import three.rendering.bgfx.BgfxConstants
+import three.renderers.lights.*
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -79,12 +78,11 @@ public class TestWindow <: WindowEngine {
 
         // ---- 步骤 3.5: 启用 debug mode 3（线框模式） ----
         // 新架构不再提供 renderer.setDebugMode。
-        // 线框模式走 bgfx 引擎内置线框能力（bgfx 内部自己处理拆边，质量可靠，
-        // 对照 bgfx4cj-last 原始有效实现 setDebugMode(3) 即 bgfx_set_debug_cj(DEBUG_WIREFRAME)）。
-        // 这是 bgfx 全局调试标志（切一次持续影响所有 view/submit），契合此 debug 可视化测试诉求。
-        // 测试退出时需复位 DEBUG_NONE 避免影响后续测试。
-        println("  设置 bgfx 全局线框标志: DEBUG_WIREFRAME")
-        this.renderer.setDebug(BgfxConstants.DEBUG_WIREFRAME)
+        // 线框模式走引擎内置线框能力（内部自己处理拆边，质量可靠）。
+        // 这是全局调试标志（切一次持续影响所有 view/submit），契合此 debug 可视化测试诉求。
+        // 测试退出时需复位为关闭，避免影响后续测试。
+        println("  开启全局线框模式")
+        this.renderer.setWireframe(true)
 
         println("[4/5] 进入渲染循环（相机轨道控制，onFrame 由窗口泵线程驱动）...")
         println("  鼠标左键拖动：调整视角；滚轮：缩放；按窗口关闭按钮退出\n")
@@ -141,8 +139,8 @@ public class TestWindow <: WindowEngine {
     public override func onClose(): Unit {
         println("")
         println("[5/5] 清理资源...")
-        // 复位 bgfx 全局线框标志（避免影响后续测试对照 bgfx4cj-last setDebugMode(0)）
-        this.renderer.setDebug(BgfxConstants.DEBUG_NONE)
+        // 复位全局线框标志（避免影响后续测试）
+        this.renderer.setWireframe(false)
         let elapsed = Float64((MonoTime.now() - this.startTime).toMilliseconds()) / 1000.0
         println("  运行时间: ${elapsed}s")
         println("  总帧数: ${this.totalFrames}")

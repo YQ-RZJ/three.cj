@@ -6,7 +6,7 @@ package texturepass
  * - EffectComposer 链：RenderPass → TexturePass（程序生成的彩条纹理覆盖屏幕，opacity=1.0）→ 上屏
  *   验证 TexturePass 把一张纹理渲满屏的效果。
  *
- * 体现：TexturePass 基础设施 pass 集成、bgfx TextureHandle 喂入 + CopyShader opacity 乘。
+ * 体现：TexturePass 基础设施 pass 集成、EngineDataTexture 纹理资源喂入 + CopyShader opacity 乘。
  */
 
 import std.sync.*
@@ -19,20 +19,17 @@ import three.scene.scenegraph.*
 import three.scene.entity.*
 import three.scene.scenegraph.*
 import three.scene.objects.*
-import three.rendering.materials.*
-import three.rendering.geometry.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
-import three.rendering.ThreeRenderer
+import three.renderers.materials.*
+import three.renderers.geometry.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
+import three.renderers.ThreeRenderer
 import three.window.MouseButton
-import three.rendering.postprocessing.EffectComposer
-import three.rendering.postprocessing.RenderPass
-import three.rendering.postprocessing.TexturePass
-import three.rendering.postprocessing.FullScreenQuad
-import three.rendering.types.*
-import three.rendering.bgfx.BgfxConstants
-import three.utils.memory.BgfxMemory
-import three.utils.memory.AutoFreePtr
+import three.renderers.postprocessing.EffectComposer
+import three.renderers.postprocessing.RenderPass
+import three.renderers.postprocessing.TexturePass
+import three.renderers.postprocessing.FullScreenQuad
+import three.renderers.textures.EngineDataTexture
 
 /// 创建场景：相机 + 方向光 + 环境光 + 盒子 + 多色球
 public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera, ArrayList<Mesh>) {
@@ -81,12 +78,12 @@ public func createScene(width: Int32, height: Int32): (Scene, PerspectiveCamera,
     return (scene, camera, spheres)
 }
 
-/// 程序生成 256x256 彩条纹理（8 条水平彩条：红/绿/蓝/黄/青/紫/白/黑），返回 bgfx TextureHandle。
+/// 程序生成 256x256 彩条纹理（8 条水平彩条：红/绿/蓝/黄/青/紫/白/黑），返回纹理资源对象。
 /// 标准 TexturePass 用 TextureLoader.load 加载图片；本测试用程序生成避免文件依赖。
-/// 用 renderer.createTexture2D 高阶 API（mem 用 BgfxMemory 包装）上传，不直接触 bgfx4cj。
-public func createStripeTexture(renderer: ThreeRenderer): TextureHandle {
-    let w: UInt16 = 256u16
-    let h: UInt16 = 256u16
+/// 用 EngineDataTexture 资源对象（引擎公开 API）上传，不接触底层句柄类型。
+public func createStripeTexture(renderer: ThreeRenderer): EngineDataTexture {
+    let w: Int64 = 256
+    let h: Int64 = 256
     // 8 条彩条，每条 32 行高
     let colors: Array<UInt8> = [
         0xFF, 0x00, 0x00, 0xFF,  // 红
@@ -109,13 +106,13 @@ public func createStripeTexture(renderer: ThreeRenderer): TextureHandle {
             pixBuf.add(colors[idx + 3])
         }
     }
-    // pixBuf → BgfxMemory（安全包装）→ renderer.createTexture2D 上传
-    let totalBytes = UInt32(w) * UInt32(h) * 4u32
-    let mem = BgfxMemory(totalBytes)
+    // pixBuf → EngineDataTexture（引擎公开资源对象）上传
     let pixArr = Array<UInt8>(pixBuf.size, { i => pixBuf[i] })
-    mem.writeUInt8(pixArr, Int64(pixBuf.size))
-    let flags: UInt64 = UInt64(BgfxConstants.SAMPLER_U_CLAMP) | UInt64(BgfxConstants.SAMPLER_V_CLAMP)
-    return renderer.createTexture2D(w, h, false, 1u16, TextureFormat.RGBA8.value(), flags, Some(mem))
+    return EngineDataTexture(
+        renderer.gfxBackend(), w, h, pixArr,
+        format: EngineDataTexture.FORMAT_RGBA8,
+        flags: EngineDataTexture.FLAGS_CLAMP_UV
+    )
 }
 
 /// 渲染循环逻辑（相机轨道控制 + Scene 状态切换）已迁移至 main.cj 的 TestWindow.onFrame（v2 生命周期模式）

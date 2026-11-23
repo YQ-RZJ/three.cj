@@ -1,0 +1,22 @@
+-- three/audio/device.lua —— three.audio.device 绑定模块
+--
+-- 返回 three.audio.device 全局命名空间。需引擎侧先安装 device 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.audio.device")
+--
+-- 用法：
+--     local device = require "three.audio.device"
+--     local ctx = device.AudioContext.instance()   -- 单例（无 new）
+--     if ctx:initialize() then
+--         ctx:setDopplerFactor(1.0)
+--     end
+--
+-- 已绑定类：
+--   AudioContext       音频上下文单例（instance / initialized / releasable /
+--                      initialize / release / getError / 多普勒三项 / HRTF 系列 /
+--                      registerTransformSlot / unregisterTransformSlot / postTransform）
+--   AudioTransformSlot 音频变换槽（sourceId / isListener / px,py,pz / ox,oy,oz /
+--                      ux,uy,uz / gain，全部可读写）
+--
+-- 说明：device 属性为 CPointer<Unit>、execAudio/postAudio 为闭包参数，均不暴露给 Lua。
+
+return require("three").audio.device

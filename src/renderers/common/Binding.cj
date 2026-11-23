@@ -1,0 +1,107 @@
+/**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] 绑定
+ * @brief[zh-cn] 单个绑定资源描述，表示 uniform buffer、sampler 等资源绑定
+ * @explain[zh-cn]
+ * Binding 描述一个管线资源绑定，包含名称、值、类型（kind）和可见性（visibility）。
+ *
+ * @file[en] Binding
+ * @brief[en] Single binding resource description, representing uniform buffer, sampler, or other resource bindings
+ * @explain[en]
+ * Binding describes a pipeline resource binding, containing name, value, kind, and visibility.
+ */
+package three.renderers.common
+
+/**
+ * @brief[zh-cn] 单个绑定资源描述，表示 uniform buffer、sampler 等资源绑定
+ * @explain[zh-cn]
+ * 包含名称、值、类型（kind）和可见性（visibility）。
+ *
+ * @brief[en] Single binding resource description, representing uniform buffer, sampler, or other resource bindings
+ * @explain[en]
+ * Contains name, value, kind, and visibility.
+ */
+public open class Binding {
+    /**
+     * @brief[zh-cn] 绑定名称
+     *
+     * @brief[en] Binding name
+     */
+    public var name: String
+
+    /**
+     * @brief[zh-cn] 绑定值
+     *
+     * @brief[en] Binding value
+     */
+    public var value: Any
+
+    /**
+     * @brief[zh-cn] 绑定类型（如 "uniform"、"buffer" 等）
+     *
+     * @brief[en] Binding kind (e.g., "uniform", "buffer", etc.)
+     */
+    public var kind: String
+
+    /**
+     * @brief[zh-cn] 着色器可见性标志
+     *
+     * @brief[en] Shader visibility flags
+     */
+    public var visibility: Int64
+
+    /**
+     * @brief[zh-cn] 构造绑定，指定名称、值和类型
+     * @param[zh-cn] name 绑定名称
+     * value 绑定值
+     * kind 绑定类型
+     *
+     * @brief[en] Constructs a binding with the specified name, value, and kind
+     * @param[en] name Binding name
+     * value Binding value
+     * kind Binding kind
+     */
+    public init(name: String, value: Any, kind: String) {
+        this.name = name
+        this.value = value
+        this.kind = kind
+        this.visibility = 0
+    }
+
+    /**
+     * @brief[zh-cn] 构造绑定，指定名称和值，默认类型为 "uniform"
+     * @param[zh-cn] name 绑定名称
+     * value 绑定值
+     *
+     * @brief[en] Constructs a binding with the specified name and value, defaulting kind to "uniform"
+     * @param[en] name Binding name
+     * value Binding value
+     */
+    public init(name: String, value: Any) {
+        this.name = name
+        this.value = value
+        this.kind = "uniform"
+        this.visibility = 0
+    }
+}

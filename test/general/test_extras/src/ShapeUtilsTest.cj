@@ -9,7 +9,7 @@ package test_extras
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.geometry.ShapeUtils
+import three.renderers.geometry.ShapeUtils
 import three.core.math.Vector2
 
 public class ShapeUtilsTest <: TestClass {

@@ -13,12 +13,12 @@ import std.unittest.*
 import std.math.*
 import std.collection.*
 import three.core.math.*
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.entity.*
-import three.rendering.geometry.*
-import three.rendering.materials.*
-import three.rendering.cameras.*
+import three.renderers.geometry.*
+import three.renderers.materials.*
+import three.renderers.cameras.*
 
 public class InterfaceTest <: TestClass {
     public override func asTestSuite(): TestSuite {

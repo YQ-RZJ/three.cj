@@ -13,3 +13,8 @@
 |[PropertyBinding](./类/PropertyBinding.md#class-propertybinding)|属性绑定，将动画轨道的属性路径与实际对象属性关联|
 |[PropertyMixer](./类/PropertyMixer.md#class-propertymixer)|属性混合器，缓冲场景图属性，允许加权累积|
 
+### 接口
+|  名称   | 描述  |
+|  ----  | ----  |
+|[IKeyframeTrack](./接口/IKeyframeTrack.md#interface-ikeyframetrack)|关键帧轨道接口：AnimationClip.tracks 的元素类型|
+

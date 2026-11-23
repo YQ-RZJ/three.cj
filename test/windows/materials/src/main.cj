@@ -13,13 +13,13 @@ package sp_materials
 import std.io.*
 import std.time.*
 import std.math.*
-import three.rendering.ThreeRenderer
+import three.renderers.ThreeRenderer
 import three.window.WindowEngine
 import three.window.MouseButton
 import three.window.MouseProvider
 import three.core.math.*
 import three.scene.scenegraph.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import three.scene.entity.*
 import three.scene.objects.*
 import three.utils.log.*
@@ -75,8 +75,8 @@ public class TestWindow <: WindowEngine {
         }
         this.renderer.setSize(w, h)
         this.renderer.setClearColor(Color(0x20, 0x20, 0x30))  // 深蓝灰背景
-        // 开启 bgfx 调试文本（DEBUG_TEXT = 0x08）——dbgTextPrintf 画面内文本渲染的前提（同 geometries）
-        this.renderer.setDebug(0x00000008)
+        // 开启调试文本覆盖层（语义化开关，同 geometries）——dbgTextPrintf 画面内文本渲染的前提
+        this.renderer.setDebugText(true)
         println("  ThreeRenderer 初始化成功")
         println("  渲染器尺寸: ${w}x${h}")
         println("")
@@ -153,8 +153,8 @@ public class TestWindow <: WindowEngine {
             println("[hit] frame=${this.frame} hit=${hitName} dist=${hits[0].distance.toString()}")
         }
 
-        // 每帧清屏调试文本并显示当前命中材质名（bgfx dbg_text_printf 画面内文本，同 geometries）
-        this.renderer.dbgTextClear(0x00, false)
+        // 每帧清屏调试文本并显示命中/统计信息（bgfx dbg_text_printf 画面内文本）
+        this.renderer.dbgTextClear(0x00, small: false)
         this.renderer.dbgTextPrintf(0, 0, 0x0f, "=> hit: " + hitName)
         this.renderer.dbgTextPrintf(0, 1, 0x0e, "objects=" + this.rayObjects.size.toString() + " hits=" + hits.size.toString())
 

@@ -42,6 +42,7 @@ package three.script.vm
 
 import std.collection.*
 import luajit4cj.luajit.*
+import three.utils.memory.VoidPtr
 import three.utils.safe.IReleasable
 
 /**
@@ -65,11 +66,11 @@ public class LuaFunction <: IReleasable {
     /**
      * @brief[zh-cn] 包装一个已存在的注册表引用
      * @param[zh-cn] vm  所属虚拟机
-     * ref 注册表引用（由 luaL_ref 产生）
+     * @param[zh-cn] ref 注册表引用（由 luaL_ref 产生）
      *
      * @brief[en] Wraps an existing registry reference
      * @param[en] vm  The owning virtual machine
-     * ref The registry reference (produced by luaL_ref)
+     * @param[en] ref The registry reference (produced by luaL_ref)
      */
     public init(vm!: LuaVM, ref!: Int32) {
         this._vm = vm
@@ -80,12 +81,12 @@ public class LuaFunction <: IReleasable {
     /**
      * @brief[zh-cn] 从全局变量获取函数引用（非函数则返回 null）
      * @param[zh-cn] vm   目标虚拟机
-     * name 全局变量名
+     * @param[zh-cn] name 全局变量名
      * @return[zh-cn] 函数引用；若全局变量不存在或不是函数则返回 None
      *
      * @brief[en] Gets a function reference from a global variable (null when not a function)
      * @param[en] vm   The target virtual machine
-     * name The global variable name
+     * @param[en] name The global variable name
      * @return[en] The function reference, or None if the global is missing or not a function
      */
     public static func fromGlobal(vm: LuaVM, name: String): Option<LuaFunction> {
@@ -100,6 +101,29 @@ public class LuaFunction <: IReleasable {
             return None
         }
         let ref = luaL_ref_cj(L, LUA_REGISTRYINDEX)
+        return Some(LuaFunction(vm: vm, ref: ref))
+    }
+
+    /**
+     * @brief[zh-cn] 从栈索引建立函数引用（lua_pushvalue + luaL_ref；非函数返回 None）
+     * @param[zh-cn] vm  所属虚拟机（引用释放时使用 handle）
+     * @param[zh-cn] L   底层 lua_State 句柄
+     * @param[zh-cn] idx 栈索引（值不为函数时返回 None，栈不变）
+     * @return[zh-cn] 函数引用；栈顶值不是函数时返回 None
+     *
+     * @brief[en] Creates a function reference from a stack index (lua_pushvalue + luaL_ref;
+     * None when the value is not a function)
+     * @param[en] vm  The owning virtual machine (used for release)
+     * @param[en] L    The underlying lua_State handle
+     * @param[en] idx The stack index (returns None and leaves the stack untouched when not a function)
+     * @return[en] The function reference, or None when the top value is not a function
+     */
+    public static func fromStack(vm: LuaVM, L: VoidPtr, idx: Int32): Option<LuaFunction> {
+        let lv = L.value
+        if (lv.isNull()) { return None }
+        if (lua_type_cj(lv, idx) != LUA_TFUNCTION) { return None }
+        lua_pushvalue_cj(lv, idx)
+        let ref = luaL_ref_cj(lv, LUA_REGISTRYINDEX)
         return Some(LuaFunction(vm: vm, ref: ref))
     }
 
@@ -129,16 +153,8 @@ public class LuaFunction <: IReleasable {
      * @explain[en] After release releasable becomes false and the reference is no longer usable;
      * calling again has no effect.
      */
-    /**
-     * @brief[zh-cn] 释放注册表引用。
-     * @explain[zh-cn] release 后 releasable 变为 false，引用不可再使用；重复调用无效果。
-     *
-     * @brief[en] releases the registry reference.
-     * @explain[en] After release releasable becomes false and the reference is no longer usable;
-     * calling again has no effect.
-     */
     public func release(): Bool {
-        if (this._disposed) { return true }
+        if (this._disposed) { return false }
         let L = this._vm.handle()
         if (!L.isNull()) {
             luaL_unref_cj(L, LUA_REGISTRYINDEX, this._ref)

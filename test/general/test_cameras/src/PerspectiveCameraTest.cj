@@ -11,7 +11,7 @@ package test_cameras
 
 import std.unittest.*
 import std.collection.*
-import three.rendering.cameras.PerspectiveCamera
+import three.renderers.cameras.PerspectiveCamera
 
 public class PerspectiveCameraTest <: TestClass {
     public override func asTestSuite(): TestSuite {

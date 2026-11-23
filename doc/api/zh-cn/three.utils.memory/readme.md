@@ -17,7 +17,6 @@
 |  名称   | 描述  |
 |  ----  | ----  |
 |[AutoFreePtr<T> where T <: CType](./类/AutoFreePtr.md#class-autofreeptr-t-where-t-ctype)|自动释放指针包装|
-|[BgfxMemory](./类/BgfxMemory.md#class-bgfxmemory)|安全包装 bgfx Memory 分配|
 |[PtrArray<T> where T <: CType](./类/PtrArray.md#class-ptrarray-t-where-t-ctype)|指针底层数组|
 |[ScopeGuard](./类/ScopeGuard.md#class-scopeguard)|RAII 作用域守卫|
 |[SharedPtr<T> where T <: CType](./类/SharedPtr.md#class-sharedptr-t-where-t-ctype)|引用计数共享智能指针|

@@ -1,0 +1,36 @@
+-- three/physics/interfaces.lua —— three.physics.interfaces 绑定模块
+--
+-- 返回 three.physics.interfaces 全局命名空间。需引擎侧先安装 interfaces 绑定：
+--     LuaBindingFactory.installPackage(vm, "three.physics.interfaces")
+--
+-- 用法：
+--     local I = require "three.physics.interfaces"
+--     local shape = I.PhysicsShape.box(1, 1, 1)
+--     local desc = I.PhysicsBodyDesc.new(shape)
+--     desc.motionType = I.PhysicsMotionType.Dynamic()
+--
+-- 已绑定类型：
+--   PhysicsShapeType       形状类型常量（Box=0 … Compound=7）
+--   PhysicsCompoundPart    复合子部件（shape / position / rotation）
+--   PhysicsShape           形状描述 + 工厂 box/sphere/capsule/cylinder/plane/
+--                          mesh/convexHull/compound
+--   PhysicsMotionType      运动类型常量（Static=0 / Kinematic=1 / Dynamic=2）
+--   PhysicsActivation      激活策略常量（Activate=0 / DontActivate=1）
+--   PhysicsLayer           物理层常量（NonMoving=0 / Moving=1）
+--   PhysicsBodyDesc        刚体描述（14 个可读写字段）
+--   PhysicsConstraintType  约束类型常量（Fixed=0 … Gear=8）
+--   PhysicsMotorState      电机状态常量（Off=0 / Velocity=1 / Position=2）
+--   PhysicsConstraintSpace 约束空间常量（LocalToBodyCOM=0 / WorldSpace=1）
+--   PhysicsConstraintDesc  约束描述（11 个可读写字段）
+--   PhysicsConstraintHandle 约束句柄（constraintID / isValid / INVALID）
+--   PhysicsContactEvent    接触事件常量（Added=0 / Persisted=1 / Removed=2）
+--   PhysicsBodyHandle      刚体句柄（bodyID / isValid / INVALID）
+--   PhysicsRayHit          射线命中（bodyID / fraction / point / normal）
+--   PhysicsPointHit        点命中（bodyID / subShapeID）
+--   PhysicsShapeHit        形状命中（bodyID / fraction / point / normal /
+--                          penetrationDepth / subShapeID1 / subShapeID2 / isBackFaceHit）
+--
+-- 说明：枚举以 0 基序号暴露（staticMethod 取常量值，fromValue 反向转换）；
+-- PhysicsShape / 句柄为值对象，字段只读，请用工厂或构造新建。
+
+return require("three").physics.interfaces

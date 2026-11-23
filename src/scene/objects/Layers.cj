@@ -44,7 +44,7 @@ import fastjson.stream.*
  *
  * @brief[en] Layers class, managing 32 layer memberships using a bitmask
  * @explain[en] Layers control object visibility — an object must share at least one layer with the camera
- * to be visible in that camera's rendering view. All classes inheriting from Object3D have a layers property, which is an instance of this class.
+ * to be visible in that camera's renderers view. All classes inheriting from Object3D have a layers property, which is an instance of this class.
  */
 @JsonAdapter
 public class Layers {

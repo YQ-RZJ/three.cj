@@ -439,9 +439,9 @@ public func setFromArray(array: Array < Float64 >): Box3
 
 - 当前实例
 
-### func setFromBufferAttribute\(AttributeReader\)
+### func setFromBufferAttribute\(IAttributeReader\)
 ```cj
-public func setFromBufferAttribute(attribute: AttributeReader): Box3
+public func setFromBufferAttribute(attribute: IAttributeReader): Box3
 ```
 从顶点属性设置包围盒，使其包含属性中的全部位置数据
 
@@ -449,7 +449,7 @@ public func setFromBufferAttribute(attribute: AttributeReader): Box3
 
 |名称|类型|描述|
 |---|---|---|
-|attribute|AttributeReader|顶点属性（AttributeReader 接口，由 BufferAttribute 实现）|
+|attribute|IAttributeReader|顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）|
 
 返回: 
 
