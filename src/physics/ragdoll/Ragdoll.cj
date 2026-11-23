@@ -62,7 +62,8 @@ package three.physics.ragdoll
 
 import three.core.math.*
 import three.physics.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*

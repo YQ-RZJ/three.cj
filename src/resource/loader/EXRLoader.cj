@@ -23,17 +23,17 @@
  *
  * @file[zh-cn] EXRLoader OpenEXR 高清浮点纹理加载器
  * @brief[zh-cn] OpenEXR 高清浮点纹理加载器的仓颉侧实现
- * @explain[zh-cn] OpenEXR 高清浮点纹理加载器。JS 侧内置完整的 EXR 解析器（Huffman/RLE/ZIP 解压）；仓颉侧复用 bgfx4cj.tinyexr 子包的内存加载 API（ParseEXRHeaderFromMemory + LoadEXRImageFromMemory），将 planar 通道交织为 Float32 RGBA，输出 texData。
+ * @explain[zh-cn] OpenEXR 高清浮点纹理加载器。基于 bgfx4cj.tinyexr 子包的内存加载 API（ParseEXRHeaderFromMemory + LoadEXRImageFromMemory）解析 EXR 字节流，将 planar 通道交织为 Float32 RGBA，输出 texData。
  *
  * @file[en] EXRLoader  OpenEXR HDR float texture loader
  * @brief[en] Cangjie implementation of OpenEXR HDR float texture loader
- * @explain[en] OpenEXR HDR float texture loader. JS side has a built-in EXR parser (Huffman/RLE/ZIP decompression); Cangjie side reuses bgfx4cj.tinyexr's memory loading API (ParseEXRHeaderFromMemory + LoadEXRImageFromMemory), interleave planar channels to Float32 RGBA, outputting texData.
+ * @explain[en] OpenEXR HDR float texture loader. Parses EXR byte streams via bgfx4cj.tinyexr's memory loading API (ParseEXRHeaderFromMemory + LoadEXRImageFromMemory), interleaving planar channels to Float32 RGBA, outputting texData.
  */
 package three.resource.loader
 
 import three.utils.constants.*
-import three.rendering.textures.*
-import three.rendering.geometry.DataUtils
+import three.renderers.textures.*
+import three.renderers.geometry.DataUtils
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
@@ -52,7 +52,7 @@ import std.io.*
  * @extends DataTextureLoader
  */
 public class EXRLoader <: DataTextureLoader {
-    /** 输出数据类型（默认 FloatType；JS 侧支持 FloatType/HalfFloatType） */
+    /** 输出数据类型（默认 FloatType） */
     public var `type`: Int64
 
     public init(manager: LoadingManager) {
@@ -176,7 +176,7 @@ public class EXRLoader <: DataTextureLoader {
             return texData
         }
 
-        // 4. planar 通道交织为 RGBA（对照 JS EXRLoader 输出 Float32 RGBA）
+        // 4. planar 通道交织为 RGBA（输出 Float32 RGBA）
         let numPixels = w * h
         // 只取前 4 通道（R/G/B/A），超出部分忽略
         let comps = if (channels >= 4) { 4 } else { channels }

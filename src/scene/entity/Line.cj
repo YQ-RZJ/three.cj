@@ -28,24 +28,24 @@
  * 支持 computeLineDistances（折线累计距离）和 raycast（射线-线段相交检测）。
  *
  * @file[en] Line
- * @brief[en] Line rendering object, a continuous polyline from vertices connected in order
+ * @brief[en] Line renderers object, a continuous polyline from vertices connected in order
  * @explain[en] Unlike LineSegments: Line treats the vertex sequence as a continuous polyline (v0-v1-v2-...),
  * whereas LineSegments pairs vertices into independent segments. This class extends Object3D,
  * supporting computeLineDistances (cumulative polyline distance) and raycast (ray-segment intersection).
  */
 package three.scene.entity
 
-import three.rendering.buffer.*
-import three.rendering.geometry.*
-import three.rendering.interfaces.IGeometryProvider
+import three.renderers.buffer.*
+import three.renderers.geometry.*
+import three.renderers._interfaces.IGeometryProvider
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import std.math.*
 import three.core.math.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import std.collection.*
 import fastjson.*
 import fastjson.macros.*
@@ -54,7 +54,7 @@ import fastjson.stream.*
 /**
  * @brief[zh-cn] 线渲染对象，从一组顶点按顺序连接的连续折线
  *
- * @brief[en] Line rendering object, a continuous polyline from vertices connected in order
+ * @brief[en] Line renderers object, a continuous polyline from vertices connected in order
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public open class Line <: Object3D {
@@ -77,7 +77,7 @@ public open class Line <: Object3D {
      * @param[zh-cn] geometry 顶点/索引几何，默认空 BufferGeometry
      * material 线材质，默认空 LineBasicMaterial
      *
-     * @brief[en] Construct a new line rendering object
+     * @brief[en] Construct a new line renderers object
      * @param[en] geometry Vertex/index geometry, default empty BufferGeometry
      * material Line material, default empty LineBasicMaterial
      */
@@ -104,7 +104,7 @@ public open class Line <: Object3D {
             if (count < 2) {
                 return this
             }
-            // 与 JS side 一致：先创建/取 lineDistance 属性，逐顶点累加距离
+            // 先创建/取 lineDistance 属性，逐顶点累加距离
             // 通过 setX/setY 逐顶点写入 lineDistance 值
             let lineDistanceAttr = if (let Some(attr) <- geometry.getAttribute("lineDistance")) {
                 attr
@@ -220,7 +220,7 @@ public open class Line <: Object3D {
                         intersectPointOnRay.applyMatrix4(matrixWorld)
                         let distance = raycaster.ray.origin.distanceTo(intersectPointOnRay)
                         if (distance >= raycaster.near && distance <= raycaster.far) {
-                            // 对照 JS checkIntersection 命中对象：{distance, point, index, face:null, faceIndex:null, barycoord:null, object}
+                            // 命中对象字段：{distance, point, index, face:null, faceIndex:null, barycoord:null, object}
                             let intersection = Intersection()
                             intersection.distance = distance
                             intersection.point = intersectPointOnSegment.clone().applyMatrix4(matrixWorld)

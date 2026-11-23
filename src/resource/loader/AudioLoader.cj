@@ -31,7 +31,7 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import three.audio.source.AudioBuffer
 import three.profiler.*
 import three.profiler.macros.*
@@ -169,7 +169,7 @@ public class AudioLoader <: Loader {
         }
 
         // 创建 AudioBuffer（内部会调用 alGenBuffers + alBufferData 拷贝数据）
-        let audioBuffer = AudioBuffer.create(pcm, frames, channels, sampleRate)
+        let audioBuffer = AudioBuffer.create(Box(pcm), frames, channels, sampleRate)
 
         // alBufferData 已拷贝数据，释放 miniaudio 的解码缓冲
         ma_free_cj(pcm, CPointer<Unit>())
@@ -236,7 +236,7 @@ public class AudioLoader <: Loader {
         }
 
         // 创建 AudioBuffer（内部会调用 alGenBuffers + alBufferData 拷贝数据）
-        let audioBuffer = AudioBuffer.create(pcm, frames, channels, sampleRate)
+        let audioBuffer = AudioBuffer.create(Box(pcm), frames, channels, sampleRate)
 
         // alBufferData 已拷贝数据，释放 miniaudio 的解码缓冲
         ma_free_cj(pcm, CPointer<Unit>())

@@ -31,45 +31,45 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import std.collection.*
-import three.rendering.buffer.*
-import three.rendering.geometry.BoxGeometry
-import three.rendering.geometry.BufferGeometry
-import three.rendering.geometry.CapsuleGeometry
-import three.rendering.geometry.CircleGeometry
-import three.rendering.geometry.ConeGeometry
-import three.rendering.geometry.Curve
-import three.rendering.geometry.CylinderGeometry
-import three.rendering.geometry.DodecahedronGeometry
-import three.rendering.geometry.EdgesGeometry
-import three.rendering.geometry.ExtrudeGeometry
-import three.rendering.common.Geometries
-import three.rendering.geometry.IcosahedronGeometry
-import three.rendering.geometry.InstancedBufferGeometry
-import three.rendering.geometry.LatheGeometry
-import three.rendering.geometry.OctahedronGeometry
-import three.rendering.geometry.PlaneGeometry
-import three.rendering.geometry.PolyhedronGeometry
-import three.rendering.geometry.RingGeometry
-import three.rendering.geometry.Shape
-import three.rendering.geometry.ShapeGeometry
-import three.rendering.geometry.SphereGeometry
-import three.rendering.geometry.TetrahedronGeometry
-import three.rendering.geometry.TorusGeometry
-import three.rendering.geometry.TorusKnotGeometry
-import three.rendering.geometry.TubeGeometry
-import three.rendering.geometry.WireframeGeometry
+import three.renderers.buffer.*
+import three.renderers.geometry.BoxGeometry
+import three.renderers.geometry.BufferGeometry
+import three.renderers.geometry.CapsuleGeometry
+import three.renderers.geometry.CircleGeometry
+import three.renderers.geometry.ConeGeometry
+import three.renderers.geometry.Curve
+import three.renderers.geometry.CylinderGeometry
+import three.renderers.geometry.DodecahedronGeometry
+import three.renderers.geometry.EdgesGeometry
+import three.renderers.geometry.ExtrudeGeometry
+import three.renderers.common.Geometries
+import three.renderers.geometry.IcosahedronGeometry
+import three.renderers.geometry.InstancedBufferGeometry
+import three.renderers.geometry.LatheGeometry
+import three.renderers.geometry.OctahedronGeometry
+import three.renderers.geometry.PlaneGeometry
+import three.renderers.geometry.PolyhedronGeometry
+import three.renderers.geometry.RingGeometry
+import three.renderers.geometry.Shape
+import three.renderers.geometry.ShapeGeometry
+import three.renderers.geometry.SphereGeometry
+import three.renderers.geometry.TetrahedronGeometry
+import three.renderers.geometry.TorusGeometry
+import three.renderers.geometry.TorusKnotGeometry
+import three.renderers.geometry.TubeGeometry
+import three.renderers.geometry.WireframeGeometry
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import three.scene.scenegraph.*
-import three.rendering.textures.*
-import three.rendering.cameras.*
-import three.rendering.lights.*
+import three.renderers.textures.*
+import three.renderers.cameras.*
+import three.renderers.lights.*
 import three.scene.entity.*
 import three.animation.clip.*
 import fastjson.*
@@ -166,7 +166,7 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 解析 JSON 对象为场景对象
-     * @explain[zh-cn] 对应 JS: parse(json, onLoad)。依次解析：动画 → 形状 → 几何体 → 图片 → 纹理 → 材质 → 对象 → 骨骼 → 绑定
+     * @explain[zh-cn] 依次解析：动画 → 形状 → 几何体 → 图片 → 纹理 → 材质 → 对象 → 骨骼 → 绑定
      * @param[zh-cn] json JSON 数据
      * onLoad 加载完成回调
      *
@@ -195,7 +195,6 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 解析动画
-     * @explain[zh-cn] 对应 JS: parseAnimations(json)
      * @param[zh-cn] jsonOpt JSON 中的动画数据
      * @return[zh-cn] UUID 到 AnimationClip 的映射
      *
@@ -222,7 +221,6 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 解析形状
-     * @explain[zh-cn] 对应 JS: parseShapes(json)
      * @param[zh-cn] jsonOpt JSON 中的形状数据
      * @return[zh-cn] UUID 到 Shape 的映射
      *
@@ -250,7 +248,6 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 解析几何体
-     * @explain[zh-cn] 对应 JS: parseGeometries(json, shapes)
      * @param[zh-cn] jsonOpt JSON 中的几何体数据
      * shapes 形状映射
      * @return[zh-cn] UUID 到 BufferGeometry 的映射
@@ -326,7 +323,7 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 解析图片
-     * @explain[zh-cn] 对应 JS: parseImages(json, onLoad)。仓颉侧：加载图片文件原始字节数据。
+     * @explain[zh-cn] 加载图片文件原始字节数据。
      * @param[zh-cn] jsonOpt JSON 中的图片数据
      * @return[zh-cn] UUID 到 Source 的映射
      *
@@ -387,7 +384,6 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 解析纹理
-     * @explain[zh-cn] 对应 JS: parseTextures(json, images)
      * @param[zh-cn] jsonOpt JSON 中的纹理数据
      * images 图片映射
      * @return[zh-cn] UUID 到 Texture 的映射
@@ -684,7 +680,6 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 解析骨骼
-     * @explain[zh-cn] 对应 JS: parseSkeletons(json, object)
      * @param[zh-cn] jsonOpt JSON 中的骨骼数据
      * object 场景根对象（用于查找骨骼节点）
      * @return[zh-cn] UUID 到 Skeleton 的映射
@@ -759,7 +754,6 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 绑定骨骼到蒙皮网格
-     * @explain[zh-cn] 对应 JS: bindSkeletons(object, skeletons)
      * @param[zh-cn] object 场景根对象
      * skeletons 骨骼映射
      *
@@ -813,7 +807,6 @@ public open class ObjectLoader <: Loader {
 
     /**
      * @brief[zh-cn] 使用 cjfast_json 将 JSON 字符串解析为 HashMap
-     * @explain[zh-cn] 对应 JS: JSON.parse(text)
      * @param[zh-cn] jsonStr JSON 字符串
      * @return[zh-cn] 解析后的 HashMap
      *
@@ -918,7 +911,7 @@ internal func _findChildByUuid(root: Object3D, uuid: String): Option<Object3D> {
  * CJ 侧几何子类多数无静态 fromJSON，故按 type 名称实例化对应类并按 parameters 字段调用构造函数。
  */
 internal func _dispatchGeometry(`type`: String, data: HashMap<String, Any>, shapes: HashMap<String, Shape>): BufferGeometry {
-    // JS 侧几何数据直接将构造参数放在顶层（data.width 等），故从 data 顶层取参数
+    // 几何数据将构造参数放在顶层（data.width 等），故从 data 顶层取参数
     match (`type`) {
         case "BoxGeometry" =>
             return BoxGeometry(

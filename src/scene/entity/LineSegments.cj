@@ -27,19 +27,19 @@
  * ——按线段逐段距离（非折线累计）计算 lineDistance。
  *
  * @file[en] LineSegments
- * @brief[en] Line segments rendering object, pairing vertices into independent line segments
+ * @brief[en] Line segments renderers object, pairing vertices into independent line segments
  * @explain[en] Extends Line with two differences: ① kind flag "LineSegments"; ② computeLineDistances override
  * ——calculates lineDistance per segment (not cumulative polyline distance).
  */
 package three.scene.entity
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import std.collection.*
@@ -51,7 +51,7 @@ import fastjson.stream.*
  * @brief[zh-cn] 线段组渲染对象，从一组顶点两两配对为独立线段
  * @explain[zh-cn] 继承自 Line，唯二差异：类型标志 kind="LineSegments"；computeLineDistances 按线段逐段距离计算
  *
- * @brief[en] Line segments rendering object, pairing vertices into independent line segments
+ * @brief[en] Line segments renderers object, pairing vertices into independent line segments
  * @explain[en] Extends Line with two differences: kind flag "LineSegments"; computeLineDistances per segment distance
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Line]

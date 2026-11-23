@@ -101,3 +101,28 @@ public class LuaError <: Exception {
         }
     }
 }
+
+/**
+ * @brief[zh-cn] Lua 回调重入深度超限异常
+ * @explain[zh-cn] 由 LuaCallback.call 在嵌套层数达到 LuaCallback.reentryLimit 时抛出。
+ * 该异常发生在 C 栈被打穿之前，用于主动中断调用链，避免退化为 LuaJIT 返回路径死循环。
+ * 在 Lua 触发的绑定方法内抛出时，会被绑定分派层转成 lua_error，Lua 侧可被 pcall 捕获。
+ *
+ * @brief[en] Lua callback reentry-limit exception
+ * @explain[en] Thrown by LuaCallback.call once nesting reaches LuaCallback.reentryLimit.
+ * It fires before the C stack is exhausted, actively breaking the call chain instead of
+ * degrading into a LuaJIT return-path infinite loop. When thrown inside a Lua-triggered
+ * binding method, the dispatch layer converts it into lua_error, catchable via pcall.
+ */
+public class LuaReentryLimitError <: Exception {
+    /**
+     * @brief[zh-cn] 构造重入超限异常
+     * @param[zh-cn] message 错误消息
+     *
+     * @brief[en] Constructs a reentry-limit exception
+     * @param[en] message The error message
+     */
+    public init(message: String) {
+        super(message)
+    }
+}

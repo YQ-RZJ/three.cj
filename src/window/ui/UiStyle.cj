@@ -442,7 +442,7 @@ public class UiStyle {
      * @param[zh-cn] wrapWidth 换行宽度（-1.0=不换行）
      * @return[zh-cn] (width, height)
      *
-     * @brief[en] Calculates text rendering size
+     * @brief[en] Calculates text renderers size
      * @param[en] text Text
      * @param[en] hideTextAfterDoubleHash Whether to truncate after ##
      * @param[en] wrapWidth Wrap width (-1.0=no wrap)

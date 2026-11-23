@@ -30,7 +30,7 @@
  *
  * @file[en] Jolt debug-render bridge (three.physics.debug sub-package)
  * @brief[en] Bridges Jolt DebugRenderer draw commands into line/triangle caches for
- * consumption by upper layers (LineSegments meshes or immediate rendering)
+ * consumption by upper layers (LineSegments meshes or immediate renderers)
  * @explain[en] Implements the three JPHDebugRendererProcs callbacks (drawLine /
  * drawTriangle / drawText3D). CFunc has no capture, so it relays through the static
  * _activeRenderer to the collector; all coordinates are converted to the three
@@ -42,7 +42,8 @@ package three.physics.debug
 import std.collection.ArrayList
 import three.core.math.*
 import three.physics.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*

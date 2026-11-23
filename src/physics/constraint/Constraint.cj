@@ -60,7 +60,8 @@
 package three.physics.constraint
 
 import three.core.math.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.world.*
 import three.utils.safe.IReleasable
 

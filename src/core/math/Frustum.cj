@@ -32,7 +32,8 @@
 package three.core.math
 
 import std.math.*
-import three.core.interfaces.*
+import three.core._interfaces.*
+public import three.core._interfaces.IFrustumCullable
 import three.utils.constants.*
 import fastjson.*
 import fastjson.macros.*
@@ -95,7 +96,7 @@ public class Frustum {
 
     /**
      * @brief[zh-cn] 从投影矩阵设置视锥体
-     * @explain[zh-cn] 注：JS 侧为右手系（WebGL，NDC z∈[-1,1]）；bgfx 后端为左手系（WebGPUCoordinateSystem，NDC z∈[0,1]），因此默认 coordinateSystem 取 WebGPUCoordinateSystem，near/far 平面按左手系约定提取。
+     * @explain[zh-cn] 注：本实现面向 bgfx 后端左手系（WebGPUCoordinateSystem，NDC z∈[0,1]），因此默认 coordinateSystem 取 WebGPUCoordinateSystem，near/far 平面按左手系约定提取。
      * @param[zh-cn] m 投影矩阵（或 projScreen = projectionMatrix × matrixWorldInverse）
      * coordinateSystem 坐标系（WebGL 2000 / WebGPU 2001），默认 WebGPU（左手系）
      * reversedDepth 是否反向深度（WebGPU 反向 Z [1,0]），默认 false

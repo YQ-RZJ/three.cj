@@ -28,18 +28,18 @@
  *
  * @file[en] LOD  Level of Detail
  * @brief[en] Scene node that switches between different detail level objects based on distance to camera
- * @explain[en] Each level is a (child object, distance threshold) tuple; rendering selects the most appropriate level by camera distance.
+ * @explain[en] Each level is a (child object, distance threshold) tuple; renderers selects the most appropriate level by camera distance.
  * Zero distance is highest detail; greater distances use coarser geometry for lower cost.
  */
 package three.scene.entity
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.cameras.*
+import three.renderers.cameras.*
 import std.collection.*
 import fastjson.*
 import fastjson.macros.*
@@ -172,7 +172,7 @@ public class LOD <: Object3D & IReleasable {
     // distance - 相机距离。
     public func getObjectForDistance(distance: Float64): Object3D {
         if (this.levels.size > 0) {
-            // 与 JS side 一致：返回最后一个 distance <= 给定距离的 level.object
+            // 返回最后一个 distance <= 给定距离的 level.object
             var result: Object3D = this.levels[0][0]
             for (lvl in this.levels) {
                 if (distance >= lvl[1]) {
@@ -187,19 +187,19 @@ public class LOD <: Object3D & IReleasable {
     }
 
     // 仅用于用户代码：手动通知 LOD 哪个层级应激活（不直接由渲染调用）。
-    // 渲染器内部以 update(camera) 自动判定，与 JS side 一致。
+    // 渲染器内部以 update(camera) 自动判定。
     public func setCurrentLevel(level: Int64): Unit {
         this._currentLevel = level
     }
 
-    // 获取当前激活的层级索引。对照 JS: LOD.js getCurrentLevel() { return this._currentLevel; }
+    // 获取当前激活的层级索引。
     public func getCurrentLevel(): Int64 {
         return this._currentLevel
     }
 
-    // 按距离阈值移除一个层级。对照 JS: LOD.js removeLevel( distance )。
+    // 按距离阈值移除一个层级。
     // 找到 distance 匹配的层级并从 levels 与场景子对象中移除，成功返回 true。
-    // 仓颉 ArrayList 无 splice/remove，参考 addLevel 的重建模式实现。
+    // 仓颉 ArrayList 无 splice/remove，按 addLevel 的重建模式实现。
     public func removeLevel(distance: Float64): Bool {
         var idx = -1
         for (i in 0..this.levels.size) {
@@ -221,10 +221,10 @@ public class LOD <: Object3D & IReleasable {
         return true
     }
 
-    // 按相机位置自动切换激活层级。与 JS side 一致含 hysteresis 判断。
+    // 按相机位置自动切换激活层级，含 hysteresis 判断。
     // camera - 渲染当前相机。
     public func update(camera: Camera): Unit {
-        // 与 JS side 一致：用相机世界位置到本对象世界位置的距离判定
+        // 用相机世界位置到本对象世界位置的距离判定
         // 复用暂存向量：原实现每帧新建 Vector3（堆分配），update 是每帧调用的热路径
         let dist = this.getWorldPosition(this._scratchWorldPos).distanceTo(camera.position)
         // 计算滞后后的距离阈值

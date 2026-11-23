@@ -35,14 +35,15 @@
  *             Developers use three.window.ui widget API through the window.ui accessor.
  *             **View convention**: ImGui exclusively uses bgfx view 1 (set by imgui_impl_bgfx's
  *             startingViewId=1); view 0 and other views are used by ThreeRenderer and post-
- *             processing passes. Do not submit any non-ImGui rendering commands to view 1.
+ *             processing passes. Do not submit any non-ImGui renderers commands to view 1.
  */
 package three.window
 
 import std.core.*
 import three.core.thread.{ Mutex, Condition, SThread }
 import imgui4cj.imgui.*
-import bgfx4cj.bgfx.*
+import three.renderers._interfaces.IRenderBackend
+import three.renderers.common.ViewRegistry
 import three.utils.log.*
 import three.utils.log.macros.*
 
@@ -53,7 +54,7 @@ import three.utils.log.macros.*
  *         NewFrame 在窗口泵线程调用，Render 在 bgfx 渲染线程调用。
  *         开发者通过 three.window.ui 的 re-export 函数使用全部 ImGui 能力。
  *
- * @brief[en] UI context — manages ImGui lifecycle and rendering
+ * @brief[en] UI context — manages ImGui lifecycle and renderers
  * @explain[en] Internal class, instantiated by WindowEngine as needed.
  *             Holds the imgui4cj context pointer, frame state, and event buffer.
  *             NewFrame is called on the window pump thread; Render on the bgfx render thread.
@@ -73,6 +74,8 @@ public class UiContext {
     private var _pixelRatio: Float64 = 1.0
     /// 渲染器的 execBgfx 提交方法（由 initialize 注入，供 render/shutdown 路由 bgfx 调用）
     private var _execBgfx: Option<(() -> Unit) -> Unit> = None
+    /// UI 叠加视图 id（ViewRegistry 登记的保留位 VIEW_UI）
+    private var _viewId: UInt16 = ViewRegistry.VIEW_UI
 
     // ===== 全局 DPI 访问（供 three.window.ui 控件层查询当前缩放） =====
     private static var _currentPixelRatio: Float64 = 1.0
@@ -145,6 +148,13 @@ public class UiContext {
         @LogInfo(["UiContext.initialize: start"])
         this._engine = Some(engine)
         this._execBgfx = Some(execBgfx)
+        // 向视图登记表登记 UI 叠加视图（保留位 "ui" → VIEW_UI；与 ImGui bgfx 后端的
+        // startingViewId 一致，view 0 保留给主场景渲染）
+        let vid = ViewRegistry.acquire("ui")
+        if (vid != ViewRegistry.VIEW_UI) {
+            @LogError(["UiContext.initialize: ViewRegistry.acquire('ui') returned ${vid}, expected ${ViewRegistry.VIEW_UI}"])
+        }
+        this._viewId = vid
         // 创建 ImGui 上下文（泵线程）
         @LogInfo(["UiContext.initialize: creating ImGui context"])
         this._ctx = ImGui_CreateContext_cj(CPointer<Unit>())
@@ -276,34 +286,45 @@ public class UiContext {
     }
 
     /**
-     * @brief[zh-cn] 结束帧：调用 ImGui::Render，设置 view 1，执行 RenderDrawData
-     * @explain[zh-cn] 在 bgfx 渲染线程内调用（通过 ThreeRenderer.execBgfx 提交）。
+     * @brief[zh-cn] 结束帧：调用 ImGui::Render，设置 UI 视图，执行 RenderDrawData
+     * @explain[zh-cn] 在 bgfx 渲染线程内调用（通过渲染器 execBgfx 提交）。
+     *         视图设置（视口/清除/touch）经注入的后端接口下发。
      * @param[zh-cn] viewW 视口宽度
      * viewH 视口高度
+     * backend 渲染后端（由 WindowEngine 注入；None 时记错误并跳过本帧 UI 绘制）
      *
-     * @brief[en] End frame: call ImGui::Render, set up view 1, execute RenderDrawData
-     * @explain[en] Called on the bgfx render thread (via ThreeRenderer.execBgfx).
+     * @brief[en] End frame: call ImGui::Render, set up the UI view, execute RenderDrawData
+     * @explain[en] Called on the bgfx render thread (submitted via the renderer's execBgfx).
+     *         View setup (viewport/clear/touch) is issued through the injected backend interface.
      * @param[en] viewW Viewport width
      * viewH Viewport height
+     * backend Render backend (injected by WindowEngine; None logs an error and skips UI drawing for this frame)
      */
-    internal func render(viewW: Int32, viewH: Int32): Unit {
+    internal func render(viewW: Int32, viewH: Int32, backend: Option<IRenderBackend>): Unit {
         if (!this._initialized) { return }
         if (!this._inFrame) {
             @LogError(["UiContext.render: called outside NewFrame/Render cycle"])
             return
+        }
+        let gfx = match (backend) {
+            case Some(b) => b
+            case None =>
+                @LogError(["UiContext.render: no render backend bound (bindRenderer via a declarative window)"])
+                this._inFrame = false
+                return
         }
         // 在 bgfx 渲染线程上设置当前上下文（ImGui 上下文通过 TLS 存储）
         ImGui_SetCurrentContext_cj(this._ctx)
         // igRender 生成绘制数据
         ImGui_Render_cj()
         this._inFrame = false
-        let viewId: UInt16 = 1u16 // ImGui 固定使用 view 1
-        // 设置 view 1 视口
-        bgfx_set_view_rect_cj(viewId, 0u16, 0u16, UInt16(viewW), UInt16(viewH))
-        // 设置 view 1 clear（无清除，避免覆盖场景）
-        bgfx_set_view_clear_cj(viewId, 0u16, 0x00000000u32, 1.0f32, 0u8)
-        // touch view 1
-        bgfx_touch_cj(viewId)
+        let viewId = this._viewId // UI 叠加视图（ViewRegistry 登记的保留位）
+        // 设置 UI 视图视口
+        gfx.setViewRect(viewId, 0u16, 0u16, UInt16(viewW), UInt16(viewH))
+        // 设置 UI 视图 clear（无清除，避免覆盖场景）
+        gfx.setViewClear(viewId, 0u16, 0x00000000u32, depth: 1.0f32, stencil: 0u8)
+        // touch UI 视图
+        gfx.touchView(viewId)
         // 执行 ImGui 绘制
         ImGui_Implbgfx_RenderDrawData_cj()
     }

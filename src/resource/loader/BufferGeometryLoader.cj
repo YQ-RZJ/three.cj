@@ -31,14 +31,14 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import std.collection.*
-import three.rendering.buffer.*
-import three.rendering.geometry.BufferGeometry
-import three.rendering.geometry.InstancedBufferGeometry
+import three.renderers.buffer.*
+import three.renderers.geometry.BufferGeometry
+import three.renderers.geometry.InstancedBufferGeometry
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import fastjson.*
@@ -76,8 +76,7 @@ public class BufferGeometryLoader <: Loader {
      * @param[en] onError Error callback
      *
      * 开始加载几何体
-     * 对应 JS: onLoad( scope.parse( JSON.parse( text ) ) );
-     * 仓颉侧：使用 cjfast_json 将加载到的 JSON 文本解析为 HashMap<String, Any>
+     * 仓颉侧：使用 cjfast_json 将加载到的 JSON 文本解析为 HashMap<String, Any>，再解析为 BufferGeometry 后回调
      */
     public override func load(url: String, onLoad: (ILoadResult) -> Unit, onProgress: (Int64) -> Unit, onError: (String) -> Unit): Unit {
         // 使用 FileLoader 加载 JSON 文件，然后解析为 BufferGeometry
@@ -146,9 +145,9 @@ public class BufferGeometryLoader <: Loader {
                                                             let itemSize = _getInt(attr, "itemSize", 1)
                                                             let offset = _getInt(attr, "offset", 0)
                                                             let normalized = _getBool(attr, "normalized", false)
-                                                            // 仓颉侧 BufferGeometry.attributes 仅接受 BufferAttribute（对照 JS:
-                                                            // InterleavedBufferAttribute 继承 BufferAttribute），故按 JS
-                                                            // InterleavedBufferAttribute.toJSON() 无 data 时解交错为普通 BufferAttribute。
+                                                            // 仓颉侧 BufferGeometry.attributes 仅接受 BufferAttribute（交错缓冲属性
+                                                            // 视为 BufferAttribute 的一种），故对无 data 的交错缓冲属性
+                                                            // 解交错为普通 BufferAttribute。
                                                             let count = interleavedBuffer.array.size / interleavedBuffer.stride
                                                             let deinterleaved = Array<Float64>(count * itemSize, { _ => 0.0 })
                                                             for (i in 0..count) {
@@ -321,7 +320,6 @@ public class BufferGeometryLoader <: Loader {
      * @return[en] Parsed HashMap<String, Any>
      *
      * 使用 cjfast_json 将 JSON 字符串解析为 HashMap<String, Any>
-     * 对应 JS: JSON.parse(text)
      */
     public func parseJsonToHashMap(jsonStr: String): HashMap<String, Any> {
         try {

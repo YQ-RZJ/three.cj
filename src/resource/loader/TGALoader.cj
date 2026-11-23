@@ -32,12 +32,12 @@
 package three.resource.loader
 
 import three.utils.constants.*
-import three.rendering.textures.*
+import three.renderers.textures.*
 import std.collection.*
 import std.fs.*
 import std.io.*
 
-// TGA 常量（对照 JS: TGALoader.js）
+// TGA 图像类型常量
 // 注意：必须用 const 声明 —— Cangjie 的 match 常量模式要求编译期常量，
 //       let 常量会被当作变量绑定模式（无条件匹配第一个 case）。
 internal const TGA_TYPE_NO_DATA = 0
@@ -226,7 +226,7 @@ public class TGALoader <: DataTextureLoader {
             case _ => ()
         }
 
-        // 按位深提取（对照 JS: tgaGetImageDataXXbits）
+        // 按位深提取像素数据
         var i = 0
         if (useGrey) {
             if (pixelSize == 8) {

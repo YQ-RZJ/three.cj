@@ -32,7 +32,7 @@
 package three.core.math
 
 import std.math.*
-import three.core.interfaces.*
+import three.core._interfaces.*
 
 /**
  * @brief[zh-cn] 三角形类，由三个顶点定义
@@ -276,20 +276,20 @@ public class Triangle {
 
     /**
      * @brief[zh-cn] 从顶点属性与索引设置三角形顶点
-     * @param[zh-cn] attribute 顶点属性（AttributeReader 接口，由 BufferAttribute 实现）
+     * @param[zh-cn] attribute 顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）
      * i0 顶点 a 的索引
      * i1 顶点 b 的索引
      * i2 顶点 c 的索引
      * @return[zh-cn] 当前实例
      *
      * @brief[en] Set triangle vertices from vertex attribute and indices (aligned with JS: Triangle.setFromAttributeAndIndices)
-     * @param[en] attribute Vertex attribute (AttributeReader interface, implemented by BufferAttribute)
+     * @param[en] attribute Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)
      * i0 Index of vertex a
      * i1 Index of vertex b
      * i2 Index of vertex c
      * @return[en] This instance
      */
-    public func setFromAttributeAndIndices(attribute: AttributeReader, i0: Int64, i1: Int64, i2: Int64): Triangle {
+    public func setFromAttributeAndIndices(attribute: IAttributeReader, i0: Int64, i1: Int64, i2: Int64): Triangle {
         this.a.fromBufferAttribute(attribute, i0)
         this.b.fromBufferAttribute(attribute, i1)
         this.c.fromBufferAttribute(attribute, i2)
@@ -298,7 +298,7 @@ public class Triangle {
 
     /**
      * @brief[zh-cn] 插值顶点属性，用重心坐标对属性三个顶点的值做线性插值，写入 target
-     * @param[zh-cn] attr 顶点属性（AttributeReader 接口，由 BufferAttribute 实现）
+     * @param[zh-cn] attr 顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）
      * i1 顶点 a 的属性索引
      * i2 顶点 b 的属性索引
      * i3 顶点 c 的属性索引
@@ -307,7 +307,7 @@ public class Triangle {
      * @return[zh-cn] 插值后的 target
      *
      * @brief[en] Interpolate vertex attribute (aligned with JS: Triangle.getInterpolatedAttribute), linearly interpolate attribute values at three vertices using barycentric coordinates, write to target
-     * @param[en] attr Vertex attribute (AttributeReader interface, implemented by BufferAttribute)
+     * @param[en] attr Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)
      * i1 Attribute index of vertex a
      * i2 Attribute index of vertex b
      * i3 Attribute index of vertex c
@@ -315,7 +315,7 @@ public class Triangle {
      * target Output vector (writes interpolation result)
      * @return[en] The interpolated target
      */
-    public static func getInterpolatedAttribute(attr: AttributeReader, i1: Int64, i2: Int64, i3: Int64, barycoord: Vector3, target: Vector3): Vector3 {
+    public static func getInterpolatedAttribute(attr: IAttributeReader, i1: Int64, i2: Int64, i3: Int64, barycoord: Vector3, target: Vector3): Vector3 {
         let v40 = Vector3().fromBufferAttribute(attr, i1)
         let v41 = Vector3().fromBufferAttribute(attr, i2)
         let v42 = Vector3().fromBufferAttribute(attr, i3)

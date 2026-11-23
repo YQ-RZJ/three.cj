@@ -53,7 +53,8 @@ package three.audio.mixer
 import openalsoft4cj.efx.*
 
 import three.audio.device.*
-import three.audio.interfaces.*
+import three.audio._interfaces.*
+public import three.audio._interfaces.IAudioEffect
 import three.utils.safe.IReleasable
 
 /**

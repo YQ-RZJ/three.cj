@@ -108,6 +108,7 @@ import std.collection.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue }
 import std.sync.{ AtomicBool, AtomicInt64 }
 import std.time.*
 import sdl4cj.sdl.*
+import three.renderers._interfaces.IRenderBackend
 import three.core.thread.{ Mutex, Condition, SThread, sleepNS }
 import three.resource.pipeline.AssetManager
 import three.utils.log.*
@@ -525,7 +526,7 @@ public class InputSnapshot {
  * onInit()                          // after window creation (init renderer/scene)
  * while (!closeRequested):
  * drainQueue -> build fixed snapshot  // all events this loop -> InputSnapshot
- * bindOnFrame?(dt) / onFrame(dt)     // user logic/rendering - reads snapshot
+ * bindOnFrame?(dt) / onFrame(dt)     // user logic/renderers - reads snapshot
  * snapshot.resetForNextFrame()       // reset at loop end (re-collect next loop)
  * onClose(); onDestroy()
  */
@@ -566,6 +567,8 @@ public open class WindowEngine <: IReleasable {
     private var _gui: Option<UiContext> = None
     /// 渲染器的 execBgfx 提交方法（由 bindRenderer 注入，供 Gui render/shutdown 路由 bgfx 调用）
     internal var _execBgfx: Option<(() -> Unit) -> Unit> = None
+    /// 渲染后端（由 bindGfxBackend 注入，供 Gui render 的视图设置经抽象层下发）
+    internal var _gfxBackend: Option<IRenderBackend> = None
 
     // ===== DPI（像素比） =====
     /// 当前窗口像素比（物理像素 / 逻辑像素），由 _updatePixelRatio 计算并缓存
@@ -587,7 +590,7 @@ public open class WindowEngine <: IReleasable {
      * @brief[zh-cn] 每循环调用（读固定快照——逻辑+渲染）
      * @param[zh-cn] dt 距上循环的秒数
      *
-     * @brief[en] Called every loop (reads the fixed snapshot - logic + rendering)
+     * @brief[en] Called every loop (reads the fixed snapshot - logic + renderers)
      * @param[en] dt Seconds elapsed since the previous loop
      */
     public open func onFrame(dt: Float64): Unit {}
@@ -789,6 +792,22 @@ public open class WindowEngine <: IReleasable {
      */
     public func bindRenderer(execBgfx: (() -> Unit) -> Unit): Unit {
         this._execBgfx = Some(execBgfx)
+    }
+
+    /**
+     * @brief[zh-cn] 绑定渲染后端（供 Gui render 的视图设置经抽象层下发）
+     * @explain[zh-cn] 与 bindRenderer 成对注入（声明式窗口 renderWith 自动完成）。
+     *         后端类型属引擎内部抽象层，故本方法仅模块内可见。
+     * @param[zh-cn] backend 渲染后端
+     *
+     * @brief[en] Binds the render backend (for the GUI render's view setup via the abstraction layer)
+     * @explain[en] Injected alongside bindRenderer (done automatically by the declarative
+     *         window's renderWith). The backend type belongs to the engine-internal
+     *         abstraction layer, so this method is module-internal only.
+     * @param[en] backend The render backend
+     */
+    internal func bindGfxBackend(backend: IRenderBackend): Unit {
+        this._gfxBackend = Some(backend)
     }
 
     /**
@@ -1154,8 +1173,9 @@ public open class WindowEngine <: IReleasable {
                     if (let Some(execFn) <- this._execBgfx) {
                         let vw = this._width
                         let vh = this._height
+                        let gfxBackend = this._gfxBackend
                         execFn({ =>
-                            ctx.render(vw, vh)
+                            ctx.render(vw, vh, gfxBackend)
                         })
                     } else {
                         @LogWarn(["Gui enabled but no renderer bound (call bindRenderer in onInit)"])
@@ -2001,7 +2021,7 @@ public open class WindowEngine <: IReleasable {
      * @brief[zh-cn] 获取窗口表面（用于软件渲染）
      * @return[zh-cn] 窗口表面
      *
-     * @brief[en] Gets the window surface (for software rendering)
+     * @brief[en] Gets the window surface (for software renderers)
      * @return[en] The window surface
      */
     public func getSurface(): SDL_Surface {

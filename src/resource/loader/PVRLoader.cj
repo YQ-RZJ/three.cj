@@ -23,16 +23,16 @@
  *
  * @file[zh-cn] PVRLoader PowerVR 压缩纹理加载器
  * @brief[zh-cn] PVR 纹理的仓颉侧实现
- * @explain[zh-cn] PowerVR (PVR) 压缩纹理加载器。仓颉侧复用 bgfx4cj.bimg 子包的 bimg_image_parse_pvr3_cj 解析 PVR v3 字节流，提取宽度/高度/格式/各 mip 层数据。
+ * @explain[zh-cn] PowerVR (PVR) 压缩纹理加载器。基于 bgfx4cj.bimg 子包的 bimg_image_parse_pvr3_cj 解析 PVR v3 字节流，提取宽度/高度/格式/各 mip 层数据。
  *
  * @file[en] PVRLoader  PowerVR compressed texture loader
  * @brief[en] Cangjie implementation of the PVR texture loader
- * @explain[en] PowerVR (PVR) compressed texture loader. Cangjie side reuses bgfx4cj.bimg's bimg_image_parse_pvr3_cj to parse PVR v3 byte streams, extracting width/height/format/mipmap data.
+ * @explain[en] PowerVR (PVR) compressed texture loader. Parses PVR v3 byte streams via bgfx4cj.bimg's bimg_image_parse_pvr3_cj, extracting width/height/format/mipmap data.
  */
 package three.resource.loader
 
 import three.utils.constants.*
-import three.rendering.textures.*
+import three.renderers.textures.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr

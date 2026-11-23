@@ -36,7 +36,7 @@ package three.animation.clip
 import three.core.math.Quaternion
 import three.utils.constants.*
 import three.animation.blend.KeyframeTrack
-import three.animation.interfaces.IKeyframeTrack
+import three.animation._interfaces.IKeyframeTrack
 import std.collection.*
 
 /**
@@ -56,7 +56,7 @@ import std.collection.*
 internal func convertArray(array: Array<Float64>, `type`: String): Array<Float64> {
     if (array.size == 0) { return array }
     if (`type` == "Float64Array" || `type` == "" || `type` == "Array") { return array }
-    // Ignore: 仓颉中无 JS TypedArray 概念，统一用 Array<Float64> 存储，此处行为与 JS 等价（无类型转换需要）。
+    // Ignore: 统一用 Array<Float64> 存储（无类型转换需要）。
     return array
 }
 

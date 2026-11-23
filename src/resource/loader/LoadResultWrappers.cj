@@ -34,7 +34,7 @@
 package three.resource.loader
 
 import std.collection.*
-import three.core.interfaces.ILoadResult
+public import three.core._interfaces.ILoadResult
 import three.animation.clip.AnimationClip
 
 /**

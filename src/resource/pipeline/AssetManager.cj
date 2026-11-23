@@ -58,7 +58,7 @@ import std.collection.*
 import std.sync.*
 import std.fs.*
 import std.time.*
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import three.resource.loader.StringLoadResult
 import three.resource.loader.BytesLoadResult
 

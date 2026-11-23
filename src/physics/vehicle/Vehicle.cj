@@ -43,7 +43,8 @@ package three.physics.vehicle
 import std.collection.ArrayList
 import three.core.math.*
 import three.physics.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
 import three.physics.backend.*
 import three.physics.world.*
 import jolt4cj.jolt.*
@@ -426,7 +427,7 @@ public class PhysicsVehicle <: IReleasable {
      * @param[zh-cn] index 车轮索引
      * @return[zh-cn] 车轮世界矩阵（three 左手系）；无效索引返回单位矩阵
      *
-     * @brief[en] Reads the world transform of a wheel (for rendering the wheel mesh)
+     * @brief[en] Reads the world transform of a wheel (for renderers the wheel mesh)
      * @param[en] index The wheel index
      * @return[en] The wheel world matrix (three left-handed); identity for an invalid index
      */

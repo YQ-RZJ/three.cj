@@ -31,7 +31,7 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import three.resource.cache.*
 import std.collection.*
 import std.fs.*

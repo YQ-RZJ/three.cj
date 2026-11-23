@@ -28,7 +28,7 @@
  *
  * @file[en] ClippingGroup
  * @brief[en] Clipping group, managing a set of sub-objects for frustum clipping
- * @explain[en] Similar to Group but semantically different: sub-objects participate in rendering as clipping planes, not ordinary visible geometry.
+ * @explain[en] Similar to Group but semantically different: sub-objects participate in renderers as clipping planes, not ordinary visible geometry.
  * Only used by WebGPURenderer; bgfx4cj backend retains interface signature to align with JS side, actual clipping handled by renderer internally.
  */
 package three.scene.scenegraph
@@ -36,11 +36,11 @@ package three.scene.scenegraph
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import std.collection.*
@@ -50,7 +50,7 @@ import std.collection.*
  * @explain[zh-cn] 子对象作为裁剪平面参与渲染，而非普通可见几何
  *
  * @brief[en] Clipping group, managing a set of sub-objects for frustum clipping
- * @explain[en] Sub-objects participate in rendering as clipping planes, not ordinary visible geometry
+ * @explain[en] Sub-objects participate in renderers as clipping planes, not ordinary visible geometry
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
 public class ClippingGroup <: Object3D {
@@ -79,7 +79,7 @@ public class ClippingGroup <: Object3D {
     /**
      * @brief[zh-cn] 是否在阴影渲染时应用裁剪（仅主渲染裁剪）
      *
-     * @brief[en] Whether to apply clipping during shadow rendering (main render clipping only)
+     * @brief[en] Whether to apply clipping during shadow renderers (main render clipping only)
      */
     public var clipShadows: Bool
 

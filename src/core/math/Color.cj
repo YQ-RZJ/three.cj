@@ -34,7 +34,7 @@ package three.core.math
 import std.math.*
 import std.collection.*
 import three.utils.constants.*
-import three.core.interfaces.*
+import three.core._interfaces.*
 import std.convert.*
 import fastjson.*
 import fastjson.macros.*
@@ -653,16 +653,16 @@ public open class Color <: IBackground {
 
     /**
      * @brief[zh-cn] 从顶点属性读取 RGB 分量
-     * @param[zh-cn] attribute 顶点属性（AttributeReader 接口，由 BufferAttribute 实现）
+     * @param[zh-cn] attribute 顶点属性（IAttributeReader 接口，由 BufferAttribute 实现）
      * index 顶点索引
      * @return[zh-cn] 当前实例
      *
      * @brief[en] Read RGB components from vertex attribute (aligned with JS: Color.fromBufferAttribute)
-     * @param[en] attribute Vertex attribute (AttributeReader interface, implemented by BufferAttribute)
+     * @param[en] attribute Vertex attribute (IAttributeReader interface, implemented by BufferAttribute)
      * index Vertex index
      * @return[en] This instance
      */
-    public func fromBufferAttribute(attribute: AttributeReader, index: Int64): Color {
+    public func fromBufferAttribute(attribute: IAttributeReader, index: Int64): Color {
         this.r = attribute.getX(index)
         this.g = attribute.getY(index)
         this.b = attribute.getZ(index)

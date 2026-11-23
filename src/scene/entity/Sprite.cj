@@ -27,20 +27,20 @@
  * Sprite 不产生阴影、不参与 morphTargets；raycast 退化为平面相交 + UV 插值。
  *
  * @file[en] Sprite
- * @brief[en] Sprite rendering object, a 2D plane always facing the camera
+ * @brief[en] Sprite renderers object, a 2D plane always facing the camera
  * @explain[en] Unlike Mesh: Sprite always faces the camera (no rotation), sized by material.map texture + scale.
  * Sprite does not cast shadows or participate in morphTargets; raycast degenerates to plane intersection + UV interpolation.
  */
 package three.scene.entity
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
-import three.rendering.cameras.*
+import three.renderers.materials.*
+import three.renderers.cameras.*
 import std.collection.*
 import std.math.*
 import fastjson.*
@@ -69,7 +69,7 @@ private let _uvC = Vector2()
  * @brief[zh-cn] 精灵渲染对象，始终朝向相机的 2D 平面
  * @explain[zh-cn] 常用于粒子、光晕、贴图广告牌等，无旋转、不产生阴影、不参与 morphTargets
  *
- * @brief[en] Sprite rendering object, a 2D plane always facing the camera
+ * @brief[en] Sprite renderers object, a 2D plane always facing the camera
  * @explain[en] Commonly used for particles, halos, texture billboards; no rotation, no shadows, no morphTargets
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
@@ -246,7 +246,7 @@ public class Sprite <: Object3D {
 
         // 计算 UV 插值
         
-        // Ignore: 仓颉侧 Triangle.getInterpolation 仅接受 Vector3，故将 UV 的 x,y 作为 Vector3 的 x,y,z=0 传递，与 JS 计算结果等价。
+        // Ignore: 仓颉侧 Triangle.getInterpolation 仅接受 Vector3，故将 UV 的 x,y 作为 Vector3 的 x,y,z=0 传递。
         let uvA3 = Vector3(_uvA.x, _uvA.y, 0.0)
         let uvB3 = Vector3(_uvB.x, _uvB.y, 0.0)
         let uvC3 = Vector3(_uvC.x, _uvC.y, 0.0)

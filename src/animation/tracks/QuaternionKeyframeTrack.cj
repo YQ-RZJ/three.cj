@@ -77,12 +77,12 @@ public class QuaternionKeyframeTrack <: KeyframeTrack {
 
     /**
      * @brief[zh-cn] 重写平滑插值工厂方法，回退到线性插值
-     * @explain[zh-cn] 四元数不支持平滑（三次）插值。对应 JS 中 QuaternionKeyframeTrack.prototype.InterpolantFactoryMethodSmooth = undefined
+     * @explain[zh-cn] 四元数不支持平滑（三次）插值，平滑插值工厂方法回退到线性插值
      * @param[zh-cn] result 结果缓冲区的可选项
      * @return[zh-cn] 四元数线性（SLERP）插值器
      *
      * @brief[en] Overrides the smooth interpolation factory method, falling back to linear interpolation
-     * @explain[en] Quaternions do not support smooth (cubic) interpolation. Corresponds to QuaternionKeyframeTrack.prototype.InterpolantFactoryMethodSmooth = undefined in JS
+     * @explain[en] Quaternions do not support smooth (cubic) interpolation, so the smooth interpolation factory method falls back to linear interpolation
      * @param[en] result Optional result buffer
      * @return[en] Quaternion linear (SLERP) interpolant
      */

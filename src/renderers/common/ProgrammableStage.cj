@@ -1,0 +1,105 @@
+/**
+ * @LICENSE
+ * Copyright 2026 RaoZiJun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Runtime Library Exception to the Apache 2.0 License:
+ *
+ * As an exception, if you use this Software to compile your source code and
+ * portions of this Software are embedded into the binary product as a result,
+ * you may redistribute such product without providing attribution as would
+ * otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
+ *
+ * @file[zh-cn] 可编程阶段
+ * @brief[zh-cn] 着色器可编程阶段描述，封装着色器代码和阶段类型
+ * @explain[zh-cn]
+ * ProgrammableStage 封装一个着色器阶段的代码和类型信息（如 vertex/fragment/compute），
+ * 即渲染器中 Program 对象的着色器阶段描述。
+ *
+ * @file[en] ProgrammableStage
+ * @brief[en] Shader programmable stage description, encapsulating shader code and stage type
+ * @explain[en]
+ * ProgrammableStage encapsulates the code and type information of a shader stage (e.g., vertex/fragment/compute),
+ * i.e. the shader stage description of the Program object in the renderer.
+ */
+package three.renderers.common
+
+/**
+ * @brief[zh-cn] 着色器可编程阶段描述
+ * @explain[zh-cn]
+ * 封装着色器代码和阶段类型（vertex/fragment/compute）。
+ *
+ * @brief[en] Shader programmable stage description
+ * @explain[en]
+ * Encapsulates shader code and stage type (vertex/fragment/compute).
+ */
+public open class ProgrammableStage {
+    /**
+     * @brief[zh-cn] 着色器代码
+     *
+     * @brief[en] Shader code
+     */
+    public var code: String
+
+    /**
+     * @brief[zh-cn] 着色器类型（如 "vertex"、"fragment"、"compute"）
+     *
+     * @brief[en] Shader kind (e.g., "vertex", "fragment", "compute")
+     */
+    public var kind: String
+
+    /**
+     * @brief[zh-cn] 着色器阶段（默认与 kind 相同）
+     *
+     * @brief[en] Shader stage (defaults to the same as kind)
+     */
+    public var stage: String
+
+    /**
+     * @brief[zh-cn] 构造可编程阶段，指定代码和类型
+     * @param[zh-cn] code 着色器代码
+     * kind 着色器类型
+     *
+     * @brief[en] Constructs a programmable stage with specified code and kind
+     * @param[en] code Shader code
+     * kind Shader kind
+     */
+    public init(code: String, kind: String) {
+        this.code = code
+        this.kind = kind
+        this.stage = kind
+    }
+
+    /**
+     * @brief[zh-cn] 获取着色器代码
+     * @return[zh-cn] 着色器代码
+     *
+     * @brief[en] Gets the shader code
+     * @return[en] Shader code
+     */
+    public func getCode(): String {
+        return this.code
+    }
+
+    /**
+     * @brief[zh-cn] 获取着色器阶段
+     * @return[zh-cn] 着色器阶段
+     *
+     * @brief[en] Gets the shader stage
+     * @return[en] Shader stage
+     */
+    public func getStage(): String {
+        return this.stage
+    }
+}

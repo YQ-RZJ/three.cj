@@ -31,9 +31,9 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 import three.resource.cache.*
-import three.rendering.textures.Source
+import three.renderers.textures.Source
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr

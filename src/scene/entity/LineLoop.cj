@@ -35,13 +35,13 @@ import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
 import three.core.math.*
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 
 /**
  * @brief[zh-cn] 线环，首末顶点自动连接成环的闭合折线

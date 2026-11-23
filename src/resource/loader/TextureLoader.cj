@@ -31,8 +31,8 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
-import three.rendering.textures.*
+import three.core._interfaces.ILoadResult
+import three.renderers.textures.*
 import std.fs.*
 import std.io.*
 

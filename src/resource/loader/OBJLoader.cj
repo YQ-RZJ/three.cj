@@ -31,16 +31,16 @@
  */
 package three.resource.loader
 
-import three.core.interfaces.ILoadResult
-import three.rendering.buffer.*
-import three.rendering.geometry.BufferGeometry
+import three.core._interfaces.ILoadResult
+import three.renderers.buffer.*
+import three.renderers.geometry.BufferGeometry
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import three.core.math.*
 import std.collection.*
 import std.convert.*
@@ -621,7 +621,7 @@ internal class _ObjSourceMaterial {
 
 // ===== 辅助函数 =====
 
-// 按空白字符分割字符串（对照 JS: split(/\s+/)，含空格/Tab/换行/回车）
+// 按空白字符分割字符串（含空格/Tab/换行/回车）
 internal func _splitWhitespace(s: String): ArrayList<String> {
     let result = ArrayList<String>()
     var cur = ""
@@ -642,7 +642,7 @@ internal func _splitWhitespace(s: String): ArrayList<String> {
     return result
 }
 
-// 解析浮点数（对照 JS: parseFloat，失败返回 0）
+// 解析浮点数（失败返回 0）
 internal func _parseFloat(s: String): Float64 {
     let t = s.trimAscii()
     if (t == "") { return 0.0 }
@@ -653,7 +653,7 @@ internal func _parseFloat(s: String): Float64 {
     }
 }
 
-// 解析整数（对照 JS: parseInt，失败返回 0）
+// 解析整数（失败返回 0）
 internal func _parseInt(s: String): Int64 {
     let t = s.trimAscii()
     if (t == "") { return 0 }

@@ -65,7 +65,10 @@
 package three.physics.backend
 
 import three.core.math.*
-import three.physics.interfaces.*
+import three.physics._interfaces.*
+import three.physics.common.*
+public import three.physics._interfaces.IPhysicsBackend
+public import three.physics._interfaces.IPhysicsSensorListener
 import jolt4cj.jolt.*
 import std.collection.*
 import three.utils.log.*
@@ -2629,7 +2632,7 @@ class JoltQuerySink {
      *
      * @brief[en] Physics system handle (for normal queries: GetBodyPtr + GetWorldSpaceSurfaceNormal)
      */
-    public var system: CPointer<Unit> = CPointer<Unit>()
+    internal var system: CPointer<Unit> = CPointer<Unit>()
     /**
      * @brief[zh-cn] 射线起点（右手系，用于命中点计算）
      *

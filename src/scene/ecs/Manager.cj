@@ -51,7 +51,7 @@ package three.scene.ecs
 import std.collection.*
 import std.sort.*
 import three.core.dsa.BinaryPatriciaTrie
-import three.core.interfaces.ISysEtyMapManager
+public import three.core._interfaces.ISysEtyMapManager
 import three.utils.pool.ObjectPool
 
 /**

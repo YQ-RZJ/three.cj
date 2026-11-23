@@ -23,7 +23,7 @@
  *
  * @file[zh-cn] VoidPtr — 无类型指针包装
  * @brief[zh-cn] void* 指针安全包装，供跨模块传递不透明指针（如 ImGui/渲染句柄、用户数据指针）
- * @explain[zh-cn] 与 three.rendering.types.BgfxTypes 中 UnitPtr 的模式一致，
+ * @explain[zh-cn] 引擎公开 API 中不透明指针的唯一合法包装形式，
  *         用于存储任意用户数据指针；外部只持有 Box 引用，不解包、不释放。
  *         各上层模块（如 three.window.ui）通过本类型在公开 API 传递不透明指针，
  *         避免直接暴露裸 CPointer。
@@ -31,7 +31,7 @@
  * @file[en] VoidPtr — Untyped pointer wrapper
  * @brief[en] Safe wrapper for void* pointers, for passing opaque pointers across modules
  *         (e.g. ImGui/render handles, user-data pointers)
- * @explain[en] Consistent with the UnitPtr pattern in three.rendering.types.BgfxTypes;
+ * @explain[en] The single legitimate wrapper for opaque pointers in public APIs;
  *         used to store arbitrary user-data pointers. External code only holds
  *         the Box reference and never unwraps or frees it. Upper modules
  *         (e.g. three.window.ui) use this type in public APIs to pass opaque

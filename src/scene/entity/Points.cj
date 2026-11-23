@@ -28,21 +28,21 @@
  * raycast 退化为按射线到顶点的距离判定（threshold 阈值内）。
  *
  * @file[en] Points
- * @brief[en] Points rendering object, renders a set of vertices as independent pixel squares
+ * @brief[en] Points renderers object, renders a set of vertices as independent pixel squares
  * @explain[en] Commonly used for particles, point clouds, 3D scan data, etc. Vertex size determined by material.size,
  * material.sizeAttenuation controls distance attenuation. Extends Object3D;
  * raycast degenerates to distance-based threshold check from ray to vertex.
  */
 package three.scene.entity
-import three.rendering.buffer.*
-import three.rendering.geometry.*
-import three.rendering.interfaces.IGeometryProvider
+import three.renderers.buffer.*
+import three.renderers.geometry.*
+import three.renderers._interfaces.IGeometryProvider
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
+import three.renderers.materials.*
 import std.collection.*
 import std.math.*
 import fastjson.*
@@ -53,7 +53,7 @@ import fastjson.stream.*
  * @brief[zh-cn] 点集渲染对象，将一组顶点渲染为独立像素方块
  * @explain[zh-cn] 常用于粒子、点云、3D 扫描数据等，raycast 退化为距离阈值判定
  *
- * @brief[en] Points rendering object, renders a set of vertices as independent pixel squares
+ * @brief[en] Points renderers object, renders a set of vertices as independent pixel squares
  * @explain[en] Commonly used for particles, point clouds, 3D scan data; raycast degenerates to distance threshold check
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Object3D]
@@ -151,7 +151,7 @@ public class Points <: Object3D {
             this.morphTargetInfluences = Array<Float64>(attrArr.size, { _ => 0.0 })
             this.morphTargetDictionary = HashMap<String, Int64>()
             for (i in 0..attrArr.size) {
-                // 与 JS side 一致：用 morphAttribute.name 或 "morphTarget" + i 作为键
+                // 用 morphAttribute.name 或 "morphTarget" + i 作为键
                 let name = "morphTarget" + i.toString()
                 this.morphTargetDictionary.add(name, i)
             }
@@ -237,7 +237,7 @@ public class Points <: Object3D {
                     intersectPoint.applyMatrix4(matrixWorld)
                     let distance = raycaster.ray.origin.distanceTo(intersectPoint)
                     if (distance >= raycaster.near && distance <= raycaster.far) {
-                        // 对照 JS testPoint 命中对象：{distance, distanceToRay, point, index, face:null, faceIndex:null, barycoord:null, object}
+                        // 命中对象字段：{distance, distanceToRay, point, index, face:null, faceIndex:null, barycoord:null, object}
                         let intersection = Intersection()
                         intersection.distance = distance
                         intersection.distanceToRay = sqrt(rayPointDistanceSq)
@@ -263,7 +263,7 @@ public class Points <: Object3D {
                         intersectPoint.applyMatrix4(matrixWorld)
                         let distance = raycaster.ray.origin.distanceTo(intersectPoint)
                         if (distance >= raycaster.near && distance <= raycaster.far) {
-                            // 对照 JS testPoint 命中对象：{distance, distanceToRay, point, index, face:null, faceIndex:null, barycoord:null, object}
+                            // 命中对象字段：{distance, distanceToRay, point, index, face:null, faceIndex:null, barycoord:null, object}
                             let intersection = Intersection()
                             intersection.distance = distance
                             intersection.distanceToRay = sqrt(rayPointDistanceSq)

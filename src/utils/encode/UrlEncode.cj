@@ -143,7 +143,7 @@ public class UrlEncode {
                 let v = pair[(eq + 1)..pair.size]
                 out.add((percentDecode(k), percentDecode(v)))
             } else {
-                // 无 '='：仅 key（value 为空串），对照 JS URLSearchParams 行为
+                // 无 '='：仅 key（value 为空串）
                 out.add((percentDecode(pair), ""))
             }
         }

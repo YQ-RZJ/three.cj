@@ -40,17 +40,17 @@ package three.scene.entity
 import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import three.rendering.materials.*
-import three.rendering.cameras.*
+import three.renderers.materials.*
+import three.renderers.cameras.*
 import three.utils.constants.*
-import three.rendering.textures.DataTexture
+import three.renderers.textures.DataTexture
 import three.utils.memory.AutoFreePtr
 import std.collection.*
 import std.math.*
@@ -141,7 +141,7 @@ public class InstancedMesh <: Mesh & IReleasable {
         }
     }
 
-    // 计算包围盒。与 JS side 一致：遍历所有实例变换矩阵，取每实例 translation（elements[12..14]）
+    // 计算包围盒。遍历所有实例变换矩阵，取每实例 translation（elements[12..14]）
     // expand 到 boundingBox；几何本身包围盒由 Mesh.computeBoundingBox 处理（此处仅实例位置）。
     public func computeBoundingBox(): Unit {
         if (let Some(box) <- this.boundingBox) {
@@ -158,7 +158,7 @@ public class InstancedMesh <: Mesh & IReleasable {
         }
     }
 
-    // 计算包围球。与 JS side 一致：先 computeBoundingBox，再用 box.getBoundingSphere 填充。
+    // 计算包围球。先 computeBoundingBox，再用 box.getBoundingSphere 填充。
     public func computeBoundingSphere(): Unit {
         if (let Some(sphere) <- this.boundingSphere) {
             sphere.makeEmpty()
@@ -166,7 +166,7 @@ public class InstancedMesh <: Mesh & IReleasable {
             this.boundingSphere = Some(Sphere())
         }
         this.computeBoundingBox()
-        // 仓颉 match 不支持元组双值块，故用嵌套 match 替代 JS side 的 (box, sphere) 双 match。
+        // 仓颉 match 不支持元组双值块，故用嵌套 match 同时解包 (box, sphere)。
         if (let Some(box) <- this.boundingBox && let Some(sphere) <- this.boundingSphere) {
             box.getBoundingSphere(sphere)
         }
@@ -222,13 +222,13 @@ public class InstancedMesh <: Mesh & IReleasable {
         }
     }
 
-    // 设置指定实例的 morph target 形态。与 JS side 一致：将 morph influences 数组写入 morphTexture。
+    // 设置指定实例的 morph target 形态。将 morph influences 数组写入 morphTexture。
     
     //           morphBaseInfluence = morphTargetsRelative ? 1 : 1 - morphInfluencesSum，写入 dataIndex 起首位，
     //           其后接 objectInfluences 全量。
     // 仓颉侧 DataTexture 接受 Array<UInt8>，故将 Float64 视图转 IEEE754 字节（同 Skeleton.computeBoneTexture 模式）。
     // index - 实例索引。
-    // influences - morph target 影响系数数组（即 JS 的 object.morphTargetInfluences）。
+    // influences - morph target 影响系数数组（即 object.morphTargetInfluences）。
     public func setMorphAt(index: Int64, influences: Array<Float64>): Unit {
         let objectInfluences = influences
         let len = Int64(objectInfluences.size) + 1 // morphBaseInfluence + all influences
@@ -270,7 +270,7 @@ public class InstancedMesh <: Mesh & IReleasable {
         }
     }
 
-    // 取指定实例的 morph target 形态到目标数组。与 JS side 一致：从 morphTexture 读回 influences。
+    // 取指定实例的 morph target 形态到目标数组。从 morphTexture 读回 influences。
     
     // 仓颉侧 morphTexture.source.data 是 IEEE754 字节视图，逐 4 字节 reinterpret 回 Float32→Float64。
     // index - 实例索引。
@@ -294,10 +294,10 @@ public class InstancedMesh <: Mesh & IReleasable {
     // 但 morph target 数据存储在 morphTexture 中（每实例独立）。
     
     public override func updateMorphTargets(): Unit {
-        // 与 JS side 一致：空实现。morphTexture 在 setMorphAt 首次调用时惰性创建，无需此处预建。
+        // 空实现。morphTexture 在 setMorphAt 首次调用时惰性创建，无需此处预建。
     }
 
-    // 射线相交检测。与 JS side 一致：逐实例应用其变换矩阵后与 Mesh.raycast 类似处理。
+    // 射线相交检测。逐实例应用其变换矩阵后与 Mesh.raycast 类似处理。
     
     // raycaster - 射线发射器。
     // intersects - 命中结果累加数组。

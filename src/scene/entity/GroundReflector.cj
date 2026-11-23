@@ -32,17 +32,16 @@
  * "Pass" suffix removed → GroundReflector, avoiding confusion with post-processing passes
  * 设计：
  * - 继承 Mesh：地面平面网格，材质是 ReflectorMaterial
- * - 持反射 RT（RGBA16F + D24；useDepthTexture=true 时额外 RGBA32F 深度 RT）
- * - computeVirtualCamera(camera)：镜像相机数学核心
+ * - 纯镜像相机数学组件（无 GPU 资源）：computeVirtualCamera(camera) 计算镜像相机/纹理投影矩阵
  * 1. fresnelCoe = (dot(normalize(camera.position), reflect(normalize, yAxis)) + 1) / 2
  * 2. 反射面朝向检测（view.dot(normal) > 0 时反射面背向相机 → 返回 false）
  * 3. 构造镜像虚拟相机 virtualCamera（位置/up/看向 target 全部按 normal 镜像）
  * 4. textureMatrix = 0.5偏移矩阵 × virtualCamera.projectionMatrix ×
  * virtualCamera.matrixWorldInverse × scope.matrixWorld
- * - 实际渲场景到反射 RT 的动作由 BgfxSSRPass（postprocessing 包）编排调用
- * （Three.cj 包依赖约束：three.scene.scenegraph 不能 import three.rendering，
- * 循环依赖 objects → renderers → common → objects；渲染需要 renderer.execBgfx +
- * renderer.render，故渲染编排放在能同时依赖 objects 与 renderers 的 postprocessing 层）。
+ * - 反射 RT（RGBA16F + D24；useDepthTexture=true 时额外 RGBA32F 深度 RT）的
+ * 创建/销毁/编排渲染由 SSRPass（postprocessing 包）持有：本组件不能 import
+ * three.renderers（scene.entity → renderers → renderers.bgfx → scene.entity 包级
+ * 循环依赖），SSRPass 能同时依赖两侧，材质纹理句柄（tDiffuse/tDepth）由其创建后回填。
  * - 反射面自绘：主场景渲染（RenderPass → renderer.render）时经 BgfxBackend
  * 按 ReflectorMaterial kind 映射到 "reflector" shader，把反射贴图经 textureMatrix
  * 投影到地面（blendOverlay 混合 + useDepthTexture 分支距离衰减/菲涅尔）。
@@ -72,31 +71,28 @@ import fastjson.*
 import fastjson.macros.*
 import fastjson.stream.*
 
-import three.rendering.geometry.BufferGeometry
-import three.rendering.materials.ReflectorMaterial
-import three.utils.memory.AutoFreePtr
-import three.resource.bgfx.ResourceOps
+import three.renderers.geometry.BufferGeometry
+import three.renderers.materials.ReflectorMaterial
 import three.utils.log.*
 import three.utils.log.macros.*
-import three.rendering.cameras.Camera
-import three.rendering.cameras.PerspectiveCamera
+import three.renderers.cameras.Camera
+import three.renderers.cameras.PerspectiveCamera
 import three.core.math.Color
 import three.core.math.Matrix4
 import three.core.math.Vector3
-import three.rendering.types.*
-import bgfx4cj.bgfx as bgfx
 import three.utils.safe.IReleasable
 
 /**
  * @brief[zh-cn] 地面反射器（SSRPass 专用平面反射组件）
  * @explain[zh-cn] 地面反射器组件，继承 Mesh。
- * 持反射 RT + 镜像相机数学（computeVirtualCamera）；渲场景到反射 RT 的动作
- * 由 SSRPass 编排（Three.cj 包依赖约束，见文件头注释）。
+ * 纯镜像相机数学（computeVirtualCamera）+ 反射参数；反射 RT 的创建/销毁与
+ * 场景编排由 SSRPass 持有（Three.cj 包依赖约束，见文件头注释）。
  *
  * @brief[en] Ground reflector (SSRPass dedicated planar reflection component)
  * @explain[en] Ground reflector component, extends Mesh.
- * Holds reflection RT + mirror camera math (computeVirtualCamera); rendering scene to reflection RT
- * is orchestrated by SSRPass (Three.cj package dependency constraint, see file header comments).
+ * Pure mirror-camera math (computeVirtualCamera) + reflection parameters; reflection RT
+ * creation/destruction and scene orchestration are held by SSRPass (Three.cj package
+ * dependency constraint, see file header comments).
  */
 @JsonAdapter[polymorphic = true ; ignorePrivate = true ; withSuperClass = Mesh]
 public class GroundReflector <: Mesh & IReleasable {
@@ -114,36 +110,6 @@ public class GroundReflector <: Mesh & IReleasable {
     public static let REFLECTOR_VIEW_ID_BASE: UInt16 = 237u16
 
     /**
-     * 反射 RT color（RGBA16F）。
-     */
-    private var _reflectTex: TextureHandle = INVALID_TEXTURE_HANDLE
-
-    /**
-     * 反射 RT 的 depth attachment（D24）
-     */
-    private var _reflectDepthTex: TextureHandle = INVALID_TEXTURE_HANDLE
-
-    /**
-     * 反射 RT frame buffer。
-     */
-    private var _reflectFB: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
-
-    /**
-     * 反射深度 RT color（RGBA32F 存 NDC 深度，useDepthTexture=true 时创建）。
-     */
-    private var _reflectDepthRT: TextureHandle = INVALID_TEXTURE_HANDLE
-
-    /**
-     * 反射深度 RT 的 depth attachment（D24）
-     */
-    private var _reflectDepthRTDepth: TextureHandle = INVALID_TEXTURE_HANDLE
-
-    /**
-     * 反射深度 RT frame buffer
-     */
-    private var _reflectDepthFB: FrameBufferHandle = INVALID_FRAME_BUFFER_HANDLE
-
-    /**
      * 反射纹理尺寸（宽/高），默认 512
      */
     private var _textureWidth: Int64 = 512
@@ -158,9 +124,6 @@ public class GroundReflector <: Mesh & IReleasable {
      * 是否使用深度纹理（useDepthTexture define）
      */
     public var useDepthTexture: Bool = false
-
-    /** 反射 RT 尺寸缓存（已创建标志） */
-    private var _rtCreated: Bool = false
 
     /**
      * 镜像虚拟相机（computeVirtualCamera 计算结果）。
@@ -211,7 +174,7 @@ public class GroundReflector <: Mesh & IReleasable {
         this._textureHeight = textureHeight
         this.clipBias = clipBias
         this.useDepthTexture = useDepthTexture
-        // 材质参数同步（对照 JS: 构造里给 material.uniforms 赋值 color/maxDistance/opacity 默认值）
+        // 材质参数同步（构造里给 material.uniforms 赋值 color/maxDistance/opacity 默认值）
         let mat = this.material
         if (mat is ReflectorMaterial) {
             if (let Some(rm) <- (mat as ReflectorMaterial)) {
@@ -228,66 +191,12 @@ public class GroundReflector <: Mesh & IReleasable {
     }
 
     /**
-     * 创建反射 RT（RGBA16F + D24；useDepthTexture=true 时额外 RGBA32F 深度 RT）。
+     * 反射 RT 的创建/销毁由 SSRPass 编排（_ensureReflectorRTs）：
+     * 本组件位于 three.scene.entity，不能 import three.renderers（会形成
+     * scene.entity → renderers → renderers.bgfx → scene.entity 包级循环依赖），
+     * 故 RT 句柄与 GPU 资源生命周期归 SSRPass（能同时依赖两侧）持有，
+     * 材质纹理句柄（tDiffuse/tDepth）由 SSRPass 创建后回填。
      */
-    internal func ensureRTs(): Unit {
-        if (this._rtCreated) { return }
-        @LogDebug(["reflector", "ensureRTs: creating reflect RT ${this._textureWidth}x${this._textureHeight}"])
-        // 经 ResourceOps 封装创建/销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
-        let resOps = ResourceOps()
-
-        let reflectTex = resOps.createTexture2D(
-            UInt16(this._textureWidth), UInt16(this._textureHeight), false, 1u16,
-            TextureFormat.RGBA16F.value(),
-            bgfx.TEXTURE_RT | UInt64(bgfx.SAMPLER_U_CLAMP) | UInt64(bgfx.SAMPLER_V_CLAMP) | UInt64(bgfx.SAMPLER_MIN_POINT) | UInt64(bgfx.SAMPLER_MAG_POINT),
-            None)
-        this._reflectTex = reflectTex
-        let reflectDepth = resOps.createTexture2D(
-            UInt16(this._textureWidth), UInt16(this._textureHeight), false, 1u16,
-            TextureFormat.D24S8.value(),
-            bgfx.TEXTURE_RT | UInt64(bgfx.SAMPLER_U_CLAMP) | UInt64(bgfx.SAMPLER_V_CLAMP) | UInt64(bgfx.SAMPLER_MIN_POINT) | UInt64(bgfx.SAMPLER_MAG_POINT),
-            None)
-        this._reflectDepthTex = reflectDepth
-        this._reflectFB = this._createFBWithDepth(resOps, reflectTex, reflectDepth)
-        @LogDebug(["reflector", "  reflectFB created: tex=${Handle.idx(reflectTex)} depth=${Handle.idx(reflectDepth)}"])
-
-        if (this.useDepthTexture) {
-            // 反射深度 RT：RGBA32F（存 NDC 深度 gl_FragCoord.z）+ D24
-            let depthRT = resOps.createTexture2D(
-                UInt16(this._textureWidth), UInt16(this._textureHeight), false, 1u16,
-                TextureFormat.RGBA32F.value(),
-                bgfx.TEXTURE_RT | UInt64(bgfx.SAMPLER_U_CLAMP) | UInt64(bgfx.SAMPLER_V_CLAMP) | UInt64(bgfx.SAMPLER_MIN_POINT) | UInt64(bgfx.SAMPLER_MAG_POINT),
-                None)
-            this._reflectDepthRT = depthRT
-            let depthRTDepth = resOps.createTexture2D(
-                UInt16(this._textureWidth), UInt16(this._textureHeight), false, 1u16,
-                TextureFormat.D24S8.value(),
-                bgfx.TEXTURE_RT | UInt64(bgfx.SAMPLER_U_CLAMP) | UInt64(bgfx.SAMPLER_V_CLAMP) | UInt64(bgfx.SAMPLER_MIN_POINT) | UInt64(bgfx.SAMPLER_MAG_POINT),
-                None)
-            this._reflectDepthRTDepth = depthRTDepth
-            this._reflectDepthFB = this._createFBWithDepth(resOps, depthRT, depthRTDepth)
-            @LogDebug(["reflector", "  reflectDepthFB created: tex=${Handle.idx(depthRT)} depth=${Handle.idx(depthRTDepth)}"])
-        }
-
-        // 同步材质纹理句柄（对照 JS: material.uniforms.tDiffuse.value = renderTarget.texture）
-        let mat = this.material
-        if (mat is ReflectorMaterial) {
-            if (let Some(rm) <- (mat as ReflectorMaterial)) {
-                rm.tDiffuse = this._reflectTex
-                if (this.useDepthTexture) {
-                    rm.tDepth = this._reflectDepthRT
-                }
-            }
-        }
-        this._rtCreated = true
-    }
-
-    /** 创建带 depth attachment 的 frame buffer（color + depth 两纹理）。handle 顺序：[0]=color, [1]=depth */
-    private func _createFBWithDepth(resOps: ResourceOps, colorTex: TextureHandle, depthTex: TextureHandle): FrameBufferHandle {
-        let handles = Array<TextureHandle>(2, { i => if (i == 0) { colorTex } else { depthTex } })
-        let fb = resOps.createFrameBuffer(2u8, handles, true)
-        return fb
-    }
 
     /**
      * @param[zh-cn] camera 主相机
@@ -306,19 +215,13 @@ public class GroundReflector <: Mesh & IReleasable {
      * 4. textureMatrix = 0.5偏移 × proj × viewInv × matrixWorld
      */
     public func computeVirtualCamera(camera: Camera): Bool {
-        this.ensureRTs()
-        if (!Handle.isValid(this._reflectFB)) {
-            @LogDebug(["reflector", "computeVirtualCamera: reflectFB invalid"])
-            return false
-        }
-
-        // ---- 1. fresnelCoe（对照 JS: vecTemp0.dot(vecTemp1) + 1 / 2）----
+        // ---- 1. fresnelCoe = (视线方向·反射方向 + 1) / 2 ----
         let yAxis = Vector3(0.0, 1.0, 0.0)
         let vecTemp0 = Vector3(camera.position.x, camera.position.y, camera.position.z).normalize()
         let vecTemp1 = Vector3(vecTemp0.x, vecTemp0.y, vecTemp0.z).reflect(yAxis)
         this.fresnelCoe = (vecTemp0.dot(vecTemp1) + 1.0) / 2.0
 
-        // ---- 2. 反射面朝向检测（对照 JS 逐行）----
+        // ---- 2. 反射面朝向检测 ----
         let reflectorWorldPosition = this.matrixWorld.getPosition()
         let cameraWorldPosition = camera.matrixWorld.getPosition()
 
@@ -331,7 +234,7 @@ public class GroundReflector <: Mesh & IReleasable {
             return false
         }
 
-        // ---- 3. 镜像虚拟相机（对照 JS 逐行）----
+        // ---- 3. 镜像虚拟相机 ----
         view.reflect(normal).negate()
         view.add(reflectorWorldPosition)
 
@@ -382,8 +285,8 @@ public class GroundReflector <: Mesh & IReleasable {
         this.virtualCamera.projectionMatrix.copy(camera.projectionMatrix)
         this.virtualCamera.projectionMatrixInverse.copy(camera.projectionMatrixInverse)
 
-        // ---- 4. textureMatrix = 0.5偏移 × proj × viewInv × matrixWorld（对照 JS 逐行）----
-        // ★bgfx 差异（UV 原点修正）：JS/WebGL 纹理 v=0 在底部（NDC y=-1 → v=0）；
+        // ---- 4. textureMatrix = 0.5偏移 × proj × viewInv × matrixWorld ----
+        // ★bgfx 差异（UV 原点修正）：OpenGL/WebGL 纹理 v=0 在底部（NDC y=-1 → v=0）；
         //   bgfx 纹理 v=0 在顶部。故 0.5 偏移矩阵的 Y 行取反：
         //   v = -0.5*y + 0.5（NDC y=+1 顶部 → v=0 顶部，与 bgfx 纹理约定一致），
         //   否则反射贴图上下翻转（地面反射的物体镜像颠倒、采样错位）。
@@ -398,7 +301,7 @@ public class GroundReflector <: Mesh & IReleasable {
         this.textureMatrix.multiply(this.virtualCamera.matrixWorldInverse)
         this.textureMatrix.multiply(this.matrixWorld)
 
-        // 同步材质 uniforms（对照 JS doRender 内 material.uniforms 赋值）
+        // 同步材质 uniforms
         let mat = this.material
         if (mat is ReflectorMaterial) {
             if (let Some(rm) <- (mat as ReflectorMaterial)) {
@@ -415,37 +318,8 @@ public class GroundReflector <: Mesh & IReleasable {
         }
 
         @LogDebug(["reflector", "computeVirtualCamera done: fresnelCoe=${this.fresnelCoe.toString()}" +
-                      " tex=${Handle.idx(this._reflectTex)} useDepthTexture=${this.useDepthTexture}"])
+                      " useDepthTexture=${this.useDepthTexture}"])
         return true
-    }
-
-    /**
-     * 取反射 RT frame buffer（渲染目标，由 SSRPass 设到 view）。
-     */
-    public func getReflectFB(): FrameBufferHandle {
-        return this._reflectFB
-    }
-
-    /**
-     * 取反射深度 RT frame buffer（useDepthTexture=true 时有效）。
-     */
-    public func getReflectDepthFB(): FrameBufferHandle {
-        return this._reflectDepthFB
-    }
-
-    /**
-     * 取反射器内部 RT 的 color 纹理句柄。
-     */
-    public func getRenderTarget(): TextureHandle {
-        return this._reflectTex
-    }
-
-    /**
-     * 取反射深度 RT 纹理句柄（useDepthTexture=true 时有效，RGBA32F 存 NDC 深度）。
-     * 供 capture 等调试工具回读验证。
-     */
-    public func getReflectDepthTex(): TextureHandle {
-        return this._reflectDepthRT
     }
 
     /**
@@ -460,27 +334,17 @@ public class GroundReflector <: Mesh & IReleasable {
     }
 
     /**
-     * @brief[zh-cn] 释放反射器 GPU 资源。
+     * @brief[zh-cn] 释放反射器资源。
+     * @explain[zh-cn] 反射 RT 的 GPU 资源由 SSRPass 持有并在其生命周期内管理；
+     * 本方法仅重置组件状态（保持 IReleasable 契约与既有调用方兼容）。
      *
-     * @brief[en] frees the reflector GPU resources.
+     * @brief[en] Releases the reflector resources.
+     * @explain[en] The reflection RT GPU resources are held and managed by SSRPass
+     * within its lifecycle; this method only resets component state (keeping the
+     * IReleasable contract and existing callers compatible).
      */
     public func release(): Bool {
-        // 经 ResourceOps 封装销毁资源（避免 objects 包依赖 renderers 包导致循环依赖）
-        let resOps = ResourceOps()
-        if (Handle.isValid(this._reflectFB)) { resOps.destroyFrameBuffer(this._reflectFB) }
-        if (Handle.isValid(this._reflectTex)) { resOps.destroyTexture(this._reflectTex) }
-        if (Handle.isValid(this._reflectDepthTex)) { resOps.destroyTexture(this._reflectDepthTex) }
-        if (Handle.isValid(this._reflectDepthFB)) { resOps.destroyFrameBuffer(this._reflectDepthFB) }
-        if (Handle.isValid(this._reflectDepthRT)) { resOps.destroyTexture(this._reflectDepthRT) }
-        if (Handle.isValid(this._reflectDepthRTDepth)) { resOps.destroyTexture(this._reflectDepthRTDepth) }
-        this._reflectFB = INVALID_FRAME_BUFFER_HANDLE
-        this._reflectTex = INVALID_TEXTURE_HANDLE
-        this._reflectDepthTex = INVALID_TEXTURE_HANDLE
-        this._reflectDepthFB = INVALID_FRAME_BUFFER_HANDLE
-        this._reflectDepthRT = INVALID_TEXTURE_HANDLE
-        this._reflectDepthRTDepth = INVALID_TEXTURE_HANDLE
-        this._rtCreated = false
-        @LogDebug(["reflector", "released"])
+        @LogDebug(["reflector", "released (GPU RTs managed by SSRPass)"])
         return true
     }
 }

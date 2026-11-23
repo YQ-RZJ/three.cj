@@ -54,6 +54,7 @@ package three.script.vm
 import std.collection.*
 import three.core.math.*
 import luajit4cj.luajit.*
+import three.utils.memory.VoidPtr
 import three.utils.safe.IReleasable
 
 // =============================================================================
@@ -66,6 +67,20 @@ import three.utils.safe.IReleasable
  * @brief[en] Typed None (used for the Option<String> parameters of _doChunk/_loadChunk)
  */
 private let _NO_STR: Option<String> = None
+
+/**
+ * @brief[zh-cn] 引擎对象桥接：压栈回调（push userdata；未注册时压 nil）
+ *
+ * @brief[en] Engine object bridge: push callback (pushes userdata; nil when unregistered)
+ */
+private var _objectPusher: Option<(VoidPtr, Int64) -> Unit> = None
+
+/**
+ * @brief[zh-cn] 引擎对象桥接：读栈回调（userdata → 对象 id；未注册时返回 0）
+ *
+ * @brief[en] Engine object bridge: read callback (userdata → object id; 0 when unregistered)
+ */
+private var _objectReader: Option<(VoidPtr, Int32) -> Int64> = None
 
 // =============================================================================
 // LuaVM：脚本虚拟机（持有 lua_State 句柄）
@@ -166,11 +181,6 @@ public class LuaVM <: IReleasable {
      *
      * @brief[en] Closes the state and releases resources (handle() becomes invalid afterwards)
      */
-    /**
-     * @brief[zh-cn] 关闭状态机并释放资源（之后 handle() 失效）
-     *
-     * @brief[en] closes the state and releases resources (handle() becomes invalid afterwards)
-     */
     public func release(): Bool {
         if (!this._L.isNull()) {
             lua_close_cj(this._L)
@@ -206,13 +216,13 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 从字节缓冲区加载并执行 Lua 代码（二进制 chunk 或源码）
      * @param[zh-cn] code 源码或预编译字节码字符串
-     * name chunk 名（用于错误消息，默认 "=(buffer)"）
+     * @param[zh-cn] name chunk 名（用于错误消息，默认 "=(buffer)"）
      * @return[zh-cn] 返回值数组
      * @throws[zh-cn] LuaError 语法错误或运行时错误
      *
      * @brief[en] Loads and executes Lua code from a byte buffer (binary chunk or source)
      * @param[en] code The source or precompiled bytecode string
-     * name The chunk name (used in error messages, default "=(buffer)")
+     * @param[en] name The chunk name (used in error messages, default "=(buffer)")
      * @return[en] The result array
      * @throws[en] LuaError On a syntax or runtime error
      */
@@ -238,14 +248,14 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 统一执行入口：chunk/name/path 三选一（内部）
      * @param[zh-cn] code Lua 源码（仅当 path 为 None 时使用）
-     * name chunk 名（可选）
-     * path 文件路径（三选一）
+     * @param[zh-cn] name chunk 名（可选）
+     * @param[zh-cn] path 文件路径（三选一）
      * @return[zh-cn] 返回值数组
      *
      * @brief[en] Unified execution entry: exactly one of chunk/name/path (internal)
      * @param[en] code The Lua source (used only when path is None)
-     * name The chunk name (optional)
-     * path The file path (one of the three)
+     * @param[en] name The chunk name (optional)
+     * @param[en] path The file path (one of the three)
      * @return[en] The array of return values
      */
     private func _doChunk(code: Option<String>, name: Option<String>,
@@ -334,14 +344,14 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 统一编译入口（内部）：chunk/path 二选一
      * @param[zh-cn] code Lua 源码（仅当 path 为 None 时使用）
-     * name chunk 名（可选）
-     * path 文件路径（二选一）
+     * @param[zh-cn] name chunk 名（可选）
+     * @param[zh-cn] path 文件路径（二选一）
      * @return[zh-cn] 编译后的 LuaFunction
      *
      * @brief[en] Unified compilation entry (internal): either chunk or path
      * @param[en] code The Lua source (used only when path is None)
-     * name The chunk name (optional)
-     * path The file path (one of the two)
+     * @param[en] name The chunk name (optional)
+     * @param[en] path The file path (one of the two)
      * @return[en] The compiled LuaFunction
      */
     private func _loadChunk(code: Option<String>, name: Option<String>,
@@ -393,11 +403,11 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 写入全局变量
      * @param[zh-cn] name 全局变量名
-     * value 要写入的变量值
+     * @param[zh-cn] value 要写入的变量值
      *
      * @brief[en] Writes a global variable
      * @param[en] name The global variable name
-     * value The value to write
+     * @param[en] value The value to write
      */
     public func setGlobal(name: String, value: LuaValue): Unit {
         let L = this._requireState()
@@ -479,13 +489,13 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 调用栈顶函数（参数需已压栈）
      * @param[zh-cn] nargs 参数个数
-     * nresults 期望返回值个数（LUA_MULTRET=-1 表示取全部）
+     * @param[zh-cn] nresults 期望返回值个数（LUA_MULTRET=-1 表示取全部）
      * @return[zh-cn] 返回值数组
      * @throws[zh-cn] LuaError 运行时错误
      *
      * @brief[en] Calls the function on top of the stack (arguments must already be pushed)
      * @param[en] nargs The number of arguments
-     * nresults The expected number of results (LUA_MULTRET=-1 means all)
+     * @param[en] nresults The expected number of results (LUA_MULTRET=-1 means all)
      * @return[en] The result array
      * @throws[en] LuaError On a runtime error
      */
@@ -521,11 +531,11 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 创建新表并压栈（lua_createtable）
      * @param[zh-cn] narr 预分配的数组部分容量（默认 0）
-     * nrec 预分配的哈希部分容量（默认 0）
+     * @param[zh-cn] nrec 预分配的哈希部分容量（默认 0）
      *
      * @brief[en] Creates a new table and pushes it onto the stack (lua_createtable)
      * @param[en] narr Pre-allocated array-part capacity (default 0)
-     * nrec Pre-allocated hash-part capacity (default 0)
+     * @param[en] nrec Pre-allocated hash-part capacity (default 0)
      */
     public func createTable(narr!: Int32 = 0, nrec!: Int32 = 0): Unit {
         lua_createtable_cj(this._requireState(), narr, nrec)
@@ -534,11 +544,11 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 获取表字段（表在 idx，字段值压栈）——低层 API，供 LuaTable 使用
      * @param[zh-cn] idx 表的栈索引
-     * name 字段名
+     * @param[zh-cn] name 字段名
      *
      * @brief[en] Gets a table field (table at idx; the field value is pushed) — low-level API for LuaTable
      * @param[en] idx The stack index of the table
-     * name The field name
+     * @param[en] name The field name
      */
     public func getField(idx: Int32, name: String): Unit {
         let cs = _toCString(name)
@@ -549,11 +559,11 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 设置表字段（值已在栈顶，表在 idx）——低层 API，供 LuaTable 使用
      * @param[zh-cn] idx 表的栈索引
-     * name 字段名
+     * @param[zh-cn] name 字段名
      *
      * @brief[en] Sets a table field (value already on top of the stack, table at idx) — low-level API for LuaTable
      * @param[en] idx The stack index of the table
-     * name The field name
+     * @param[en] name The field name
      */
     public func setField(idx: Int32, name: String): Unit {
         let cs = _toCString(name)
@@ -729,13 +739,15 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 从栈索引读取 LuaValue
      * @param[zh-cn] L 底层 lua_State 句柄
-     * idx 栈索引
-     * @return[zh-cn] 对应的 LuaValue（表/函数等返回 nil 占位）
+     * @param[zh-cn] idx 栈索引
+     * @return[zh-cn] 对应的 LuaValue（表 → LuaValue.Table(ref)，函数 → LuaValue.Function(ref)；
+     *                thread 等返回 nil 占位）
      *
      * @brief[en] Reads a LuaValue from a stack index
      * @param[en] L The underlying lua_State handle
-     * idx The stack index
-     * @return[en] The corresponding LuaValue (nil placeholder for tables/functions etc.)
+     * @param[en] idx The stack index
+     * @return[en] The corresponding LuaValue (tables → LuaValue.Table(ref), functions →
+     * LuaValue.Function(ref); threads etc. return a nil placeholder)
      */
     protected static func readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
         return _readValue(L, idx)
@@ -744,14 +756,38 @@ public class LuaVM <: IReleasable {
     /**
      * @brief[zh-cn] 压入 LuaValue 到栈
      * @param[zh-cn] L 底层 lua_State 句柄
-     * v 要压入的 LuaValue
+     * @param[zh-cn] v 要压入的 LuaValue
      *
      * @brief[en] Pushes a LuaValue onto the stack
      * @param[en] L The underlying lua_State handle
-     * v The LuaValue to push
+     * @param[en] v The LuaValue to push
      */
     protected static func pushValue(L: CPointer<Unit>, v: LuaValue): Unit {
         _pushValue(L, v)
+    }
+
+    /**
+     * @brief[zh-cn] 注册引擎对象桥接（push/read userdata 的实现）
+     * @explain[zh-cn] 由 three.script.binding 包调用一次：把仓颉对象作为 userdata 压栈/
+     * 从栈读取。未注册时使用默认实现：Object 压 nil、读取返回 0。
+     * @param[zh-cn] pusher 压栈回调（将对象 id 写入 userdata；可空，默认压 nil）
+     * @param[zh-cn] reader 读栈回调（userdata → 对象 id；可空，默认返回 0）
+     *
+     * @brief[en] Registers the engine object bridge (userdata push/read implementation)
+     * @explain[en] Called once by the three.script.binding package: pushes/reads Cangjie
+     * objects as userdata. Without registration, the default implementation applies:
+     * Objects push nil and reads return 0.
+     * @param[en] pusher The push callback (writes the object id into userdata; optional, default pushes nil)
+     * @param[en] reader The read callback (userdata → object id; optional, default returns 0)
+     */
+    public static func setObjectBridge(pusher: Option<(VoidPtr, Int64) -> Unit>,
+                                       reader: Option<(VoidPtr, Int32) -> Int64>): Unit {
+        if (let Some(p) <- pusher) {
+            _objectPusher = Some(p)
+        }
+        if (let Some(r) <- reader) {
+            _objectReader = Some(r)
+        }
     }
 }
 
@@ -784,16 +820,18 @@ internal func _freeCString(cs: CString): Unit {
 }
 
 /**
- * @brief[zh-cn] 从栈索引读取 LuaValue（基础类型；表/函数等返回 nil 占位，
- * 用 LuaTable/LuaFunction 访问）
+ * @brief[zh-cn] 从栈索引读取 LuaValue（表 → LuaValue.Table(ref)，函数 → LuaValue.Function(ref)，
+ * 引用由本函数经 luaL_ref 创建，调用方应成对 unrefValue(L)；thread 等返回 nil 占位，
+ * 需完整访问可用 LuaTable/LuaFunction 封装）
  * @param[zh-cn] L 底层 lua_State 句柄
- * idx 栈索引
+ * @param[zh-cn] idx 栈索引
  * @return[zh-cn] 对应的 LuaValue
  *
- * @brief[en] Reads a LuaValue from a stack index (basic types; tables/functions etc.
- * return a nil placeholder, access them via LuaTable/LuaFunction)
+ * @brief[en] Reads a LuaValue from a stack index (tables → LuaValue.Table(ref), functions →
+ * LuaValue.Function(ref); the ref is created here via luaL_ref, callers should pair it with
+ * unrefValue(L); threads etc. return a nil placeholder, use LuaTable/LuaFunction for full access)
  * @param[en] L The underlying lua_State handle
- * idx The stack index
+ * @param[en] idx The stack index
  * @return[en] The corresponding LuaValue
  */
 internal func _readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
@@ -802,6 +840,8 @@ internal func _readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
         case 0 => return LuaValue.Nil            // LUA_TNIL
         case 1 =>                                // LUA_TBOOLEAN
             return LuaValue.Boolean(lua_toboolean_cj(L, idx) != 0)
+        case 2 =>                                // LUA_TLIGHTUSERDATA → 对象 id
+            return _readObjectUserdata(L, idx)
         case 3 =>                                // LUA_TNUMBER
             // 判断是否为整数值：lua_tointegerx 的 isnum 对小数也返回 1（LuaJIT 同 Lua 5.1），
             // 不能用它区分整数/浮点。改用 tonumber 截断后回比：
@@ -817,30 +857,93 @@ internal func _readValue(L: CPointer<Unit>, idx: Int32): LuaValue {
             let cs = lua_tolstring_cj(L, idx, CPointer<UIntNative>())
             if (cs.isNull()) { return LuaValue.Str("") }
             return LuaValue.Str(unsafe { cs.toString() })
+        case 5 =>                                // LUA_TTABLE → 注册表引用
+            lua_pushvalue_cj(L, idx)
+            let ref = Int64(luaL_ref_cj(L, LUA_REGISTRYINDEX))
+            return LuaValue.Table(ref)
+        case 6 =>                                // LUA_TFUNCTION → 注册表引用
+            lua_pushvalue_cj(L, idx)
+            let ref = Int64(luaL_ref_cj(L, LUA_REGISTRYINDEX))
+            return LuaValue.Function(ref)
+        case 7 =>                                // LUA_TUSERDATA → 对象 id
+            return _readObjectUserdata(L, idx)
         case _ =>
-            // table/function/userdata/thread/lightuserdata → nil 占位
+            // thread 等 → nil 占位
             return LuaValue.Nil
     }
+}
+
+/// 从栈索引读取引擎对象 userdata（lightuserdata 或全 userdata）
+internal func _readObjectUserdata(L: CPointer<Unit>, idx: Int32): LuaValue {
+    if (let Some(r) <- _objectReader) {
+        let id = r(Box(L), idx)
+        if (id != 0) {
+            return LuaValue.Object(id)
+        }
+    }
+    return LuaValue.Nil
 }
 
 /**
  * @brief[zh-cn] 压入 LuaValue 到栈
  * @param[zh-cn] L 底层 lua_State 句柄
- * v 要压入的 LuaValue
+ * @param[zh-cn] v 要压入的 LuaValue
  *
  * @brief[en] Pushes a LuaValue onto the stack
  * @param[en] L The underlying lua_State handle
- * v The LuaValue to push
+ * @param[en] v The LuaValue to push
  */
 internal func _pushValue(L: CPointer<Unit>, v: LuaValue): Unit {
-    match (v) {
-        case LuaValue.Nil => lua_pushnil_cj(L)
-        case LuaValue.Boolean(b) => lua_pushboolean_cj(L, if (b) { 1 } else { 0 })
-        case LuaValue.Number(n) => lua_pushnumber_cj(L, n)
-        case LuaValue.Integer(i) => lua_pushinteger_cj(L, i)
-        case LuaValue.Str(s) =>
-            let cs = _toCString(s)
-            lua_pushstring_cj(L, cs)
-            _freeCString(cs)
+    if (v.isNil) {
+        lua_pushnil_cj(L)
+    } else if (v.isBool) {
+        lua_pushboolean_cj(L, if (v.boolValue()) { 1 } else { 0 })
+    } else if (v.isInteger) {
+        // 整数：压 64 位整数（LuaJIT 原生支持）
+        lua_pushinteger_cj(L, v.intValue())
+    } else if (v.isNumber) {
+        lua_pushnumber_cj(L, v.numberValue())
+    } else if (v.isString) {
+        let s = v.stringValue()
+        let cs = _toCString(s)
+        lua_pushstring_cj(L, cs)
+        _freeCString(cs)
+    } else if (v.isObject) {
+        let id = v.objectId()
+        if (let Some(p) <- _objectPusher) {
+            p(Box(L), id)
+        } else {
+            // 未注册对象桥接：退化为 nil（安全）
+            lua_pushnil_cj(L)
+        }
+    } else if (v.isArray) {
+        // 仓颉数组 → 1-based Lua table（narr 预分配数组部分）
+        let elems = v.arrayValues()
+        let narr = Int32(elems.size)
+        lua_createtable_cj(L, narr, 0)
+        var ai: Int32 = 1
+        for (elem in elems) {
+            _pushValue(L, elem)      // 递归：元素本身可为任意 LuaValue
+            lua_rawseti_cj(L, -2, ai)
+            ai += 1
+        }
+    } else if (v.isTable) {
+        // 表引用 → 经注册表取回（ref<=0 视为无效，压 nil）
+        let ref = v.refId()
+        if (ref > 0) {
+            lua_rawgeti_cj(L, LUA_REGISTRYINDEX, Int32(ref))
+        } else {
+            lua_pushnil_cj(L)
+        }
+    } else if (v.isFunction) {
+        // 函数引用 → 经注册表取回（ref<=0 视为无效，压 nil）
+        let ref = v.refId()
+        if (ref > 0) {
+            lua_rawgeti_cj(L, LUA_REGISTRYINDEX, Int32(ref))
+        } else {
+            lua_pushnil_cj(L)
+        }
+    } else {
+        lua_pushnil_cj(L)
     }
 }

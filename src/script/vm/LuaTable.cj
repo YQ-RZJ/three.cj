@@ -43,6 +43,7 @@
 package three.script.vm
 
 import luajit4cj.luajit.*
+import three.utils.memory.VoidPtr
 import three.utils.safe.IReleasable
 
 /**
@@ -66,11 +67,11 @@ public class LuaTable <: IReleasable {
     /**
      * @brief[zh-cn] 包装一个已存在的注册表引用
      * @param[zh-cn] vm  所属虚拟机
-     * ref 注册表引用（由 luaL_ref 产生）
+     * @param[zh-cn] ref 注册表引用（由 luaL_ref 产生）
      *
      * @brief[en] Wraps an existing registry reference
      * @param[en] vm  The owning virtual machine
-     * ref The registry reference (produced by luaL_ref)
+     * @param[en] ref The registry reference (produced by luaL_ref)
      */
     public init(vm!: LuaVM, ref!: Int32) {
         this._vm = vm
@@ -81,12 +82,12 @@ public class LuaTable <: IReleasable {
     /**
      * @brief[zh-cn] 从全局变量获取表引用（非表则返回 null）
      * @param[zh-cn] vm   目标虚拟机
-     * name 全局变量名
+     * @param[zh-cn] name 全局变量名
      * @return[zh-cn] 表引用；若全局变量不存在或不是表则返回 None
      *
      * @brief[en] Gets a table reference from a global variable (null when not a table)
      * @param[en] vm   The target virtual machine
-     * name The global variable name
+     * @param[en] name The global variable name
      * @return[en] The table reference, or None if the global is missing or not a table
      */
     public static func fromGlobal(vm: LuaVM, name: String): Option<LuaTable> {
@@ -107,14 +108,14 @@ public class LuaTable <: IReleasable {
     /**
      * @brief[zh-cn] 在 VM 中创建一个新表并返回引用
      * @param[zh-cn] vm   目标虚拟机
-     * narr 预分配数组部分容量
-     * nrec 预分配哈希部分容量
+     * @param[zh-cn] narr 预分配数组部分容量
+     * @param[zh-cn] nrec 预分配哈希部分容量
      * @return[zh-cn] 新建表的引用
      *
      * @brief[en] Creates a new table in the VM and returns a reference
      * @param[en] vm   The target virtual machine
-     * narr Preallocated capacity of the array part
-     * nrec Preallocated capacity of the hash part
+     * @param[en] narr Preallocated capacity of the array part
+     * @param[en] nrec Preallocated capacity of the hash part
      * @return[en] The reference to the newly created table
      */
     public static func create(vm: LuaVM, narr!: Int32 = 0, nrec!: Int32 = 0): LuaTable {
@@ -122,6 +123,29 @@ public class LuaTable <: IReleasable {
         lua_createtable_cj(L, narr, nrec)
         let ref = luaL_ref_cj(L, LUA_REGISTRYINDEX)
         return LuaTable(vm: vm, ref: ref)
+    }
+
+    /**
+     * @brief[zh-cn] 从栈索引建立表引用（lua_pushvalue + luaL_ref；非表返回 None）
+     * @param[zh-cn] vm  所属虚拟机（引用释放时使用 handle）
+     * @param[zh-cn] L   底层 lua_State 句柄
+     * @param[zh-cn] idx 栈索引（值不为表时返回 None，栈不变）
+     * @return[zh-cn] 表引用；栈顶值不是表时返回 None
+     *
+     * @brief[en] Creates a table reference from a stack index (lua_pushvalue + luaL_ref;
+     * None when the value is not a table)
+     * @param[en] vm  The owning virtual machine (used for release)
+     * @param[en] L    The underlying lua_State handle
+     * @param[en] idx The stack index (returns None and leaves the stack untouched when not a table)
+     * @return[en] The table reference, or None when the top value is not a table
+     */
+    public static func fromStack(vm: LuaVM, L: VoidPtr, idx: Int32): Option<LuaTable> {
+        let lv = L.value
+        if (lv.isNull()) { return None }
+        if (lua_type_cj(lv, idx) != LUA_TTABLE) { return None }
+        lua_pushvalue_cj(lv, idx)
+        let ref = luaL_ref_cj(lv, LUA_REGISTRYINDEX)
+        return Some(LuaTable(vm: vm, ref: ref))
     }
 
     /**
@@ -150,16 +174,8 @@ public class LuaTable <: IReleasable {
      * @explain[en] After release releasable becomes false and the reference is no longer usable;
      * calling again has no effect.
      */
-    /**
-     * @brief[zh-cn] 释放注册表引用。
-     * @explain[zh-cn] release 后 releasable 变为 false，引用不可再使用；重复调用无效果。
-     *
-     * @brief[en] releases the registry reference.
-     * @explain[en] After release releasable becomes false and the reference is no longer usable;
-     * calling again has no effect.
-     */
     public func release(): Bool {
-        if (this._disposed) { return true }
+        if (this._disposed) { return false }
         let L = this._vm.handle()
         if (!L.isNull()) {
             luaL_unref_cj(L, LUA_REGISTRYINDEX, this._ref)
@@ -195,11 +211,11 @@ public class LuaTable <: IReleasable {
     /**
      * @brief[zh-cn] 写入字段（t[k] = v）
      * @param[zh-cn] key   字段名
-     * value 要写入的值
+     * @param[zh-cn] value 要写入的值
      *
      * @brief[en] Writes a field (t[k] = v)
      * @param[en] key   The field name
-     * value The value to write
+     * @param[en] value The value to write
      */
     public func set(key: String, value: LuaValue): Unit {
         let L = this._vm.handle()
@@ -232,11 +248,11 @@ public class LuaTable <: IReleasable {
     /**
      * @brief[zh-cn] 写入数组索引（t[i] = v，1 起始）
      * @param[zh-cn] i     数组索引（从 1 开始）
-     * value 要写入的值
+     * @param[zh-cn] value 要写入的值
      *
      * @brief[en] Writes an array index (t[i] = v, 1-based)
      * @param[en] i     The array index (1-based)
-     * value The value to write
+     * @param[en] value The value to write
      */
     public func setIndex(i: Int32, value: LuaValue): Unit {
         let L = this._vm.handle()
@@ -259,6 +275,34 @@ public class LuaTable <: IReleasable {
         let n = Int64(lua_objlen_cj(L, -1))
         lua_settop_cj(L, -2)
         return n
+    }
+
+    /**
+     * @brief[zh-cn] 以数值数组形式读取表中全部数组段元素（t[1]..t[n]，n = len()）
+     * @explain[zh-cn] 将表的数组部分（连续整数键 1..len）读为元素数组；哈希部分（字符串键）不读取。
+     * 每个元素经栈读取（同 getIndex），**不创建新的注册表引用**（嵌套 table 元素除外，
+     * 其 readValue 语义同逐索引取值）。
+     * @return[zh-cn] 数组段元素；表无数组部分时返回空数组
+     *
+     * @brief[en] Reads the whole array part of the table (t[1]..t[n], n = len()) as an element array
+     * @explain[en] Reads the array part (contiguous integer keys 1..len) as a LuaValue array; the hash
+     * part (string keys) is ignored. Each element is read through the stack (same as getIndex) and
+     * creates no new registry reference (except nested table elements, whose readValue semantics match
+     * per-index access).
+     * @return[en] The array-part elements; an empty array when the table has no array part
+     */
+    public func getValues(): Array<LuaValue> {
+        let L = this._vm.handle()
+        this._pushSelf(L)              // 表在 -1
+        let n = Int64(lua_objlen_cj(L, -1))
+        var out = Array<LuaValue>(n, { _ => LuaValue.Nil })
+        for (i in 1..=n) {
+            lua_rawgeti_cj(L, -1, Int32(i))   // 值在 -1，表在 -2
+            out[i - 1] = _readValue(L, -1)
+            lua_settop_cj(L, -2)              // 弹值，保留表
+        }
+        lua_settop_cj(L, -2)           // 弹表
+        return out
     }
 
     /**

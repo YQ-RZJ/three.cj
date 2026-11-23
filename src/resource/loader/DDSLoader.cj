@@ -23,18 +23,18 @@
  *
  * @file[zh-cn] DDSLoader S3TC 压缩纹理加载器
  * @brief[zh-cn] S3TC (DDS) 压缩纹理加载器的仓颉侧实现
- * @explain[zh-cn] S3TC (DDS) 压缩纹理加载器。仓颉侧复用 bgfx4cj.bimg 子包的 bimg_image_parse_dds_cj 解析 DDS 字节流，提取宽度/高度/格式/各 mip 层数据。
+ * @explain[zh-cn] S3TC (DDS) 压缩纹理加载器。基于 bgfx4cj.bimg 子包的 bimg_image_parse_dds_cj 解析 DDS 字节流，提取宽度/高度/格式/各 mip 层数据。
  *
  * @file[en] DDSLoader  S3TC compressed texture loader
  * @brief[en] Cangjie implementation of S3TC (DDS) compressed texture loader
- * @explain[en] S3TC (DDS) compressed texture loader. Cangjie side reuses bgfx4cj.bimg's bimg_image_parse_dds_cj to parse DDS byte streams, extracting width/height/format/mipmap data.
+ * @explain[en] S3TC (DDS) compressed texture loader. Parses DDS byte streams via bgfx4cj.bimg's bimg_image_parse_dds_cj, extracting width/height/format/mipmap data.
  *
  * @extends CompressedTextureLoader
  */
 package three.resource.loader
 
 import three.utils.constants.*
-import three.rendering.textures.*
+import three.renderers.textures.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr

@@ -32,7 +32,7 @@
 package three.resource.loader
 
 import std.collection.*
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 
 /**
  * @brief[zh-cn] 加载器抽象基类

@@ -23,18 +23,18 @@
  *
  * @file[zh-cn] KTXLoader Khronos Texture 压缩纹理加载器
  * @brief[zh-cn] Khronos Texture (KTX) 压缩纹理加载器的仓颉侧实现
- * @explain[zh-cn] Khronos Texture (KTX) 压缩纹理加载器。仓颉侧复用 bgfx4cj.bimg 子包的 bimg_image_parse_ktx_cj 解析 KTX 字节流，提取宽度/高度/格式/各 mip 层数据。
+ * @explain[zh-cn] Khronos Texture (KTX) 压缩纹理加载器。基于 bgfx4cj.bimg 子包的 bimg_image_parse_ktx_cj 解析 KTX 字节流，提取宽度/高度/格式/各 mip 层数据。
  *
  * @file[en] KTXLoader  Khronos Texture compressed texture loader
  * @brief[en] Cangjie implementation of Khronos Texture (KTX) compressed texture loader
- * @explain[en] Khronos Texture (KTX) compressed texture loader. Cangjie side reuses bgfx4cj.bimg's bimg_image_parse_ktx_cj to parse KTX byte streams, extracting width/height/format/mipmap data.
+ * @explain[en] Khronos Texture (KTX) compressed texture loader. Parses KTX byte streams via bgfx4cj.bimg's bimg_image_parse_ktx_cj, extracting width/height/format/mipmap data.
  *
  * @extends CompressedTextureLoader
  */
 package three.resource.loader
 
 import three.utils.constants.*
-import three.rendering.textures.*
+import three.renderers.textures.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr

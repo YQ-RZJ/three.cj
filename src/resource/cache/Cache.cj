@@ -32,7 +32,7 @@
 package three.resource.cache
 
 import std.collection.*
-import three.core.interfaces.ILoadResult
+import three.core._interfaces.ILoadResult
 
 /**
  * @brief[zh-cn] 资源缓存类，为加载器提供已加载资源的全局缓存

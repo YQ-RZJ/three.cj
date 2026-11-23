@@ -34,17 +34,17 @@
  * boneTexture is the GPU texture wrapper of boneMatrices (for large skeletons).
  */
 package three.scene.entity
-import three.rendering.buffer.*
-import three.rendering.geometry.*
+import three.renderers.buffer.*
+import three.renderers.geometry.*
 import three.scene.objects.*
 import three.core.time.*
-import three.rendering.rendertarget.*
+import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
 import three.utils.constants.*
-import three.rendering.textures.DataTexture
+import three.renderers.textures.DataTexture
 import three.utils.memory.AutoFreePtr
-import three.core.interfaces.IPropertyBindingRoot
+import three.core._interfaces.IPropertyBindingRoot
 import three.animation.skeletal.*
 import std.collection.*
 import std.math.*
@@ -82,7 +82,7 @@ public class Skeleton <: IPropertyBindingRoot & IReleasable {
      * @brief[zh-cn] 髀骨偏移矩阵的扁平数组（每髀骨 16 个 Float64），渲染时内部使用
      * @explain[zh-cn] 派生缓存：update() 每帧由 bones.matrixWorld × boneInverses 重算，不参与 JSON 序列化
      *
-     * @brief[en] Flattened bone offset matrix array (16 Float64 per bone), used internally for rendering
+     * @brief[en] Flattened bone offset matrix array (16 Float64 per bone), used internally for renderers
      * @explain[en] Derived cache: recomputed each frame by update() from bones.matrixWorld × boneInverses, not serialized
      */
     @JsonIgnore
@@ -198,7 +198,7 @@ public class Skeleton <: IPropertyBindingRoot & IReleasable {
      * @explain[en] Called by renderer each frame; does not update bone's matrixWorld (done by Object3D.updateMatrixWorld)
      */
     public func update(): Unit {
-        // 与 JS side 一致：复用已分配的 boneMatrices 数组（避免每帧重分配）。
+        // 复用已分配的 boneMatrices 数组（避免每帧重分配）。
         let boneMatricesArr = if (let Some(arr) <- this.boneMatrices) {
             arr
         } else {

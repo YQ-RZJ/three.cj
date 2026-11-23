@@ -36,7 +36,7 @@
  *
  * @file[en] AssetBundle  Resource bundle
  * @brief[en] AssetBundle-style packing/reading: packs multiple resource files into a single binary archive
- * @explain[en] Mirrors the Unity AssetBundle pack-and-load workflow:
+ * @explain[en] Pack-and-load workflow:
  * - Pack side: AssetBundleBuilder accumulates add(name, bytes) then build() produces a single-file archive, writable via writeTo.
  * - Load side: AssetBundle.loadFromFile / loadFromBytes reads the archive once; get/read slices entries by name.
  * Archive format (little-endian):
