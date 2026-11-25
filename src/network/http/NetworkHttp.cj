@@ -208,7 +208,7 @@ public class NetworkHttp {
             let source = rb.getSource()
             try {
                 while (source.read(buffer, 64 * 1024) > 0) {}
-            } catch (e: EOFException) {}
+            } catch (e: Exception) {}
             let raw = buffer.bytes()
             bodyBytes = Some(raw)
             try {
