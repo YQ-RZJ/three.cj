@@ -8,7 +8,7 @@
   override-compile-option = ""
   src-dir = "src"
   target-dir = ""
-  version = "1.1.8"
+  version = "1.2.0"
   [package.package-configuration]
 
 [profile]

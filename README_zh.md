@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-<img alt="" src="https://img.shields.io/badge/version-1.1.8-red" style="display: inline-block;" />
+<img alt="" src="https://img.shields.io/badge/version-1.2.0-red" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/cjc-v1.1.0 STS-yellow" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/domain-Computer_Graphics-8A2BE2" style="display: inline-block;" />
 <img alt="" src="https://img.shields.io/badge/platform-跨平台-lightgrey" style="display: inline-block;" />

@@ -1,3 +1,14 @@
+# [1.2.0]
+
+## Feature
+
+feat: 网络模块对外提供原始字节流；
+chore: 集成所有依赖，内置到 _vendor 子包，且不对外公开；
+feat: 加入 serializer lua侧绑定，并补充 lua 侧遗漏的 utils.encode 绑定;
+test: 完善相关测试案例；
+docs: update readme.md;
+docs: update CHANGELOG.md;
+
 # [1.1.8]
 
 ## Feature

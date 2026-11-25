@@ -71,6 +71,7 @@ import three._vendor.httpclient4cj.RealRequestBody
 import three._vendor.httpclient4cj.MediaType
 import three._vendor.httpclient4cj.HttpClient as TpcHttpClient
 import std.collection.*
+import std.io.*
 import std.time.*
 import three.utils.safe.IReleasable
 
@@ -198,15 +199,29 @@ public class NetworkHttp {
                 hs.add((name, v))
             }
         }
-        // 正文
+        // 正文（原始字节 + 文本双通道，二进制响应不会丢字节）
         var body: Option<String> = None
+        var bodyBytes: Option<Array<UInt8>> = None
         let b = resp.getBody()
-        if (let Some(rb) <- b) { body = Some(rb.getString()) }
+        if (let Some(rb) <- b) {
+            let buffer = ByteBuffer()
+            let source = rb.getSource()
+            try {
+                while (source.read(buffer, 64 * 1024) > 0) {}
+            } catch (e: EOFException) {}
+            let raw = buffer.bytes()
+            bodyBytes = Some(raw)
+            try {
+                body = Some(String.fromUtf8(raw))
+            } catch (e: Exception) {
+                body = None
+            }
+        }
         var arr = Array<(String, String)>(hs.size, { _ => ("", "") })
         for (i in 0..hs.size) {
             arr[Int64(i)] = hs[i]
         }
-        return HttpResponse(code, message, headers: arr, body: body)
+        return HttpResponse(code, message, headers: arr, body: body, bodyBytes: bodyBytes)
     }
 
     /**

@@ -70,26 +70,37 @@ public class HttpResponse {
     public let body: Option<String>
 
     /**
+     * @brief[zh-cn] 正文原始字节（zip / 图片等二进制响应使用；与 body 同时提供）
+     *
+     * @brief[en] Raw body bytes (for binary responses such as zip / images; provided alongside body)
+     */
+    public let bodyBytes: Option<Array<UInt8>>
+
+    /**
      * @brief[zh-cn] 构造响应
      * @param[zh-cn] code 状态码
      * message 状态消息
      * headers 响应头部（可选）
      * body 正文（可选）
+     * bodyBytes 正文原始字节（可选）
      *
      * @brief[en] Constructs a response
      * @param[en] code Status code
      * message Status message
      * headers Response headers (optional)
-     * body Response body (optional)
+     * body Body (optional)
+     * bodyBytes Raw body bytes (optional)
      */
     public init(code: Int64,
                 message: String,
                 headers!: Array<(String, String)> = [],
-                body!: Option<String> = None) {
+                body!: Option<String> = None,
+                bodyBytes!: Option<Array<UInt8>> = None) {
         this.code = code
         this.message = message
         this.headers = headers
         this.body = body
+        this.bodyBytes = bodyBytes
     }
 
     /**
