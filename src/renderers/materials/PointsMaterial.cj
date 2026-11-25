@@ -35,9 +35,9 @@ package three.renderers.materials
 
 import three.renderers.textures.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 点材质，用于点云渲染，支持点大小和距离衰减

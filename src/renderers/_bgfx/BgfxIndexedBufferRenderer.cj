@@ -30,7 +30,7 @@
  * @explain[en] In WebGL, indexed geometry is drawn via gl.drawElements/gl.drawElementsInstanced; in bgfx, indexed drawing is performed via bgfx_submit_cj with IndexBufferHandle.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 索引缓冲绘制器

@@ -43,9 +43,9 @@ import three.renderers.materials.*
 import three.renderers.cameras.*
 import std.collection.*
 import std.math.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 内部缓存向量，避免重复分配

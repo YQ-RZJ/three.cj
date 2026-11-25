@@ -45,9 +45,9 @@ import three.animation._interfaces.IAnimationClip
 import three.renderers._interfaces.IGeometryProvider
 import std.collection.*
 import std.math.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 import std.io.*
 
 /**

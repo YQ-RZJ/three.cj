@@ -46,7 +46,7 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import three.profiler.*
 import three.profiler.macros.*
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
 

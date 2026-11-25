@@ -50,7 +50,7 @@
  */
 package three.script.vm
 
-import luajit4cj.luajit.*
+import three._vendor.luajit4cj.luajit.*
 import std.core.Ordering
 import three.core.dsa.IHeapNode
 import three.utils.memory.VoidPtr

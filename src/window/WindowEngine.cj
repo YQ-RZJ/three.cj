@@ -107,7 +107,7 @@ import std.collection.*
 import std.collection.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue }
 import std.sync.{ AtomicBool, AtomicInt64 }
 import std.time.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 import three.renderers._interfaces.IRenderBackend
 import three.core.thread.{ Mutex, Condition, SThread, sleepNS }
 import three.resource.pipeline.AssetManager

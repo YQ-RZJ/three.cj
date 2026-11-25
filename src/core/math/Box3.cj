@@ -35,9 +35,9 @@ import std.math.*
 import std.collection.*
 import three.core._interfaces.*
 public import three.core._interfaces.IBox3Expandable
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 3D 轴对齐包围盒类，用最小点和最大点表示

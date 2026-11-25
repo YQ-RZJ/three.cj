@@ -45,8 +45,8 @@
  */
 package three.script.prebind
 
-import openalsoft4cj.efx.EffectType
-import openalsoft4cj.efx.{AL_VOCAL_MORPHER_PHONEME_A, AL_VOCAL_MORPHER_PHONEME_I}
+import three._vendor.openalsoft4cj.efx.EffectType
+import three._vendor.openalsoft4cj.efx.{AL_VOCAL_MORPHER_PHONEME_A, AL_VOCAL_MORPHER_PHONEME_I}
 import three.audio.device.AudioContext
 import three.audio.mixer.AudioEffect
 import three.script.vm.*

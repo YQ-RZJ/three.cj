@@ -37,7 +37,7 @@ import three.renderers.textures.Source
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
-import bgfx4cj.bimg.*
+import three._vendor.bgfx4cj.bimg.*
 import std.collection.*
 import std.fs.*
 import std.io.*

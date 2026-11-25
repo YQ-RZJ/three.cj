@@ -45,9 +45,9 @@ import three.core.math.*
 import three.utils.constants.*
 import std.collection.*
 import std.math.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 透视投影相机

@@ -44,8 +44,8 @@
  */
 protected package three.renderers._bgfx
 import std.collection.HashMap
-import bgfx4cj.bgfx as bgfx
-import bgfx4cj.bx.*
+import three._vendor.bgfx4cj.bgfx as bgfx
+import three._vendor.bgfx4cj.bx.*
 import three.renderers._gfx.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.PtrArray

@@ -34,7 +34,7 @@
 package three.window.ui
 
 import std.core.*
-import imgui4cj.imgui.*
+import three._vendor.imgui4cj.imgui.*
 
 /**
  * @brief[zh-cn] 拖拽源控件

@@ -46,7 +46,7 @@ import three.physics._interfaces.*
 import three.physics.common.*
 import three.physics.backend.*
 import three.physics.world.*
-import jolt4cj.jolt.*
+import three._vendor.jolt4cj.jolt.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.safe.IReleasable

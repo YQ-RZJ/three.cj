@@ -47,9 +47,9 @@ import std.math.*
 import three.core.math.*
 import three.renderers.materials.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 线渲染对象，从一组顶点按顺序连接的连续折线

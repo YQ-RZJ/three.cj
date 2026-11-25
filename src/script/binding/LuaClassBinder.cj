@@ -70,7 +70,7 @@
 package three.script.binding
 
 import std.collection.*
-import luajit4cj.luajit.*
+import three._vendor.luajit4cj.luajit.*
 import three.script.vm.*
 
 // =============================================================================
@@ -578,7 +578,7 @@ public class LuaClassBinder {
                     let ref = LuaObjectRef(selfId)
                     try {
                         let v = g(ref)
-                        LuaVM.pushValue(L, v)
+                        _pushAndRelease(L, v)
                         return 1
                     } catch (e: Exception) {
                         return _pushError(L, "getter ${m.name}.${key}: ${e.message}")
@@ -733,11 +733,31 @@ public class LuaClassBinder {
         try {
             let results = body()
             for (v in results) {
-                LuaVM.pushValue(L, v)
+                _pushAndRelease(L, v)
             }
             return Int32(results.size)
         } catch (e: Exception) {
             return _pushError(L, e.message)
+        }
+    }
+
+    /// 压入返回值并释放其携带的临时注册表引用
+    /// @note 表/函数引用（LuaValue.Table / LuaValue.Function）压栈后栈上已持有强引用，
+    ///       此处成对 luaL_unref，避免每次返回新表都泄漏注册表引用。
+    ///       因此绑定回调返回这类值后不得再使用其 ref（只可返回一次）。
+    private static func _pushAndRelease(L: CPointer<Unit>, v: LuaValue): Unit {
+        LuaVM.pushValue(L, v)
+        _releaseTransient(L, v)
+    }
+
+    /// 递归释放表/函数引用（数组变体逐个释放元素；其余变体无操作）
+    private static func _releaseTransient(L: CPointer<Unit>, v: LuaValue): Unit {
+        if (v.isArray) {
+            for (e in v.arrayValues()) {
+                _releaseTransient(L, e)
+            }
+        } else if (v.isTable || v.isFunction) {
+            v.unrefValue(Box(L))
         }
     }
 

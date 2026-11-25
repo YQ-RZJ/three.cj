@@ -34,9 +34,9 @@
 package three.renderers.buffer
 
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 实例化交错缓冲区类，继承自 InterleavedBuffer

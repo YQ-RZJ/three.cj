@@ -31,7 +31,7 @@
  */
 protected package three.renderers._bgfx
 import std.collection.*
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import three.utils.safe.IReleasable
 
 /**

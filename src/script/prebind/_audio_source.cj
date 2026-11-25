@@ -55,7 +55,7 @@
  */
 package three.script.prebind
 
-import openalsoft4cj.al.SourceState
+import three._vendor.openalsoft4cj.al.SourceState
 import three.audio._interfaces.IAudioEffectSlot
 import three.audio._interfaces.IAudioFilter
 import three.audio.listener.AudioListener

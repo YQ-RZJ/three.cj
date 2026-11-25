@@ -33,9 +33,9 @@
  */
 package three.scene.objects
 
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 图层类，使用位掩码管理 32 个图层的成员关系

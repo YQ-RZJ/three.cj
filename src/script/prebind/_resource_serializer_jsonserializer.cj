@@ -60,7 +60,7 @@
 package three.script.prebind
 
 import three.resource.serializer.JsonSerializer
-import fastjson.stream.JsonStreamSerializable
+import three._vendor.fastjson.stream.JsonStreamSerializable
 import three.script.vm.*
 import three.script.binding.*
 

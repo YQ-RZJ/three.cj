@@ -52,9 +52,9 @@ import three.utils.log.*
 import three.utils.log.macros.*
 import std.collection.*
 import std.math.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 光源阴影配置的抽象基类，各具体光源阴影类型继承本类

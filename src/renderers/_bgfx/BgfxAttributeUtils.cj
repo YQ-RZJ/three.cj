@@ -30,7 +30,7 @@
  * @explain[en] Provides vertex layout creation, stride computation, attribute decode/encode/weld/topology conversion and other CPU-side utility functions.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import three.utils.memory.AutoFreePtr
 import three.utils.memory.PtrArray
 

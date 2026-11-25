@@ -62,14 +62,14 @@
  */
 package three.network.http
 
-import httpclient4cj.Request
-import httpclient4cj.Response
-import httpclient4cj.Call
-import httpclient4cj.Callback
-import httpclient4cj.RequestBody
-import httpclient4cj.RealRequestBody
-import httpclient4cj.MediaType
-import httpclient4cj.HttpClient as TpcHttpClient
+import three._vendor.httpclient4cj.Request
+import three._vendor.httpclient4cj.Response
+import three._vendor.httpclient4cj.Call
+import three._vendor.httpclient4cj.Callback
+import three._vendor.httpclient4cj.RequestBody
+import three._vendor.httpclient4cj.RealRequestBody
+import three._vendor.httpclient4cj.MediaType
+import three._vendor.httpclient4cj.HttpClient as TpcHttpClient
 import std.collection.*
 import std.time.*
 import three.utils.safe.IReleasable

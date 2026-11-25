@@ -38,8 +38,8 @@ protected package three.renderers._bgfx
 import std.collection.*
 public import three.renderers._interfaces.IShaderProgram
 import three.renderers._gfx.*
-import bgfx4cj.bgfx.*
-import bgfx4cj.shaderc.*
+import three._vendor.bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.shaderc.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr

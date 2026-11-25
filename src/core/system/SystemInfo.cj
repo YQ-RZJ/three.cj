@@ -32,7 +32,7 @@
 package three.core.system
 
 import std.core.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 
 /**
  * @brief[zh-cn] 电源状态枚举

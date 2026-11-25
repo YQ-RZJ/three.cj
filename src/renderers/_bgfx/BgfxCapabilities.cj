@@ -30,7 +30,7 @@
  * @explain[en] In WebGL, GPU capabilities are queried via gl.getParameter(); in bgfx, capabilities are obtained via bgfx_get_caps_cj(). This class wraps them into a generic engine interface.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import std.collection.*
 
 /**

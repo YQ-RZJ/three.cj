@@ -53,9 +53,9 @@ import three.scene._interfaces.IScene
 import three.scene._interfaces.IGroup
 import three.renderers._interfaces.IShaderProgram
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 材质抽象基类，所有具体材质类型继承本类

@@ -30,7 +30,7 @@
  * @explain[en] WebGLBackground renders scene backgrounds (solid color, texture, or skybox). bgfx sets clear color via bgfx_set_view_clear_cj.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 背景渲染

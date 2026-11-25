@@ -32,9 +32,9 @@
 package three.core.math
 
 import std.math.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 4x4 矩阵类，列主序存储（elements 数组）

@@ -47,9 +47,9 @@ public import three.scene._interfaces.IMesh
 import three.profiler.*
 import three.profiler.macros.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 网格渲染对象，3D 场景中最常用的三角形面片渲染实体

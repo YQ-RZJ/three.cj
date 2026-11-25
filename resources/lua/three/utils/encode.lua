@@ -5,9 +5,25 @@
 --
 -- 用法：
 --     local encode = require "three.utils.encode"
---     local id = encode.UUID.uuid()
+--     local id  = encode.UUID.uuid()
+--     local b64 = encode.Base64.encode({ 72, 105 })      -- 字节数组 → Base64
+--     local raw = encode.Base64.decode(b64)              -- Base64 → 字节数组
+--     local hex = encode.Hex.encode({ 0, 255 })
+--     local q   = encode.UrlEncode.encodeQuery({ { "a", "1" }, { "b", "2" } })
+--     local h   = encode.MD5.compute("hello")            -- 32 位十六进制摘要
+--     local s   = encode.SHA.sha256("hello")
+--     local f   = encode.Hash.fnv1a32({ 1, 2, 3 })
 --
--- 已绑定类：
---   UUID   纯静态 uuid()（RFC 4122 v4 随机 UUID 字符串）
+-- 已绑定类（全部为纯静态工具，不安装 new）：
+--   UUID         uuid() 生成 RFC 4122 v4 随机 UUID 字符串
+--   Base64       encode(字节数组) → 字符串；decode(字符串) → 字节数组
+--   Hex          encode(字节数组) → 十六进制串；decode(字符串) → 字节数组
+--   UrlEncode    encodeQuery / decodeQuery（二维键值表）；percentEncode / percentDecode
+--   Hash         fnv1a32 / murmurHash32（字节数组 → Int64）
+--   MD5          compute(字符串或字节数组) → 十六进制摘要；computeRaw → 原始字节
+--   SHA          sha1 / sha224 / sha256 / sha384 / sha512（字符串或字节数组）+ 对应 *Raw
+--   GroupVarint  encodeGroup / decodeGroup / encodeStream / decodeStream / worstBufferSize
+--
+-- 字节数组在 Lua 侧统一表示为数值数组（元素取值 0~255）。
 
 return require("three").utils.encode

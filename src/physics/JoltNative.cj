@@ -51,7 +51,7 @@
 package three.physics
 
 import three.core.math.*
-import jolt4cj.jolt.*
+import three._vendor.jolt4cj.jolt.*
 
 /**
  * @brief[zh-cn] Jolt 高级功能共享工具（模块内部，纯函数）

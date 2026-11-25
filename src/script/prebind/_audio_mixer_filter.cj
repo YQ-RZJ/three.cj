@@ -40,7 +40,7 @@
  */
 package three.script.prebind
 
-import openalsoft4cj.efx.FilterType
+import three._vendor.openalsoft4cj.efx.FilterType
 import three.audio.mixer.AudioFilter
 import three.script.vm.*
 import three.script.binding.*

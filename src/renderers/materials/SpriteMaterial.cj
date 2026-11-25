@@ -37,9 +37,9 @@ package three.renderers.materials
 
 import three.renderers.textures.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] Sprite材质，用于精灵图渲染，支持尺寸衰减和UV旋转

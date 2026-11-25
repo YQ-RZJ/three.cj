@@ -19,7 +19,7 @@ refactor: 公开后处理 pass 扩展面，bgfx 后端包私有化
 chore: 调整Pass中上次提交残留的一些bgfx相关注释内容；
 chore: 文件分布优化；
 refactor: 渲染后端抽象层重构，收敛 bgfx 直调至 three.rendering.bgfx
-feat: 为 Lua 预绑定 three.rendering.*(`buffer / textures / geometry / materials / cameras / lights / rendertarget` 和 .B `helpers / postprocessing / ThreeRenderer);
+feat: 为 Lua 预绑定 three.rendering.*(`buffer / textures / geometry / materials / cameras / lights / rendertarget` 和 .B `helpers / postprocessing / ThreeRenderer`);
 feat: 为 Lua 预绑定 three.rendering.buffer/three.rendering.textuer;
 chore: 全量调整 prebind 下的代码文件命名规则；
 chore: 消除对外的指针暴露程度；

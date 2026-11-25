@@ -2144,6 +2144,236 @@ main(): Int64 {
     }
     println("")
 
+    // ---------- 9L. resource.serializer：Lua 侧 JSON 编解码 + 注解装饰器 ----------
+    println("[9L] resource.serializer：JSON 编解码 / JsonName / JsonIgnore / JsonIgnoreNull / JsonCustom / 继承 / 多态")
+    let r9L = runLua(vm, "resource.serializer",
+        "package.path = '../../../resources/lua/?.lua;' .. package.path; " +
+        "local S = require('three.resource.serializer'); local J = S.decorator; " +
+        "local DQ = string.char(34); local BS = string.char(92); local NL = string.char(10); " +
+        "local function Q(v) return DQ .. v .. DQ end " +
+        // ===== 通用编解码 =====
+        "local ordered = S.encode({ b = 2, a = 1 }, { sortKeys = true }); " +
+        "local orderOk = ordered:find('a', 1, true) < ordered:find('b', 1, true); " +
+        "local dec = S.decode('{' .. Q('x') .. ':1,' .. Q('y') .. ':[true,false,null]}'); " +
+        "local decx = dec.x; local decYLen = #dec.y; local decY1 = dec.y[1]; " +
+        "local decY3Null = dec.y[3] == S.null; " +
+        "local qs = 'a' .. DQ .. 'b'; local srt = S.decode(S.encode(qs)); local srtOk = srt == qs; " +
+        "local uni = S.decode(DQ .. BS .. 'u4E2D' .. DQ); local uniOk = uni == '中'; " +
+        "local pretty = S.encode({ a = 1 }, { pretty = 2 }); " +
+        "local prettyOk = pretty:find(NL, 1, true) ~= nil; " +
+        "local ea = S.encode(S.array({})); local eaOk = ea == '[' .. ']'; " +
+        "local nullOk = S.decode('null') == S.null; " +
+        "local validOk = S.isValid('[1,2,3]'); local invalidOk = S.isValid('['); " +
+        // ===== Adapter：字段 / 类型 / 默认值 =====
+        "local Vec = J.Adapter('Vec', { " +
+        "{ name = 'x', type = 'number', default = 0.0 }, " +
+        "{ name = 'y', type = 'number', default = 0.0 } }, " +
+        "{ init = function(o, x, y) o.x = x or 0.0; o.y = y or 0.0 end }); " +
+        "local v = Vec.new(1, 2); local vrt = S.decode(v:toJson()); " +
+        "local vrtX = vrt.x; local vrtY = vrt.y; " +
+        "local v2 = Vec.fromJson('{' .. Q('x') .. ':3,' .. Q('y') .. ':4}'); " +
+        "local v2x = v2.x; local v2y = v2.y; " +
+        // ===== 注解：JsonName / JsonIgnore / JsonIgnoreNull / JsonCustom / ignorePrivate =====
+        "local Player = J.Adapter('Player', { " +
+        "{ name = 'id', type = 'number' }, " +
+        "{ name = 'nick', jsonName = 'nickname' }, " +
+        "{ name = 'cache', ignore = true }, " +
+        "{ name = 'tag', ignoreNull = true }, " +
+        "{ name = 'meta', custom = 'metaJson' }, " +
+        "{ name = '_secret', type = 'string' }, " +
+        "{ name = 'pos', cls = Vec }, " +
+        "{ name = 'path', arrayOf = Vec } }, " +
+        "{ ignorePrivate = true, " +
+        "metaJson = { get = function(o) return { level = o.metaLevel } end, " +
+        "set = function(o, val) o.metaLevel = val and val.level or 0 end }, " +
+        "init = function(o) o.metaLevel = 0 end }); " +
+        "local p = Player.new(); p.id = 7; p.nick = 'neo'; p.cache = 'tmp'; p._secret = 'shh'; " +
+        "p.pos = Vec.new(1.5, 2.5); p.path = { Vec.new(0, 0), Vec.new(1, 0) }; " +
+        "local pJson = p:toJson(); " +
+        "local hasNickname = pJson:find('nickname', 1, true) ~= nil; " +
+        "local noCache = pJson:find('cache', 1, true) == nil; " +
+        "local noSecret = pJson:find('_secret', 1, true) == nil; " +
+        "local noTag = pJson:find('tag', 1, true) == nil; " +
+        "local hasMeta = pJson:find('level', 1, true) ~= nil; " +
+        "local p2 = Player.fromJson(pJson); " +
+        "local p2id = p2.id; local p2nick = p2.nick; local p2meta = p2.metaLevel; " +
+        "local p2posX = p2.pos.x; local p2pathN = #p2.path; local p2path2x = p2.path[2].x; " +
+        "local tagShown = (function() p.tag = 't'; return p:toJson():find('tag', 1, true) ~= nil end)(); " +
+        // ===== 继承：withSuperClass =====
+        "local Boss = J.Adapter('Boss', { { name = 'hp', type = 'number', default = 100 } }, " +
+        "{ withSuperClass = Player }); " +
+        "local b = Boss.new(); b.id = 9; b.nick = 'smith'; b.hp = 250; " +
+        "local bJson = b:toJson(); local bHasParent = bJson:find('nickname', 1, true) ~= nil; " +
+        "local b2 = Boss.fromJson(bJson); local b2hp = b2.hp; local b2nick = b2.nick; " +
+        // ===== 多态：polymorphic + registry =====
+        "local Shape = J.Adapter('Shape', { { name = 'area', type = 'number', default = 0 } }, " +
+        "{ polymorphic = true }); " +
+        "local Circle = J.Adapter('Circle', { { name = 'r', type = 'number', default = 1 } }, " +
+        "{ withSuperClass = Shape }); " +
+        "local c = Circle.new(); c.r = 2; c.area = 12.56; " +
+        "local cJson = c:toJson(); local hasKind = cJson:find('Circle', 1, true) ~= nil; " +
+        "local shaped = Shape.fromJson(cJson); local shapedKind = J.kindOf(shaped); " +
+        "local shapedR = shaped.r; " +
+        "local unknownOk = not pcall(function() Shape.fromJson('{' .. Q('kind') .. ':' .. Q('Nope') .. '}') end); " +
+        "return orderOk, decx, decYLen, decY1, decY3Null, srtOk, uniOk, prettyOk, eaOk, nullOk, " +
+        "validOk, invalidOk, vrtX, vrtY, v2x, v2y, hasNickname, noCache, noSecret, noTag, hasMeta, " +
+        "p2id, p2nick, p2meta, p2posX, p2pathN, p2path2x, tagShown, bHasParent, b2hp, b2nick, " +
+        "hasKind, shapedKind, shapedR, unknownOk")
+    check("resource.serializer 返回有效（35 个值）", r9L.size == 35)
+    if (r9L.size >= 35) {
+        check("encode(sortKeys) 键按字典序输出", r9L[0].boolValue())
+        checkEq("decode 对象字段 x = 1", r9L[1].numberValue(), 1.0)
+        check("decode 数组长度 = 3", r9L[2].intValue() == 3)
+        check("decode 数组 [1] = true", r9L[3].boolValue())
+        check("decode null → S.null 哨兵", r9L[4].boolValue())
+        check("字符串含引号可往返", r9L[5].boolValue())
+        check("unicode 转义解码为 '中'", r9L[6].boolValue())
+        check("pretty 输出含换行", r9L[7].boolValue())
+        check("S.array({}) 编码为 []", r9L[8].boolValue())
+        check("decode('null') = S.null", r9L[9].boolValue())
+        check("isValid('[1,2,3]') = true", r9L[10].boolValue())
+        check("isValid('[') = false", !r9L[11].boolValue())
+        checkEq("Adapter toJson → decode 后 x = 1", r9L[12].numberValue(), 1.0)
+        checkEq("Adapter toJson → decode 后 y = 2", r9L[13].numberValue(), 2.0)
+        checkEq("Adapter.fromJson x = 3", r9L[14].numberValue(), 3.0)
+        checkEq("Adapter.fromJson y = 4", r9L[15].numberValue(), 4.0)
+        check("JsonName：输出键为 nickname", r9L[16].boolValue())
+        check("JsonIgnore：cache 未输出", r9L[17].boolValue())
+        check("ignorePrivate：_secret 未输出", r9L[18].boolValue())
+        check("JsonIgnoreNull：tag 为 nil 时未输出", r9L[19].boolValue())
+        check("JsonCustom：meta 由读写器产出", r9L[20].boolValue())
+        checkEq("往返后 id = 7", r9L[21].numberValue(), 7.0)
+        check("往返后 nick = 'neo'", r9L[22].stringValue() == "neo")
+        checkEq("JsonCustom 反序列化后 metaLevel = 0", r9L[23].numberValue(), 0.0)
+        checkEq("嵌套对象 pos.x = 1.5", r9L[24].numberValue(), 1.5)
+        check("嵌套数组 path 长度 = 2", r9L[25].intValue() == 2)
+        checkEq("嵌套数组 path[2].x = 1", r9L[26].numberValue(), 1.0)
+        check("JsonIgnoreNull：tag 有值时输出", r9L[27].boolValue())
+        check("withSuperClass：子类输出父类字段", r9L[28].boolValue())
+        checkEq("withSuperClass：fromJson 还原 hp = 250", r9L[29].numberValue(), 250.0)
+        check("withSuperClass：fromJson 还原 nick = 'smith'", r9L[30].stringValue() == "smith")
+        check("polymorphic：输出 kind", r9L[31].boolValue())
+        check("polymorphic：按 kind 分派到 Circle", r9L[32].stringValue() == "Circle")
+        checkEq("polymorphic：分派后 r = 2", r9L[33].numberValue(), 2.0)
+        check("polymorphic：未注册 kind 抛错", r9L[34].boolValue())
+    }
+    println("")
+
+    // ---------- 9M. utils.encode：Base64 / Hex / UrlEncode / Hash / MD5 / SHA / GroupVarint ----------
+    println("[9M] utils.encode：Base64 / Hex / UrlEncode / Hash / MD5 / SHA / GroupVarint / 与 serializer 组合")
+    let r9M = runLua(vm, "utils.encode",
+        "package.path = '../../../resources/lua/?.lua;' .. package.path; " +
+        "local E = require('three.utils.encode'); " +
+        // ===== Base64 / Hex =====
+        "local b64 = E.Base64.encode({ 72, 105 }); " +
+        "local raw = E.Base64.decode(b64); " +
+        "local b64Ok = b64 == 'SGk='; " +
+        "local rawOk = #raw == 2 and raw[1] == 72 and raw[2] == 105; " +
+        "local hx = E.Hex.encode({ 0, 255 }); local hxOk = hx == '00ff'; " +
+        "local hxRaw = E.Hex.decode('00ff'); " +
+        "local hxRawOk = #hxRaw == 2 and hxRaw[1] == 0 and hxRaw[2] == 255; " +
+        // ===== UrlEncode =====
+        "local q = E.UrlEncode.encodeQuery({ { 'a b', '1' }, { 'c', '2' } }); " +
+        "local pairsBack = E.UrlEncode.decodeQuery(q); " +
+        "local qOk = #pairsBack == 2 and pairsBack[1][1] == 'a b' and pairsBack[2][2] == '2'; " +
+        "local pe = E.UrlEncode.percentEncode('a b'); " +
+        "local peOk = pe == 'a+b' and E.UrlEncode.percentDecode(pe) == 'a b'; " +
+        // ===== MD5 / SHA / Hash =====
+        "local md5 = E.MD5.compute('abc'); " +
+        "local md5Ok = md5 == '900150983cd24fb0d6963f7d28e17f72'; " +
+        "local sha1 = E.SHA.sha1('abc'); " +
+        "local sha1Ok = sha1 == 'a9993e364706816aba3e25717850c26c9cd0d89d'; " +
+        "local sha256 = E.SHA.sha256({ 97, 98, 99 }); " +
+        "local sha256Ok = sha256 == 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'; " +
+        "local fnv = E.Hash.fnv1a32({ 1, 2, 3 }); " +
+        "local fnvOk = fnv == E.Hash.fnv1a32({ 1, 2, 3 }); " +
+        "local mm = E.Hash.murmurHash32({ 1, 2, 3 }); " +
+        "local mmOk = mm == E.Hash.murmurHash32({ 1, 2, 3 }) and mm ~= nil; " +
+        // ===== GroupVarint =====
+        "local gv = E.GroupVarint.encodeGroup({ 1, 300, 70000, 16909060 }); " +
+        "local gvVals, gvConsumed = E.GroupVarint.decodeGroup(gv, 0); " +
+        "local gvOk = gvVals[1] == 1 and gvVals[2] == 300 and gvVals[3] == 70000 and gvVals[4] == 16909060; " +
+        "local stream = E.GroupVarint.encodeStream({ 1, 2, 3, 4, 5, 6, 7, 8 }); " +
+        "local back = E.GroupVarint.decodeStream(stream, 8); " +
+        "local backOk = #back == 8 and back[5] == 5 and back[8] == 8; " +
+        "local wb = E.GroupVarint.worstBufferSize(8); " +
+        // ===== 与 serializer 组合：@JsonCustom 用 Base64 编码字节字段 =====
+        "local S = require('three.resource.serializer'); local J = S.decorator; " +
+        "local Blob = J.Adapter('Blob', { { name = 'data', custom = 'dataB64' } }, { " +
+        "dataB64 = { get = function(o) return E.Base64.encode(o.raw) end, " +
+        "set = function(o, v) o.raw = E.Base64.decode(v) end } }); " +
+        "local bl = Blob.new(); bl.raw = { 1, 2, 3 }; " +
+        "local bl2 = Blob.fromJson(bl:toJson()); " +
+        "local blOk = #bl2.raw == 3 and bl2.raw[1] == 1 and bl2.raw[3] == 3; " +
+        "return b64Ok, rawOk, hxOk, hxRawOk, qOk, peOk, md5Ok, sha1Ok, sha256Ok, fnvOk, mmOk, " +
+        "gvOk, gvConsumed > 0, backOk, wb, blOk")
+    check("utils.encode 返回有效（16 个值）", r9M.size == 16)
+    if (r9M.size >= 16) {
+        check("Base64.encode({72,105}) = 'SGk='", r9M[0].boolValue())
+        check("Base64.decode 还原字节数组", r9M[1].boolValue())
+        check("Hex.encode({0,255}) = '00ff'", r9M[2].boolValue())
+        check("Hex.decode 还原字节数组", r9M[3].boolValue())
+        check("UrlEncode 查询串往返（二维表）", r9M[4].boolValue())
+        check("UrlEncode.percentEncode('a b') = 'a+b'（表单语义）", r9M[5].boolValue())
+        check("MD5.compute('abc') 标准摘要", r9M[6].boolValue())
+        check("SHA.sha1('abc') 标准摘要", r9M[7].boolValue())
+        check("SHA.sha256(字节数组) 标准摘要", r9M[8].boolValue())
+        check("Hash.fnv1a32 结果稳定", r9M[9].boolValue())
+        check("Hash.murmurHash32 结果稳定", r9M[10].boolValue())
+        check("GroupVarint 单组编解码往返", r9M[11].boolValue())
+        check("GroupVarint.decodeGroup 返回消耗字节数", r9M[12].boolValue())
+        check("GroupVarint 流编解码往返", r9M[13].boolValue())
+        check("GroupVarint.worstBufferSize(8) = 34", r9M[14].intValue() == 34)
+        check("serializer @JsonCustom 复用 Base64 往返", r9M[15].boolValue())
+    }
+    println("")
+
+    // ---------- 9N. resource.serializer.JsonUtil：引擎 JSON 桥接 ----------
+    println("[9N] resource.serializer.JsonUtil：parse / isValid / stringify（pretty / sortKeys / ignoreNull / 数组标记）")
+    let r9N = runLua(vm, "resource.serializer.JsonUtil",
+        "package.path = '../../../resources/lua/?.lua;' .. package.path; " +
+        "local S = require('three.resource.serializer'); local U = S.JsonUtil; " +
+        "local DQ = string.char(34); local NL = string.char(10); " +
+        "local function Q(v) return DQ .. v .. DQ end " +
+        "local doc = U.parse('{' .. Q('n') .. ':1.5,' .. Q('arr') .. ':[1,true,null],' .. Q('s') .. ':' .. Q('hi') .. '}', S.null); " +
+        "local nOk = doc.n == 1.5; " +
+        "local arrOk = #doc.arr == 3 and doc.arr[1] == 1 and doc.arr[2] == true; " +
+        "local arrNullOk = doc.arr[3] == S.null; " +
+        "local sOk = doc.s == 'hi'; " +
+        "local nullTopOk = U.parse('null', S.null) == S.null; " +
+        "local numTopOk = U.parse('42') == 42; " +
+        "local validOk = U.isValid('{' .. Q('a') .. ':[1,2]}'); " +
+        "local badOk = not U.isValid('[') and not U.isValid('{') and not U.isValid('') and not U.isValid('abc'); " +
+        "local txt = U.stringify({ b = 2, a = 1, skip = S.null, arr = { 1, S.null, 3 } }, " +
+        "{ sortKeys = true, ignoreNull = true, nullValue = S.null }); " +
+        "local sortOk = txt:find('a', 1, true) < txt:find('b', 1, true); " +
+        "local skipOk = txt:find('skip', 1, true) == nil; " +
+        "local arrNullKept = txt:find('null', 1, true) ~= nil; " +
+        "local pretty = U.stringify({ a = { b = 1 } }, { pretty = 4 }); " +
+        "local prettyOk = pretty:find(NL .. '    ', 1, true) ~= nil; " +
+        "local emptyObjOk = U.stringify({}) == '{' .. '}'; " +
+        "local arrEmptyOk = U.stringify(S.array({})) == '[' .. ']'; " +
+        "return nOk, arrOk, arrNullOk, sOk, nullTopOk, numTopOk, validOk, badOk, sortOk, skipOk, " +
+        "arrNullKept, prettyOk, emptyObjOk, arrEmptyOk")
+    check("JsonUtil 直接调用返回有效（14 个值）", r9N.size == 14)
+    if (r9N.size >= 14) {
+        check("parse 浮点字段 n = 1.5", r9N[0].boolValue())
+        check("parse 数组 [1,true] 正确", r9N[1].boolValue())
+        check("parse 数组内 null → 哨兵", r9N[2].boolValue())
+        check("parse 字符串字段 s = 'hi'", r9N[3].boolValue())
+        check("parse('null') = 哨兵", r9N[4].boolValue())
+        check("parse('42') = 42", r9N[5].boolValue())
+        check("isValid 合法对象 = true", r9N[6].boolValue())
+        check("isValid 截断/空串/裸标识符 = false", r9N[7].boolValue())
+        check("stringify(sortKeys) 键按字典序", r9N[8].boolValue())
+        check("stringify(ignoreNull) 跳过 null 字段", r9N[9].boolValue())
+        check("stringify(ignoreNull) 数组内 null 保留", r9N[10].boolValue())
+        check("stringify(pretty=4) 按 4 空格缩进", r9N[11].boolValue())
+        check("stringify({}) = '{}'", r9N[12].boolValue())
+        check("stringify(S.array({})) = '[]'", r9N[13].boolValue())
+    }
+    println("")
+
     // ---------- 10. 已登记类在 Lua 侧全部可访问 ----------
     println("[10] 已登记绑定类在 Lua 侧全部可访问")
     let missing = ArrayList<String>()

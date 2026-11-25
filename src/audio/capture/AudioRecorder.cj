@@ -59,8 +59,8 @@
  */
 package three.audio.capture
 
-import openalsoft4cj.alc.*
-import openalsoft4cj.al.*
+import three._vendor.openalsoft4cj.alc.*
+import three._vendor.openalsoft4cj.al.*
 
 import three.audio.device.*
 import three.utils.log.*

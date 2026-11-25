@@ -40,9 +40,9 @@ package three.renderers.buffer
 import three.core.math.*
 import three.utils.constants.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 更新范围，用于标记需要更新到 GPU 的数据范围

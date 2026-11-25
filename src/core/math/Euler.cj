@@ -33,9 +33,9 @@ package three.core.math
 
 import std.math.*
 import std.deriving.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 欧拉角类，用三个角度 (x, y, z) 和旋转顺序 (order) 描述旋转

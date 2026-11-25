@@ -31,7 +31,7 @@
  */
 package three.resource.serializer
 
-import fastjson.stream.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] JSON 序列化便捷工具类

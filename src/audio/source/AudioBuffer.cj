@@ -36,7 +36,7 @@
  */
 package three.audio.source
 
-import openalsoft4cj.al.*
+import three._vendor.openalsoft4cj.al.*
 import three.core._interfaces.ILoadResult
 
 import three.audio.device.*

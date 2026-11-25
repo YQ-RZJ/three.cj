@@ -31,7 +31,7 @@
  */
 protected package three.renderers._bgfx
 import std.collection.*
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] 内存统计信息

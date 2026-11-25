@@ -57,7 +57,7 @@ import three.scene.entity.Mesh
 import three.scene.entity.Line
 import three.scene.entity.Points
 import three.scene.entity.InstancedMesh
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import std.collection.*
 import std.math.*
 import std.runtime.*

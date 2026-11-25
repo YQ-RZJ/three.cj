@@ -30,7 +30,7 @@
  * @explain[en] Lazily creates and caches the full-screen quad vertex/index buffer and layout. Usage: shadow debug mode 6 full-screen blit (shadowblit pass) uses full-screen quad to sample shadow map. Quad: vec3 a_position (NDC [-1,1]) + vec2 a_texcoord0 (V flipped for D3D11).
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import three.utils.memory.AutoFreePtr
 import three.utils.log.*
 import three.utils.log.macros.*

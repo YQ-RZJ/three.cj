@@ -30,7 +30,7 @@
  * @explain[en] Provides standalone static query methods that read capability values directly from bgfx Caps struct, without needing a BgfxCapabilities instance.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 能力查询工具

@@ -39,9 +39,9 @@ import three.core.math.*
 import three.renderers.textures.*
 import three.utils.constants.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] Phong材质，支持镜面高光和光泽度

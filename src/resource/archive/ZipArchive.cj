@@ -61,7 +61,7 @@ import std.fs.*
 import three.utils.memory.AutoFreePtr
 import three.utils.log.*
 import three.utils.log.macros.*
-import bgfx4cj.miniz.*
+import three._vendor.bgfx4cj.miniz.*
 
 /** 本地文件头签名 Local file header signature */
 const ZIP_LOCAL_SIG: UInt32 = 0x04034b50

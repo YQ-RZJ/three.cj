@@ -37,9 +37,9 @@
  */
 package three.renderers.materials
 
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 原始着色器材质，继承ShaderMaterial但不注入内置uniform

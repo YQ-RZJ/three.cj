@@ -40,10 +40,10 @@
  * @package three.renderers._bgfx
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import three.utils.memory.PtrArray
 import three.utils.memory.AutoFreePtr
-import bgfx4cj.bx.*
+import three._vendor.bgfx4cj.bx.*
 
 
 // =============================================================================

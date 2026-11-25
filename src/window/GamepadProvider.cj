@@ -43,7 +43,7 @@
 package three.window
 
 import std.core.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 import three.utils.safe.IReleasable
 
 /**

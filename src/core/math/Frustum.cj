@@ -35,9 +35,9 @@ import std.math.*
 import three.core._interfaces.*
 public import three.core._interfaces.IFrustumCullable
 import three.utils.constants.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 视锥体类，由6个平面定义

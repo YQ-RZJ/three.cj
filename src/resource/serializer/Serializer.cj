@@ -32,8 +32,8 @@
 package three.resource.serializer
 
 // 重公开 fastjson 核心包：JsonUtil / 异常类 / IStreamJsonAdapter<T>
-public import fastjson.*
+public import three._vendor.fastjson.*
 
 // 重公开 fastjson.stream 包：JsonStreamReader / JsonStreamWriter / WriteConfig /
 // JsonStreamSerializable / JsonStreamDeserializable / JsonToken
-public import fastjson.stream.*
+public import three._vendor.fastjson.stream.*

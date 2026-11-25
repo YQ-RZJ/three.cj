@@ -35,8 +35,8 @@ import three.core._interfaces.ILoadResult
 import three.audio.source.AudioBuffer
 import three.profiler.*
 import three.profiler.macros.*
-import openalsoft4cj.miniaudio.*
-import openalsoft4cj.al.*
+import three._vendor.openalsoft4cj.miniaudio.*
+import three._vendor.openalsoft4cj.al.*
 import std.io.*
 
 /**

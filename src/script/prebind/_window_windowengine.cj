@@ -73,7 +73,7 @@
 package three.script.prebind
 
 import std.collection.*
-import sdl4cj.sdl.SDL_Rect
+import three._vendor.sdl4cj.sdl.SDL_Rect
 import three.window.*
 import three.script.vm.*
 import three.script.binding.*

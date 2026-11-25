@@ -30,7 +30,7 @@
  * @explain[en] In WebGL, draws via gl.drawArrays/gl.drawArraysInstanced; in bgfx, submits draw commands via bgfx_submit_cj.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 非索引缓冲绘制器

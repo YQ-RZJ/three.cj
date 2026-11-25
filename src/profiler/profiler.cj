@@ -72,7 +72,7 @@ package three.profiler
 import std.collection.*
 import std.collection.concurrent.*
 import std.sync.*
-import tracy4cj.tracy.*
+import three._vendor.tracy4cj.tracy.*
 
 // =============================================================================
 // Zone — 函数级耗时区间（Tracy zone）

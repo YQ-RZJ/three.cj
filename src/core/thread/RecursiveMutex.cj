@@ -61,7 +61,7 @@ package three.core.thread
 import std.core.*
 import std.sync.AtomicInt64
 import std.sync.AtomicUInt64
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 
 /**
  * @brief[zh-cn] 可重入互斥锁

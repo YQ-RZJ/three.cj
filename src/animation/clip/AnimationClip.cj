@@ -49,9 +49,9 @@ import three.core._interfaces.ILoadResult
 import std.collection.*
 import std.regex.*
 import std.convert.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 import std.io.*
 
 /**

@@ -41,9 +41,9 @@
  */
 package three.audio.source
 
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 import three.renderers.buffer.*
 import three.renderers.geometry.*
@@ -52,9 +52,9 @@ import three.core.time.*
 import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import openalsoft4cj.al.*
-import openalsoft4cj.alc.*
-import openalsoft4cj.efx.*
+import three._vendor.openalsoft4cj.al.*
+import three._vendor.openalsoft4cj.alc.*
+import three._vendor.openalsoft4cj.efx.*
 import std.math.*
 
 import three.audio.device.*

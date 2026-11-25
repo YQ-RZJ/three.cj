@@ -41,7 +41,7 @@
 package three.script.vm
 
 import std.collection.*
-import luajit4cj.luajit.*
+import three._vendor.luajit4cj.luajit.*
 import three.utils.memory.VoidPtr
 import three.utils.safe.IReleasable
 

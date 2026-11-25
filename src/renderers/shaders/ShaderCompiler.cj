@@ -33,7 +33,7 @@ import std.collection.*
 import three.core.thread.{Mutex, Condition, SThread}
 import three.utils.log.*
 import three.utils.log.macros.*
-import bgfx4cj.shaderc.{sc_compile_cj, ScOptions, ScResult}
+import three._vendor.bgfx4cj.shaderc.{sc_compile_cj, ScOptions, ScResult}
 
 // =============================================================================
 // ShaderCompileJob — 单个 shader 编译任务

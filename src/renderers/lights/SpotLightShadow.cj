@@ -42,9 +42,9 @@ import three.core.math.*
 import three.utils.constants.*
 import three.utils.log.*
 import three.utils.log.macros.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 专用于SpotLight的阴影配置，根据光源角度动态调整相机视锥

@@ -43,7 +43,7 @@
  * @package three.renderers._bgfx
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx as bgfx
+import three._vendor.bgfx4cj.bgfx as bgfx
 import three.renderers._gfx.*
 // ============================================================================
 // ===== 句柄翻译（Gfx* ↔ bgfx.*，均为 16 位索引值拷贝） =====

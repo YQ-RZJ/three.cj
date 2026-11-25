@@ -34,7 +34,7 @@ package three.core.thread
 import std.core.*
 import std.collection.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue }
 import std.sync.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 
 // =============================================================================
 // 全局线程池（key → _SysThread 对象）

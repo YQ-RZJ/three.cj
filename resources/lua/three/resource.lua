@@ -13,7 +13,7 @@
 -- 已绑定类型：
 --   cache       Cache
 --   archive     ZipEntry / ZipArchive
---   serializer  JsonSerializer
+--   serializer  JsonSerializer / JsonUtil（JSON 动态编解码桥接）
 --   pipeline    BundleEntry / AssetBundle / AssetBundleBuilder / AssetCache / AssetManager
 --   loader      Loader / LoadingManager / LoaderUtils / StringLoadResult / BytesLoadResult /
 --               ClipsLoadResult / FileLoader / ImageLoader / TextureLoader / CubeTextureLoader /
