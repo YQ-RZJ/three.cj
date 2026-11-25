@@ -15,8 +15,8 @@
   [profile.build]
     incremental = true
     lto = ""
-    [profile.build.combined]
-      three = "dynamic"
+    #[profile.build.combined]
+    #  three = "dynamic"
   [profile.customized-option]
     debug = "-g -Woff all -Won apilevel-check"
     release = "--fast-math -O2 -s -Woff all -Won apilevel-check"
