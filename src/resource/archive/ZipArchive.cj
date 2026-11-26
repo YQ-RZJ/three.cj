@@ -391,7 +391,9 @@ public class ZipArchive {
      * @return[en] true when all entries are processed successfully
      */
     public func extractAll(dir: String, verify!: Bool = true): Bool {
+        @LogError(["archive", "extractAll start dir=${dir} entries=${this._entries.size} verify=${verify}"])
         for (entry in this._entries) {
+            @LogError(["archive", "extractAll entry name=${entry.name} dir=${entry.isDirectory} method=${entry.method} csize=${entry.compressedSize} usize=${entry.uncompressedSize} off=${entry.localOffset} flags=${entry.flags}"])
             if (!ZipArchive.isSafeEntryName(entry.name)) {
                 @LogError(["archive", "extractAll 拒绝不安全条目名 name=${entry.name}"])
                 return false
@@ -411,6 +413,7 @@ public class ZipArchive {
                 }
             } else {
                 if (let Some(data) <- this.readEntry(entry, verify: verify)) {
+                    @LogError(["archive", "extractAll readOk name=${entry.name} bytes=${data.size} target=${target}"])
                     try {
                         // 父目录可能未作为独立条目存在，写文件前先建（幂等）
                         let sep = target.lastIndexOf('/')
@@ -421,6 +424,7 @@ public class ZipArchive {
                             }
                         }
                         File.writeTo(target, data)
+                        @LogError(["archive", "extractAll writeOk name=${entry.name}"])
                     } catch (e: Exception) {
                         @LogError(["archive", "写文件失败 path=${target}: ${e}"])
                         return false
@@ -530,6 +534,7 @@ public class ZipArchive {
             sp.write(s)
             let ret = mz_inflate_cj(sp, MZ_FINISH)
             mz_inflateEnd_cj(sp)
+            @LogError(["archive", "inflate name=${name} csize=${compSize} usize=${uncompSize} ret=${ret}"])
             if (ret != MZ_STREAM_END) {
                 @LogError(["archive", "inflate 失败 ret=${ret} name=${name}"])
                 return false
@@ -556,8 +561,8 @@ public class ZipArchive {
         }
         unsafe {
             for (k in 0..size) { (ptr + k).write(data[k]) }
-            let crc = mz_crc32_cj(MZ_CRC32_INIT, ptr, UIntNative(size))
-            if (crc != expected) {
+            let crc = mz_crc32_cj(toMzUlong(MZ_CRC32_INIT), ptr, UIntNative(size))
+            if (crc != toMzUlong(expected)) {
                 @LogError(["archive", "CRC32 校验失败 got=${crc.toString()} expect=${expected.toString()} name=${name}"])
                 return false
             }
@@ -594,4 +599,19 @@ public class ZipArchive {
         }
         return v
     }
+}
+
+/**
+ * @brief 将 UInt32 转换为 miniz 的 mz_ulong（`type` 别名不能当构造函数调用）
+ * @explain mz_ulong 即 C 的 unsigned long：Windows（LLP64）为 4 字节，
+ *         LP64 平台（OHOS/Linux/macOS）为 8 字节，故按平台条件编译实现转换。
+ */
+@When[os == "Windows"]
+private func toMzUlong(value: UInt32): MzUlong {
+    UInt32(value)
+}
+
+@When[os != "Windows"]
+private func toMzUlong(value: UInt32): MzUlong {
+    UIntNative(value)
 }

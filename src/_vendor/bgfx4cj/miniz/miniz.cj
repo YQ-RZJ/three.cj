@@ -16,8 +16,17 @@ protected package three._vendor.bgfx4cj.miniz
 // Type aliases (C primitive typedefs)
 // =============================================================================
 
-/** @brief unsigned long 类型别名（Windows 下为 UInt32） */
-public type MzUlong = UInt32       // unsigned long (Windows)
+/**
+ * @brief unsigned long 类型别名
+ * @explain miniz 的 mz_ulong 即 C 的 unsigned long：LP64 平台（Linux/OHOS/macOS）
+ *         为 8 字节，Windows（LLP64）为 4 字节。若统一按 UInt32 声明，
+ *         64 位平台下 mz_stream 结构体字段偏移整体错位（next_out/avail_out 错位），
+ *         导致 inflate 读到 avail_out=0 而返回 Z_BUF_ERROR(-5)。
+ */
+@When[os == "Windows"]
+public type MzUlong = UInt32       // unsigned long (Windows LLP64)
+@When[os != "Windows"]
+public type MzUlong = UIntNative   // unsigned long (LP64)
 /** @brief uint8_t 类型别名 */
 public type MzUint8 = UInt8
 /** @brief int16_t 类型别名 */

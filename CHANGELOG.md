@@ -2,12 +2,19 @@
 
 ## Feature
 
+chore: 为资源解压zip部分代码加入更多调试日志；
 feat: 网络模块对外提供原始字节流；
 chore: 集成所有依赖，内置到 _vendor 子包，且不对外公开；
 feat: 加入 serializer lua侧绑定，并补充 lua 侧遗漏的 utils.encode 绑定;
 test: 完善相关测试案例；
 docs: update readme.md;
 docs: update CHANGELOG.md;
+
+## fix
+
+fix: 修复异常类不存在导致的编译错误；
+fix: 修复 `inflate ret=-5` （Z_BUF_ERROR）。既 miniz 的 ABI 类型绑定错误；
+fix: 补齐Android和linux缺失的 -lz 链接选项；
 
 # [1.1.8]
 
