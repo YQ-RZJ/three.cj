@@ -34,9 +34,9 @@
 package three.scene.scenegraph
 import three.core.math.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 线性雾类，随距离线性增加不透明度

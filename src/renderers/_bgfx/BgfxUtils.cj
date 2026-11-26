@@ -31,7 +31,7 @@
  */
 protected package three.renderers._bgfx
 import three.utils.constants.*
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 工具类，提供格式转换和能力查询

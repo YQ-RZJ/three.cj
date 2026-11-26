@@ -44,7 +44,7 @@
 package three.window.ui
 
 import std.core.*
-import imgui4cj.imgui.*
+import three._vendor.imgui4cj.imgui.*
 
 // =============================================================================
 // UiMenuBar — 菜单栏容器

@@ -30,7 +30,7 @@
  * @explain[en] WebGLOutput handles tone mapping and color space conversion. bgfx implements tone mapping through shaders; this class provides configuration interfaces.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 输出处理

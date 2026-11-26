@@ -42,7 +42,7 @@
 package three.window
 
 import std.core.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 
 /**
  * @brief[zh-cn] 鼠标输入提供者

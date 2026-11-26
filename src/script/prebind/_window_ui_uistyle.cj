@@ -85,7 +85,7 @@
  */
 package three.script.prebind
 
-import imgui4cj.imgui.ImVec4
+import three._vendor.imgui4cj.imgui.ImVec4
 import three.core.math.*
 import three.window.ui.*
 import three.script.vm.*

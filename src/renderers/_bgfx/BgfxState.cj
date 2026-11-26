@@ -32,7 +32,7 @@
 protected package three.renderers._bgfx
 import three.utils.constants.*
 import three.core.math.*
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import three.renderers.materials.Material
 import std.collection.*
 

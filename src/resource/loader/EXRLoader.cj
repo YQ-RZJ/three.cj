@@ -37,7 +37,7 @@ import three.renderers.geometry.DataUtils
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr
-import bgfx4cj.tinyexr.*
+import three._vendor.bgfx4cj.tinyexr.*
 import std.collection.*
 import std.fs.*
 import std.io.*

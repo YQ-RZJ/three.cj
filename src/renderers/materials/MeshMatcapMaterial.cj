@@ -38,9 +38,9 @@ package three.renderers.materials
 import three.core.math.*
 import three.renderers.textures.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] Matcap材质，使用材质捕获贴图进行渲染

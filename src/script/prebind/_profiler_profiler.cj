@@ -64,7 +64,7 @@
 package three.script.prebind
 
 import three.profiler.*
-import tracy4cj.tracy.{TracyPlotFormat, TracyMessageSeverity}
+import three._vendor.tracy4cj.tracy.{TracyPlotFormat, TracyMessageSeverity}
 import three.script.vm.*
 import three.script.binding.*
 import std.collection.*

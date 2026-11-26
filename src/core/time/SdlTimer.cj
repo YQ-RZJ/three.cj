@@ -32,7 +32,7 @@
 package three.core.time
 
 import std.core.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 
 /**
  * @brief[zh-cn] SDL 定时器工具（静态方法）

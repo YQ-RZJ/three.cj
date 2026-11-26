@@ -47,9 +47,9 @@ import three.renderers.textures.*
 public import three.core._interfaces.IBackground
 public import three.scene._interfaces.IScene
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 场景，场景图根节点

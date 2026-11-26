@@ -38,9 +38,9 @@ package three.renderers.materials
 import three.core.math.*
 import three.renderers.textures.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 法线材质，将法线向量映射为RGB颜色进行渲染

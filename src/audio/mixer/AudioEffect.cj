@@ -50,7 +50,7 @@
  */
 package three.audio.mixer
 
-import openalsoft4cj.efx.*
+import three._vendor.openalsoft4cj.efx.*
 
 import three.audio.device.*
 import three.audio._interfaces.*

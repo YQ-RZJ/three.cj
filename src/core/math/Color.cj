@@ -36,9 +36,9 @@ import std.collection.*
 import three.utils.constants.*
 import three.core._interfaces.*
 import std.convert.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 颜色类，使用 RGB 分量表示，范围 [0, 1]

@@ -30,7 +30,7 @@
  * @explain[en] engine constants are mapped to WebGL constants; in bgfx, bgfx-defined constants are used directly. All values reference bgfx4cj constants, no hardcoding.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx as bgfx
+import three._vendor.bgfx4cj.bgfx as bgfx
 import three.utils.constants.*
 
 /**

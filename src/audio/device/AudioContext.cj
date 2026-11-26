@@ -68,8 +68,8 @@
  */
 package three.audio.device
 
-import openalsoft4cj.alc.*
-import openalsoft4cj.al.*
+import three._vendor.openalsoft4cj.alc.*
+import three._vendor.openalsoft4cj.al.*
 import std.collection.*
 import std.sync.{ AtomicBool, AtomicInt64, AtomicUInt64 }
 import three.core.thread.*

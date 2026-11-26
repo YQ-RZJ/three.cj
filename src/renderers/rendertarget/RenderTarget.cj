@@ -38,8 +38,8 @@ import three.core.math.*
 import three.core.event.*
 import three.utils.constants.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
 
 /**
  * @brief[zh-cn] 渲染目标选项

@@ -69,7 +69,7 @@ import three.physics._interfaces.*
 import three.physics.common.*
 public import three.physics._interfaces.IPhysicsBackend
 public import three.physics._interfaces.IPhysicsSensorListener
-import jolt4cj.jolt.*
+import three._vendor.jolt4cj.jolt.*
 import std.collection.*
 import three.utils.log.*
 import three.utils.log.macros.*

@@ -41,7 +41,7 @@ package three.window
 
 import std.core.*
 import std.collection.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 
 /**
  * @brief[zh-cn] 键盘输入提供者

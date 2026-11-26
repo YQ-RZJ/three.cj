@@ -34,9 +34,9 @@ package three.core.math
 import std.math.*
 import std.random.*
 import three.core._interfaces.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 @When[cjc_version <= "1.2.0"]
 private struct Vector3Pad {

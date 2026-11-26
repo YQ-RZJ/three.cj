@@ -37,9 +37,9 @@ package three.renderers.buffer
 
 import three.core.math.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 交错缓冲区属性

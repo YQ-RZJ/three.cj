@@ -34,8 +34,8 @@ package three.resource.loader
 import three.core._interfaces.ILoadResult
 import three.animation.clip.*
 import std.collection.*
-import fastjson.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.stream.*
 import std.io.*
 
 /**

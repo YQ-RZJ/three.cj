@@ -47,9 +47,9 @@ import three.renderers.materials.*
 import three.renderers.textures.*
 import three.scene.scenegraph.*
 import three.scene.entity.*
-import bgfx4cj.bimg.*
-import fastjson.*
-import fastjson.stream.*
+import three._vendor.bgfx4cj.bimg.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.stream.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import three.utils.memory.AutoFreePtr

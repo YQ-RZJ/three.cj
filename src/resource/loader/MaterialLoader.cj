@@ -40,8 +40,8 @@ import three.renderers.rendertarget.*
 import three.core.event.*
 import three.renderers.materials.*
 import three.renderers.textures.*
-import fastjson.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.stream.*
 import std.io.*
 import std.fs.*
 

@@ -43,9 +43,9 @@ import three.renderers.materials.*
 import three.utils.log.*
 import three.utils.log.macros.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 线段组渲染对象，从一组顶点两两配对为独立线段

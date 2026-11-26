@@ -72,8 +72,8 @@ import three.renderers.cameras.*
 import three.renderers.lights.*
 import three.scene.entity.*
 import three.animation.clip.*
-import fastjson.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.stream.*
 import std.io.*
 import std.fs.File
 

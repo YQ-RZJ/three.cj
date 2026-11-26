@@ -41,9 +41,9 @@ import three.renderers.rendertarget.*
 import three.core.event.*
 public import three.scene._interfaces.IGroup
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 组，无变换的容器型场景对象

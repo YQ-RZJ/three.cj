@@ -44,9 +44,9 @@ import three.core.time.*
 import three.renderers.rendertarget.*
 import three.core.event.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 光源抽象基类，所有具体光源类型继承本类

@@ -42,9 +42,9 @@ import three.scene.objects.*
 import three.core.time.*
 import three.renderers.rendertarget.*
 import three.core.event.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 环境光，从各方向均匀照射场景的光源

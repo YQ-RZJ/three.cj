@@ -42,7 +42,7 @@
 package three.window.ui
 
 import std.core.*
-import imgui4cj.imgui.*
+import three._vendor.imgui4cj.imgui.*
 import three.core.math.*
 import three.utils.memory.PtrArray
 

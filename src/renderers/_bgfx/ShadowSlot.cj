@@ -30,7 +30,7 @@
  * @explain[en] One render target + depth texture + viewId per light.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 import three.core.math.*
 import std.collection.*
 

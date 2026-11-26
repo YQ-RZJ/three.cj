@@ -58,9 +58,9 @@ import three.core._interfaces.ILoadResult
 import three.utils.allocator.IdAllocator
 import std.math.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 缓冲几何体类，存储三维几何体的顶点数据

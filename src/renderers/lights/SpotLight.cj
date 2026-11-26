@@ -44,9 +44,9 @@ import three.renderers.rendertarget.*
 import three.core.event.*
 import three.renderers.textures.*
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 从某点沿某方向以圆锥形照射的光源

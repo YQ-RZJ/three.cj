@@ -45,9 +45,9 @@ import three.utils.constants.*
 public import three.renderers._interfaces.ICamera
 import std.collection.*
 import std.math.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 相机抽象基类，所有具体相机类型继承本类

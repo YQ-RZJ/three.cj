@@ -40,7 +40,7 @@
 package three.script.vm
 
 import std.sync.*
-import luajit4cj.luajit.*
+import three._vendor.luajit4cj.luajit.*
 import three.utils.safe.IReleasable
 
 /**

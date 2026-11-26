@@ -44,9 +44,9 @@ import three.scene.objects.deepCopyUserData
 import three.core._interfaces.IBackground
 import three.core._interfaces.ILoadResult
 import std.collection.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 纹理资源基类

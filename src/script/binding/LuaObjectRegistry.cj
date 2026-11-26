@@ -47,7 +47,7 @@
 package three.script.binding
 
 import std.collection.*
-import luajit4cj.luajit.*
+import three._vendor.luajit4cj.luajit.*
 import three.script.vm.*
 import three.utils.memory.VoidPtr
 

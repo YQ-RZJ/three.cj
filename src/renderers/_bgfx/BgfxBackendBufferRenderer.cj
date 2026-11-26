@@ -30,7 +30,7 @@
  * @explain[en] Backend layer wrapper that delegates to BgfxBufferRenderer.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bgfx.*
 
 /**
  * @brief[zh-cn] bgfx 后端缓冲绘制器

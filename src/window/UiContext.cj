@@ -41,7 +41,7 @@ package three.window
 
 import std.core.*
 import three.core.thread.{ Mutex, Condition, SThread }
-import imgui4cj.imgui.*
+import three._vendor.imgui4cj.imgui.*
 import three.renderers._interfaces.IRenderBackend
 import three.renderers.common.ViewRegistry
 import three.utils.log.*

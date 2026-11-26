@@ -23,7 +23,7 @@
  *
  * @file[zh-cn] KeyCode 键盘/鼠标常量（three.window 子包）
  * @brief[zh-cn] three.window 自有的键盘/鼠标常量（替代直接依赖 sdl4cj 的 SDL_SCANCODE_* / SDL_BUTTON_*）
- * @explain[zh-cn] 设计目标：上层（WindowEngine/InputEngine 使用者）只需依赖 three，无需 import sdl4cj。
+ * @explain[zh-cn] 设计目标：上层（WindowEngine/InputEngine 使用者）只需依赖 three，无需 import three._vendor.sdl4cj。
  * 数值与 SDL3 物理键码一一对应（跨平台一致），由 WindowEngine 事件泵内部映射。
  * 用法：
  * if (win.isKeyDown(KeyCode.ESCAPE)) { ... }

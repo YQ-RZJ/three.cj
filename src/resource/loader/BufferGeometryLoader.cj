@@ -41,8 +41,8 @@ import three.core.time.*
 import three.renderers.rendertarget.*
 import three.core.event.*
 import three.core.math.*
-import fastjson.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.stream.*
 import std.io.*
 import std.fs.*
 

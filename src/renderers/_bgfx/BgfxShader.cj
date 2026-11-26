@@ -30,8 +30,8 @@
  * @explain[en] In WebGL, shaders are compiled via gl.createShader/gl.shaderSource/gl.compileShader; in bgfx, shaders are compiled via bgfx_create_shader_cj.
  */
 protected package three.renderers._bgfx
-import bgfx4cj.bgfx.*
-import bgfx4cj.bx.*
+import three._vendor.bgfx4cj.bgfx.*
+import three._vendor.bgfx4cj.bx.*
 import three.utils.memory.AutoFreePtr
 
 /**

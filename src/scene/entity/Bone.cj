@@ -36,9 +36,9 @@ import three.scene.objects.*
 import three.core.time.*
 import three.renderers.rendertarget.*
 import three.core.event.*
-import fastjson.*
-import fastjson.macros.*
-import fastjson.stream.*
+import three._vendor.fastjson.*
+import three._vendor.fastjson.macros.*
+import three._vendor.fastjson.stream.*
 
 /**
  * @brief[zh-cn] 骨骼骨，骨骼层次中的一根骨

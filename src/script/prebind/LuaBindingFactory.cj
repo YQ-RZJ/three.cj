@@ -169,6 +169,13 @@ private func _ensureBindingRegistered(): Unit {
     _registerBinding("three.utils.log.Logger") {vm => installLogger(vm)}
     _registerBinding("three.utils.log.LogLevel") {vm => installLogLevel(vm)}
     _registerBinding("three.utils.encode.UUID") {vm => installUUID(vm)}
+    _registerBinding("three.utils.encode.Base64") {vm => installBase64(vm)}
+    _registerBinding("three.utils.encode.Hex") {vm => installHex(vm)}
+    _registerBinding("three.utils.encode.UrlEncode") {vm => installUrlEncode(vm)}
+    _registerBinding("three.utils.encode.Hash") {vm => installHash(vm)}
+    _registerBinding("three.utils.encode.MD5") {vm => installMD5(vm)}
+    _registerBinding("three.utils.encode.SHA") {vm => installSHA(vm)}
+    _registerBinding("three.utils.encode.GroupVarint") {vm => installGroupVarint(vm)}
     _registerBinding("three.utils.constants.Constants") {vm => installConstants(vm)}
     _registerBinding("three.utils.memory.BgfxMemory") {vm => installBgfxMemory(vm)}
     // —— three.utils.memory.PtrArray（按元素类型实例化：UI 控件数值缓冲） ——
@@ -329,6 +336,7 @@ private func _ensureBindingRegistered(): Unit {
     _registerBinding("three.resource.archive.ZipEntry") {vm => installZipEntry(vm)}
     _registerBinding("three.resource.archive.ZipArchive") {vm => installZipArchive(vm)}
     _registerBinding("three.resource.serializer.JsonSerializer") {vm => installJsonSerializer(vm)}
+    _registerBinding("three.resource.serializer.JsonUtil") {vm => installJsonUtil(vm)}
     // —— three.resource.pipeline（AssetBundle / AssetCache / AssetManager） ——
     _registerBinding("three.resource.pipeline.BundleEntry") {vm => installBundleEntry(vm)}
     _registerBinding("three.resource.pipeline.AssetBundle") {vm => installAssetBundle(vm)}

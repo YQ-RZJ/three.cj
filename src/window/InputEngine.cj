@@ -60,7 +60,7 @@
 package three.window
 
 import std.core.*
-import sdl4cj.sdl.*
+import three._vendor.sdl4cj.sdl.*
 
 /**
  * @brief[zh-cn] 输入引擎：键盘/鼠标/手柄/触摸状态查询的统一门面
